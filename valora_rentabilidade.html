@@ -1,0 +1,488 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+:root{
+  --font-title:'Space Grotesk','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+  --bg-0:#0f141a;
+  --bg-1:#141b23;
+  --bg-2:#19212b;
+  --bg-3:#1e2833;
+  --line-1:#2a3440;
+  --line-2:#202a36;
+  --text-1:#e6edf5;
+  --text-2:#9aa7b8;
+  --text-3:#6d7a8d;
+  --green:#4cd483;
+  --amber:#f2b44b;
+  --red:#f26d6d;
+  --cyan:#62c6ff;
+  --blue:#4c8dff;
+  --card-glow:0 10px 32px rgba(6,10,16,0.35);
+  --radius-lg:16px;
+  --radius-md:12px;
+  --radius-sm:9px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-body)}
+html,body{background:var(--bg-0);color:var(--text-1);min-height:100%}
+body{display:flex;justify-content:center}
+.frame{width:100%;max-width:1920px;min-height:100vh;background:radial-gradient(1200px 600px at 85% -50%,rgba(76,141,255,0.12),transparent 60%),radial-gradient(900px 600px at -10% -30%,rgba(98,198,255,0.12),transparent 50%),var(--bg-0);display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:60px;background:rgba(15,20,26,0.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;padding:0 30px;flex-shrink:0}
+.logo-wrap{display:flex;align-items:center;gap:12px}
+.logo-mark{width:34px;height:34px;display:block}
+.logo-btn{background:transparent;border:none;padding:0;cursor:pointer}
+.logo-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:12px}
+.lm{width:34px;height:34px;background:linear-gradient(135deg,#1f354a,#2a5480);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)}
+.lm svg{width:16px;height:16px;stroke:#d9ecff;fill:none;stroke-width:2.5}
+.logo-txt{font-size:16px;font-weight:600;color:var(--text-1);font-family:var(--font-title);letter-spacing:.3px}
+.logo-txt span{color:var(--cyan)}
+.nav-links{display:flex;gap:6px}
+.nl{font-size:13px;padding:6px 14px;border-radius:999px;color:#b8c4d6;cursor:pointer;background:transparent;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.nl.on{color:#ffffff;background:#1f2b39;border-color:#2f3c4b;font-weight:500}
+.nav-r{display:flex;align-items:center;gap:12px}
+.sync{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-2);background:#161f29;padding:6px 12px;border-radius:999px;border:1px solid var(--line-1)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(76,212,131,0.4)}
+.ib{width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--line-1);background:#141c25;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ib svg{width:16px;height:16px;stroke:var(--text-2);fill:none;stroke-width:1.6}
+.av{width:34px;height:34px;border-radius:50%;background:#e7f2ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#0c2b4a;cursor:pointer}
+.body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:230px;flex-shrink:0;background:#121920;border-right:1px solid var(--line-2);padding:22px 0;display:flex;flex-direction:column;gap:6px;overflow:hidden;transition:width 220ms ease,padding 220ms ease,border-color 220ms ease}
+.body.collapsed .sidebar{width:0;padding:0;border-right-color:transparent}
+.body.collapsed .sidebar .sb-section,.body.collapsed .sidebar .sb-divider{opacity:0;pointer-events:none;transition:opacity 160ms ease}
+.sb-section{padding:0 16px;margin-bottom:6px}
+.sb-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:6px 12px 4px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-2);font-size:13px;border:1px solid transparent;text-decoration:none}
+.sb-item.on{background:#192430;color:#e8f1ff;font-weight:500;border-color:#2a3746}
+.sb-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
+.sb-item .badge{margin-left:auto;font-size:10px;background:rgba(242,109,109,0.15);color:#ffb0b0;padding:2px 7px;border-radius:999px}
+.sb-divider{height:1px;background:var(--line-2);margin:8px 16px}
+.main{flex:1;overflow-y:auto;padding:22px 28px 32px;display:flex;flex-direction:column;gap:16px}
+.page-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.page-title h1{font-family:var(--font-title);font-size:24px;font-weight:600;letter-spacing:.2px}
+.page-title .meta{font-size:12px;color:var(--text-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:11px;border:1px solid var(--line-1);background:#141c25;color:var(--text-2)}
+.pill .dot{width:6px;height:6px;border-radius:50%}
+.pill.ok .dot{background:var(--green)}
+.pill.warn .dot{background:var(--amber)}
+.pill.err .dot{background:var(--red)}
+.pill.info .dot{background:var(--cyan)}
+.trust-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line-1);background:#141c25;color:var(--text-1);padding:7px 12px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer}
+.btn.primary{background:linear-gradient(135deg,#1d3a56,#25507a);border-color:#2b4d6c;color:#dcedff}
+.btn.warn{border-color:rgba(242,180,75,0.45);color:#ffd9a8;background:rgba(242,180,75,0.08)}
+.btn.ghost{background:transparent;color:var(--text-2)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--card-glow)}
+.kpi h3{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:10px}
+.kpi .value{font-family:var(--font-title);font-size:22px;font-weight:600}
+.kpi .sub{font-size:11px;color:var(--text-2);margin-top:6px}
+.kpi.hero{grid-column:span 1;background:linear-gradient(135deg,#15202b,#101720);border-color:#2a3a4d}
+.kpi.hero .value{font-size:30px}
+.kpi .trend.up{color:var(--green)}
+.kpi .trend.down{color:var(--red)}
+.kpi .trend.flat{color:var(--amber)}
+.content-row{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.panel{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--radius-lg);box-shadow:var(--card-glow)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-2)}
+.panel-title{font-size:13px;font-weight:600}
+.panel-sub{font-size:11px;color:var(--text-2)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters .btn{padding:5px 10px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:920px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line-2)}
+th{text-transform:uppercase;font-size:10px;letter-spacing:.8px;color:var(--text-3);background:#131b24}
+th:first-child,td:first-child{text-align:left}
+tbody tr:hover{background:#141c25}
+.row-issue{background:rgba(242,109,109,0.05)}
+.row-warn{background:rgba(242,180,75,0.05)}
+.asset{display:flex;align-items:center;gap:10px}
+.asset .icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:#1d2a39;color:#cfe7ff}
+.asset .name{font-size:12px;font-weight:500}
+.asset .desc{font-size:10px;color:var(--text-2)}
+.chart-wrap{padding:16px}
+.chart-shell{height:260px;border-radius:14px;background:linear-gradient(180deg,rgba(76,141,255,0.1),transparent 60%),#121a23;border:1px solid var(--line-2);position:relative;overflow:hidden}
+.chart-grid{position:absolute;inset:0;background-image:linear-gradient(to right,rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:80px 52px}
+.chart-line{position:absolute;inset:20px 18px 32px 18px;background:linear-gradient(90deg,transparent 0,transparent 8%,rgba(98,198,255,0.12) 8%,rgba(98,198,255,0.12) 100%);border-radius:10px}
+.chart-line svg{width:100%;height:100%}
+.chart-legend{display:flex;gap:10px;flex-wrap:wrap;padding-top:12px;font-size:11px;color:var(--text-2)}
+.chart-legend span{display:flex;align-items:center;gap:6px}
+.chart-legend .dot{width:7px;height:7px;border-radius:50%}
+.metric-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.metric-card{padding:10px 12px;border-radius:12px;border:1px solid var(--line-2);background:#121a23}
+.metric-card .label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3)}
+.metric-card .val{font-family:var(--font-title);font-size:16px;margin-top:6px}
+.metric-card .sub{font-size:10px;color:var(--text-2);margin-top:4px}
+.sidebar-col{display:flex;flex-direction:column;gap:14px}
+.side-card{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--radius-lg);box-shadow:var(--card-glow)}
+.side-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);padding:12px 14px;border-bottom:1px solid var(--line-2)}
+.side-card .content{padding:14px}
+.mini-list{display:flex;flex-direction:column;gap:10px}
+.mini-item{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.mini-item span{color:var(--text-2)}
+.feedback{display:flex;flex-direction:column;gap:10px}
+.feedback .issue{padding:10px;border-radius:12px;border:1px solid var(--line-2);background:#121a23}
+.feedback .issue .title{font-size:12px;font-weight:500}
+.feedback .issue .desc{font-size:11px;color:var(--text-2);margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;border-radius:999px;padding:3px 8px;border:1px solid transparent}
+.badge.err{color:#ffb0b0;border-color:rgba(242,109,109,0.35);background:rgba(242,109,109,0.08)}
+.badge.warn{color:#ffd7a4;border-color:rgba(242,180,75,0.35);background:rgba(242,180,75,0.08)}
+.badge.info{color:#b4e6ff;border-color:rgba(98,198,255,0.35);background:rgba(98,198,255,0.08)}
+@media (max-width:1400px){
+  .content-row{grid-template-columns:1fr}
+  .sidebar-col{flex-direction:row;flex-wrap:wrap}
+  .side-card{flex:1;min-width:260px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metric-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:1080px){
+  .sidebar{display:none}
+  .kpis{grid-template-columns:1fr}
+  .metric-row{grid-template-columns:1fr}
+  .table-wrap{overflow:visible}
+  table{min-width:0}
+  thead{display:none}
+  tbody tr{display:block;border:1px solid var(--line-2);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  tbody tr td{display:flex;justify-content:space-between;gap:10px;text-align:left;border-bottom:1px solid var(--line-2)}
+  tbody tr td:last-child{border-bottom:none}
+  tbody tr td::before{content:attr(data-label);color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:.8px}
+}
+</style>
+
+<div class="frame" id="frame">
+  <div class="topbar">
+    <button class="logo-wrap logo-btn" id="logoToggle" type="button" aria-expanded="true" aria-controls="sidebar">
+      <img class="logo-mark" src="LOGO_rebrand.svg" alt="Valora" />
+      <span class="logo-txt">val<span>ora</span></span>
+    </button>
+    <div class="nav-links">
+      <a class="nl" href="valora_carteira.html">carteira</a>
+      <button class="nl">alertas</button>
+      <a class="nl on" href="valora_rentabilidade.html">rentabilidade</a>
+      <a class="nl" href="valora_patrimonio.html">patrimonio</a>
+      <a class="nl" href="valora_proventos.html">proventos</a>
+      <button class="nl">estrategias</button>
+      <button class="nl">comparar</button>
+    </div>
+    <div class="nav-r">
+      <div class="sync"><div class="sync-dot"></div>ultima sincronizacao: ha 14 min</div>
+      <div class="ib"><svg viewBox="0 0 16 16"><path d="M8 2a4 4 0 0 1 4 4c0 3.5 1.5 4.5 1.5 4.5H2.5S4 9.5 4 6a4 4 0 0 1 4-4z"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"/></svg></div>
+      <div class="ib"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></div>
+      <div class="av">MR</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">visao geral</div>
+        <a class="sb-item" href="valora_carteira.html">
+          <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          carteira
+        </a>
+        <a class="sb-item on" href="valora_rentabilidade.html">
+          <svg viewBox="0 0 16 16"><polyline points="2,11 5,7 8,9 11,5 14,7"/></svg>
+          rentabilidade
+        </a>
+        <a class="sb-item" href="valora_patrimonio.html">
+          <svg viewBox="0 0 16 16"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="2" width="3" height="12" rx="1"/></svg>
+          patrimonio
+        </a>
+        <a class="sb-item" href="valora_proventos.html">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+          proventos <span class="badge">3</span>
+        </a>
+      </div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">
+        <div class="sb-label">analise</div>
+        <div class="sb-item">
+          <svg viewBox="0 0 16 16"><path d="M8 2l1.5 4h4l-3.3 2.4 1.3 4L8 10l-3.5 2.4 1.3-4L2.5 6h4z"/></svg>
+          score valora
+        </div>
+        <div class="sb-item">
+          <svg viewBox="0 0 16 16"><path d="M8 14V2M2 8h12"/><circle cx="8" cy="8" r="5"/></svg>
+          preco-teto
+        </div>
+        <div class="sb-item">
+          <svg viewBox="0 0 16 16"><path d="M2 8h12M8 2v12"/><path d="M5 5l6 6M11 5l-6 6"/></svg>
+          comparador
+        </div>
+      </div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">
+        <div class="sb-label">configuracoes</div>
+        <div class="sb-item">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4"/></svg>
+          estrategias
+        </div>
+        <div class="sb-item">
+          <svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+          alertas
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-title">
+        <div>
+          <h1>Rentabilidade</h1>
+          <div class="meta">Comparativo de performance · horizonte multi-periodo · ajuste por proventos</div>
+        </div>
+        <div class="trust-actions">
+          <button class="btn ghost">exportar relatorio</button>
+          <button class="btn">ver detalhes</button>
+          <button class="btn primary">gerar insight automatico</button>
+        </div>
+      </div>
+
+      <section class="kpis" aria-label="Indicadores principais">
+        <div class="kpi hero">
+          <h3>Rentabilidade total</h3>
+          <div class="value">+55,03%</div>
+          <div class="sub"><span class="trend up">+3,64%</span> acima do CDI · desde o inicio</div>
+        </div>
+        <div class="kpi hero">
+          <h3>Ultimos 12 meses</h3>
+          <div class="value">+9,83%</div>
+          <div class="sub"><span class="trend down">-33,95%</span> abaixo do CDI</div>
+        </div>
+        <div class="kpi">
+          <h3>Ultimo mes</h3>
+          <div class="value">-0,76%</div>
+          <div class="sub"><span class="trend down">-167,09%</span> vs CDI no periodo</div>
+        </div>
+        <div class="kpi">
+          <h3>Volatilidade 12m</h3>
+          <div class="value">12,4%</div>
+          <div class="sub">Risco controlado · beta 0,83</div>
+        </div>
+      </section>
+
+      <section class="content-row">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Evolucao da rentabilidade</div>
+              <div class="panel-sub">Comparado com CDI, IBOV e IPCA</div>
+            </div>
+            <div class="filters">
+              <button class="btn">1m</button>
+              <button class="btn">12m</button>
+              <button class="btn primary">inicio</button>
+              <button class="btn">personalizar</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-shell" role="img" aria-label="Grafico de rentabilidade comparada">
+              <div class="chart-grid"></div>
+              <div class="chart-line">
+                <svg viewBox="0 0 640 200" preserveAspectRatio="none">
+                  <polyline points="0,160 60,150 120,130 180,120 240,110 300,100 360,120 420,90 480,80 540,70 640,60" fill="none" stroke="#4c8dff" stroke-width="3"/>
+                  <polyline points="0,170 60,165 120,160 180,150 240,148 300,146 360,142 420,140 480,138 540,135 640,132" fill="none" stroke="#4cd483" stroke-width="2" stroke-dasharray="6 6"/>
+                  <polyline points="0,175 60,172 120,170 180,168 240,165 300,164 360,162 420,160 480,158 540,157 640,156" fill="none" stroke="#62c6ff" stroke-width="2" stroke-dasharray="4 4"/>
+                </svg>
+              </div>
+            </div>
+            <div class="chart-legend">
+              <span><span class="dot" style="background:#4c8dff"></span>Carteira Valora</span>
+              <span><span class="dot" style="background:#4cd483"></span>CDI</span>
+              <span><span class="dot" style="background:#62c6ff"></span>IBOV</span>
+            </div>
+            <div class="metric-row">
+              <div class="metric-card">
+                <div class="label">Excesso vs CDI</div>
+                <div class="val">+3,64%</div>
+                <div class="sub">Acima da meta anual</div>
+              </div>
+              <div class="metric-card">
+                <div class="label">Max drawdown</div>
+                <div class="val">-6,8%</div>
+                <div class="sub">Jan 2025 · recuperado</div>
+              </div>
+              <div class="metric-card">
+                <div class="label">Consistencia</div>
+                <div class="val">7,4/10</div>
+                <div class="sub">8 meses positivos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="sidebar-col">
+          <div class="side-card">
+            <h4>Comparacao rapida</h4>
+            <div class="content">
+              <div class="mini-list">
+                <div class="mini-item"><div>Carteira</div><strong style="color:var(--green)">+55,03%</strong></div>
+                <div class="mini-item"><div>CDI</div><span>+51,39%</span></div>
+                <div class="mini-item"><div>IBOV</div><span>+43,10%</span></div>
+                <div class="mini-item"><div>IPCA+</div><span>+46,80%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="side-card">
+            <h4>Alertas de performance</h4>
+            <div class="content">
+              <div class="feedback">
+                <div class="issue">
+                  <div class="title">Risco abaixo do benchmark</div>
+                  <div class="desc">Volatilidade menor que IBOV, mas retorno marginalmente menor nos ultimos 12m.</div>
+                  <div class="badge warn">revisar alocacao</div>
+                </div>
+                <div class="issue">
+                  <div class="title">Mes com performance negativa</div>
+                  <div class="desc">Impacto concentrado em 2 ativos com drawdown acima de 9%.</div>
+                  <div class="badge err">monitorar</div>
+                </div>
+                <div class="issue">
+                  <div class="title">Proventos ajudaram o retorno</div>
+                  <div class="desc">Renda recorrente elevou a rentabilidade em +1,8 p.p.</div>
+                  <div class="badge info">positivo</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Rentabilidade por ativo</div>
+            <div class="panel-sub">Resultado total com proventos e variacao de preco</div>
+          </div>
+          <div class="filters">
+            <button class="btn">todos</button>
+            <button class="btn">acoes</button>
+            <button class="btn">fiis</button>
+            <button class="btn">etfs</button>
+            <button class="btn">stocks</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ativo</th>
+                <th>Peso</th>
+                <th>Proventos</th>
+                <th>Var. preco</th>
+                <th>Rentab. total</th>
+                <th>Contribuicao</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="asset">
+                    <div class="icon">PT</div>
+                    <div>
+                      <div class="name">PETR4</div>
+                      <div class="desc">Petrobras PN</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Peso">18,2%</td>
+                <td data-label="Proventos">+6,1%</td>
+                <td data-label="Var. preco">+13,6%</td>
+                <td data-label="Rentab. total" style="color:var(--green)">+19,7%</td>
+                <td data-label="Contribuicao">+3,6 p.p.</td>
+                <td data-label="Status"><span class="badge info">acima do alvo</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="asset">
+                    <div class="icon">BB</div>
+                    <div>
+                      <div class="name">BBAS3</div>
+                      <div class="desc">Banco do Brasil</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Peso">14,8%</td>
+                <td data-label="Proventos">+2,4%</td>
+                <td data-label="Var. preco">+2,8%</td>
+                <td data-label="Rentab. total" style="color:var(--green)">+5,2%</td>
+                <td data-label="Contribuicao">+0,9 p.p.</td>
+                <td data-label="Status"><span class="badge info">estavel</span></td>
+              </tr>
+              <tr class="row-warn">
+                <td>
+                  <div class="asset">
+                    <div class="icon">VL</div>
+                    <div>
+                      <div class="name">VALE3</div>
+                      <div class="desc">Vale ON</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Peso">11,4%</td>
+                <td data-label="Proventos">+1,2%</td>
+                <td data-label="Var. preco">-7,2%</td>
+                <td data-label="Rentab. total" style="color:var(--red)">-6,0%</td>
+                <td data-label="Contribuicao">-0,7 p.p.</td>
+                <td data-label="Status"><span class="badge warn">atenção</span></td>
+              </tr>
+              <tr class="row-issue">
+                <td>
+                  <div class="asset">
+                    <div class="icon">MX</div>
+                    <div>
+                      <div class="name">MXRF11</div>
+                      <div class="desc">Maxi Renda FII</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Peso">9,5%</td>
+                <td data-label="Proventos">+4,2%</td>
+                <td data-label="Var. preco">-7,8%</td>
+                <td data-label="Rentab. total" style="color:var(--red)">-3,6%</td>
+                <td data-label="Contribuicao">-0,4 p.p.</td>
+                <td data-label="Status"><span class="badge err">abaixo</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Observatorio do mercado</div>
+            <div class="panel-sub">Sintese de percepcao externa sobre plataformas similares</div>
+          </div>
+          <div class="filters">
+            <button class="btn">ultimos 30d</button>
+            <button class="btn">ultimos 12m</button>
+            <button class="btn primary">revisao manual</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div class="feedback">
+            <div class="issue">
+              <div class="title">Sem reclamacoes publicas visiveis na pagina analisada</div>
+              <div class="desc">A pagina de rentabilidade publica consultada nao exibiu relatos de problemas ou queixas.</div>
+              <div class="badge info">fonte unica</div>
+            </div>
+            <div class="issue">
+              <div class="title">Sugestao de coleta ampliada</div>
+              <div class="desc">Para mapear reclamacoes reais, recomenda-se incluir foruns, redes sociais e sites de suporte.</div>
+              <div class="badge warn">necessita fontes</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+const bodyEl = document.querySelector('.body');
+const logoToggle = document.getElementById('logoToggle');
+
+logoToggle.addEventListener('click', () => {
+  const isCollapsed = bodyEl.classList.toggle('collapsed');
+  logoToggle.setAttribute('aria-expanded', String(!isCollapsed));
+});
+</script>

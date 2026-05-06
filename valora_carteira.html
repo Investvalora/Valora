@@ -37,7 +37,7 @@ body{display:flex;justify-content:center}
 .logo-txt{font-size:16px;font-weight:600;color:var(--text-1);font-family:var(--font-title);letter-spacing:.3px}
 .logo-txt span{color:var(--cyan)}
 .nav-links{display:flex;gap:6px}
-.nl{font-size:13px;padding:6px 14px;border-radius:999px;color:#b8c4d6;cursor:pointer;background:transparent;border:1px solid transparent}
+.nl{font-size:13px;padding:6px 14px;border-radius:999px;color:#b8c4d6;cursor:pointer;background:transparent;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .nl.on{color:#ffffff;background:#1f2b39;border-color:#2f3c4b;font-weight:500}
 .nav-r{display:flex;align-items:center;gap:12px}
 .sync{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-2);background:#161f29;padding:6px 12px;border-radius:999px;border:1px solid var(--line-1)}
@@ -51,7 +51,7 @@ body{display:flex;justify-content:center}
 .body.collapsed .sidebar .sb-section,.body.collapsed .sidebar .sb-divider{opacity:0;pointer-events:none;transition:opacity 160ms ease}
 .sb-section{padding:0 16px;margin-bottom:6px}
 .sb-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:6px 12px 4px}
-.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-2);font-size:13px;border:1px solid transparent}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-2);font-size:13px;border:1px solid transparent;text-decoration:none}
 .sb-item.on{background:#192430;color:#e8f1ff;font-weight:500;border-color:#2a3746}
 .sb-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
 .sb-item .badge{margin-left:auto;font-size:10px;background:rgba(242,109,109,0.15);color:#ffb0b0;padding:2px 7px;border-radius:999px}
@@ -180,11 +180,11 @@ tbody tr:hover{background:#141c25}
       <span class="logo-txt">val<span>ora</span></span>
     </button>
     <div class="nav-links">
-      <button class="nl on">carteira</button>
+      <a class="nl on" href="valora_carteira.html">carteira</a>
       <button class="nl">alertas</button>
-      <button class="nl">rentabilidade</button>
-      <button class="nl">patrimônio</button>
-      <button class="nl">proventos</button>
+      <a class="nl" href="valora_rentabilidade.html">rentabilidade</a>
+      <a class="nl" href="valora_patrimonio.html">patrimônio</a>
+      <a class="nl" href="valora_proventos.html">proventos</a>
       <button class="nl">estratégias</button>
       <button class="nl">comparar</button>
     </div>
@@ -200,22 +200,22 @@ tbody tr:hover{background:#141c25}
     <aside class="sidebar" id="sidebar">
       <div class="sb-section">
         <div class="sb-label">visao geral</div>
-        <div class="sb-item on">
+        <a class="sb-item on" href="valora_carteira.html">
           <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
           carteira
-        </div>
-        <div class="sb-item">
+        </a>
+        <a class="sb-item" href="valora_rentabilidade.html">
           <svg viewBox="0 0 16 16"><polyline points="2,11 5,7 8,9 11,5 14,7"/></svg>
           rentabilidade
-        </div>
-        <div class="sb-item">
+        </a>
+        <a class="sb-item" href="valora_patrimonio.html">
           <svg viewBox="0 0 16 16"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="2" width="3" height="12" rx="1"/></svg>
           patrimonio
-        </div>
-        <div class="sb-item">
+        </a>
+        <a class="sb-item" href="valora_proventos.html">
           <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
           proventos <span class="badge">3</span>
-        </div>
+        </a>
       </div>
       <div class="sb-divider"></div>
       <div class="sb-section">

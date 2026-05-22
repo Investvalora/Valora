@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valora | Cadastro</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+    :root{
+      --font-title:'Space Grotesk','Segoe UI',system-ui,-apple-system,sans-serif;
+      --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+      --bg-0:#0c1218;
+      --bg-1:#111922;
+      --bg-2:#151f29;
+      --line-1:#22303f;
+      --line-2:#1b2733;
+      --text-1:#e6edf5;
+      --text-2:#9aa7b8;
+      --text-3:#6d7a8d;
+      --teal:#48d1c2;
+      --blue:#4c8dff;
+      --amber:#f2b44b;
+      --green:#4cd483;
+      --card-glow:0 18px 40px rgba(6,10,16,0.45);
+      --radius-lg:18px;
+      --radius-md:12px;
+      --radius-sm:9px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-body)}
+    html,body{min-height:100%;background:var(--bg-0);color:var(--text-1)}
+    body{display:block}
+    .frame{width:100%;max-width:none;min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+    .frame::before{content:"";position:absolute;inset:-10% -20%;background:radial-gradient(600px 300px at 10% 10%,rgba(72,209,194,0.12),transparent 60%),radial-gradient(700px 400px at 90% 0%,rgba(76,141,255,0.18),transparent 60%),radial-gradient(600px 420px at 70% 80%,rgba(242,180,75,0.08),transparent 60%);pointer-events:none}
+    .topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line-2);background:rgba(12,18,24,0.7);backdrop-filter:blur(10px);position:relative;z-index:2}
+    .logo-wrap{display:flex;align-items:center;gap:12px}
+    .logo-mark{width:36px;height:36px}
+    .logo-txt{font-size:16px;font-weight:600;color:var(--text-1);font-family:var(--font-title);letter-spacing:.3px}
+    .logo-txt span{color:var(--teal)}
+    .top-actions{display:flex;align-items:center;gap:10px}
+    .tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--line-1);color:var(--text-2);background:rgba(17,25,34,0.7)}
+    .tag .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(76,212,131,0.4)}
+    .ghost-link{font-size:12px;color:var(--text-2);text-decoration:none;border:1px solid transparent;padding:6px 10px;border-radius:999px}
+    .ghost-link:hover{border-color:var(--line-1);color:var(--text-1)}
+
+    .content{flex:1;display:grid;grid-template-columns:1.2fr 0.9fr;gap:32px;padding:36px 28px 46px;position:relative;z-index:1;align-items:stretch;height:calc(100vh - 64px)}
+    .brand{display:flex;flex-direction:column;gap:22px;max-width:620px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-3)}
+    .eyebrow span{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue))}
+    h1{font-family:var(--font-title);font-weight:600;font-size:38px;letter-spacing:.2px;line-height:1.1}
+    .lead{font-size:15px;color:var(--text-2);line-height:1.6}
+    .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .step{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--radius-md);padding:12px 14px;box-shadow:var(--card-glow)}
+    .step .label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3)}
+    .step .value{font-family:var(--font-title);font-size:18px;margin-top:6px}
+    .signal{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .signal-card{background:linear-gradient(135deg,rgba(72,209,194,0.1),rgba(17,25,34,0.85));border:1px solid rgba(72,209,194,0.25);border-radius:var(--radius-lg);padding:14px 16px}
+    .signal-card h3{font-size:13px;font-weight:600;margin-bottom:6px}
+    .signal-card p{font-size:11px;color:var(--text-2);line-height:1.5}
+    .pulse{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-2)}
+    .pulse .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 10px rgba(76,141,255,0.45)}
+
+    .signup-panel{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--radius-lg);padding:22px 22px 18px;box-shadow:var(--card-glow);display:flex;flex-direction:column;gap:16px;position:relative;height:100%;min-height:100%}
+    .signup-panel::after{content:"";position:absolute;inset:auto 16px -12px 16px;height:24px;border-radius:999px;background:linear-gradient(90deg,rgba(72,209,194,0.35),rgba(76,141,255,0.2),rgba(242,180,75,0.3));filter:blur(18px);opacity:.7}
+    .panel-title{font-family:var(--font-title);font-size:20px;font-weight:600}
+    .panel-sub{font-size:12px;color:var(--text-2)}
+    form{display:flex;flex-direction:column;gap:12px;flex:1}
+    label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3)}
+    .field{display:flex;flex-direction:column;gap:6px}
+    input{background:var(--bg-2);border:1px solid var(--line-1);color:var(--text-1);padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;outline:none}
+    input:focus{border-color:rgba(76,141,255,0.6);box-shadow:0 0 0 3px rgba(76,141,255,0.15)}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .link{font-size:12px;color:var(--blue);text-decoration:none}
+    .link:hover{text-decoration:underline}
+    .btn{border:1px solid var(--line-1);background:#141c25;color:var(--text-1);padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn.primary{background:linear-gradient(135deg,#1d3a56,#25507a);border-color:#2b4d6c;color:#dcedff}
+    .btn.secondary{background:transparent;color:var(--text-2)}
+    .support{font-size:11px;color:var(--text-3);margin-top:auto}
+
+    .animate{opacity:0;transform:translateY(14px);animation:rise 0.8s ease forwards}
+    .delay-1{animation-delay:.1s}
+    .delay-2{animation-delay:.2s}
+    .delay-3{animation-delay:.3s}
+    .delay-4{animation-delay:.4s}
+    @keyframes rise{to{opacity:1;transform:translateY(0)}}
+
+    body.is-loading .btn.primary{opacity:.7;cursor:wait}
+    body.is-loading .btn.primary .spinner{display:inline-block}
+    .spinner{display:none;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);border-top-color:#ffffff;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media (max-width:1100px){
+      .content{grid-template-columns:1fr;}
+      .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .signal{grid-template-columns:1fr}
+    }
+    @media (min-width:981px){
+      .content{padding:0;gap:0}
+      .brand{padding:36px 32px 46px}
+      .signup-panel{border-radius:0;border-left:1px solid var(--line-1);box-shadow:none;padding:32px 32px}
+      .signup-panel::after{display:none}
+    }
+    @media (max-width:980px){
+      .topbar{height:auto;flex-wrap:wrap;gap:10px;padding:14px 24px}
+      .top-actions{width:100%;justify-content:space-between}
+      .content{padding:28px 24px 38px;height:auto;min-height:auto}
+      .brand{max-width:100%}
+      .signup-panel{order:1}
+      .brand{order:2}
+    }
+    @media (max-width:720px){
+      .row{flex-direction:column;align-items:flex-start}
+      .btn{width:100%}
+      .top-actions{flex-wrap:wrap;gap:8px}
+    }
+    @media (max-width:640px){
+      .topbar{padding:12px 18px}
+      .content{padding:28px 18px 36px}
+      h1{font-size:30px}
+      .steps{grid-template-columns:1fr}
+    }
+    @media (max-width:540px){
+      .top-actions .tag{display:none}
+      .content{padding:24px 16px 30px}
+      h1{font-size:26px}
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <header class="topbar">
+      <div class="logo-wrap">
+        <img class="logo-mark" src="LOGO_rebrand.svg" alt="Valora" />
+        <span class="logo-txt">val<span>ora</span></span>
+      </div>
+      <div class="top-actions">
+        <span class="tag"><span class="dot"></span>ambiente seguro</span>
+        <a class="ghost-link" href="valora_login.html">entrar</a>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="brand">
+        <span class="eyebrow animate"><span></span>cadastro rapido</span>
+        <h1 class="animate delay-1">Comece a organizar sua carteira em minutos.</h1>
+        <p class="lead animate delay-2">Crie sua conta com o minimo de dados e comece a acompanhar posicoes, alertas e historico em um unico painel.</p>
+
+        <div class="steps animate delay-3" aria-label="Etapas do cadastro">
+          <div class="step">
+            <div class="label">1. Dados basicos</div>
+            <div class="value">nome e contato</div>
+          </div>
+          <div class="step">
+            <div class="label">2. Configurar</div>
+            <div class="value">preferencias</div>
+          </div>
+          <div class="step">
+            <div class="label">3. Acompanhar</div>
+            <div class="value">carteira pronta</div>
+          </div>
+        </div>
+
+        <div class="signal animate delay-4">
+          <div class="signal-card">
+            <h3>Sem burocracia</h3>
+            <p>Voce entra com dados simples e ja comeca a acompanhar o painel principal.</p>
+            <div class="pulse" style="margin-top:10px"><span class="dot"></span>ativacao rapida</div>
+          </div>
+          <div class="signal-card">
+            <h3>Centralize tudo</h3>
+            <p>Organize posicoes, riscos e ganhos com alertas e visoes prontas.</p>
+            <div class="pulse" style="margin-top:10px"><span class="dot"></span>painel completo</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="signup-panel animate delay-2">
+        <div>
+          <div class="panel-title">Criar conta na Valora</div>
+          <div class="panel-sub">Informe os dados abaixo para iniciar seu acesso.</div>
+        </div>
+
+        <form id="signupForm" action="valora_carteira.html" method="GET">
+          <div class="field">
+            <label for="name">Nome completo</label>
+            <input id="name" name="name" type="text" placeholder="Seu nome completo" required autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="phone">Celular</label>
+            <input id="phone" name="phone" type="tel" placeholder="(11) 90000-0000" required autocomplete="tel" />
+          </div>
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input id="email" name="email" type="email" placeholder="seunome@dominio.com" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="password">Senha</label>
+            <input id="password" name="password" type="password" placeholder="Digite sua senha" required autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirmar senha</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Confirme sua senha" required autocomplete="new-password" />
+          </div>
+
+          <div class="row">
+            <a class="link" href="valora_login.html">ja tenho conta</a>
+          </div>
+
+          <button class="btn primary" id="signupButton" type="submit" aria-busy="false">
+            <span class="spinner" aria-hidden="true"></span>
+            criar conta e abrir carteira
+          </button>
+        </form>
+
+        <div class="support">Precisa de ajuda? <strong>Fale com o time</strong> a qualquer momento.</div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const signupForm = document.getElementById('signupForm');
+    const signupButton = document.getElementById('signupButton');
+
+    signupForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (document.body.classList.contains('is-loading')) {
+        return;
+      }
+      document.body.classList.add('is-loading');
+      signupButton.setAttribute('aria-busy', 'true');
+      signupButton.disabled = true;
+      setTimeout(() => {
+        window.location.href = signupForm.getAttribute('action');
+      }, 650);
+    });
+  </script>
+</body>
+</html>

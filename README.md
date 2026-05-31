@@ -182,4 +182,4 @@ Características de UX observadas:
 
 O Valora se apresenta como uma solução de acompanhamento financeiro com foco em consolidação de carteira e visualização analítica. O conjunto de telas cobre o ciclo principal do usuário, desde o acesso inicial até a consulta de patrimônio, proventos e rentabilidade.
 
-Como complemento ao relatório original, este documento adiciona a descrição consolidada dos requisitos, das telas e das regras de negócio observadas nas interfaces implementadas.
+Como complemento ao relatório original, este documento adiciona a descrição consolidada dos requisitos, das telas e das regras de negócio observadas nas interfaces implementadas...

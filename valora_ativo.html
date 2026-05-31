@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valora | PETR4 | Detalhe do ativo</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+    :root{
+      --font-title:'Space Grotesk','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      --font-body:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      --bg:#0f141a;
+      --surface:#141b23;
+      --surface-2:#19212b;
+      --surface-3:#1e2833;
+      --line:#2a3440;
+      --line-strong:#202a36;
+      --text:#e6edf5;
+      --text-2:#9aa7b8;
+      --text-3:#6d7a8d;
+      --primary:#4c8dff;
+      --primary-2:#62c6ff;
+      --primary-soft:#1f2b39;
+      --green:#16a34a;
+      --green-soft:rgba(76,212,131,0.12);
+      --red:#dc2626;
+      --red-soft:rgba(242,109,109,0.12);
+      --amber:#f59e0b;
+      --amber-soft:rgba(242,180,75,0.12);
+      --shadow:0 10px 32px rgba(6,10,16,0.35);
+      --shadow-soft:0 8px 20px rgba(6,10,16,0.28);
+      --radius-xl:24px;
+      --radius-lg:20px;
+      --radius-md:14px;
+      --radius-sm:10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-body)}
+    html{min-height:100%;scroll-behavior:smooth;scroll-padding-top:112px;background:var(--bg)}
+    body{min-height:100%;background:
+      radial-gradient(1200px 600px at 85% -50%,rgba(76,141,255,0.12),transparent 60%),
+      radial-gradient(900px 600px at -10% -30%,rgba(98,198,255,0.12),transparent 50%),
+      var(--bg);
+      color:var(--text);overflow-x:hidden;color-scheme:dark}
+    body::before,body::after{content:"";position:fixed;pointer-events:none;z-index:0;border-radius:50%}
+    body::before{width:360px;height:360px;right:-120px;top:120px;background:radial-gradient(circle,rgba(76,141,255,0.10),transparent 66%)}
+    body::after{width:460px;height:460px;left:-180px;bottom:-180px;background:radial-gradient(circle,rgba(98,198,255,0.08),transparent 68%)}
+    a{color:inherit}
+    button,input{font:inherit}
+    .skip-link{position:absolute;left:16px;top:-48px;z-index:60;background:var(--primary);color:#fff;padding:10px 14px;border-radius:999px;text-decoration:none;transition:top .2s ease}
+    .skip-link:focus{top:14px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .shell{position:relative;z-index:1;min-height:100vh}
+    .header{position:fixed;inset:0 0 auto 0;z-index:40;background:rgba(15,20,26,0.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--line-strong)}
+    .header-inner{max-width:1680px;margin:0 auto;min-height:84px;padding:14px 24px;display:flex;align-items:center;gap:16px}
+    .brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:inherit;flex-shrink:0}
+    .brand:focus-visible{outline:2px solid var(--primary-2);outline-offset:4px;border-radius:14px}
+    .brand-mark{width:36px;height:36px;display:block}
+    .brand-text{font-size:18px;font-weight:700;font-family:var(--font-title);letter-spacing:.2px}
+    .brand-text span{color:var(--primary)}
+    .nav{flex:1;display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+    .nav-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--text-2);text-decoration:none;font-size:13px;font-weight:600;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+    .nav-link:hover{background:#1f2b39;border-color:#2f3c4b;color:#ffffff}
+    .nav-link:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .nav-link.is-current,.nav-link[aria-current="page"]{background:#1f2b39;border-color:#2f3c4b;color:#ffffff}
+    .header-tools{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto}
+    .search{position:relative;min-width:280px;flex:1}
+    .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--text-3);fill:none;stroke-width:1.8;pointer-events:none}
+    .search input{width:100%;height:42px;border-radius:999px;border:1px solid var(--line);background:var(--surface);padding:0 16px 0 40px;color:var(--text);font-size:13px;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    .search input::placeholder{color:var(--text-3)}
+    .search input:focus{border-color:rgba(76,141,255,0.55);box-shadow:0 0 0 4px rgba(76,141,255,0.12)}
+    .icon-btn,.avatar{width:42px;height:42px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;position:relative;box-shadow:var(--shadow-soft);transition:transform .15s ease,border-color .15s ease}
+    .icon-btn:hover,.avatar:hover,.btn:hover,.period-tab:hover,.nav-link:hover{transform:translateY(-1px)}
+    .icon-btn:focus-visible,.avatar:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .icon-btn svg{width:18px;height:18px;stroke:var(--text-2);fill:none;stroke-width:1.8}
+    .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+    .avatar{background:#1f2b39;color:#d9ecff;font-weight:700;font-size:12px;letter-spacing:.3px}
+    .main{max-width:1680px;margin:0 auto;padding:112px 24px 34px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:1}
+    .hero,.card{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-xl);box-shadow:var(--shadow)}
+    .hero{padding:24px;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,0.85fr);gap:20px;scroll-margin-top:112px}
+    .hero-copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-3);font-weight:700}
+    .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+    .hero-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .asset-id{min-width:0}
+    .asset-id h1{font-family:var(--font-title);font-size:26px;font-weight:700;letter-spacing:-0.3px;line-height:1.05}
+    .asset-id .sub{margin-top:8px;color:var(--text-2);font-size:13px;line-height:1.5}
+    .asset-pill{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;background:rgba(76,141,255,0.12);border:1px solid rgba(76,141,255,0.24);color:#d9ecff;font-size:12px;font-weight:700}
+    .price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .price-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .price{font-family:var(--font-title);font-size:48px;font-weight:800;letter-spacing:-1px;line-height:1}
+    .price-meta{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;color:var(--text-2);font-size:13px}
+    .price-change{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:700;font-size:16px}
+    .price-delta{font-size:13px;color:var(--text-2)}
+    .price-status{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:var(--green-soft);color:#166534;border:1px solid #bbf7d0;font-size:12px;font-weight:700}
+    .meta-row{display:flex;flex-wrap:wrap;gap:10px 16px;color:var(--text-2);font-size:13px}
+    .chip-row{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:12px;color:var(--text-2);line-height:1.2}
+    .chip strong{color:var(--text);font-weight:700}
+    .chip.primary{border-color:rgba(76,141,255,0.25);background:rgba(76,141,255,0.10);color:#d9ecff}
+    .chip.primary strong{color:#d9ecff}
+    .chip.warning{border-color:rgba(242,180,75,0.28);background:rgba(242,180,75,0.10);color:#ffd9a8}
+    .chip.warning strong{color:#ffd9a8}
+    .chip.muted{background:var(--surface-2)}
+    .hero-side{display:flex;flex-direction:column;gap:14px;justify-content:space-between}
+    .snapshot{height:100%;padding:18px;border-radius:22px;background:linear-gradient(180deg,var(--surface-2) 0%,var(--surface) 100%);border:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+    .card-kicker{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-3);font-weight:700}
+    .status-list{display:flex;flex-direction:column;gap:10px}
+    .status-list div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .status-list span{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--text-3);font-weight:700}
+    .status-list strong{font-size:13px;color:var(--text);font-weight:700;text-align:right}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);text-decoration:none;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease}
+    .btn:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 10px 18px rgba(76,141,255,0.18)}
+    .btn.primary:hover{background:#5a99ff}
+    .btn.secondary{background:var(--surface);color:#d9ecff;border-color:rgba(76,141,255,0.22)}
+    .btn.ghost{background:var(--surface-2);color:var(--text-2)}
+    .btn.is-active{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22);color:#d9ecff}
+    .btn .btn-label{display:inline-flex;align-items:center;gap:6px}
+    .analysis-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,0.95fr);gap:16px;align-items:start}
+    .card{padding:0;scroll-margin-top:112px}
+    .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 0}
+    .card-head h2{font-family:var(--font-title);font-size:18px;font-weight:700;letter-spacing:-0.2px;margin-top:4px}
+    .card-head-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);font-size:11px;font-weight:700;letter-spacing:.1px}
+    .pill.good{border-color:rgba(76,212,131,0.22);background:rgba(76,212,131,0.10);color:#b9f1cf}
+    .pill.warn{border-color:rgba(242,180,75,0.22);background:rgba(242,180,75,0.10);color:#ffd9a8}
+    .pill.neutral{border-color:rgba(76,141,255,0.22);background:rgba(76,141,255,0.10);color:#d9ecff}
+    .chart-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:16px 20px 0}
+    .stat{padding:13px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .stat .label{display:block;font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);font-weight:700}
+    .stat .value{display:block;margin-top:8px;font-family:var(--font-title);font-size:19px;font-weight:700;color:var(--text)}
+    .stat .sub{display:block;margin-top:4px;font-size:11px;color:var(--text-2)}
+    .period-toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px 0}
+    .period-tab{height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text-2);font-size:12px;font-weight:700;cursor:pointer;transition:transform .15s ease,border-color .15s ease,background .15s ease,color .15s ease}
+    .period-tab.is-active{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22);color:#d9ecff}
+    .period-tab:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .chart-shell{height:340px;margin:16px 20px 0;border-radius:20px;border:1px solid var(--line);background:
+      linear-gradient(180deg, rgba(76,141,255,0.08), rgba(76,141,255,0) 42%),
+      linear-gradient(180deg,var(--surface-2) 0%,var(--surface) 100%);
+      overflow:hidden;position:relative}
+    .chart-shell::before{content:"";position:absolute;inset:0;background-image:linear-gradient(to right,rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,0.05) 1px,transparent 1px);background-size:82px 68px;pointer-events:none;opacity:.45}
+    .chart-svg{display:block;width:100%;height:100%;position:relative;z-index:1}
+    .chart-grid-line{stroke:#253041;stroke-width:1}
+    .chart-axis-label{fill:#94a3b8;font-size:12px;font-weight:600;font-family:var(--font-body)}
+    .chart-area{fill:url(#chartFill);stroke:none}
+    .chart-line{fill:none;stroke:var(--primary-2);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+    .chart-target{fill:none;stroke:#f59e0b;stroke-width:2.5;stroke-dasharray:10 8;stroke-linecap:round}
+    .chart-target-label{fill:#b45309;font-size:12px;font-weight:700;font-family:var(--font-body)}
+    .chart-last-point{fill:var(--primary-2);stroke:var(--surface);stroke-width:4}
+    .chart-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 20px 18px;flex-wrap:wrap}
+    .legend{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;font-size:12px;color:var(--text-2)}
+    .legend span{display:inline-flex;align-items:center;gap:8px}
+    .swatch{width:10px;height:10px;border-radius:999px;display:inline-block}
+    .swatch.current{background:var(--primary-2)}
+    .swatch.target{background:var(--amber)}
+    .swatch.range{background:#cbd5e1}
+    .chart-note{max-width:480px;font-size:12px;color:var(--text-2);line-height:1.5}
+    .indicator-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px 20px 20px}
+    .indicator{padding:14px 14px 15px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .indicator .label{display:block;font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);font-weight:700}
+    .indicator .value{display:block;margin-top:8px;font-family:var(--font-title);font-size:19px;font-weight:700;letter-spacing:-.2px}
+    .indicator .sub{display:block;margin-top:4px;font-size:11px;color:var(--text-2)}
+    .score-card,.valuation-card,.timeline-card,.events-card{padding-bottom:18px;scroll-margin-top:112px}
+    .score-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;padding:16px 20px 0;align-items:start}
+    .score-ring-wrap{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+    .score-ring{--score:78;width:160px;height:160px;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--score) * 1%), #2a3440 0);padding:12px;position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04)}
+    .score-ring::after{content:"";position:absolute;inset:12px;border-radius:50%;background:var(--surface);border:1px solid var(--line)}
+    .score-inner{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--surface) 0%,var(--surface-2) 100%)}
+    .score-value{font-family:var(--font-title);font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1}
+    .score-max{font-size:14px;color:var(--text-3);font-weight:700}
+    .score-caption{font-size:12px;color:var(--text-2);line-height:1.5;max-width:190px}
+    .score-caption strong{display:block;margin-bottom:4px;color:var(--text);font-size:13px}
+    .composition{display:flex;flex-direction:column;gap:12px}
+    .composition-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;border-bottom:1px solid var(--line)}
+    .composition-row:last-child{border-bottom:none;padding-bottom:0}
+    .row-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--text-2);font-weight:700}
+    .row-head strong{color:var(--text);font-size:12px}
+    .meter{height:9px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+    .meter span{display:block;height:100%;border-radius:999px;background:var(--primary-2)}
+    .meter.growth span{background:var(--green)}
+    .meter.solidity span{background:var(--amber)}
+    .breakdown-list{display:grid;gap:10px;padding:14px 20px 0}
+    .breakdown-item{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .breakdown-item span{font-size:13px;font-weight:700;color:var(--text);line-height:1.45}
+    .breakdown-item em{font-style:normal;font-size:12px;color:var(--text-2);text-align:right;line-height:1.45;max-width:180px}
+    .method-details{margin:6px 20px 0}
+    .method-details summary{display:flex;align-items:center;justify-content:center;min-height:32px;width:100%;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;list-style:none;transition:transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease}
+    .method-details summary::-webkit-details-marker{display:none}
+    .method-details summary:hover{transform:translateY(-1px)}
+    .method-details[open] summary{border-color:rgba(76,141,255,0.22);background:rgba(76,141,255,0.10);color:#d9ecff}
+    .method-details .method-box{margin:12px 0 0;padding:14px 16px;border-radius:16px;border:1px solid rgba(76,141,255,0.22);background:rgba(76,141,255,0.08);scroll-margin-top:112px}
+    .method-box strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:#d9ecff;font-weight:800;margin-bottom:6px}
+    .method-box p{font-size:12px;line-height:1.6;color:var(--text-2)}
+    .valuation-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 20px 0}
+    .valuation-price{font-family:var(--font-title);font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.02;margin-top:2px}
+    .method-badge{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:rgba(242,180,75,0.10);border:1px solid rgba(242,180,75,0.22);color:#ffd9a8;font-size:10px;font-weight:700}
+    .valuation-copy{padding:2px 20px 0;font-size:10px;line-height:1.35;color:var(--text-2)}
+    .valuation-compare{padding:6px 20px 0}
+    .compare-labels{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;font-size:9px;color:var(--text-2);font-weight:700;flex-wrap:wrap}
+    .compare-track{position:relative;height:30px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+    .compare-fill{position:absolute;left:0;top:0;bottom:0;width:78%;background:linear-gradient(90deg, rgba(76,141,255,0.82), rgba(98,198,255,0.5));border-radius:16px}
+    .compare-marker{position:absolute;top:-10px;bottom:-10px;width:2px;background:#d9ecff;box-shadow:0 0 0 1px rgba(255,255,255,0.04);transform:translateX(-1px)}
+    .compare-marker.current{background:var(--primary);box-shadow:0 0 0 1px rgba(76,141,255,0.18)}
+    .compare-marker.target{right:0;transform:none;background:var(--amber);box-shadow:0 0 0 1px rgba(242,180,75,0.18)}
+    .compare-marker span{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:4px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--text-2);font-size:11px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow-soft)}
+    .compare-marker.target span{left:auto;right:8px;transform:none}
+    .valuation-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px 20px 0}
+    .valuation-stats div{padding:8px 10px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .valuation-stats span{display:block;font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);font-weight:700}
+    .valuation-stats strong{display:block;margin-top:3px;font-family:var(--font-title);font-size:15px;font-weight:700;color:var(--text)}
+    .timeline,.event-list{display:flex;flex-direction:column;gap:10px;padding:16px 20px 0}
+    .timeline-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .timeline-icon{width:34px;height:34px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;background:rgba(76,141,255,0.12);color:#d9ecff}
+    .timeline-icon.warning{background:rgba(242,180,75,0.10);color:#ffd9a8}
+    .timeline-icon.positive{background:rgba(76,212,131,0.12);color:#b9f1cf}
+    .timeline-icon.neutral{background:rgba(76,141,255,0.10);color:#d9ecff}
+    .timeline-content{display:flex;flex-direction:column;gap:6px}
+    .timeline-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .timeline-head strong{font-size:13px;line-height:1.45;color:var(--text)}
+    .timeline-head .time{font-size:11px;color:var(--text-3);font-weight:700;white-space:nowrap}
+    .timeline-content p{font-size:12px;line-height:1.55;color:var(--text-2)}
+    .status-chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.9px}
+    .status-chip.opportunity{background:rgba(76,212,131,0.12);color:#b9f1cf}
+    .status-chip.attention{background:rgba(242,109,109,0.12);color:#ffb0b0}
+    .status-chip.positive{background:rgba(76,141,255,0.10);color:#d9ecff}
+    .status-chip.neutral{background:var(--surface-2);color:var(--text-2)}
+    .event-item{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .event-item strong{display:block;font-size:13px;color:var(--text);line-height:1.45}
+    .event-item p{margin-top:6px;font-size:12px;line-height:1.55;color:var(--text-2)}
+    .impact{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;white-space:nowrap}
+    .impact.positive{background:rgba(76,212,131,0.12);color:#b9f1cf}
+    .impact.neutral{background:rgba(76,141,255,0.10);color:#d9ecff}
+    .impact.attention{background:rgba(242,109,109,0.12);color:#ffb0b0}
+    .impact.warn{background:rgba(242,180,75,0.12);color:#ffd9a8}
+    .card-footer-link{padding:14px 20px 0}
+    .card-footer-link .btn{width:100%}
+    .toast-stack{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;flex-direction:column;gap:10px;width:min(92vw,360px);pointer-events:none}
+    .toast{padding:12px 14px;border-radius:16px;background:#111827;color:#fff;box-shadow:var(--shadow);font-size:13px;line-height:1.45;opacity:0;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease}
+    .toast.is-visible{opacity:1;transform:translateY(0)}
+    .toast strong{display:block;margin-bottom:2px}
+    @media (max-width:1220px){
+      .hero,.analysis-grid,.grid-two,.bottom-grid{grid-template-columns:1fr}
+      .hero{padding:20px}
+      .main{padding-bottom:28px}
+      .chart-stats,.indicator-grid,.bottom-grid,.valuation-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .score-layout{grid-template-columns:1fr;justify-items:start}
+      .score-ring-wrap{align-items:flex-start;text-align:left}
+      .score-caption{max-width:100%}
+    }
+    @media (max-width:1180px){
+      .header-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand tools" "search search" "nav nav";gap:10px 12px;align-items:center;min-height:auto;padding:12px 16px 14px}
+      .brand{grid-area:brand}
+      .header-tools{grid-area:tools;width:auto;margin-left:0;justify-content:flex-end}
+      .search{grid-area:search;min-width:0;width:100%}
+      .nav{grid-area:nav;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+      .nav::-webkit-scrollbar{display:none}
+      .main{padding-top:176px;padding-left:18px;padding-right:18px}
+    }
+    @media (max-width:900px){
+      .chart-stats,.indicator-grid,.valuation-stats{grid-template-columns:1fr}
+      .timeline-item,.event-item{grid-template-columns:1fr}
+      .timeline-icon{display:none}
+      .event-item .impact{justify-self:start}
+    }
+    @media (max-width:760px){
+      .hero,.card{border-radius:20px}
+      .header-inner{padding:10px 14px 12px;gap:8px 10px}
+      .icon-btn,.avatar{width:38px;height:38px}
+      .search input{height:40px}
+      .nav-link{min-height:34px;padding:7px 11px}
+      .main{padding-top:150px;padding-left:14px;padding-right:14px;gap:12px}
+      .hero{padding:16px}
+      .price{font-size:34px}
+      .valuation-price{font-size:30px}
+      .asset-id h1{font-size:22px}
+      .hero-title,.price-row{flex-direction:column;align-items:flex-start}
+      .hero-actions{flex-direction:column}
+      .btn{width:100%}
+      .snapshot{padding:16px}
+      .chart-shell{height:250px}
+      .chart-foot{padding-left:16px;padding-right:16px}
+      .card-head,.chart-stats,.indicator-grid,.period-toolbar,.breakdown-list,.method-box,.valuation-top,.valuation-copy,.valuation-compare,.valuation-stats,.timeline,.event-list,.card-footer-link{padding-left:16px;padding-right:16px}
+      .chart-shell{margin-left:16px;margin-right:16px}
+      .score-ring{width:140px;height:140px}
+      .score-value{font-size:38px}
+    }
+    @media (max-width:620px){
+      .header-tools{gap:8px}
+      .nav-link{padding-left:11px;padding-right:11px}
+      .status-list div,.breakdown-item,.valuation-stats div,.stat,.indicator,.timeline-item,.event-item{padding-left:12px;padding-right:12px}
+      .compare-marker span{font-size:10px}
+      .compare-track{height:56px}
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <div class="shell">
+    <header class="header">
+      <div class="header-inner">
+        <a class="brand" href="valora_carteira.html" aria-label="Voltar para a carteira">
+          <img class="brand-mark" src="LOGO_rebrand.svg" alt="Valora" />
+          <span class="brand-text">val<span>ora</span></span>
+        </a>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <a class="nav-link" href="valora_carteira.html">Dashboard</a>
+          <a class="nav-link is-current" href="valora_carteira.html#ativos" aria-current="page">Carteira</a>
+          <a class="nav-link" href="valora_estrategias.html">Estratégias</a>
+          <a class="nav-link" href="#alertas-recentes">Alertas</a>
+        </nav>
+
+        <div class="header-tools">
+          <form class="search" id="searchForm" role="search" aria-label="Pesquisar ativo">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6L14 14"></path></svg>
+            <label class="sr-only" for="tickerSearch">Pesquise ticker ou empresa</label>
+            <input id="tickerSearch" name="query" type="search" placeholder="Pesquise ticker ou empresa" autocomplete="off" />
+          </form>
+
+          <button class="icon-btn" id="alertsButton" type="button" aria-label="3 alertas pendentes">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a4 4 0 0 1 4 4c0 3.3 1.4 4.5 1.4 4.5H2.6S4 9.3 4 6a4 4 0 0 1 4-4z"></path><path d="M6.4 13.2a1.6 1.6 0 0 0 3.2 0"></path></svg>
+            <span class="badge">3</span>
+          </button>
+
+          <button class="avatar" type="button" aria-label="Usuário Maria Ribeiro">MR</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="conteudo" class="main">
+      <section class="hero" id="resumo-ativo" aria-labelledby="asset-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="dot"></span>Detalhe do ativo · tela central de decisão</div>
+
+          <div class="hero-title">
+            <div class="asset-id">
+              <h1 id="asset-title">PETROBRAS PN</h1>
+              <p class="sub">PETR4 · Petróleo, Gás e Biocombustíveis · Exploração e Refino</p>
+            </div>
+            <span class="asset-pill">Ação prioritária</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-block">
+              <div class="price">R$ 37,42</div>
+              <div class="price-meta">
+                <span class="price-change">+1,85%</span>
+                <span class="price-delta">+R$ 0,68 no dia</span>
+                <span class="price-status">Em recuperação</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-row">
+            <span>Faixa do dia: R$ 36,78 - R$ 38,12</span>
+            <span>Volume financeiro: R$ 42,8 mi</span>
+            <span>Atualizado há 2 min</span>
+          </div>
+
+          <div class="chip-row" aria-label="Indicadores principais da leitura">
+            <span class="chip primary"><strong>Score Valora:</strong> 78/100</span>
+            <span class="chip warning"><strong>22%</strong> abaixo do preço-teto</span>
+            <span class="chip muted">Margem de segurança adequada</span>
+          </div>
+        </div>
+
+        <aside class="hero-side">
+          <div class="snapshot">
+            <p class="card-kicker">Leitura rápida</p>
+            <div class="status-list">
+              <div><span>Status atual</span><strong>Oportunidade seletiva</strong></div>
+              <div><span>Risco</span><strong>Moderado</strong></div>
+              <div><span>Convicção</span><strong>Alta seletividade</strong></div>
+              <div><span>Preço-teto</span><strong>R$ 48,00</strong></div>
+            </div>
+
+            <div class="hero-actions">
+              <button class="btn primary" type="button" data-toast="PETR4 adicionada à carteira de acompanhamento.">Adicionar à carteira</button>
+              <button class="btn secondary" type="button" id="favoriteButton" aria-pressed="false">
+                <span aria-hidden="true">☆</span>
+                <span class="btn-label">Favoritar</span>
+              </button>
+              <button class="btn ghost" type="button" data-toast="Alerta criado para desconto, score e eventos relevantes.">Criar alerta</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="analysis-grid" aria-label="Análise do ativo">
+            <article class="card chart-card" id="price-chart">
+            <div class="card-head">
+              <div>
+                <p class="card-kicker">Mercado e preço</p>
+                <h2>Preço e gráfico</h2>
+              </div>
+              <div class="card-head-meta">
+                <span class="pill">Atualizado há 2 min</span>
+              </div>
+            </div>
+
+            <div class="chart-stats">
+              <div class="stat">
+                <span class="label">Cotação</span>
+                <strong class="value">R$ 37,42</strong>
+                <span class="sub">+1,85% no dia</span>
+              </div>
+              <div class="stat">
+                <span class="label">Mínima</span>
+                <strong class="value">R$ 36,78</strong>
+                <span class="sub">na sessão</span>
+              </div>
+              <div class="stat">
+                <span class="label">Máxima</span>
+                <strong class="value">R$ 38,12</strong>
+                <span class="sub">na sessão</span>
+              </div>
+              <div class="stat">
+                <span class="label">Volume</span>
+                <strong class="value">42,8 mi</strong>
+                <span class="sub">acima da média</span>
+              </div>
+            </div>
+
+            <div class="period-toolbar" role="tablist" aria-label="Períodos do gráfico">
+              <button class="period-tab" type="button" data-period="1D" aria-pressed="false">1D</button>
+              <button class="period-tab" type="button" data-period="5D" aria-pressed="false">5D</button>
+              <button class="period-tab" type="button" data-period="1M" aria-pressed="false">1M</button>
+              <button class="period-tab is-active" type="button" data-period="6M" aria-pressed="true">6M</button>
+              <button class="period-tab" type="button" data-period="1A" aria-pressed="false">1A</button>
+              <button class="period-tab" type="button" data-period="5A" aria-pressed="false">5A</button>
+            </div>
+
+            <figure class="chart-shell" aria-describedby="chartDesc">
+              <svg class="chart-svg" id="priceChart" viewBox="0 0 1000 360" preserveAspectRatio="none" role="img" aria-labelledby="chartTitle chartDesc">
+                <title id="chartTitle">Gráfico de preço PETR4</title>
+                <desc id="chartDesc">Linha azul do preço de PETR4 com referência tracejada do preço-teto.</desc>
+                <defs>
+                  <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4c8dff" stop-opacity="0.35" />
+                    <stop offset="100%" stop-color="#4c8dff" stop-opacity="0.03" />
+                  </linearGradient>
+                </defs>
+                <g id="chartGrid"></g>
+                <path id="chartArea" class="chart-area"></path>
+                <path id="chartLine" class="chart-line"></path>
+                <path id="chartTarget" class="chart-target"></path>
+                <circle id="chartLastPoint" class="chart-last-point" r="6"></circle>
+                <text id="chartTargetLabel" class="chart-target-label" text-anchor="end"></text>
+              </svg>
+            </figure>
+
+            <div class="chart-foot">
+              <div class="legend" aria-label="Legenda do gráfico">
+                <span><span class="swatch current"></span>PETR4</span>
+                <span><span class="swatch target"></span>Preço-teto R$ 48,00</span>
+                <span><span class="swatch range"></span>Faixa do período</span>
+              </div>
+              <p class="chart-note" id="chartPeriodNote">Tendência de 6 meses com reprecificação gradual e desconto ainda visível.</p>
+            </div>
+          </article>
+
+          <article class="card score-card" id="score-breakdown">
+            <div class="card-head">
+              <div>
+                <p class="card-kicker">Inteligência do Valora</p>
+                <h2>Score fundamentalista</h2>
+              </div>
+              <span class="pill good">Explicável</span>
+            </div>
+
+            <div class="score-layout">
+              <div class="score-ring-wrap">
+                <div class="score-ring" style="--score:78" role="img" aria-label="Score Valora 78 de 100">
+                  <div class="score-inner">
+                    <span class="score-value">78</span>
+                    <span class="score-max">/100</span>
+                  </div>
+                </div>
+                <div class="score-caption">
+                  <strong>Leitura positiva com seletividade</strong>
+                  <span>Fundamentos sólidos, geração de caixa e preço ainda abaixo do teto.</span>
+                </div>
+              </div>
+
+              <div class="composition" aria-label="Composição do score">
+                <div class="composition-row">
+                  <div class="row-head"><span>Qualidade</span><strong>82</strong></div>
+                  <div class="meter" role="progressbar" aria-valuenow="82" aria-valuemin="0" aria-valuemax="100" aria-label="Qualidade 82 de 100"><span style="width:82%"></span></div>
+                </div>
+                <div class="composition-row">
+                  <div class="row-head"><span>Crescimento</span><strong>74</strong></div>
+                  <div class="meter growth" role="progressbar" aria-valuenow="74" aria-valuemin="0" aria-valuemax="100" aria-label="Crescimento 74 de 100"><span style="width:74%"></span></div>
+                </div>
+                <div class="composition-row">
+                  <div class="row-head"><span>Solidez</span><strong>79</strong></div>
+                  <div class="meter solidity" role="progressbar" aria-valuenow="79" aria-valuemin="0" aria-valuemax="100" aria-label="Solidez 79 de 100"><span style="width:79%"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="breakdown-list">
+              <div class="breakdown-item">
+                <span>ROE 18% → +15 pts</span>
+                <em>rentabilidade acima do mínimo de corte</em>
+              </div>
+              <div class="breakdown-item">
+                <span>Dívida / EBITDA 1,3 → +15 pts</span>
+                <em>alavancagem sob controle</em>
+              </div>
+              <div class="breakdown-item">
+                <span>Receita crescente 3 anos → +20 pts</span>
+                <em>trajetória consistente de expansão</em>
+              </div>
+              <div class="breakdown-item">
+                <span>Dividendos consistentes → +10 pts</span>
+                <em>histórico favorável para a tese</em>
+              </div>
+            </div>
+
+            <div class="card-footer-link">
+              <details class="method-details" id="score-methodology">
+                <summary>Ver estratégia usada</summary>
+                <div class="method-box">
+                  <strong>Estratégia usada</strong>
+                  <p>O score combina qualidade, crescimento e solidez com pesos ajustados para o perfil de ações brasileiras com geração de caixa recorrente. O resultado evita caixa-preta e mostra de forma clara por que PETR4 entra como oportunidade seletiva.</p>
+                </div>
+              </details>
+            </div>
+          </article>
+
+          <article class="card indicators-card">
+            <div class="card-head">
+              <div>
+                <p class="card-kicker">Indicadores resumidos</p>
+                <h2>Principais múltiplos</h2>
+              </div>
+              <span class="pill neutral">Painel analítico</span>
+            </div>
+
+            <div class="indicator-grid">
+              <div class="indicator">
+                <span class="label">P/L</span>
+                <strong class="value">8,7x</strong>
+                <span class="sub">abaixo da média histórica</span>
+              </div>
+              <div class="indicator">
+                <span class="label">P/VP</span>
+                <strong class="value">1,4x</strong>
+                <span class="sub">faixa disciplinada</span>
+              </div>
+              <div class="indicator">
+                <span class="label">ROE</span>
+                <strong class="value">18,2%</strong>
+                <span class="sub">rentabilidade forte</span>
+              </div>
+              <div class="indicator">
+                <span class="label">Dividend Yield</span>
+                <strong class="value">6,4%</strong>
+                <span class="sub">atrativo para a tese</span>
+              </div>
+              <div class="indicator">
+                <span class="label">Margem líquida</span>
+                <strong class="value">17,5%</strong>
+                <span class="sub">geração de caixa saudável</span>
+              </div>
+              <div class="indicator">
+                <span class="label">Dívida / EBITDA</span>
+                <strong class="value">1,3x</strong>
+                <span class="sub">alavancagem controlada</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card valuation-card" id="price-target">
+            <div class="card-head">
+              <div>
+                <p class="card-kicker">Valuation</p>
+                <h2>Preço-teto</h2>
+              </div>
+              <span class="pill warn">Margem de segurança adequada</span>
+            </div>
+
+            <div class="valuation-top">
+              <div>
+                <span class="card-kicker">Valor principal</span>
+                <div class="valuation-price">R$ 48,00</div>
+              </div>
+              <div class="method-badge">Bazin customizada</div>
+            </div>
+
+            <p class="valuation-copy">Baseado em dividendos médios de 5 anos e DY alvo de 6%.</p>
+
+            <div class="valuation-compare">
+              <div class="compare-labels">
+                <span>Preço atual R$ 37,42</span>
+                <span>Preço-teto R$ 48,00</span>
+              </div>
+              <div class="compare-track" aria-label="Comparação entre preço atual e preço-teto">
+                <div class="compare-fill" id="compareFill"></div>
+                <div class="compare-marker current" id="currentMarker"><span>Atual</span></div>
+                <div class="compare-marker target"><span>Teto</span></div>
+              </div>
+            </div>
+
+            <div class="valuation-stats">
+              <div>
+                <span>Desconto atual</span>
+                <strong>22%</strong>
+              </div>
+              <div>
+                <span>Margem de segurança</span>
+                <strong>Adequada</strong>
+              </div>
+            </div>
+
+            <div class="card-footer-link">
+              <details class="method-details" id="formula-bazin">
+                <summary>Ver fórmula</summary>
+                <div class="method-box">
+                  <strong>Fórmula</strong>
+                  <p>Preço-teto estimado com base no dividendo médio dos últimos 5 anos, descontado por uma taxa compatível com um DY-alvo de 6%. O valor final serve como âncora objetiva para leitura de desconto.</p>
+                </div>
+              </details>
+            </div>
+          </article>
+      </section>
+
+      <section class="grid-two" aria-label="Contexto recente">
+        <article class="card timeline-card" id="alertas-recentes">
+          <div class="card-head">
+            <div>
+              <p class="card-kicker">Contexto e monitoramento</p>
+              <h2>Alertas recentes</h2>
+            </div>
+            <span class="pill warn">4 eventos</span>
+          </div>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-icon warning">!</div>
+              <div class="timeline-content">
+                <div class="timeline-head">
+                  <strong>Queda de 4,3% após lucro trimestral abaixo do esperado</strong>
+                  <span class="time">Hoje · 09:12</span>
+                </div>
+                <p>O mercado reagiu ao resultado, mas o desconto abriu espaço para leitura mais disciplinada.</p>
+              </div>
+              <span class="status-chip attention">Atenção</span>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-icon neutral">%</div>
+              <div class="timeline-content">
+                <div class="timeline-head">
+                  <strong>Preço 22% abaixo do preço-teto</strong>
+                  <span class="time">Hoje · 10:15</span>
+                </div>
+                <p>O gap em relação ao valuation mantém o ativo entre as oportunidades monitoradas pelo Valora.</p>
+              </div>
+              <span class="status-chip opportunity">Oportunidade</span>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-icon positive">+</div>
+              <div class="timeline-content">
+                <div class="timeline-head">
+                  <strong>Novo dividendo anunciado</strong>
+                  <span class="time">Ontem · 17:40</span>
+                </div>
+                <p>O anúncio reforça a previsibilidade de caixa e ajuda a sustentar a tese de renda.</p>
+              </div>
+              <span class="status-chip positive">Positivo</span>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-icon warning">!</div>
+              <div class="timeline-content">
+                <div class="timeline-head">
+                  <strong>Aumento de endividamento detectado no último relatório</strong>
+                  <span class="time">2 dias atrás</span>
+                </div>
+                <p>O movimento exige acompanhamento, mas ainda não altera a leitura geral de solidez.</p>
+              </div>
+              <span class="status-chip neutral">Neutro</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card events-card" id="fundamentos-recentes">
+          <div class="card-head">
+            <div>
+              <p class="card-kicker">Eventos e fundamentos</p>
+              <h2>Movimentos recentes</h2>
+            </div>
+            <span class="pill neutral">Últimos comunicados</span>
+          </div>
+
+          <div class="event-list">
+            <div class="event-item">
+              <div>
+                <strong>ITR 4T25</strong>
+                <p>Receita cresceu 8% e EBITDA ficou levemente abaixo do consenso, sem quebrar a tese.</p>
+              </div>
+              <span class="impact neutral">Impacto moderado</span>
+            </div>
+
+            <div class="event-item">
+              <div>
+                <strong>Dividendos</strong>
+                <p>Distribuição consistente reforça a leitura de renda e dá suporte ao preço-teto da estratégia.</p>
+              </div>
+              <span class="impact positive">Impacto positivo</span>
+            </div>
+
+            <div class="event-item">
+              <div>
+                <strong>Mudança na dívida</strong>
+                <p>Endividamento subiu de forma controlada e ainda permanece compatível com a tese de caixa.</p>
+              </div>
+              <span class="impact attention">Exige atenção</span>
+            </div>
+
+            <div class="event-item">
+              <div>
+                <strong>Crescimento de receita</strong>
+                <p>Sequência de 3 anos com avanço operacional consistente e melhora de leitura estrutural.</p>
+              </div>
+              <span class="impact positive">Impacto forte</span>
+            </div>
+
+            <div class="event-item">
+              <div>
+                <strong>Comentário da administração</strong>
+                <p>A disciplina de capital continua como foco, com prioridade para geração de caixa e retorno ao acionista.</p>
+              </div>
+              <span class="impact neutral">Neutro</span>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <script>
+    const targetPrice = 48;
+    const currentPrice = 37.42;
+    const chartSeries = {
+      '1D': {
+        note: 'Sessão de hoje com alta controlada e fechamento perto da máxima.',
+        data: [36.88, 36.95, 36.83, 37.01, 37.14, 37.08, 37.26, 37.18, 37.37, 37.29, 37.51, 37.42]
+      },
+      '5D': {
+        note: 'Últimos 5 pregões com recuperação após volatilidade do resultado trimestral.',
+        data: [35.82, 36.08, 35.94, 36.31, 36.67, 36.52, 36.89, 37.01, 36.95, 37.18, 37.34, 37.42]
+      },
+      '1M': {
+        note: 'Último mês com compra consistente em patamares abaixo do teto.',
+        data: [34.68, 35.12, 35.45, 35.88, 36.05, 36.3, 36.54, 36.88, 37.02, 37.14, 37.31, 37.42]
+      },
+      '6M': {
+        note: 'Tendência de 6 meses com reprecificação gradual e desconto ainda visível.',
+        data: [31.82, 32.1, 32.68, 33.05, 33.86, 34.22, 34.95, 35.78, 36.12, 36.61, 37.08, 37.42]
+      },
+      '1A': {
+        note: 'Últimos 12 meses com avanço constante e base operacional mais firme.',
+        data: [29.4, 30.26, 31.14, 31.92, 32.6, 33.48, 34.07, 34.92, 35.78, 36.28, 36.97, 37.42]
+      },
+      '5A': {
+        note: 'Histórico de 5 anos mostrando expansão estrutural e consolidação do negócio.',
+        data: [15.6, 17.2, 18.9, 21.4, 23.8, 26.1, 28.7, 31.0, 33.5, 35.6, 36.8, 37.42]
+      }
+    };
+
+    const chartGrid = document.getElementById('chartGrid');
+    const chartArea = document.getElementById('chartArea');
+    const chartLine = document.getElementById('chartLine');
+    const chartTarget = document.getElementById('chartTarget');
+    const chartLastPoint = document.getElementById('chartLastPoint');
+    const chartTargetLabel = document.getElementById('chartTargetLabel');
+    const chartTitle = document.getElementById('chartTitle');
+    const chartDesc = document.getElementById('chartDesc');
+    const chartPeriodNote = document.getElementById('chartPeriodNote');
+    const periodButtons = Array.from(document.querySelectorAll('.period-tab'));
+    const compareFill = document.getElementById('compareFill');
+    const currentMarker = document.getElementById('currentMarker');
+    const toastStack = document.getElementById('toastStack');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('tickerSearch');
+    const favoriteButton = document.getElementById('favoriteButton');
+    const favoriteLabel = favoriteButton.querySelector('.btn-label');
+    const favoriteIcon = favoriteButton.querySelector('[aria-hidden="true"]');
+    const alertsButton = document.getElementById('alertsButton');
+    const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const shortFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+    function formatMoney(value) {
+      return formatter.format(value);
+    }
+
+    function formatAxisMoney(value) {
+      return shortFormatter.format(value);
+    }
+
+    function notify(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastStack.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('is-visible'));
+      window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        window.setTimeout(() => toast.remove(), 220);
+      }, 2600);
+    }
+
+    function renderChart(period) {
+      const active = chartSeries[period] || chartSeries['6M'];
+      const values = active.data;
+      const width = 1000;
+      const height = 360;
+      const padding = { top: 28, right: 104, bottom: 42, left: 72 };
+      const innerWidth = width - padding.left - padding.right;
+      const innerHeight = height - padding.top - padding.bottom;
+      const minValue = Math.min(...values, targetPrice) * 0.94;
+      const maxValue = Math.max(...values, targetPrice) * 1.04;
+      const range = Math.max(maxValue - minValue, 0.01);
+      const step = values.length > 1 ? innerWidth / (values.length - 1) : 0;
+
+      const points = values.map((value, index) => {
+        const x = padding.left + (step * index);
+        const y = padding.top + ((maxValue - value) / range) * innerHeight;
+        return { x, y, value };
+      });
+
+      let areaPath = `M ${points[0].x.toFixed(2)} ${(padding.top + innerHeight).toFixed(2)}`;
+      areaPath += ` L ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+      points.slice(1).forEach((point) => {
+        areaPath += ` L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+      });
+      areaPath += ` L ${points[points.length - 1].x.toFixed(2)} ${(padding.top + innerHeight).toFixed(2)} Z`;
+
+      const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ');
+      const targetY = padding.top + ((maxValue - targetPrice) / range) * innerHeight;
+
+      const grid = [];
+      const labels = [];
+      const gridCount = 5;
+      for (let index = 0; index < gridCount; index += 1) {
+        const ratio = index / (gridCount - 1);
+        const y = padding.top + (ratio * innerHeight);
+        const value = maxValue - (ratio * range);
+        grid.push(`<line class="chart-grid-line" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${(width - padding.right).toFixed(2)}" y2="${y.toFixed(2)}"></line>`);
+        labels.push(`<text class="chart-axis-label" x="${(padding.left - 12).toFixed(2)}" y="${(y + 4).toFixed(2)}" text-anchor="end">${formatAxisMoney(value)}</text>`);
+      }
+      chartGrid.innerHTML = `${grid.join('')}${labels.join('')}`;
+
+      chartArea.setAttribute('d', areaPath);
+      chartLine.setAttribute('d', linePath);
+      chartTarget.setAttribute('d', `M ${padding.left} ${targetY.toFixed(2)} L ${(width - padding.right).toFixed(2)} ${targetY.toFixed(2)}`);
+      chartLastPoint.setAttribute('cx', points[points.length - 1].x.toFixed(2));
+      chartLastPoint.setAttribute('cy', points[points.length - 1].y.toFixed(2));
+      chartTargetLabel.setAttribute('x', (width - padding.right - 8).toFixed(2));
+      chartTargetLabel.setAttribute('y', Math.max(16, targetY - 10).toFixed(2));
+      chartTargetLabel.textContent = 'Preço-teto R$ 48,00';
+
+      chartTitle.textContent = `Gráfico de preço PETR4 · ${period}`;
+      chartDesc.textContent = `${active.note} Linha azul do preço de PETR4 com referência tracejada do preço-teto.`;
+      chartPeriodNote.textContent = active.note;
+
+      periodButtons.forEach((button) => {
+        const isActive = button.dataset.period === period;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+      });
+    }
+
+    document.querySelectorAll('[data-toast]').forEach((button) => {
+      button.addEventListener('click', () => {
+        notify(button.dataset.toast);
+      });
+    });
+
+    favoriteButton.addEventListener('click', () => {
+      const isActive = favoriteButton.classList.toggle('is-active');
+      favoriteButton.setAttribute('aria-pressed', String(isActive));
+      favoriteIcon.textContent = isActive ? '★' : '☆';
+      favoriteLabel.textContent = isActive ? 'Favoritado' : 'Favoritar';
+      notify(isActive ? 'PETR4 adicionada aos favoritos.' : 'Favorito removido de PETR4.');
+    });
+
+    alertsButton.addEventListener('click', () => {
+      document.getElementById('alertas-recentes').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      notify('Abrindo alertas recentes de PETR4.');
+    });
+
+    searchForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const query = searchInput.value.trim();
+      const normalized = query.toLowerCase();
+
+      if (!query) {
+        notify('Digite um ticker ou empresa para buscar.');
+        return;
+      }
+
+      if (normalized.includes('alert')) {
+        document.getElementById('alertas-recentes').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        notify('Filtro rápido: alertas do ativo.');
+        return;
+      }
+
+      if (normalized.includes('score')) {
+        document.getElementById('score-breakdown').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        notify('Abrindo score fundamentalista.');
+        return;
+      }
+
+      if (normalized.includes('preco') || normalized.includes('teto')) {
+        document.getElementById('price-target').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        notify('Abrindo preço-teto.');
+        return;
+      }
+
+      if (normalized.includes('petr4') || normalized.includes('petrobras')) {
+        document.getElementById('resumo-ativo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        notify('PETR4 já está em foco.');
+        return;
+      }
+
+      notify(`Busca preparada para "${query}".`);
+    });
+
+    periodButtons.forEach((button) => {
+      button.addEventListener('click', () => renderChart(button.dataset.period));
+    });
+
+    compareFill.style.width = `${(currentPrice / targetPrice) * 100}%`;
+    currentMarker.style.left = `${((currentPrice / targetPrice) * 100).toFixed(1)}%`;
+
+    renderChart('6M');
+  </script>
+</body>
+</html>

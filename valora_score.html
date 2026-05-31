@@ -1,0 +1,1736 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valora | Score</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap');
+    :root{
+      --font-title:'Space Grotesk','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      --font-body:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      --bg:#f9fafb;
+      --surface:#ffffff;
+      --surface-2:#f8fafc;
+      --surface-3:#eef3f9;
+      --line:#dbe3ee;
+      --line-strong:#c9d4e2;
+      --text:#0f172a;
+      --text-2:#475569;
+      --text-3:#64748b;
+      --primary:#1e3a8a;
+      --primary-2:#2563eb;
+      --primary-soft:#e8efff;
+      --green:#16a34a;
+      --green-soft:rgba(22,163,74,0.12);
+      --red:#dc2626;
+      --red-soft:rgba(220,38,38,0.10);
+      --amber:#f59e0b;
+      --amber-soft:rgba(245,158,11,0.10);
+      --shadow:0 18px 40px rgba(15,23,42,0.08);
+      --shadow-soft:0 8px 20px rgba(15,23,42,0.06);
+      --radius-xl:26px;
+      --radius-lg:20px;
+      --radius-md:16px;
+      --radius-sm:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-body)}
+    html{min-height:100%;scroll-behavior:smooth;scroll-padding-top:110px;background:var(--bg)}
+    body{min-height:100%;background:
+      radial-gradient(1100px 520px at 88% -20%,rgba(37,99,235,0.10),transparent 60%),
+      radial-gradient(900px 500px at -10% -10%,rgba(37,99,235,0.08),transparent 58%),
+      linear-gradient(180deg,#f9fafb 0%,#f5f8fd 100%);
+      color:var(--text);overflow-x:hidden;color-scheme:light}
+    body::before,body::after{content:"";position:fixed;pointer-events:none;z-index:0;border-radius:50%}
+    body::before{width:360px;height:360px;right:-140px;top:100px;background:radial-gradient(circle,rgba(37,99,235,0.08),transparent 68%)}
+    body::after{width:460px;height:460px;left:-160px;bottom:-200px;background:radial-gradient(circle,rgba(22,163,74,0.08),transparent 70%)}
+    a{color:inherit}
+    button,input,select,textarea{font:inherit}
+    .skip-link{position:absolute;left:16px;top:-48px;z-index:80;background:var(--primary);color:#fff;padding:10px 14px;border-radius:999px;text-decoration:none;transition:top .2s ease}
+    .skip-link:focus{top:14px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .shell{position:relative;z-index:1;min-height:100vh}
+    .header{position:fixed;inset:0 0 auto 0;z-index:50;background:rgba(249,250,251,0.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(203,213,225,0.72)}
+    .header-inner{max-width:1680px;margin:0 auto;min-height:84px;padding:14px 24px;display:flex;align-items:center;gap:16px}
+    .brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:inherit;flex-shrink:0}
+    .brand:focus-visible{outline:2px solid var(--primary-2);outline-offset:4px;border-radius:14px}
+    .brand-mark{width:36px;height:36px;display:block}
+    .brand-text{font-size:18px;font-weight:800;font-family:var(--font-title);letter-spacing:.2px}
+    .brand-text span{color:var(--primary)}
+    .nav{flex:1;display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+    .nav-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--text-2);text-decoration:none;font-size:13px;font-weight:700;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+    .nav-link:hover,.nav-link.is-current,.nav-link[aria-current="page"]{background:#e8efff;border-color:rgba(37,99,235,0.16);color:var(--primary)}
+    .nav-link:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .header-tools{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto}
+    .search{position:relative;min-width:290px;flex:1}
+    .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--text-3);fill:none;stroke-width:1.8;pointer-events:none}
+    .search input{width:100%;height:42px;border-radius:999px;border:1px solid var(--line);background:var(--surface);padding:0 16px 0 40px;color:var(--text);font-size:13px;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5)}
+    .search input::placeholder{color:var(--text-3)}
+    .search input:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 4px rgba(37,99,235,0.10)}
+    .icon-btn,.avatar{width:42px;height:42px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;position:relative;box-shadow:var(--shadow-soft);transition:transform .15s ease,border-color .15s ease}
+    .icon-btn:hover,.avatar:hover,.btn:hover,.toggle-btn:hover,.select-btn:hover,.expand-btn:hover,.pill-button:hover,.model-chip:hover{transform:translateY(-1px)}
+    .icon-btn:focus-visible,.avatar:focus-visible,.btn:focus-visible,.toggle-btn:focus-visible,.select-btn:focus-visible,.expand-btn:focus-visible,.pill-button:focus-visible,.model-chip:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+    .icon-btn svg{width:18px;height:18px;stroke:var(--text-2);fill:none;stroke-width:1.8}
+    .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+    .avatar{background:#f0f5ff;color:var(--primary);font-weight:800;font-size:12px;letter-spacing:.3px}
+    .main{max-width:1680px;margin:0 auto;padding:112px 24px 34px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:1}
+    .hero,.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-xl);box-shadow:var(--shadow)}
+    .hero{padding:24px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,0.9fr);gap:20px;align-items:stretch}
+    .hero-copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-3);font-weight:800}
+    .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--primary-2)}
+    .hero h1{font-family:var(--font-title);font-size:30px;line-height:1.05;letter-spacing:-.35px}
+    .hero p{color:var(--text-2);font-size:13px;line-height:1.6;max-width:800px}
+    .hero-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .mini-kpi{padding:13px 14px;border-radius:18px;background:var(--surface-2);border:1px solid var(--line)}
+    .mini-kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--text-3);font-weight:800}
+    .mini-kpi .value{display:block;margin-top:7px;font-family:var(--font-title);font-size:18px;font-weight:800}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);text-decoration:none;font-size:13px;font-weight:800;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 10px 18px rgba(30,58,138,0.15)}
+    .btn.primary:hover{background:#2748a4}
+    .btn.secondary{background:#eef4ff;color:var(--primary);border-color:rgba(37,99,235,0.22)}
+    .btn.ghost{background:var(--surface-2);color:var(--text-2)}
+    .hero-side{display:flex;flex-direction:column;gap:14px}
+    .snapshot{height:100%;padding:18px;border-radius:22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+    .snapshot-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .snapshot-title{font-family:var(--font-title);font-size:18px;font-weight:800;letter-spacing:-.2px}
+    .score-chip{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:999px;background:#eef4ff;border:1px solid rgba(37,99,235,0.18);color:var(--primary);font-size:11px;font-weight:800}
+    .snapshot-score{display:flex;align-items:center;gap:16px;padding:14px;border-radius:20px;background:#f8fbff;border:1px solid rgba(203,213,225,0.9)}
+    .snapshot-ring{--score:78;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--primary-2) calc(var(--score) * 1%), #e5edf8 0);padding:8px;position:relative;flex-shrink:0}
+    .snapshot-ring::after{content:"";position:absolute;inset:8px;border-radius:50%;background:#fff;border:1px solid var(--line)}
+    .snapshot-ring-inner{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%)}
+    .snapshot-ring-value{font-family:var(--font-title);font-size:24px;font-weight:800;line-height:1}
+    .snapshot-ring-meta{font-size:10px;color:var(--text-3);font-weight:800}
+    .snapshot-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .snapshot-copy strong{font-size:14px;font-weight:800}
+    .snapshot-copy p{font-size:12px;line-height:1.5;color:var(--text-2)}
+    .snapshot-list{display:flex;flex-direction:column;gap:10px}
+    .snapshot-list div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .snapshot-list span{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--text-3);font-weight:800}
+    .snapshot-list strong{font-size:13px;font-weight:800;text-align:right}
+    .analysis-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(360px,0.82fr);gap:16px;align-items:start}
+    .left-column,.right-column{display:flex;flex-direction:column;gap:16px;min-width:0}
+    .card{padding:0}
+    .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 0}
+    .card-head h2{font-family:var(--font-title);font-size:18px;font-weight:800;letter-spacing:-.2px;margin-top:4px}
+    .card-sub{font-size:12px;color:var(--text-2);margin-top:5px;line-height:1.45}
+    .badge-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);font-size:11px;font-weight:800}
+    .badge-pill.good{border-color:rgba(22,163,74,0.18);background:var(--green-soft);color:var(--green)}
+    .badge-pill.warn{border-color:rgba(245,158,11,0.18);background:var(--amber-soft);color:#b45309}
+    .badge-pill.neutral{border-color:rgba(37,99,235,0.18);background:var(--primary-soft);color:var(--primary)}
+    .score-card,.weight-card,.breakdown-card,.editor-card,.impact-card,.lab-card,.method-card{padding-bottom:18px}
+    .score-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:18px;padding:16px 20px 0;align-items:start}
+    .score-ring-wrap{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+    .score-ring{--score:78;width:172px;height:172px;border-radius:50%;background:conic-gradient(var(--primary-2) calc(var(--score) * 1%), #e8eef8 0);padding:13px;position:relative;box-shadow:inset 0 0 0 1px rgba(37,99,235,0.05)}
+    .score-ring::after{content:"";position:absolute;inset:13px;border-radius:50%;background:var(--surface);border:1px solid var(--line)}
+    .score-inner{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .score-value{font-family:var(--font-title);font-size:46px;font-weight:800;letter-spacing:-1px;line-height:1}
+    .score-max{font-size:14px;color:var(--text-3);font-weight:800}
+    .score-band{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:800}
+    .score-band.good{background:var(--green-soft);color:var(--green);border:1px solid rgba(22,163,74,0.18)}
+    .score-band.neutral{background:var(--primary-soft);color:var(--primary);border:1px solid rgba(37,99,235,0.18)}
+    .score-band.warn{background:var(--amber-soft);color:#b45309;border:1px solid rgba(245,158,11,0.18)}
+    .score-band.bad{background:var(--red-soft);color:var(--red);border:1px solid rgba(220,38,38,0.16)}
+    .score-caption{font-size:12px;color:var(--text-2);line-height:1.55;max-width:220px}
+    .score-caption strong{display:block;margin-bottom:4px;color:var(--text);font-size:13px}
+    .legend{display:flex;flex-direction:column;gap:10px;padding-left:2px}
+    .legend-item{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--text-2);font-weight:700}
+    .legend-left{display:inline-flex;align-items:center;gap:8px}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+    .legend-dot.excellent{background:var(--green)}
+    .legend-dot.good{background:var(--primary-2)}
+    .legend-dot.neutral{background:var(--amber)}
+    .legend-dot.weak{background:var(--red)}
+    .composition{display:flex;flex-direction:column;gap:12px}
+    .composition-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;border-bottom:1px solid var(--line)}
+    .composition-row:last-child{border-bottom:none;padding-bottom:0}
+    .row-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--text-2);font-weight:800}
+    .row-head strong{color:var(--text);font-size:13px}
+    .row-head em{font-style:normal;font-size:11px;color:var(--text-3);font-weight:700}
+    .meter{height:10px;border-radius:999px;background:#e7eef7;overflow:hidden}
+    .meter span{display:block;height:100%;border-radius:999px;background:var(--primary-2)}
+    .meter.growth span{background:var(--green)}
+    .meter.solidity span{background:var(--amber)}
+    .meter.quality span{background:var(--primary)}
+    .weight-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 0;flex-wrap:wrap}
+    .weight-total{display:flex;flex-direction:column;gap:4px}
+    .weight-total strong{font-family:var(--font-title);font-size:18px;font-weight:800}
+    .weight-total span{font-size:12px;color:var(--text-2)}
+    .total-meter{height:12px;border-radius:999px;background:#e7eef7;overflow:hidden;min-width:180px;flex:1}
+    .total-meter span{display:block;height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),#60a5fa)}
+    .category-list{display:flex;flex-direction:column;gap:12px;padding:16px 20px 0}
+    .category-row{display:grid;grid-template-columns:auto minmax(0,1fr) 176px;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--surface-2);border:1px solid var(--line)}
+    .category-symbol{width:44px;height:44px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-title);font-weight:800;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.18)}
+    .category-symbol.quality{background:linear-gradient(180deg,#2563eb 0%,#1e40af 100%)}
+    .category-symbol.growth{background:linear-gradient(180deg,#16a34a 0%,#15803d 100%)}
+    .category-symbol.solidity{background:linear-gradient(180deg,#f59e0b 0%,#d97706 100%)}
+    .category-copy{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .category-copy .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .category-copy h3{font-size:15px;font-family:var(--font-title);font-weight:800;letter-spacing:-.1px}
+    .category-copy p{font-size:12px;color:var(--text-2);line-height:1.45}
+    .category-bar{display:flex;flex-direction:column;gap:8px}
+    .range-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field{display:grid;gap:6px}
+    .field label,.section-label{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--text-3);font-weight:800}
+    .field input,.field select,.field textarea{width:100%;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:12px 13px;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(37,99,235,0.48);box-shadow:0 0 0 4px rgba(37,99,235,0.10)}
+    .field input[type="range"]{padding:0;height:28px;background:transparent;box-shadow:none}
+    .field.compact input{padding:11px 12px}
+    .track{height:8px;border-radius:999px;background:#e7eef7;overflow:hidden}
+    .track span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),#60a5fa)}
+    .range-shell{display:flex;flex-direction:column;gap:8px}
+    .range-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .weight-badge{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;background:#eef4ff;border:1px solid rgba(37,99,235,0.18);color:var(--primary);font-size:11px;font-weight:800}
+    .status-pill{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid transparent}
+    .status-pill.active{background:var(--green-soft);border-color:rgba(22,163,74,0.18);color:var(--green)}
+    .status-pill.inactive{background:var(--red-soft);border-color:rgba(220,38,38,0.14);color:var(--red)}
+    .criteria-groups{display:grid;gap:16px;padding:16px 20px 20px}
+    .criteria-group{display:grid;gap:12px}
+    .criteria-group-toggle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text-2);flex-shrink:0;cursor:pointer;transition:transform .2s ease,background .15s ease,border-color .15s ease}
+    .criteria-group-toggle:hover{background:var(--primary-soft);border-color:rgba(37,99,235,0.22);color:var(--primary)}
+    .criteria-group-toggle svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;transition:transform .25s ease}
+    .criteria-group.is-collapsed .criteria-group-toggle svg{transform:rotate(-90deg)}
+    .criterion-list{transition:grid-template-rows .25s ease}
+    .criteria-group.is-collapsed .criterion-list{display:none}
+    .criteria-group-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:2px}
+    .criteria-group-head h3{font-family:var(--font-title);font-size:16px;font-weight:800;letter-spacing:-.1px}
+    .criteria-group-head p{font-size:12px;color:var(--text-2);line-height:1.4}
+    .criterion-list{display:grid;gap:10px}
+    .criterion-item{border:1px solid var(--line);background:var(--surface-2);border-radius:18px;padding:14px;transition:transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease}
+    .criterion-item.is-selected{border-color:rgba(37,99,235,0.30);background:linear-gradient(180deg,#eef4ff 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(37,99,235,0.08)}
+    .criterion-item.is-inactive{opacity:.76}
+    .criterion-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+    .select-btn{appearance:none;border:none;background:transparent;color:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-width:0}
+    .criterion-name{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;line-height:1.2}
+    .criterion-desc{font-size:12px;color:var(--text-2);line-height:1.45;max-width:580px}
+    .criterion-meta{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+    .toggle-btn,.expand-btn,.pill-button,.model-chip{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--text-2);font-size:11px;font-weight:800;cursor:pointer;transition:transform .15s ease,border-color .15s ease,background .15s ease,color .15s ease}
+    .toggle-btn.is-active{background:var(--green-soft);border-color:rgba(22,163,74,0.18);color:var(--green)}
+    .toggle-btn.is-inactive{background:var(--red-soft);border-color:rgba(220,38,38,0.14);color:var(--red)}
+    .expand-btn.is-open,.model-chip.is-active,.pill-button.is-active{background:#eef4ff;border-color:rgba(37,99,235,0.18);color:var(--primary)}
+    .criterion-meter{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+    .mini-meter{height:8px;border-radius:999px;background:#e7eef7;overflow:hidden}
+    .mini-meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),#60a5fa)}
+    .criterion-value{font-size:11px;color:var(--text-2);font-weight:700;white-space:nowrap}
+    .criterion-points{font-size:11px;color:var(--text);font-weight:800;white-space:nowrap}
+    .criterion-details{display:none;margin-top:12px;padding:12px;border-radius:14px;background:#fff;border:1px dashed var(--line)}
+    .criterion-details.is-open{display:grid;gap:10px}
+    .detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .detail-box{padding:10px 11px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+    .detail-box span{display:block;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);font-weight:800}
+    .detail-box strong{display:block;margin-top:4px;font-size:12px;color:var(--text);font-weight:800;line-height:1.45}
+    .selected-chip-row{display:flex;flex-wrap:wrap;gap:8px}
+    .selected-chip-row .badge-pill{background:#fff}
+    .editor-top{padding:16px 20px 0;display:grid;gap:12px}
+    .editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .editor-head h2{font-family:var(--font-title);font-size:18px;font-weight:800;letter-spacing:-.2px}
+    .editor-head p{font-size:12px;color:var(--text-2);line-height:1.45;margin-top:5px}
+    .editor-badges{display:flex;flex-wrap:wrap;gap:8px}
+    .editor-form{padding:0 20px 18px;display:grid;gap:14px}
+    .text-muted{font-size:12px;color:var(--text-2);line-height:1.5}
+    textarea{min-height:92px;resize:vertical}
+    .weight-card{padding-bottom:16px}
+    .range-list{display:grid;gap:10px}
+    .range-row{display:grid;grid-template-columns:74px repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;padding:12px;border-radius:16px;background:#fff;border:1px solid var(--line)}
+    .range-label{font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px}
+    .range-inline{display:grid;gap:6px}
+    .range-inline input{padding:10px 11px}
+    .range-delete{height:38px;padding:0 12px;border-radius:12px;border:1px solid rgba(220,38,38,0.16);background:var(--red-soft);color:var(--red);font-size:11px;font-weight:800;cursor:pointer}
+    .editor-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .editor-actions .btn{height:38px}
+    .impact-content{padding:16px 20px 18px;display:grid;gap:14px}
+    .impact-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .impact-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .impact-box{padding:13px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line)}
+    .impact-box span{display:block;font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);font-weight:800}
+    .impact-box strong{display:block;margin-top:7px;font-family:var(--font-title);font-size:20px;font-weight:800}
+    .impact-track{position:relative;height:32px;border-radius:16px;background:#e7eef7;border:1px solid var(--line);overflow:hidden}
+    .impact-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(37,99,235,0.16),rgba(22,163,74,0.26));border-radius:16px;transition:width .3s ease}
+    .impact-marker{position:absolute;top:-10px;bottom:-10px;width:2px;transform:translateX(-1px);background:var(--primary);transition:left .3s ease}
+    .impact-marker.after{background:var(--green)}
+    .impact-marker span{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:4px 8px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--text-2);font-size:11px;font-weight:800;white-space:nowrap;box-shadow:var(--shadow-soft)}
+    .impact-note{font-size:12px;line-height:1.55;color:var(--text-2)}
+    .score-lab{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+    .lab-content{padding:16px 20px 18px;display:grid;gap:14px}
+    .lab-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between}
+    .lab-toolbar p{font-size:12px;color:var(--text-2);line-height:1.5;max-width:740px}
+    .model-chips{display:flex;flex-wrap:wrap;gap:8px}
+    .model-chip{height:32px;padding:0 12px;background:#fff}
+    .lab-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .lab-actions .btn{height:38px}
+    .table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--line);background:#fff}
+    .score-table{width:100%;border-collapse:collapse;font-size:12px;min-width:640px}
+    .score-table th,.score-table td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+    .score-table th{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--text-3);background:#f8fbff}
+    .score-table td:last-child,.score-table th:last-child{text-align:right}
+    .score-table tr:hover td{background:#f8fbff}
+    .table-row-current td{background:#eff6ff}
+    .result-chip{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800}
+    .result-chip.good{background:var(--green-soft);color:var(--green);border:1px solid rgba(22,163,74,0.16)}
+    .result-chip.neutral{background:var(--primary-soft);color:var(--primary);border:1px solid rgba(37,99,235,0.16)}
+    .result-chip.warn{background:var(--amber-soft);color:#b45309;border:1px solid rgba(245,158,11,0.16)}
+    .method-content{padding:16px 20px 18px;display:grid;gap:14px}
+    .method-box{padding:14px 16px;border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid var(--line)}
+    .method-box ul{display:grid;gap:8px;padding-left:18px;color:var(--text-2);font-size:12px;line-height:1.5}
+    .formula{display:grid;gap:8px;padding:14px 16px;border-radius:18px;background:#eef4ff;border:1px solid rgba(37,99,235,0.16)}
+    .formula span{font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);font-weight:800}
+    .formula strong{font-family:var(--font-title);font-size:18px;font-weight:800;line-height:1.35;color:var(--primary)}
+    .footer-bar{position:sticky;bottom:12px;z-index:30;margin-top:auto;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,0.92);backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .footer-bar .btn{height:42px}
+    .toast-stack{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;gap:10px;width:min(92vw,360px);pointer-events:none}
+    .toast{padding:12px 14px;border-radius:16px;background:#0f172a;color:#fff;box-shadow:var(--shadow);font-size:13px;line-height:1.45;opacity:0;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease}
+    .toast.is-visible{opacity:1;transform:translateY(0)}
+    .toast strong{display:block;margin-bottom:2px}
+    @media (max-width:1280px){
+      .hero,.analysis-grid,.score-lab{grid-template-columns:1fr}
+      .hero-side{order:-1}
+      /* score-lab already single column */
+      .lab-content,.method-content{min-width:0}
+    }
+    @media (max-width:1180px){
+      .header-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand tools" "search search" "nav nav";gap:10px 12px;align-items:center;min-height:auto;padding:12px 16px 14px}
+      .brand{grid-area:brand}
+      .header-tools{grid-area:tools;width:auto;margin-left:0;justify-content:flex-end}
+      .search{grid-area:search;min-width:0;width:100%}
+      .nav{grid-area:nav;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+      .nav::-webkit-scrollbar{display:none}
+      .main{padding-top:176px;padding-left:18px;padding-right:18px}
+    }
+    @media (max-width:1024px){
+      .hero-meta,.hero-actions,.impact-values,.detail-grid{grid-template-columns:1fr 1fr}
+      .hero-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .impact-values{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .detail-grid{grid-template-columns:1fr 1fr}
+      .range-row{grid-template-columns:74px repeat(2,minmax(0,1fr)) auto;}
+    }
+    @media (max-width:900px){
+      .score-layout{grid-template-columns:1fr}
+      .score-ring-wrap{align-items:flex-start;text-align:left}
+      .category-row{grid-template-columns:auto minmax(0,1fr);align-items:start}
+      .category-bar{grid-column:1 / -1}
+      .criterion-top{grid-template-columns:1fr}
+      .criterion-meta{justify-content:flex-start}
+      .criterion-meter{grid-template-columns:1fr;justify-items:start}
+      .range-row{grid-template-columns:1fr 1fr;}
+      .range-row .range-label{grid-column:1 / -1}
+      .range-delete{grid-column:1 / -1;justify-self:start}
+      .hero-meta,.impact-values,.detail-grid{grid-template-columns:1fr 1fr}
+      .score-table{min-width:560px}
+    }
+    @media (max-width:760px){
+      .header-inner{padding:10px 14px 12px;gap:8px 10px}
+      .icon-btn,.avatar{width:38px;height:38px}
+      .search input{height:40px}
+      .nav-link{min-height:34px;padding:7px 11px}
+      .main{padding-top:168px;padding-left:14px;padding-right:14px;gap:12px}
+      .hero,.card{border-radius:22px}
+      .hero{padding:16px}
+      .hero h1{font-size:24px}
+      .hero-meta,.impact-values,.detail-grid{grid-template-columns:1fr}
+      .analysis-grid,.score-lab{gap:12px}
+      .card-head,.editor-top,.editor-form,.lab-content,.method-content,.weight-summary,.category-list,.criteria-groups,.impact-content{padding-left:16px;padding-right:16px}
+      .score-layout{padding-left:16px;padding-right:16px}
+      .category-row{grid-template-columns:auto 1fr;gap:12px}
+      .category-copy .top{align-items:flex-start}
+      .range-grid{grid-template-columns:1fr}
+      .range-row{grid-template-columns:1fr;}
+      .footer-bar{flex-wrap:wrap;justify-content:stretch;position:static;margin:0 16px 16px}
+      .footer-bar .btn{flex:1}
+      .table-wrap{border-radius:16px}
+      .score-table{min-width:540px}
+    }
+
+    :root{
+      --bg:#0f141a;
+      --surface:#141b23;
+      --surface-2:#19212b;
+      --surface-3:#1e2833;
+      --line:#2a3440;
+      --line-strong:#202a36;
+      --text:#e6edf5;
+      --text-2:#9aa7b8;
+      --text-3:#6d7a8d;
+      --primary:#4c8dff;
+      --primary-2:#62c6ff;
+      --primary-soft:#1f2b39;
+      --green:#16a34a;
+      --green-soft:rgba(22,163,74,0.12);
+      --red:#dc2626;
+      --red-soft:rgba(220,38,38,0.10);
+      --amber:#f59e0b;
+      --amber-soft:rgba(245,158,11,0.10);
+      --shadow:0 18px 40px rgba(6,10,16,0.35);
+      --shadow-soft:0 8px 20px rgba(6,10,16,0.28);
+    }
+    body{
+      background:
+        radial-gradient(1100px 520px at 88% -20%,rgba(76,141,255,0.12),transparent 60%),
+        radial-gradient(900px 500px at -10% -10%,rgba(98,198,255,0.08),transparent 58%),
+        linear-gradient(180deg,#0f141a 0%,#111820 100%);
+      color-scheme:dark;
+    }
+    body::before{background:radial-gradient(circle,rgba(76,141,255,0.10),transparent 68%)}
+    body::after{background:radial-gradient(circle,rgba(98,198,255,0.08),transparent 70%)}
+    .header{background:rgba(15,20,26,0.9);border-bottom:1px solid var(--line-strong)}
+    .nav-link:hover,.nav-link.is-current,.nav-link[aria-current="page"]{background:#1f2b39;border-color:#2f3c4b;color:#ffffff}
+    .avatar{background:#1f2b39;color:#d9ecff}
+    .hero,.card{border-color:var(--line-strong)}
+    .btn.secondary{background:#1f2b39;color:#d9ecff;border-color:rgba(76,141,255,0.22)}
+    .snapshot{background:linear-gradient(180deg,var(--surface-2) 0%,var(--surface) 100%);border-color:var(--line)}
+    .score-chip{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22);color:#d9ecff}
+    .snapshot-score{background:var(--surface-2);border-color:var(--line)}
+    .snapshot-ring::after{background:var(--surface);border-color:var(--line)}
+    .snapshot-ring-inner,.score-inner{background:linear-gradient(180deg,var(--surface) 0%,var(--surface-2) 100%)}
+    .field input,.field select,.field textarea{background:var(--surface-2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    .weight-badge{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22);color:#d9ecff}
+    .toggle-btn,.expand-btn,.pill-button,.model-chip{background:var(--surface)}
+    .expand-btn.is-open,.model-chip.is-active,.pill-button.is-active{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22);color:#d9ecff}
+    .criterion-item.is-selected{border-color:rgba(76,141,255,0.42);background:linear-gradient(180deg,rgba(76,141,255,0.10),rgba(25,33,43,0.98));box-shadow:0 10px 24px rgba(6,10,16,0.26)}
+    .criterion-details{background:var(--surface);border-color:var(--line)}
+    .selected-chip-row .badge-pill{background:var(--surface)}
+    .range-row{background:var(--surface);border-color:var(--line)}
+    .impact-marker span{background:var(--surface);border-color:var(--line)}
+    .table-wrap{background:var(--surface);border-color:var(--line)}
+    .score-table th{background:var(--surface-2)}
+    .score-table tr:hover td{background:rgba(76,141,255,0.04)}
+    .table-row-current td{background:rgba(76,141,255,0.08)}
+    .method-box{background:linear-gradient(180deg,var(--surface-2) 0%,var(--surface) 100%);border-color:var(--line)}
+    .formula{background:rgba(76,141,255,0.10);border-color:rgba(76,141,255,0.22)}
+    .footer-bar{background:rgba(20,27,35,0.92);border-color:var(--line-strong)}
+    .toast{background:#111827}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <div class="shell">
+    <header class="header">
+      <div class="header-inner">
+        <a class="brand" href="valora_carteira.html" aria-label="Voltar para a carteira">
+          <img class="brand-mark" src="LOGO_rebrand.svg" alt="Valora" />
+          <span class="brand-text">val<span>ora</span></span>
+        </a>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <a class="nav-link" href="valora_carteira.html">Dashboard</a>
+          <a class="nav-link" href="valora_carteira.html#ativos">Carteira</a>
+          <a class="nav-link" href="valora_estrategias.html">Estratégias</a>
+          <a class="nav-link is-current" href="valora_score.html" aria-current="page">Score</a>
+          <a class="nav-link" href="valora_ativo.html#alertas-recentes">Alertas</a>
+        </nav>
+
+        <div class="header-tools">
+          <form class="search" id="searchForm" role="search" aria-label="Pesquisar score ou critério">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6L14 14"></path></svg>
+            <label class="sr-only" for="searchInput">Pesquise critério, categoria ou ativo</label>
+            <input id="searchInput" name="query" type="search" placeholder="Pesquise critério, categoria ou ativo" autocomplete="off" />
+          </form>
+
+          <button class="icon-btn" id="alertsButton" type="button" aria-label="3 notificações">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a4 4 0 0 1 4 4c0 3.3 1.4 4.5 1.4 4.5H2.6S4 9.3 4 6a4 4 0 0 1 4-4z"></path><path d="M6.4 13.2a1.6 1.6 0 0 0 3.2 0"></path></svg>
+            <span class="badge">3</span>
+          </button>
+
+          <button class="avatar" type="button" aria-label="Usuário Maria Ribeiro">MR</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main" id="conteudo">
+      <section class="hero" aria-labelledby="score-title">
+        <div class="hero-copy">
+          <div>
+            <div class="eyebrow"><span class="dot"></span>Score fundamentalista configurável</div>
+            <h1 id="score-title">Score Valora</h1>
+            <p>Configure as regras e os pesos que compõem a pontuação fundamentalista dos ativos. O resultado é um scorecard ponderado, explicável e auditável, sem caixa-preta.</p>
+          </div>
+
+          <div class="hero-meta" aria-label="Resumo do modelo">
+            <div class="mini-kpi"><span class="label">Modelo atual</span><span class="value" id="heroModel">Balanceado</span></div>
+            <div class="mini-kpi"><span class="label">Critérios ativos</span><span class="value" id="heroActiveCount">12</span></div>
+            <div class="mini-kpi"><span class="label">Peso total configurado</span><span class="value" id="heroTotalWeight">100%</span></div>
+            <div class="mini-kpi"><span class="label">Última edição</span><span class="value">Hoje</span></div>
+          </div>
+
+          <div class="hero-actions">
+            <button class="btn primary" type="button" id="saveHeroButton">Salvar modelo</button>
+            <button class="btn secondary" type="button" id="duplicateHeroButton">Duplicar modelo</button>
+          </div>
+        </div>
+
+        <div class="hero-side">
+          <div class="snapshot">
+            <div class="snapshot-top">
+              <div>
+                <div class="card-kicker">Resumo operacional</div>
+                <div class="snapshot-title">Leitura rápida do score</div>
+              </div>
+              <span class="score-chip" id="snapshotBand">Bom</span>
+            </div>
+
+            <div class="snapshot-score">
+              <div class="snapshot-ring" id="snapshotRing" style="--score:78">
+                <div class="snapshot-ring-inner">
+                  <div class="snapshot-ring-value" id="snapshotScore">78</div>
+                  <div class="snapshot-ring-meta">/100</div>
+                </div>
+              </div>
+              <div class="snapshot-copy">
+                <strong id="snapshotLabel">Score explicável e ajustável</strong>
+                <p id="snapshotText">A nota final é formada por categorias ponderadas, critérios ativos e regras editáveis. Tudo fica visível para o usuário.</p>
+              </div>
+            </div>
+
+            <div class="snapshot-list">
+              <div><span>Base do modelo</span><strong id="snapshotModel">Balanceado</strong></div>
+              <div><span>Ativo de referência</span><strong>PETR4</strong></div>
+              <div><span>Critério em foco</span><strong id="snapshotCriterion">ROE</strong></div>
+              <div><span>Leitura atual</span><strong id="snapshotStatus">Abaixo da zona excelente</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="analysis-grid" aria-label="Editor do score">
+        <div class="left-column">
+          <article class="card score-card" id="scoreOverviewCard" aria-labelledby="overview-title">
+            <div class="card-head">
+              <div>
+                <h2 id="overview-title">Visão geral do score</h2>
+                <div class="card-sub">O score é calculado por média ponderada entre critérios de qualidade, crescimento e solidez.</div>
+              </div>
+              <span class="badge-pill neutral" id="overviewAssetPill">Exemplo em PETR4</span>
+            </div>
+
+            <div class="score-layout">
+              <div class="score-ring-wrap">
+                <div class="score-ring" id="overviewRing" style="--score:78">
+                  <div class="score-inner">
+                    <div class="score-value" id="overviewScore">78</div>
+                    <div class="score-max">/100</div>
+                  </div>
+                </div>
+                <span class="score-band good" id="overviewBand">Bom</span>
+                <div class="score-caption">
+                  <strong>Como interpretar</strong>
+                  O score é lido em faixas visuais para deixar claro se o ativo está em zona excelente, boa, neutra ou fraca.
+                </div>
+              </div>
+
+              <div class="legend" aria-label="Legenda das faixas do score">
+                <div class="legend-item"><span class="legend-left"><span class="legend-dot excellent"></span>Excelente</span><span>90 a 100</span></div>
+                <div class="legend-item"><span class="legend-left"><span class="legend-dot good"></span>Bom</span><span>75 a 89</span></div>
+                <div class="legend-item"><span class="legend-left"><span class="legend-dot neutral"></span>Neutro</span><span>60 a 74</span></div>
+                <div class="legend-item"><span class="legend-left"><span class="legend-dot weak"></span>Fraco</span><span>Abaixo de 60</span></div>
+
+                <div class="composition" id="categoryComposition"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card weight-card" aria-labelledby="weights-title">
+            <div class="card-head">
+              <div>
+                <h2 id="weights-title">Pesos por categoria</h2>
+                <div class="card-sub">A soma visual sempre fecha em 100%. Ajuste uma categoria e as demais são redistribuídas automaticamente.</div>
+              </div>
+              <span class="badge-pill neutral" id="weightsTotalPill">100%</span>
+            </div>
+
+            <div class="weight-summary">
+              <div class="weight-total">
+                <strong id="weightsTotalValue">100%</strong>
+                <span>peso total configurado</span>
+              </div>
+              <div class="total-meter" aria-hidden="true"><span id="weightsTotalFill" style="width:100%"></span></div>
+            </div>
+
+            <div class="category-list" id="categoryWeights"></div>
+          </article>
+
+          <article class="card breakdown-card" aria-labelledby="breakdown-title">
+            <div class="card-head">
+              <div>
+                <h2 id="breakdown-title">Breakdown por categoria</h2>
+                <div class="card-sub">Cada critério pode ser ativado, reponderado e expandido para mostrar a regra que alimenta a nota final.</div>
+              </div>
+              <span class="badge-pill neutral" id="breakdownCount">12 critérios ativos</span>
+            </div>
+
+            <div class="criteria-groups" id="criteriaGroups"></div>
+          </article>
+
+        </div>
+
+        <div class="right-column">
+          <article class="card editor-card" id="criterionEditorCard" aria-labelledby="editor-title">
+            <div class="editor-top">
+              <div class="editor-head">
+                <div>
+                  <h2 id="editor-title">Editor do critério selecionado</h2>
+                  <p>Quando o usuário clica em um critério, o painel à direita abre a descrição, o peso e as faixas de pontuação.</p>
+                </div>
+                <div class="editor-badges">
+                  <span class="badge-pill neutral" id="editorCategoryPill">Qualidade</span>
+                  <span class="badge-pill good" id="editorStatusPill">Ativo</span>
+                </div>
+              </div>
+              <div class="selected-chip-row" id="selectedInfoChips"></div>
+            </div>
+
+            <div class="editor-form">
+              <div class="field">
+                <label for="criterionName">Critério selecionado</label>
+                <input id="criterionName" type="text" readonly />
+              </div>
+
+              <div class="field">
+                <label for="criterionDescription">Descrição</label>
+                <textarea id="criterionDescription" rows="4"></textarea>
+              </div>
+
+              <div class="detail-grid">
+                <div class="detail-box"><span>Ativo de teste</span><strong id="selectedAssetValue">PETR4</strong></div>
+                <div class="detail-box"><span>Valor observado</span><strong id="selectedCriterionValue">18,2%</strong></div>
+                <div class="detail-box"><span>Pontos no ativo</span><strong id="selectedCriterionPoints">100</strong></div>
+              </div>
+
+              <div class="field">
+                <div class="range-head">
+                  <label for="criterionWeight">Peso do critério</label>
+                  <span class="weight-badge" id="criterionWeightLabel">30%</span>
+                </div>
+                <div class="range-grid">
+                  <div class="field compact">
+                    <input id="criterionWeightRange" type="range" min="0" max="100" step="1" />
+                  </div>
+                  <div class="field compact">
+                    <input id="criterionWeight" type="number" min="0" max="100" step="1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="criterionRuleType">Tipo de regra</label>
+                <select id="criterionRuleType">
+                  <option value="maior é melhor">Maior é melhor</option>
+                  <option value="menor é melhor">Menor é melhor</option>
+                  <option value="faixa ideal">Faixa ideal</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <div class="range-head">
+                  <label>Faixas de pontuação</label>
+                  <span class="badge-pill neutral" id="rangeCountPill">4 faixas</span>
+                </div>
+                <div class="range-list" id="rangeEditor"></div>
+              </div>
+
+              <div class="editor-actions">
+                <button class="btn secondary" type="button" id="addRangeButton">Adicionar faixa</button>
+                <button class="btn ghost" type="button" id="resetCriterionButton">Resetar critério</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="card impact-card" aria-labelledby="impact-title">
+            <div class="card-head">
+              <div>
+                <h2 id="impact-title">Impacto no score total</h2>
+                <div class="card-sub">O antes e o depois mudam de acordo com o critério editado e mostram a sensibilidade do modelo.</div>
+              </div>
+              <span class="badge-pill neutral" id="impactDeltaPill">+4 pontos</span>
+            </div>
+
+            <div class="impact-content">
+              <div class="impact-values">
+                <div class="impact-box"><span>Antes</span><strong id="impactBefore">74/100</strong></div>
+                <div class="impact-box"><span>Depois</span><strong id="impactAfter">78/100</strong></div>
+                <div class="impact-box"><span>Variação</span><strong id="impactDelta">+4</strong></div>
+              </div>
+
+              <div class="impact-track" aria-label="Comparação entre antes e depois">
+                <div class="impact-fill" id="impactFill" style="width:78%"></div>
+                <div class="impact-marker before" id="impactBeforeMarker" style="left:74%"><span>Antes</span></div>
+                <div class="impact-marker after" id="impactAfterMarker" style="left:78%"><span>Depois</span></div>
+              </div>
+
+              <div class="impact-note" id="impactNote">Aumentar o peso do ROE torna o modelo mais sensível à rentabilidade.</div>
+            </div>
+          </article>
+          <article class="card method-card" aria-labelledby="method-title">
+            <div class="card-head">
+              <div>
+                <h2 id="method-title">Como o Score Valora é calculado</h2>
+                <div class="card-sub">A fórmula é simples de ler, mas flexível o suficiente para refletir a visão do analista.</div>
+              </div>
+            </div>
+
+            <div class="method-content">
+              <div class="method-box">
+                <ul>
+                  <li>O score usa critérios agrupados por categoria.</li>
+                  <li>Cada categoria recebe um peso na nota final.</li>
+                  <li>Cada critério possui regras de pontuação editáveis.</li>
+                  <li>O resultado final é a média ponderada dos critérios ativos.</li>
+                </ul>
+              </div>
+
+              <div class="formula">
+                <span>Fórmula resumida</span>
+                <strong>Score final = soma dos critérios ponderados / peso total</strong>
+              </div>
+
+              <div class="method-box">
+                <ul>
+                  <li>Critérios podem ser desativados sem perder o histórico.</li>
+                  <li>Pesos por categoria e por critério podem ser ajustados em tempo real.</li>
+                  <li>Modelos diferentes podem ser salvos para perfis distintos.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="score-lab" aria-label="Teste em ativos reais">
+        <article class="card lab-card">
+          <div class="card-head">
+            <div>
+              <h2>Testar modelo em ativos reais</h2>
+              <div class="card-sub">Veja como o modelo atual avalia diferentes empresas com base nas regras configuradas.</div>
+            </div>
+            <span class="badge-pill neutral" id="appliedScenarioLabel">Modelo aplicado: Balanceado</span>
+          </div>
+
+          <div class="lab-content">
+            <div class="lab-toolbar">
+              <p>O seletor abaixo muda o cenário usado na simulação. Depois, clique em “Aplicar aos ativos” para atualizar a tabela com o score recalculado.</p>
+              <div class="lab-actions">
+                <div class="model-chips" role="tablist" aria-label="Modelo de simulação">
+                  <button class="model-chip is-active" type="button" data-scenario="conservador" aria-pressed="false">Conservador</button>
+                  <button class="model-chip is-active" type="button" data-scenario="balanceado" aria-pressed="true">Balanceado</button>
+                  <button class="model-chip" type="button" data-scenario="dividendos" aria-pressed="false">Dividendos</button>
+                  <button class="model-chip" type="button" data-scenario="personalizado" aria-pressed="false">Personalizado</button>
+                </div>
+                <button class="btn primary" type="button" id="applyScenarioButton">Aplicar aos ativos</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="score-table" aria-label="Teste do score em ativos reais">
+                <thead>
+                  <tr>
+                    <th>Ativo</th>
+                    <th>Score</th>
+                    <th>Qualidade</th>
+                    <th>Crescimento</th>
+                    <th>Solidez</th>
+                  </tr>
+                </thead>
+                <tbody id="assetTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <div class="footer-bar" aria-label="Ações do Score Valora">
+        <button class="btn" type="button" id="cancelButton">Cancelar alterações</button>
+        <button class="btn ghost" type="button" id="testButton">Testar modelo</button>
+        <button class="btn primary" type="button" id="saveButton">Salvar Score Valora</button>
+      </div>
+    </main>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <script>
+    const categoryOrder = ['qualidade', 'crescimento', 'solidez'];
+    const collapsedGroups = new Set(['qualidade', 'crescimento', 'solidez']);
+    const categoryDefinitions = {
+      qualidade: {
+        id: 'qualidade',
+        name: 'Qualidade',
+        icon: 'Q',
+        description: 'Qualidade operacional e retorno sobre capital.',
+        colorClass: 'quality'
+      },
+      crescimento: {
+        id: 'crescimento',
+        name: 'Crescimento',
+        icon: 'C',
+        description: 'Expansão de receita, lucro e dividendos.',
+        colorClass: 'growth'
+      },
+      solidez: {
+        id: 'solidez',
+        name: 'Solidez',
+        icon: 'S',
+        description: 'Dívida, liquidez e capacidade de cobertura.',
+        colorClass: 'solidity'
+      }
+    };
+
+    const defaultModel = {
+      categoryWeights: { qualidade: 35, crescimento: 30, solidez: 35 },
+      criteria: {
+        roe: {
+          id: 'roe', categoryId: 'qualidade', name: 'ROE', unit: '%', active: true, weight: 30,
+          ruleType: 'maior é melhor',
+          description: 'Mede a rentabilidade sobre o patrimônio líquido.',
+          ranges: [
+            { min: 15, max: null, points: 100 },
+            { min: 10, max: 15, points: 70 },
+            { min: 5, max: 10, points: 40 },
+            { min: null, max: 5, points: 0 }
+          ]
+        },
+        roic: {
+          id: 'roic', categoryId: 'qualidade', name: 'ROIC', unit: '%', active: true, weight: 25,
+          ruleType: 'maior é melhor',
+          description: 'Mede a eficiência na geração de retorno sobre o capital investido.',
+          ranges: [
+            { min: 18, max: null, points: 100 },
+            { min: 12, max: 18, points: 70 },
+            { min: 8, max: 12, points: 40 },
+            { min: null, max: 8, points: 0 }
+          ]
+        },
+        margem_liquida: {
+          id: 'margem_liquida', categoryId: 'qualidade', name: 'Margem líquida', unit: '%', active: true, weight: 25,
+          ruleType: 'maior é melhor',
+          description: 'Mostra quanto da receita vira lucro líquido.',
+          ranges: [
+            { min: 25, max: null, points: 100 },
+            { min: 15, max: 25, points: 70 },
+            { min: 8, max: 15, points: 40 },
+            { min: null, max: 8, points: 0 }
+          ]
+        },
+        caixa_operacional: {
+          id: 'caixa_operacional', categoryId: 'qualidade', name: 'Caixa operacional', unit: 'R$ bi', active: true, weight: 20,
+          ruleType: 'maior é melhor',
+          description: 'Indica a capacidade de transformar operação em caixa.',
+          ranges: [
+            { min: 15, max: null, points: 100 },
+            { min: 10, max: 15, points: 70 },
+            { min: 5, max: 10, points: 40 },
+            { min: null, max: 5, points: 0 }
+          ]
+        },
+        receita_3anos: {
+          id: 'receita_3anos', categoryId: 'crescimento', name: 'Receita 3 anos', unit: '%', active: true, weight: 30,
+          ruleType: 'maior é melhor',
+          description: 'Mede a expansão da receita em horizonte de três anos.',
+          ranges: [
+            { min: 12, max: null, points: 100 },
+            { min: 7, max: 12, points: 70 },
+            { min: 3, max: 7, points: 40 },
+            { min: null, max: 3, points: 0 }
+          ]
+        },
+        lucro_3anos: {
+          id: 'lucro_3anos', categoryId: 'crescimento', name: 'Lucro 3 anos', unit: '%', active: true, weight: 25,
+          ruleType: 'maior é melhor',
+          description: 'Mostra o crescimento do lucro líquido ao longo do tempo.',
+          ranges: [
+            { min: 15, max: null, points: 100 },
+            { min: 8, max: 15, points: 70 },
+            { min: 4, max: 8, points: 40 },
+            { min: null, max: 4, points: 0 }
+          ]
+        },
+        cagr_dividendos: {
+          id: 'cagr_dividendos', categoryId: 'crescimento', name: 'CAGR de dividendos', unit: '%', active: true, weight: 25,
+          ruleType: 'maior é melhor',
+          description: 'Captura a constância do crescimento dos proventos.',
+          ranges: [
+            { min: 10, max: null, points: 100 },
+            { min: 5, max: 10, points: 70 },
+            { min: 2, max: 5, points: 40 },
+            { min: null, max: 2, points: 0 }
+          ]
+        },
+        ebitda_3anos: {
+          id: 'ebitda_3anos', categoryId: 'crescimento', name: 'EBITDA 3 anos', unit: '%', active: true, weight: 20,
+          ruleType: 'maior é melhor',
+          description: 'Mede a evolução da geração operacional em três anos.',
+          ranges: [
+            { min: 10, max: null, points: 100 },
+            { min: 5, max: 10, points: 70 },
+            { min: 2, max: 5, points: 40 },
+            { min: null, max: 2, points: 0 }
+          ]
+        },
+        divida_ebitda: {
+          id: 'divida_ebitda', categoryId: 'solidez', name: 'Dívida/EBITDA', unit: 'x', active: true, weight: 30,
+          ruleType: 'menor é melhor',
+          description: 'Mostra a alavancagem da empresa em relação ao EBITDA.',
+          ranges: [
+            { min: null, max: 1, points: 100 },
+            { min: 1, max: 1.5, points: 70 },
+            { min: 1.5, max: 2.5, points: 40 },
+            { min: 2.5, max: null, points: 0 }
+          ]
+        },
+        liquidez_corrente: {
+          id: 'liquidez_corrente', categoryId: 'solidez', name: 'Liquidez', unit: 'x', active: true, weight: 25,
+          ruleType: 'faixa ideal',
+          description: 'Avalia a capacidade de pagar obrigações de curto prazo.',
+          ranges: [
+            { min: 1.5, max: 3, points: 100 },
+            { min: 1.2, max: 1.5, points: 70 },
+            { min: 1.0, max: 1.2, points: 40 },
+            { min: null, max: 1.0, points: 0 }
+          ]
+        },
+        cobertura_juros: {
+          id: 'cobertura_juros', categoryId: 'solidez', name: 'Cobertura de juros', unit: 'x', active: true, weight: 25,
+          ruleType: 'maior é melhor',
+          description: 'Aponta quantas vezes o lucro cobre as despesas financeiras.',
+          ranges: [
+            { min: 10, max: null, points: 100 },
+            { min: 6, max: 10, points: 70 },
+            { min: 3, max: 6, points: 40 },
+            { min: null, max: 3, points: 0 }
+          ]
+        },
+        caixa_liquido: {
+          id: 'caixa_liquido', categoryId: 'solidez', name: 'Caixa líquido', unit: 'R$ bi', active: true, weight: 20,
+          ruleType: 'maior é melhor',
+          description: 'Mostra a posição líquida de caixa para atravessar ciclos.',
+          ranges: [
+            { min: 10, max: null, points: 100 },
+            { min: 5, max: 10, points: 70 },
+            { min: 0, max: 5, points: 40 },
+            { min: null, max: 0, points: 0 }
+          ]
+        }
+      }
+    };
+
+    const testAssets = [
+      { ticker: 'PETR4', price: 37.42, roe: 18.2, roic: 14.6, margem_liquida: 19.3, caixa_operacional: 17.8, receita_3anos: 9.1, lucro_3anos: 11.2, cagr_dividendos: 8.2, ebitda_3anos: 8.6, divida_ebitda: 1.3, liquidez_corrente: 1.8, cobertura_juros: 8.7, caixa_liquido: 6.5 },
+      { ticker: 'VALE3', price: 61.10, roe: 22.6, roic: 18.9, margem_liquida: 28.4, caixa_operacional: 24.1, receita_3anos: 5.1, lucro_3anos: 4.3, cagr_dividendos: 7.0, ebitda_3anos: 6.2, divida_ebitda: 0.8, liquidez_corrente: 3.0, cobertura_juros: 12.5, caixa_liquido: 11.2 },
+      { ticker: 'ITUB4', price: 34.87, roe: 20.4, roic: 16.2, margem_liquida: 34.2, caixa_operacional: 21.0, receita_3anos: 10.2, lucro_3anos: 9.4, cagr_dividendos: 6.1, ebitda_3anos: 5.4, divida_ebitda: 1.1, liquidez_corrente: 1.9, cobertura_juros: 9.2, caixa_liquido: 8.8 }
+    ];
+
+    const scenarioDefinitions = {
+      conservador: { name: 'Conservador', categoryWeights: { qualidade: 32, crescimento: 18, solidez: 50 } },
+      balanceado: { name: 'Balanceado', categoryWeights: { qualidade: 35, crescimento: 30, solidez: 35 } },
+      dividendos: { name: 'Dividendos', categoryWeights: { qualidade: 42, crescimento: 18, solidez: 40 } },
+      personalizado: { name: 'Personalizado', categoryWeights: null }
+    };
+
+    const state = clone(defaultModel);
+    const defaultSnapshot = clone(defaultModel);
+    let selectedCriterionId = 'roe';
+    let selectedScenario = 'balanceado';
+    let appliedScenario = 'balanceado';
+    let expandedCriteria = new Set([selectedCriterionId]);
+
+    const heroModel = document.getElementById('heroModel');
+    const heroActiveCount = document.getElementById('heroActiveCount');
+    const heroTotalWeight = document.getElementById('heroTotalWeight');
+    const snapshotBand = document.getElementById('snapshotBand');
+    const snapshotScore = document.getElementById('snapshotScore');
+    const snapshotRing = document.getElementById('snapshotRing');
+    const snapshotLabel = document.getElementById('snapshotLabel');
+    const snapshotText = document.getElementById('snapshotText');
+    const snapshotModel = document.getElementById('snapshotModel');
+    const snapshotCriterion = document.getElementById('snapshotCriterion');
+    const snapshotStatus = document.getElementById('snapshotStatus');
+    const overviewScore = document.getElementById('overviewScore');
+    const overviewRing = document.getElementById('overviewRing');
+    const overviewBand = document.getElementById('overviewBand');
+    const overviewAssetPill = document.getElementById('overviewAssetPill');
+    const categoryComposition = document.getElementById('categoryComposition');
+    const weightsTotalValue = document.getElementById('weightsTotalValue');
+    const weightsTotalPill = document.getElementById('weightsTotalPill');
+    const weightsTotalFill = document.getElementById('weightsTotalFill');
+    const categoryWeights = document.getElementById('categoryWeights');
+    const criteriaGroups = document.getElementById('criteriaGroups');
+    const breakdownCount = document.getElementById('breakdownCount');
+    const editorCategoryPill = document.getElementById('editorCategoryPill');
+    const editorStatusPill = document.getElementById('editorStatusPill');
+    const selectedInfoChips = document.getElementById('selectedInfoChips');
+    const criterionName = document.getElementById('criterionName');
+    const criterionDescription = document.getElementById('criterionDescription');
+    const selectedAssetValue = document.getElementById('selectedAssetValue');
+    const selectedCriterionValue = document.getElementById('selectedCriterionValue');
+    const selectedCriterionPoints = document.getElementById('selectedCriterionPoints');
+    const criterionWeight = document.getElementById('criterionWeight');
+    const criterionWeightRange = document.getElementById('criterionWeightRange');
+    const criterionWeightLabel = document.getElementById('criterionWeightLabel');
+    const criterionRuleType = document.getElementById('criterionRuleType');
+    const rangeEditor = document.getElementById('rangeEditor');
+    const rangeCountPill = document.getElementById('rangeCountPill');
+    const impactBefore = document.getElementById('impactBefore');
+    const impactAfter = document.getElementById('impactAfter');
+    const impactDelta = document.getElementById('impactDelta');
+    const impactDeltaPill = document.getElementById('impactDeltaPill');
+    const impactFill = document.getElementById('impactFill');
+    const impactBeforeMarker = document.getElementById('impactBeforeMarker');
+    const impactAfterMarker = document.getElementById('impactAfterMarker');
+    const impactNote = document.getElementById('impactNote');
+    const appliedScenarioLabel = document.getElementById('appliedScenarioLabel');
+    const assetTableBody = document.getElementById('assetTableBody');
+    const toastStack = document.getElementById('toastStack');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const alertsButton = document.getElementById('alertsButton');
+    const saveHeroButton = document.getElementById('saveHeroButton');
+    const duplicateHeroButton = document.getElementById('duplicateHeroButton');
+    const addRangeButton = document.getElementById('addRangeButton');
+    const resetCriterionButton = document.getElementById('resetCriterionButton');
+    const cancelButton = document.getElementById('cancelButton');
+    const testButton = document.getElementById('testButton');
+    const saveButton = document.getElementById('saveButton');
+    const applyScenarioButton = document.getElementById('applyScenarioButton');
+    const modelChipButtons = Array.from(document.querySelectorAll('.model-chip'));
+    const metricSampleAsset = testAssets[0];
+
+    const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const numberFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+    const integerFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function round(value, digits = 1) {
+      const factor = 10 ** digits;
+      return Math.round(value * factor) / factor;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function notify(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<strong>Valora</strong>${message}`;
+      toastStack.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('is-visible'));
+      window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        window.setTimeout(() => toast.remove(), 220);
+      }, 2600);
+    }
+
+    function isBlank(value) {
+      return value === '' || value === null || value === undefined || Number.isNaN(Number(value));
+    }
+
+    function parseNumber(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    function formatWeight(value) {
+      return `${integerFormatter.format(round(value, 0))}%`;
+    }
+
+    function formatScore(value) {
+      return `${integerFormatter.format(round(value, 0))}/100`;
+    }
+
+    function formatCriterionValue(criterion, value) {
+      if (criterion.unit === 'R$ bi') {
+        return `R$ ${numberFormatter.format(value)} bi`;
+      }
+      if (criterion.unit === 'x') {
+        return `${numberFormatter.format(value)}x`;
+      }
+      return `${numberFormatter.format(value)}%`;
+    }
+
+    function formatRangeLabel(range, criterion) {
+      const min = isBlank(range.min) ? null : Number(range.min);
+      const max = isBlank(range.max) ? null : Number(range.max);
+      if (min === null && max === null) return 'Faixa nova';
+      if (min !== null && max === null) return `≥ ${numberFormatter.format(min)}${criterion.unit === 'R$ bi' ? ' bi' : criterion.unit === 'x' ? 'x' : '%'}`;
+      if (min === null && max !== null) return `≤ ${numberFormatter.format(max)}${criterion.unit === 'R$ bi' ? ' bi' : criterion.unit === 'x' ? 'x' : '%'}`;
+      return `${numberFormatter.format(min)} a ${numberFormatter.format(max)}${criterion.unit === 'R$ bi' ? ' bi' : criterion.unit === 'x' ? 'x' : '%'}`;
+    }
+
+    function classifyScore(score) {
+      if (score >= 90) return { label: 'Excelente', className: 'good' };
+      if (score >= 75) return { label: 'Bom', className: 'good' };
+      if (score >= 60) return { label: 'Neutro', className: 'neutral' };
+      return { label: 'Fraco', className: 'bad' };
+    }
+
+    function getCriterionValue(asset, criterionId) {
+      return asset[criterionId];
+    }
+
+    function matchesRange(value, range) {
+      const min = isBlank(range.min) ? null : Number(range.min);
+      const max = isBlank(range.max) ? null : Number(range.max);
+      if (min === null && max === null) return false;
+      const minOk = min === null || value >= min;
+      const maxOk = max === null || value <= max;
+      return minOk && maxOk;
+    }
+
+    function evaluateCriterion(criterion, value) {
+      const ranges = criterion.ranges || [];
+      for (const range of ranges) {
+        if (matchesRange(value, range)) {
+          return { points: Number(range.points) || 0, range };
+        }
+      }
+      const fallback = ranges[ranges.length - 1];
+      return { points: fallback ? Number(fallback.points) || 0 : 0, range: fallback || null };
+    }
+
+    function getCriteriaForCategory(categoryId, model = state) {
+      return Object.values(model.criteria).filter((criterion) => criterion.categoryId === categoryId);
+    }
+
+    function getCategoryScore(categoryId, asset, model = state) {
+      const criteria = getCriteriaForCategory(categoryId, model).filter((criterion) => criterion.active);
+      const activeWeight = criteria.reduce((sum, criterion) => sum + Number(criterion.weight || 0), 0);
+      if (!criteria.length || activeWeight <= 0) return 0;
+      return criteria.reduce((sum, criterion) => {
+        const value = getCriterionValue(asset, criterion.id);
+        const result = evaluateCriterion(criterion, value);
+        return sum + (Number(criterion.weight || 0) / activeWeight) * result.points;
+      }, 0);
+    }
+
+    function scoreAsset(asset, model = state, categoryWeightsOverride = null) {
+      const categoryWeights = categoryWeightsOverride || model.categoryWeights;
+      const categoryScores = {};
+      let total = 0;
+      categoryOrder.forEach((categoryId) => {
+        const score = getCategoryScore(categoryId, asset, model);
+        categoryScores[categoryId] = score;
+        total += (Number(categoryWeights[categoryId] || 0) / 100) * score;
+      });
+      return { total, categoryScores };
+    }
+
+    function getActiveCount(model = state) {
+      return Object.values(model.criteria).filter((criterion) => criterion.active).length;
+    }
+
+    function isDefaultModel() {
+      return JSON.stringify(state) === JSON.stringify(defaultSnapshot);
+    }
+
+    function updateModelLabel() {
+      heroModel.textContent = isDefaultModel() ? 'Balanceado' : 'Personalizado';
+      snapshotModel.textContent = isDefaultModel() ? 'Balanceado' : 'Personalizado';
+    }
+
+    function balanceMap(map, changedKey, nextValue) {
+      const keys = Object.keys(map);
+      const clampedValue = clamp(round(nextValue, 1), 0, 100);
+      const adjusted = {};
+      const others = keys.filter((key) => key !== changedKey);
+      const remaining = 100 - clampedValue;
+      const otherTotal = others.reduce((sum, key) => sum + Number(map[key] || 0), 0);
+      adjusted[changedKey] = clampedValue;
+      if (!others.length) {
+        return adjusted;
+      }
+      let running = 0;
+      if (otherTotal <= 0) {
+        const share = round(remaining / others.length, 1);
+        others.forEach((key, index) => {
+          const value = index === others.length - 1 ? round(remaining - running, 1) : share;
+          adjusted[key] = value;
+          running += value;
+        });
+      } else {
+        others.forEach((key, index) => {
+          const raw = (Number(map[key] || 0) / otherTotal) * remaining;
+          const value = index === others.length - 1 ? round(remaining - running, 1) : round(raw, 1);
+          adjusted[key] = value;
+          running += value;
+        });
+      }
+      const diff = round(100 - Object.values(adjusted).reduce((sum, value) => sum + Number(value || 0), 0), 1);
+      if (Math.abs(diff) >= 0.1) {
+        adjusted[others[others.length - 1]] = round(Number(adjusted[others[others.length - 1]]) + diff, 1);
+      }
+      return adjusted;
+    }
+
+    function balanceWeightsWithinCategory(categoryId, changedCriterionId, nextValue) {
+      const criteria = getCriteriaForCategory(categoryId);
+      const currentWeights = {};
+      criteria.forEach((criterion) => { currentWeights[criterion.id] = Number(criterion.weight || 0); });
+      const balanced = balanceMap(currentWeights, changedCriterionId, nextValue);
+      criteria.forEach((criterion) => {
+        state.criteria[criterion.id].weight = balanced[criterion.id];
+      });
+    }
+
+    function setCategoryWeight(categoryId, nextValue) {
+      state.categoryWeights = balanceMap(state.categoryWeights, categoryId, nextValue);
+      updateModelLabel();
+      renderAll();
+    }
+
+    function setCriterionWeight(categoryId, criterionId, nextValue) {
+      balanceWeightsWithinCategory(categoryId, criterionId, nextValue);
+      updateModelLabel();
+      renderAll();
+    }
+
+    function resetCriterion(criterionId) {
+      state.criteria[criterionId] = clone(defaultSnapshot.criteria[criterionId]);
+      expandedCriteria.add(criterionId);
+      selectedCriterionId = criterionId;
+      updateModelLabel();
+      renderAll();
+      notify(`Critério ${state.criteria[criterionId].name} restaurado.`);
+    }
+
+    function setCriterionActive(criterionId, active) {
+      state.criteria[criterionId].active = active;
+      updateModelLabel();
+      renderAll();
+    }
+
+    function setCriterionRuleType(criterionId, ruleType) {
+      state.criteria[criterionId].ruleType = ruleType;
+      updateModelLabel();
+      renderAll();
+    }
+
+    function updateRange(criterionId, rangeIndex, field, value) {
+      const criterion = state.criteria[criterionId];
+      const range = criterion.ranges[rangeIndex];
+      if (!range) return;
+      range[field] = value;
+      updateModelLabel();
+      renderAll();
+    }
+
+    function addRange(criterionId) {
+      const criterion = state.criteria[criterionId];
+      criterion.ranges.push({ min: null, max: null, points: 0 });
+      expandedCriteria.add(criterionId);
+      updateModelLabel();
+      renderAll();
+      notify(`Nova faixa adicionada em ${criterion.name}.`);
+    }
+
+    function removeRange(criterionId, rangeIndex) {
+      const criterion = state.criteria[criterionId];
+      if (criterion.ranges.length <= 1) return;
+      criterion.ranges.splice(rangeIndex, 1);
+      updateModelLabel();
+      renderAll();
+    }
+
+    function selectCriterion(criterionId) {
+      selectedCriterionId = criterionId;
+      expandedCriteria.add(criterionId);
+      renderAll();
+      document.getElementById('criterionEditorCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function getCurrentCriterion() {
+      return state.criteria[selectedCriterionId];
+    }
+
+    function currentAssetForEditor() {
+      return metricSampleAsset;
+    }
+
+    function currentEditScore(criterionId = selectedCriterionId) {
+      const criterion = state.criteria[criterionId];
+      const asset = currentAssetForEditor();
+      return evaluateCriterion(criterion, getCriterionValue(asset, criterionId));
+    }
+
+    function renderHero() {
+      const selectedAsset = metricSampleAsset;
+      const overall = scoreAsset(selectedAsset);
+      const band = classifyScore(overall.total);
+      const activeCount = getActiveCount();
+
+      heroModel.textContent = isDefaultModel() ? 'Balanceado' : 'Personalizado';
+      heroActiveCount.textContent = integerFormatter.format(activeCount);
+      heroTotalWeight.textContent = `${integerFormatter.format(round(Object.values(state.categoryWeights).reduce((sum, value) => sum + Number(value || 0), 0), 0))}%`;
+
+      snapshotScore.textContent = integerFormatter.format(round(overall.total, 0));
+      snapshotRing.style.setProperty('--score', round(overall.total, 0));
+      snapshotBand.textContent = band.label;
+      snapshotBand.className = `score-chip`;
+      snapshotBand.style.background = band.className === 'good' ? 'rgba(22,163,74,0.12)' : band.className === 'neutral' ? 'rgba(76,141,255,0.10)' : 'rgba(220,38,38,0.10)';
+      snapshotBand.style.color = band.className === 'good' ? '#b9f1cf' : band.className === 'neutral' ? '#d9ecff' : '#ffb0b0';
+      snapshotBand.style.borderColor = band.className === 'good' ? 'rgba(22,163,74,0.22)' : band.className === 'neutral' ? 'rgba(76,141,255,0.22)' : 'rgba(220,38,38,0.16)';
+      snapshotLabel.textContent = overall.total >= 75 ? 'Score com boa qualidade e transparência' : 'Score em evolução';
+      snapshotText.textContent = band.label === 'Excelente'
+        ? 'A combinação atual prioriza robustez, crescimento e solidez, com um score amplamente acima da zona neutra.'
+        : 'A nota final é formada por categorias ponderadas, critérios ativos e regras editáveis. Tudo fica visível para o usuário.';
+      snapshotCriterion.textContent = getCurrentCriterion().name;
+      snapshotModel.textContent = isDefaultModel() ? 'Balanceado' : 'Personalizado';
+      snapshotStatus.textContent = `${band.label} - ${formatScore(overall.total)}`;
+
+      overviewScore.textContent = integerFormatter.format(round(overall.total, 0));
+      overviewRing.style.setProperty('--score', round(overall.total, 0));
+      overviewBand.textContent = band.label;
+      overviewBand.className = `score-band ${band.className}`;
+      overviewAssetPill.textContent = `Exemplo em ${selectedAsset.ticker}`;
+
+      categoryComposition.innerHTML = categoryOrder.map((categoryId) => {
+        const category = categoryDefinitions[categoryId];
+        const weight = state.categoryWeights[categoryId];
+        const score = overall.categoryScores[categoryId];
+        const fillClass = categoryId === 'qualidade' ? 'quality' : categoryId === 'crescimento' ? 'growth' : 'solidity';
+        return `
+          <div class="composition-row">
+            <div class="row-head">
+              <strong>${category.name}</strong>
+              <span><em>${formatWeight(weight)}</em> · ${formatScore(score)}</span>
+            </div>
+            <div class="meter ${fillClass}"><span style="width:${score}%"></span></div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderCategoryWeights() {
+      categoryWeights.innerHTML = categoryOrder.map((categoryId) => {
+        const category = categoryDefinitions[categoryId];
+        const weight = state.categoryWeights[categoryId];
+        const score = scoreAsset(metricSampleAsset).categoryScores[categoryId];
+        return `
+          <div class="category-row" data-category-id="${categoryId}">
+            <div class="category-symbol ${category.colorClass}" aria-hidden="true">${category.icon}</div>
+            <div class="category-copy">
+              <div class="top">
+                <h3>${category.name}</h3>
+                <span class="weight-badge">${formatWeight(weight)}</span>
+              </div>
+              <p>${category.description}</p>
+              <div class="category-bar">
+                <div class="track"><span style="width:${weight}%"></span></div>
+                <span class="text-muted">Contribuição estimada no ativo de referência: ${formatScore(score)}</span>
+              </div>
+            </div>
+            <div class="range-shell">
+              <div class="field compact">
+                <label for="categoryWeight-${categoryId}">Peso</label>
+                <input id="categoryWeight-${categoryId}" data-category-weight-range="${categoryId}" type="range" min="0" max="100" step="1" value="${round(weight, 0)}" />
+              </div>
+              <div class="field compact">
+                <label for="categoryWeightValue-${categoryId}" class="sr-only">Peso em porcentagem</label>
+                <input id="categoryWeightValue-${categoryId}" data-category-weight-number="${categoryId}" type="number" min="0" max="100" step="1" value="${round(weight, 0)}" />
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderCriteriaGroups() {
+      criteriaGroups.innerHTML = categoryOrder.map((categoryId) => {
+        const category = categoryDefinitions[categoryId];
+        const criteria = getCriteriaForCategory(categoryId);
+        const collapsed = collapsedGroups.has(categoryId);
+        return `
+          <div class="criteria-group ${collapsed ? 'is-collapsed' : ''}" data-group-id="${categoryId}">
+            <div class="criteria-group-head">
+              <div>
+                <h3>${category.name}</h3>
+                <p>${category.description}</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span class="badge-pill neutral">Peso ${formatWeight(state.categoryWeights[categoryId])}</span>
+                <button class="criteria-group-toggle" type="button" data-toggle-group="${categoryId}" aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Expandir' : 'Minimizar'} categoria ${category.name}">
+                  <svg viewBox="0 0 14 14"><polyline points="2,4 7,10 12,4"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="criterion-list">
+              ${criteria.map((criterion) => renderCriterionItem(criterion)).join('')}
+            </div>
+          </div>`;
+      }).join('');
+      breakdownCount.textContent = `${getActiveCount()} critérios ativos`;
+    }
+
+    function renderCriterionItem(criterion) {
+      const asset = currentAssetForEditor();
+      const value = getCriterionValue(asset, criterion.id);
+      const result = evaluateCriterion(criterion, value);
+      const selected = criterion.id === selectedCriterionId;
+      const expanded = selected || expandedCriteria.has(criterion.id);
+      const statusClass = criterion.active ? 'active' : 'inactive';
+      return `
+        <article class="criterion-item ${selected ? 'is-selected' : ''} ${criterion.active ? '' : 'is-inactive'}" data-criterion-id="${criterion.id}">
+          <div class="criterion-top">
+            <button class="select-btn" type="button" data-select-criterion="${criterion.id}">
+              <span class="criterion-name">${criterion.name}</span>
+              <span class="criterion-desc">${criterion.description}</span>
+            </button>
+
+            <div class="criterion-meta">
+              <span class="weight-badge">${formatWeight(criterion.weight)}</span>
+              <button class="toggle-btn ${statusClass === 'active' ? 'is-active' : 'is-inactive'}" type="button" data-toggle-active="${criterion.id}" aria-pressed="${criterion.active}">${criterion.active ? 'Ativo' : 'Inativo'}</button>
+              <button class="expand-btn ${expanded ? 'is-open' : ''}" type="button" data-toggle-expand="${criterion.id}" aria-expanded="${expanded}">${expanded ? 'Recolher' : 'Expandir'}</button>
+            </div>
+          </div>
+
+          <div class="criterion-meter">
+            <div class="mini-meter"><span style="width:${result.points}%"></span></div>
+            <span class="criterion-points">${integerFormatter.format(result.points)} pts</span>
+            <span class="criterion-value">${formatCriterionValue(criterion, value)}</span>
+          </div>
+
+          <div class="criterion-details ${expanded ? 'is-open' : ''}">
+            <div class="detail-grid">
+              <div class="detail-box"><span>Tipo de regra</span><strong>${criterion.ruleType}</strong></div>
+              <div class="detail-box"><span>Valor no PETR4</span><strong>${formatCriterionValue(criterion, value)}</strong></div>
+              <div class="detail-box"><span>Pontuação</span><strong>${integerFormatter.format(result.points)} pontos</strong></div>
+            </div>
+            <div class="text-muted">Regra atual: ${criterion.ranges.map((range) => formatRangeLabel(range, criterion)).join(' · ')}</div>
+          </div>
+        </article>`;
+    }
+
+    function renderEditor() {
+      const criterion = getCurrentCriterion();
+      const asset = currentAssetForEditor();
+      const value = getCriterionValue(asset, criterion.id);
+      const result = evaluateCriterion(criterion, value);
+
+      editorCategoryPill.textContent = categoryDefinitions[criterion.categoryId].name;
+      editorStatusPill.textContent = criterion.active ? 'Ativo' : 'Inativo';
+      editorStatusPill.className = `badge-pill ${criterion.active ? 'good' : 'warn'}`;
+      selectedInfoChips.innerHTML = `
+        <span class="badge-pill neutral">Categoria ${categoryDefinitions[criterion.categoryId].name}</span>
+        <span class="badge-pill ${criterion.active ? 'good' : 'warn'}">${criterion.active ? 'Incluído no score' : 'Desligado do score'}</span>
+        <span class="badge-pill neutral">Tipo: ${criterion.ruleType}</span>`;
+
+      criterionName.value = criterion.name;
+      criterionDescription.value = criterion.description;
+      selectedAssetValue.textContent = asset.ticker;
+      selectedCriterionValue.textContent = formatCriterionValue(criterion, value);
+      selectedCriterionPoints.textContent = integerFormatter.format(result.points);
+      criterionWeight.value = round(criterion.weight, 0);
+      criterionWeightRange.value = round(criterion.weight, 0);
+      criterionWeightLabel.textContent = `${integerFormatter.format(round(criterion.weight, 0))}%`;
+      criterionRuleType.value = criterion.ruleType;
+      rangeCountPill.textContent = `${criterion.ranges.length} faixas`;
+      rangeEditor.innerHTML = criterion.ranges.map((range, index) => `
+        <div class="range-row" data-range-index="${index}">
+          <div class="range-label">Faixa ${index + 1}</div>
+          <label class="range-inline">
+            <span class="section-label">Mínimo</span>
+            <input type="number" step="0.1" data-range-field="min" data-range-index="${index}" value="${isBlank(range.min) ? '' : range.min}" />
+          </label>
+          <label class="range-inline">
+            <span class="section-label">Máximo</span>
+            <input type="number" step="0.1" data-range-field="max" data-range-index="${index}" value="${isBlank(range.max) ? '' : range.max}" />
+          </label>
+          <label class="range-inline">
+            <span class="section-label">Pontos</span>
+            <input type="number" step="1" min="0" max="100" data-range-field="points" data-range-index="${index}" value="${range.points}" />
+          </label>
+          <button class="range-delete" type="button" data-remove-range="${index}">Excluir</button>
+        </div>`).join('');
+    }
+
+    function renderImpact() {
+      const beforeScore = scoreAsset(metricSampleAsset, defaultSnapshot).total;
+      const afterScore = scoreAsset(metricSampleAsset, state).total;
+      const delta = round(afterScore - beforeScore, 0);
+      impactBefore.textContent = formatScore(beforeScore);
+      impactAfter.textContent = formatScore(afterScore);
+      impactDelta.textContent = `${delta >= 0 ? '+' : ''}${integerFormatter.format(delta)}`;
+      impactDeltaPill.textContent = `${delta >= 0 ? '+' : ''}${integerFormatter.format(delta)} pontos`;
+      impactFill.style.width = `${clamp(afterScore, 0, 100)}%`;
+      impactBeforeMarker.style.left = `${clamp(beforeScore, 0, 100)}%`;
+      impactAfterMarker.style.left = `${clamp(afterScore, 0, 100)}%`;
+      impactNote.textContent = criterionImpactSentence(getCurrentCriterion(), beforeScore, afterScore);
+    }
+
+    function criterionImpactSentence(criterion, beforeScore, afterScore) {
+      const delta = round(afterScore - beforeScore, 0);
+      if (criterion.id === 'roe') {
+        return delta >= 0 ? 'Aumentar o peso do ROE torna o modelo mais sensível à rentabilidade.' : 'Reduzir o peso do ROE diminui a influência da rentabilidade no score final.';
+      }
+      if (criterion.ruleType === 'menor é melhor') {
+        return delta >= 0 ? `Diminuir a tolerância em ${criterion.name} privilegia empresas com balanço mais limpo.` : `Relaxar a regra em ${criterion.name} amplia a faixa de empresas aceitas.`;
+      }
+      if (criterion.ruleType === 'faixa ideal') {
+        return delta >= 0 ? `Ajustar a faixa ideal em ${criterion.name} melhora a precisão do score para perfis mais equilibrados.` : `Quando a faixa ideal fica mais larga, o modelo perde sensibilidade.`;
+      }
+      return delta >= 0 ? `O ajuste em ${criterion.name} eleva a influência desse fator no score total.` : `O ajuste em ${criterion.name} reduz sua influência sobre a nota final.`;
+    }
+
+    function scenarioWeightsForCurrentSelection() {
+      if (selectedScenario === 'personalizado') {
+        return clone(state.categoryWeights);
+      }
+      return clone(scenarioDefinitions[selectedScenario].categoryWeights);
+    }
+
+    function renderAssetTable() {
+      const weights = scenarioWeightsForCurrentSelection();
+      assetTableBody.innerHTML = testAssets.map((asset) => {
+        const computed = scoreAsset(asset, state, weights);
+        const band = classifyScore(computed.total);
+        const currentRow = asset.ticker === metricSampleAsset.ticker;
+        return `
+          <tr class="${currentRow ? 'table-row-current' : ''}">
+            <td><strong>${asset.ticker}</strong></td>
+            <td><span class="result-chip ${band.className === 'good' ? 'good' : band.className === 'neutral' ? 'neutral' : 'warn'}">${formatScore(computed.total)}</span></td>
+            <td>${integerFormatter.format(round(computed.categoryScores.qualidade, 0))}</td>
+            <td>${integerFormatter.format(round(computed.categoryScores.crescimento, 0))}</td>
+            <td>${integerFormatter.format(round(computed.categoryScores.solidez, 0))}</td>
+          </tr>`;
+      }).join('');
+      appliedScenarioLabel.textContent = `Modelo aplicado: ${scenarioDefinitions[appliedScenario].name}`;
+    }
+
+    function renderScenarioButtons() {
+      modelChipButtons.forEach((button) => {
+        const isActive = button.dataset.scenario === selectedScenario;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+      });
+    }
+
+    function updateMetricLabels() {
+      const selectedCriterion = getCurrentCriterion();
+      snapshotCriterion.textContent = selectedCriterion.name;
+      selectedInfoChips.querySelectorAll('.badge-pill').forEach((pill) => {
+        if (pill.textContent.startsWith('Categoria ')) {
+          pill.textContent = `Categoria ${categoryDefinitions[selectedCriterion.categoryId].name}`;
+        }
+      });
+      breakdownCount.textContent = `${getActiveCount()} critérios ativos`;
+    }
+
+    function renderAll() {
+      updateMetricLabels();
+      renderHero();
+      renderCategoryWeights();
+      renderCriteriaGroups();
+      renderEditor();
+      renderImpact();
+      renderScenarioButtons();
+      renderAssetTable();
+      weightsTotalValue.textContent = `${integerFormatter.format(round(Object.values(state.categoryWeights).reduce((sum, value) => sum + Number(value || 0), 0), 0))}%`;
+      weightsTotalPill.textContent = `${integerFormatter.format(round(Object.values(state.categoryWeights).reduce((sum, value) => sum + Number(value || 0), 0), 0))}%`;
+      weightsTotalFill.style.width = `${clamp(Object.values(state.categoryWeights).reduce((sum, value) => sum + Number(value || 0), 0), 0, 100)}%`;
+    }
+
+    function applySelectedScenario() {
+      appliedScenario = selectedScenario;
+      renderAssetTable();
+      notify(`Modelo ${scenarioDefinitions[selectedScenario].name} aplicado aos ativos.`);
+    }
+
+    function resetModel() {
+      state.categoryWeights = clone(defaultSnapshot.categoryWeights);
+      state.criteria = clone(defaultSnapshot.criteria);
+      selectedCriterionId = 'roe';
+      expandedCriteria = new Set([selectedCriterionId]);
+      selectedScenario = 'balanceado';
+      appliedScenario = 'balanceado';
+      updateModelLabel();
+      renderAll();
+      notify('Modelo restaurado para o padrão balanceado.');
+    }
+
+    function searchScore(query) {
+      const normalized = query.toLowerCase();
+      const criterion = Object.values(state.criteria).find((item) => [item.name, item.categoryId, item.ruleType, item.description].some((value) => String(value).toLowerCase().includes(normalized)));
+      if (criterion) {
+        selectCriterion(criterion.id);
+        notify(`Critério ${criterion.name} localizado.`);
+        return true;
+      }
+      const asset = testAssets.find((item) => item.ticker.toLowerCase().includes(normalized));
+      if (asset) {
+        overviewAssetPill.textContent = `Exemplo em ${asset.ticker}`;
+        notify(`Ativo ${asset.ticker} encontrado na simulação.`);
+        document.querySelector('.score-lab').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    }
+
+    function updateStateAfterTextEdit() {
+      updateModelLabel();
+      renderAll();
+    }
+
+    categoryWeights.addEventListener('input', (event) => {
+      const target = event.target;
+      const categoryId = target.dataset.categoryWeightRange || target.dataset.categoryWeightNumber;
+      if (!categoryId) return;
+      const value = Number(target.value);
+      setCategoryWeight(categoryId, value);
+    });
+
+    categoryWeights.addEventListener('change', (event) => {
+      const target = event.target;
+      const categoryId = target.dataset.categoryWeightRange || target.dataset.categoryWeightNumber;
+      if (!categoryId) return;
+      setCategoryWeight(categoryId, Number(target.value));
+    });
+
+    criteriaGroups.addEventListener('click', (event) => {
+      const toggleGroupBtn = event.target.closest('[data-toggle-group]');
+      if (toggleGroupBtn) {
+        const categoryId = toggleGroupBtn.dataset.toggleGroup;
+        if (collapsedGroups.has(categoryId)) {
+          collapsedGroups.delete(categoryId);
+        } else {
+          collapsedGroups.add(categoryId);
+        }
+        renderCriteriaGroups();
+        return;
+      }
+    });
+
+    criteriaGroups.addEventListener('click', (event) => {
+      const selectTarget = event.target.closest('[data-select-criterion]');
+      if (selectTarget) {
+        selectCriterion(selectTarget.dataset.selectCriterion);
+        return;
+      }
+      const toggleTarget = event.target.closest('[data-toggle-active]');
+      if (toggleTarget) {
+        const criterionId = toggleTarget.dataset.toggleActive;
+        setCriterionActive(criterionId, !state.criteria[criterionId].active);
+        return;
+      }
+      const expandTarget = event.target.closest('[data-toggle-expand]');
+      if (expandTarget) {
+        const criterionId = expandTarget.dataset.toggleExpand;
+        if (expandedCriteria.has(criterionId)) {
+          expandedCriteria.delete(criterionId);
+        } else {
+          expandedCriteria.add(criterionId);
+        }
+        renderCriteriaGroups();
+        return;
+      }
+    });
+
+    criteriaGroups.addEventListener('click', (event) => {
+      const row = event.target.closest('.criterion-item');
+      if (row && !event.target.closest('button')) {
+        selectCriterion(row.dataset.criterionId);
+      }
+    });
+
+    criterionWeight.addEventListener('input', () => {
+      criterionWeightRange.value = criterionWeight.value;
+      setCriterionWeight(getCurrentCriterion().categoryId, selectedCriterionId, Number(criterionWeight.value));
+    });
+
+    criterionWeightRange.addEventListener('input', () => {
+      criterionWeight.value = criterionWeightRange.value;
+      setCriterionWeight(getCurrentCriterion().categoryId, selectedCriterionId, Number(criterionWeightRange.value));
+    });
+
+    criterionRuleType.addEventListener('change', () => {
+      setCriterionRuleType(selectedCriterionId, criterionRuleType.value);
+    });
+
+    criterionDescription.addEventListener('input', () => {
+      state.criteria[selectedCriterionId].description = criterionDescription.value;
+      updateStateAfterTextEdit();
+    });
+
+    criterionName.addEventListener('input', () => {
+      state.criteria[selectedCriterionId].name = criterionName.value;
+      updateStateAfterTextEdit();
+    });
+
+    rangeEditor.addEventListener('input', (event) => {
+      const target = event.target;
+      const field = target.dataset.rangeField;
+      if (!field) return;
+      const rangeIndex = Number(target.dataset.rangeIndex);
+      const value = field === 'points' ? Number(target.value || 0) : parseNumber(target.value);
+      updateRange(selectedCriterionId, rangeIndex, field, value);
+    });
+
+    rangeEditor.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-remove-range]');
+      if (!button) return;
+      removeRange(selectedCriterionId, Number(button.dataset.removeRange));
+    });
+
+    addRangeButton.addEventListener('click', () => {
+      addRange(selectedCriterionId);
+    });
+
+    resetCriterionButton.addEventListener('click', () => {
+      resetCriterion(selectedCriterionId);
+    });
+
+    modelChipButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedScenario = button.dataset.scenario;
+        renderScenarioButtons();
+      });
+    });
+
+    applyScenarioButton.addEventListener('click', applySelectedScenario);
+
+    searchForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const query = searchInput.value.trim();
+      if (!query) {
+        notify('Digite um critério, categoria ou ativo.');
+        return;
+      }
+      if (!searchScore(query)) {
+        notify(`Nenhum resultado encontrado para "${query}".`);
+      }
+    });
+
+    alertsButton.addEventListener('click', () => {
+      notify('3 notificações de score pendentes.');
+    });
+
+    saveHeroButton.addEventListener('click', () => {
+      notify('Modelo salvo com sucesso.');
+    });
+
+    duplicateHeroButton.addEventListener('click', () => {
+      notify('Modelo duplicado para nova versão.');
+    });
+
+    cancelButton.addEventListener('click', () => {
+      resetModel();
+    });
+
+    testButton.addEventListener('click', () => {
+      applySelectedScenario();
+      document.querySelector('.score-lab').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    saveButton.addEventListener('click', () => {
+      notify(`Score Valora "${criterionName.value || getCurrentCriterion().name}" salvo com sucesso.`);
+    });
+
+    updateModelLabel();
+    renderAll();
+    history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+    window.addEventListener('load', () => {
+      window.scrollTo(0, 0);
+    });
+  </script>
+</body>
+</html>

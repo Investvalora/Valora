@@ -1,0 +1,82 @@
+{
+  "hash": "dd36994c",
+  "configHash": "7cbac359",
+  "lockfileHash": "d0ae2f6c",
+  "browserHash": "84abe1d4",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "f765875a",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "cf90c297",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "fcc8ca39",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/.pnpm/react-router-dom@6.30.6_rea_afc34bd3c9308c43669ce7aa20201424/node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "b80f14a0",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/.pnpm/@tanstack+react-query@5.102.8_react@18.3.1/node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "13e73022",
+      "needsInterop": false
+    },
+    "react-hook-form": {
+      "src": "../../node_modules/.pnpm/react-hook-form@7.87.0_react@18.3.1/node_modules/react-hook-form/dist/index.esm.mjs",
+      "file": "react-hook-form.js",
+      "fileHash": "4bbb908b",
+      "needsInterop": false
+    },
+    "@hookform/resolvers/zod": {
+      "src": "../../node_modules/.pnpm/@hookform+resolvers@3.10.0__485afe0bd29f8ce3002f5e2d8b5094cd/node_modules/@hookform/resolvers/zod/dist/zod.mjs",
+      "file": "@hookform_resolvers_zod.js",
+      "fileHash": "1dfc56d8",
+      "needsInterop": false
+    },
+    "zustand": {
+      "src": "../../node_modules/.pnpm/zustand@4.5.7_@types+react@18.3.31_react@18.3.1/node_modules/zustand/esm/index.mjs",
+      "file": "zustand.js",
+      "fileHash": "823baab3",
+      "needsInterop": false
+    },
+    "zod": {
+      "src": "../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.js",
+      "file": "zod.js",
+      "fileHash": "d5574195",
+      "needsInterop": false
+    },
+    "@supabase/supabase-js": {
+      "src": "../../node_modules/.pnpm/@supabase+supabase-js@2.115.0/node_modules/@supabase/supabase-js/dist/index.mjs",
+      "file": "@supabase_supabase-js.js",
+      "fileHash": "0ea6f927",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-CG5EITXW": {
+      "file": "chunk-CG5EITXW.js"
+    },
+    "chunk-S6ZDDJBW": {
+      "file": "chunk-S6ZDDJBW.js"
+    },
+    "chunk-HZR4FSSY": {
+      "file": "chunk-HZR4FSSY.js"
+    },
+    "chunk-4MBMRILA": {
+      "file": "chunk-4MBMRILA.js"
+    }
+  }
+}

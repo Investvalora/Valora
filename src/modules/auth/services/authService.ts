@@ -3,29 +3,25 @@ import { SignupFormData, UserProfile } from '../types'
 
 export const authService = {
   async signup(data: SignupFormData) {
-    // 1. Create auth user
+    // Create auth user with metadata
+    // The trigger will automatically create the users table entry
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        data: {
+          full_name: data.fullName,
+          phone: data.phone || null,
+        },
+      },
     })
 
     if (authError) throw authError
     if (!authData.user) throw new Error('Failed to create user')
 
-    // 2. Insert user profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: data.email,
-        full_name: data.fullName,
-        phone: data.phone || null,
-      })
-
-    if (profileError) {
-      // Rollback: delete auth user if profile creation fails
-      await supabase.auth.admin.deleteUser(authData.user.id)
-      throw profileError
+    // Check if email confirmation is required
+    if (!authData.session) {
+      throw new Error('Por favor, confirme seu email para continuar. Verifique sua caixa de entrada.')
     }
 
     return authData

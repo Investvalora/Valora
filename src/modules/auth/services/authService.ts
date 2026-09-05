@@ -1,5 +1,5 @@
 import { supabase } from '../../../shared/services/supabaseClient'
-import { SignupFormData, UserProfile } from '../types'
+import { LoginFormData, SignupFormData, UserProfile } from '../types'
 
 export const authService = {
   async signup(data: SignupFormData) {
@@ -27,14 +27,14 @@ export const authService = {
     return authData
   },
 
-  async login(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  async login(data: LoginFormData) {
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
     })
 
     if (error) throw error
-    return data
+    return authData
   },
 
   async logout() {

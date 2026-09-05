@@ -27,7 +27,14 @@ export function PasswordRecoveryForm() {
     onError: (error: Error) => {
       console.error('Password recovery error:', error)
       setSuccessMessage('')
-      setErrorMessage(error.message || 'Erro ao enviar email de recuperação. Tente novamente.')
+
+      const message = error.message?.toLowerCase() ?? ''
+
+      if (message.includes('rate limit')) {
+        setErrorMessage('Muitas tentativas de recuperação foram feitas. Aguarde alguns minutos antes de tentar novamente.')
+      } else {
+        setErrorMessage(error.message || 'Erro ao enviar email de recuperação. Tente novamente.')
+      }
     },
   })
 

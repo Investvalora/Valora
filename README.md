@@ -35,11 +35,21 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ### 3. Rodar Migrations
 
+Execute as migrations SQL no Supabase Dashboard (SQL Editor):
+
 ```bash
-# Execute as migrations SQL no Supabase Dashboard
-# Ou use o Supabase CLI:
+# No SQL Editor do Supabase, execute em ordem:
+# 1. supabase/migrations/001_create_users_table.sql
+```
+
+Ou use a Supabase CLI:
+
+```bash
+supabase link --project-ref your-project-ref
 supabase db push
 ```
+
+Ver detalhes em `supabase/migrations/README.md`
 
 ### 4. Rodar o Projeto
 

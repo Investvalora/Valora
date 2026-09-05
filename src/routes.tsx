@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { Layout } from './shared/components/Layout'
+import { SignupForm } from './modules/auth/components/SignupForm'
 
 // Placeholder pages
 const CarteiraPage = () => <div className="p-8 text-white">Carteira (Em desenvolvimento)</div>
@@ -13,6 +14,10 @@ const AlertasPage = () => <div className="p-8 text-white">Alertas (Em desenvolvi
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/cadastro" element={<SignupForm />} />
+
+      {/* Protected routes */}
       <Route path="/" element={<Layout />}>
         <Route index element={<CarteiraPage />} />
         <Route path="carteira" element={<CarteiraPage />} />

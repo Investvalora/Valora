@@ -1,13 +1,13 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { signupSchema, SignupSchema } from '../schemas/signupSchema'
+import { loginSchema, LoginSchema } from '../schemas/loginSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
-import { useState } from 'react'
 
-export function SignupForm() {
+export function LoginForm() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
@@ -17,47 +17,50 @@ export function SignupForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignupSchema>({
-    resolver: zodResolver(signupSchema),
+  } = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
   })
 
-  const signupMutation = useMutation({
-    mutationFn: authService.signup,
+  const loginMutation = useMutation({
+    mutationFn: authService.login,
     onSuccess: (data) => {
       setUser(data.user)
       setSession(data.session)
       navigate('/carteira')
     },
-    onError: (error: any) => {
-      console.error('Signup error:', error)
+    onError: (error: Error) => {
+      console.error('Login error:', error)
 
-      // Handle specific Supabase errors
-      if (error.message?.includes('already registered')) {
-        setErrorMessage('Este email já está cadastrado')
-      } else if (error.message?.includes('invalid email')) {
-        setErrorMessage('Email inválido')
+      const message = error.message?.toLowerCase() ?? ''
+
+      if (
+        message.includes('invalid login credentials') ||
+        message.includes('invalid credentials')
+      ) {
+        setErrorMessage('Email ou senha incorretos')
+      } else if (message.includes('email not confirmed')) {
+        setErrorMessage('Confirme seu email antes de entrar. Verifique sua caixa de entrada.')
       } else {
-        setErrorMessage(error.message || 'Erro ao criar conta. Tente novamente.')
+        setErrorMessage('Email ou senha incorretos')
       }
     },
   })
 
-  const onSubmit = (data: SignupSchema) => {
+  const onSubmit = (data: LoginSchema) => {
     setErrorMessage('')
-    signupMutation.mutate(data)
+    loginMutation.mutate(data)
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-bg px-4">
       <div className="w-full max-w-md">
         <div className="bg-dark-surface rounded-lg shadow-xl p-8 border border-dark-border">
-          <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>
           <p className="text-gray-400 mb-8">
-            Comece a gerenciar seus investimentos
+            Acesse sua carteira de investimentos
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email
@@ -65,6 +68,7 @@ export function SignupForm() {
               <input
                 id="email"
                 type="email"
+                autoComplete="email"
                 {...register('email')}
                 className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="seu@email.com"
@@ -74,7 +78,6 @@ export function SignupForm() {
               )}
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                 Senha
@@ -82,70 +85,35 @@ export function SignupForm() {
               <input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 {...register('password')}
                 className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Sua senha"
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
               )}
             </div>
 
-            {/* Full Name */}
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
-                Nome Completo
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                {...register('fullName')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Seu nome completo"
-              />
-              {errors.fullName && (
-                <p className="mt-1 text-sm text-red-400">{errors.fullName.message}</p>
-              )}
-            </div>
-
-            {/* Phone (optional) */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
-                Telefone <span className="text-gray-500">(opcional)</span>
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                {...register('phone')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="(00) 00000-0000"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-400">{errors.phone.message}</p>
-              )}
-            </div>
-
-            {/* Error Message */}
             {errorMessage && (
               <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
                 <p className="text-sm text-red-400">{errorMessage}</p>
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
-              disabled={signupMutation.isPending}
+              disabled={loginMutation.isPending}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
-              {signupMutation.isPending ? 'Criando conta...' : 'Criar Conta'}
+              {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-400">
-            Já tem uma conta?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-              Faça login
+            Ainda não tem uma conta?{' '}
+            <Link to="/cadastro" className="text-blue-400 hover:text-blue-300 font-medium">
+              Criar conta
             </Link>
           </p>
         </div>

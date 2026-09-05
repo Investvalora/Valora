@@ -5,6 +5,11 @@ export interface SignupFormData {
   phone?: string
 }
 
+export interface LoginFormData {
+  email: string
+  password: string
+}
+
 export interface UserProfile {
   id: string
   email: string

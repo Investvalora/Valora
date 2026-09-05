@@ -1,0 +1,46 @@
+import { Outlet, NavLink } from 'react-router-dom'
+
+const menuItems = [
+  { path: '/carteira', label: 'Carteira' },
+  { path: '/patrimonio', label: 'Patrimônio' },
+  { path: '/proventos', label: 'Proventos' },
+  { path: '/rentabilidade', label: 'Rentabilidade' },
+  { path: '/score', label: 'Score' },
+  { path: '/estrategias', label: 'Estratégias' },
+  { path: '/alertas', label: 'Alertas' },
+]
+
+export function Layout() {
+  return (
+    <div className="flex min-h-screen bg-dark-bg">
+      {/* Sidebar */}
+      <aside className="w-64 bg-dark-surface border-r border-dark-border flex-shrink-0">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-white mb-8">Valora</h1>
+          <nav className="space-y-2">
+            {menuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-dark-bg hover:text-white'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-auto">
+        <Outlet />
+      </main>
+    </div>
+  )
+}

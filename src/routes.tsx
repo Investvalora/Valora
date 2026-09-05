@@ -4,6 +4,8 @@ import { SignupForm } from './modules/auth/components/SignupForm'
 import { LoginForm } from './modules/auth/components/LoginForm'
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
+import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
+import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
 
 // Placeholder pages
 const CarteiraPage = () => <div className="p-8 text-white">Carteira (Em desenvolvimento)</div>
@@ -21,8 +23,10 @@ export function AppRoutes() {
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={<LoginForm />} />
         <Route path="/cadastro" element={<SignupForm />} />
+        <Route path="/recuperar-senha" element={<PasswordRecoveryForm />} />
       </Route>
       <Route path="/signup" element={<Navigate to="/cadastro" replace />} />
+      <Route path="/reset-password" element={<ResetPasswordForm />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>

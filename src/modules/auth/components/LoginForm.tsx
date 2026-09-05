@@ -93,6 +93,11 @@ export function LoginForm() {
               {errors.password && (
                 <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
               )}
+              <div className="mt-2 text-right">
+                <Link to="/recuperar-senha" className="text-sm text-blue-400 hover:text-blue-300 font-medium">
+                  Esqueci minha senha
+                </Link>
+              </div>
             </div>
 
             {errorMessage && (

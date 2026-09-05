@@ -2,6 +2,8 @@ import { Navigate, Routes, Route } from 'react-router-dom'
 import { Layout } from './shared/components/Layout'
 import { SignupForm } from './modules/auth/components/SignupForm'
 import { LoginForm } from './modules/auth/components/LoginForm'
+import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
+import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 
 // Placeholder pages
 const CarteiraPage = () => <div className="p-8 text-white">Carteira (Em desenvolvimento)</div>
@@ -16,20 +18,24 @@ export function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={<LoginForm />} />
-      <Route path="/cadastro" element={<SignupForm />} />
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/cadastro" element={<SignupForm />} />
+      </Route>
       <Route path="/signup" element={<Navigate to="/cadastro" replace />} />
 
       {/* Protected routes */}
-      <Route path="/" element={<Layout />}>
-        <Route index element={<CarteiraPage />} />
-        <Route path="carteira" element={<CarteiraPage />} />
-        <Route path="patrimonio" element={<PatrimonioPage />} />
-        <Route path="proventos" element={<ProventosPage />} />
-        <Route path="rentabilidade" element={<RentabilidadePage />} />
-        <Route path="score" element={<ScorePage />} />
-        <Route path="estrategias" element={<EstrategiasPage />} />
-        <Route path="alertas" element={<AlertasPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<CarteiraPage />} />
+          <Route path="carteira" element={<CarteiraPage />} />
+          <Route path="patrimonio" element={<PatrimonioPage />} />
+          <Route path="proventos" element={<ProventosPage />} />
+          <Route path="rentabilidade" element={<RentabilidadePage />} />
+          <Route path="score" element={<ScorePage />} />
+          <Route path="estrategias" element={<EstrategiasPage />} />
+          <Route path="alertas" element={<AlertasPage />} />
+        </Route>
       </Route>
     </Routes>
   )

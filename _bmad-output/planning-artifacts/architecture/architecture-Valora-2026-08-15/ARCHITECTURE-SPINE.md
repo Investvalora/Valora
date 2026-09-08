@@ -46,13 +46,17 @@ updated: 2026-08-15
 **Rule:** Se cálculo é derivado de dados já no cliente e não afeta estado persistido ou regras de negócio → cliente. Se cálculo determina estado persistido, alertas, scores, ou tem complexidade que justifica centralização → servidor (Supabase Edge Functions ou Postgres Functions).  
 **Status:** ADOPTED
 
-### AD-6: RLS Strategy — Privado vs Público
+### AD-6: RLS Strategy — RLS Universal, Policy por Natureza do Dado
 **Binds:**  
 - **Tabelas privadas (RLS ativo):** `users`, `positions`, `transactions`, `score_rules`, `alerts`, `user_preferences`. Policy: `user_id = auth.uid()`.  
-- **Tabelas públicas (sem RLS):** `assets`, `price_history`, `dividends`, `fundamentals`, `benchmarks`. Dados de mercado compartilhados, inseridos via service role, leitura livre para usuários autenticados.  
+- **Tabelas de mercado (RLS ativo, policy permissiva de leitura):** `assets`, `price_history`, `dividends`, `fundamentals`, `benchmarks`. Escritas exclusivamente via service role. Policy: `FOR SELECT TO authenticated USING (true)`. O role `anon` não recebe grant.  
 
-**Prevents:** RLS em tabelas públicas degradando performance desnecessariamente. Dados privados expostos por falta de RLS.  
-**Rule:** Tabela contém dado de usuário específico → RLS obrigatório. Tabela contém dado de mercado/seed compartilhado → sem RLS, acesso via `anon` ou `authenticated` role com SELECT apenas.  
+**Prevents:** Escrita exposta por GRANT concedido inadvertidamente. `TRUNCATE` executável por role de cliente. Dados privados expostos por falta de RLS.  
+**Rule:** Toda tabela do schema `public` tem RLS habilitado, sem exceção. Dado de usuário → policy por `user_id = auth.uid()`. Dado de mercado → policy `FOR SELECT TO authenticated USING (true)`, e nenhum grant de escrita para role de cliente.
+
+**Motivo da emenda (2026-09-08):** os DEFAULT PRIVILEGES do Supabase concedem `arwdDxtm` a `anon` e `authenticated` em toda tabela nova do schema `public` (verificado em `pg_default_acl`). Sem RLS, esses grants viram escrita real. O custo de performance citado na formulação anterior não se materializa numa policy `USING (true)`, que o planner resolve trivialmente.
+
+**Ressalva:** RLS **não** intercepta `TRUNCATE` — verificado em Postgres 15 (com RLS ativo e policy só de SELECT, `INSERT` é bloqueado, `DELETE` filtra para zero linhas, `TRUNCATE` zera a tabela). Daí a migration `004_harden_default_privileges.sql`, que remove TRUNCATE dos default privileges.  
 **Status:** ADOPTED
 
 ### AD-7: Estrutura Frontend — Módulos Autocontidos
@@ -114,10 +118,14 @@ Cada `modules/{domain}/` contém:
 **Rule:** Index em toda FK e coluna de filtro comum (user_id, ticker, date). Componentes pesados (charts) lazy-loaded. Query `staleTime` proporcional à frequência de mudança dos dados (cotações: 1min, fundamentals: 5min, seed: 1h).  
 **Status:** ADOPTED
 
-### AD-12: AwesomeAPI Integration (Cotação USD)
-**Binds:** Client-side fetch de `https://economia.awesomeapi.com.br/json/last/USD-BRL` via TanStack Query. `staleTime` 1h (taxa muda devagar). Fallback para taxa fixa R$5,00 se API falhar ou timeout >2s.  
-**Prevents:** Server-side cache desnecessário no MVP (overhead de manutenção). Falha total de cálculo de patrimônio internacional se API cair.  
-**Rule:** Hook `useUSDRate()` encapsula fetch + fallback. Armazenar última taxa bem-sucedida em localStorage como fallback secundário. Exibir badge "taxa USD aproximada" quando usar fallback.  
+### AD-12: Cotação USD/BRL — BCB PTAX com Cadeia de Fallback
+**Binds:** Client-side fetch do **BCB PTAX** (`https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(...)`) via TanStack Query — fonte oficial, sem chave e sem quota. AwesomeAPI como fallback secundário. `staleTime` 1h. Fallback final para taxa fixa R$ 5,00.  
+**Prevents:** Dependência de fonte com quota (a AwesomeAPI retornou `HTTP 429 QuotaExceeded` em 2026-09-08). Server-side cache desnecessário no MVP. Falha total de cálculo de patrimônio internacional se a fonte cair.  
+**Rule:** Hook `useUSDRate()` encapsula a cadeia BCB → AwesomeAPI → localStorage → R$ 5,00. **PTAX publica apenas em dia útil**: fim de semana e feriado devem consumir a última cotação disponível da série, não tratar ausência como erro. Armazenar última taxa bem-sucedida em localStorage. Exibir badge "taxa USD aproximada" quando usar fallback.
+
+**CORS verificado (2026-09-08):** o endpoint Olinda devolve `access-control-allow-origin` refletindo a origem, `vary: Origin`, e responde preflight `OPTIONS` com `access-control-allow-methods: GET,POST`. O fetch client-side é viável; não é necessário proxy por Edge Function.
+
+**Fallback de R$ 5,00 validado:** PTAX de 2026-09-03 fechou em 5,1253, com cross-check independente via CoinGecko em 5,092. O valor fixo permanece adequado.  
 **Status:** ADOPTED
 
 ### AD-13: Local Dev Setup
@@ -154,8 +162,20 @@ Cada `modules/{domain}/` contém:
 - **Functions:** Supabase Edge Functions (Deno runtime) para cálculos server-side, jobs, validações
 
 **Dados Externos (MVP):**
-- **Cotação USD:** AwesomeAPI (`https://economia.awesomeapi.com.br/json/last/USD-BRL`) — gratuita, sem auth
-- **Cotações BR/Fundamentals:** Dados seed/mock (50 ativos) — v2 integra Brapi, Alpha Vantage
+Provedores escolhidos em 2026-09-08 após validação empírica de cada candidato (fecha a questão aberta #1):
+
+| Classe de ativo | Provedor | Limite do plano gratuito | Observação |
+|---|---|---|---|
+| `stock_br`, `fii`, `bdr` | **brapi** | 15.000 req/mês, 1 ticker/requisição, **histórico de 3 meses**, sem dividendos | Único com cobertura B3 e licença clara. O plano Startup (R$ 1.199,90/ano) sobe para 1 ano e libera dividendos |
+| `stock_us`, `reit` | **Twelve Data** Basic | 8 créditos/min, 800/dia, `outputsize` cobre 12+ meses | Licença "personal & non-commercial" — adequada a projeto acadêmico, **impeditiva se o produto for comercializado**. O tier Basic não cobre BVMF |
+| `crypto` | **CoinGecko** Demo/keyless | 100 calls/min | `market_chart&interval=daily` entrega fechamento diário. OHLC diário não existe no plano gratuito — `high`/`low` ficam NULL |
+| USD/BRL | **BCB PTAX** | sem quota | Oficial. Apenas dia útil. CORS habilitado |
+
+**Descartados, com motivo:**
+- **Alpha Vantage** — 25 requisições/dia inviabiliza qualquer carga de catálogo
+- **Yahoo Finance** — `HTTP 429` na primeira chamada, sem histórico de uso
+- **Finnhub** para histórico — o endpoint de candles é pago; o free devolve só cotação instantânea
+- **`ibovfinancials`** — espelho não-oficial do site do Alpha Vantage servido sob outro domínio; não respondeu
 
 **Deploy:**
 - **Frontend:** Railway ou Render (SPA estático Vite build)
@@ -461,21 +481,32 @@ ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can CRUD own preferences" ON user_preferences FOR ALL USING (auth.uid() = user_id);
 ```
 
-### Tabelas Públicas (sem RLS, leitura autenticada)
+### Tabelas de Mercado (RLS ativo com policy permissiva de leitura)
 
 #### `assets`
 Catálogo de ativos (seed 50 ativos representativos).
 ```sql
 CREATE TYPE asset_type AS ENUM ('stock_br', 'fii', 'bdr', 'stock_us', 'reit', 'crypto');
 
+-- Provedor de cotação por ativo. `ibovfinancials` foi removido do enum:
+-- espelho não-oficial, sem resposta. Ver "Dados Externos".
+CREATE TYPE quote_provider AS ENUM ('brapi', 'twelvedata', 'coingecko', 'bcb', 'finnhub', 'awesomeapi');
+
 CREATE TABLE assets (
   ticker TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   type asset_type NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'BRL',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  currency TEXT NOT NULL DEFAULT 'BRL' CHECK (currency IN ('BRL', 'USD')),
+  quote_provider quote_provider NOT NULL,
+  -- Símbolo no provedor quando difere do ticker interno (ex.: BTC -> 'bitcoin').
+  provider_symbol TEXT,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Par de moedas NÃO é ativo investível e não pertence a `assets`.
+-- A cotação USD/BRL é responsabilidade do hook `useUSDRate()` (AD-12).
 
 CREATE INDEX idx_assets_type ON assets(type);
 -- Sem RLS — SELECT aberto para authenticated role
@@ -492,10 +523,21 @@ CREATE TABLE price_history (
   high NUMERIC(18, 4),
   low NUMERIC(18, 4),
   close NUMERIC(18, 4) NOT NULL,
+  -- Fechamento ajustado por proventos e desdobramentos. Necessário para o
+  -- retorno total da Story 4.1: sem ajuste, o retorno de ativo pagador de
+  -- dividendos aparece subestimado. A brapi devolve `adjustedClose` de graça.
+  adjusted_close NUMERIC(18, 4),
   volume BIGINT,
-  source TEXT DEFAULT 'seed',
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (ticker, date)
+  -- Procedência por linha: 'brapi' | 'twelvedata' | 'coingecko' | 'bcb' | 'synthetic'.
+  source TEXT NOT NULL DEFAULT 'seed',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (ticker, date),
+  -- Coerência de OHLC. As colunas OHL são opcionais (o plano gratuito do
+  -- CoinGecko não entrega OHLC diário), então só valida quando presentes.
+  CONSTRAINT price_history_ohlc_coerente CHECK (
+    (high IS NULL OR low IS NULL OR high >= low) AND (close > 0)
+  )
 );
 
 CREATE INDEX idx_price_history_ticker_date ON price_history(ticker, date DESC);
@@ -581,8 +623,10 @@ graph TD
     end
     
     subgraph "External APIs"
-        AwesomeAPI[AwesomeAPI<br/>USD/BRL]
-        Future[Brapi, Alpha Vantage<br/>v2]
+        BCB[BCB PTAX<br/>USD/BRL]
+        Brapi[brapi<br/>B3: ações, FIIs, BDRs]
+        TwelveData[Twelve Data<br/>stocks US, REITs]
+        CoinGecko[CoinGecko<br/>cripto]
     end
     
     UI -->|Auth| Auth
@@ -590,7 +634,10 @@ graph TD
     UI -->|Subscriptions| Realtime
     UI -->|Cálculos Server-Side| EdgeFn
     EdgeFn -->|Read/Write| PG
-    EdgeFn -->|Fetch| AwesomeAPI
+    EdgeFn -->|Fetch| Brapi
+    EdgeFn -->|Fetch| TwelveData
+    EdgeFn -->|Fetch| CoinGecko
+    UI -->|Fetch client-side| BCB
     TQ -->|Cache| UI
     Zustand -->|Global State| UI
     
@@ -709,10 +756,10 @@ Decisões técnicas **não tomadas** no MVP — registrar para v2+:
 
 Questões do PRD §9 ainda sem resposta técnica definitiva:
 
-1. **Qual API de cotação externa usar em v2?**  
-   - **Candidatas:** Brapi (gratuita, BR), Alpha Vantage (grátis limitado, US), Yahoo Finance (scraping instável).  
-   - **Critério decisão:** Custo (idealmente free tier para MVP early access), cobertura BR (ações + FIIs), estabilidade/SLA, facilidade de integração.  
-   - **Impacto arquitetural:** Se API com rate limit agressivo → necessário job de cache noturno (Edge Function agendada) em vez de fetch on-demand.
+1. ~~**Qual API de cotação externa usar em v2?**~~ — **RESOLVIDA em 2026-09-08.**
+   - **Decisão:** brapi (B3), Twelve Data (US/REIT), CoinGecko (cripto), BCB PTAX (câmbio). Matriz completa com limites e motivos de descarte em "Dados Externos (MVP)".
+   - **Impacto arquitetural previsto, e confirmado:** os limites dos planos gratuitos exigem **job de ingestão em batch**, não fetch on-demand. Materializado em `scripts/seed-price-history.mjs` para a carga histórica, e endereçado pela Story 2.8 para o refresh recorrente.
+   - **Consequência não prevista:** o plano gratuito da brapi cobre apenas 3 meses de histórico, contra os 12 exigidos pelo FR-23. O trecho descoberto é preenchido por simulação marcada `source = 'synthetic'` — 38,6% das linhas do seed atual.
 
 2. **Como detectar "dividendo esperado não recebido" com dados seed?**  
    - **Proposta atual (PRD §9 Q2):** Se histórico mostra dividendo trimestral regular e passaram >95 dias desde último → gerar alerta.  

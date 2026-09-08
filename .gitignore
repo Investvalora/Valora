@@ -38,3 +38,7 @@ scripts-temp/
 # OS
 Thumbs.db
 .env.jira
+
+# Backups de auditoria do banco (contem e-mails de usuarios)
+.backup-supabase-*/
+.env.bak*

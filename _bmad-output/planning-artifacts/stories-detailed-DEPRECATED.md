@@ -1,3 +1,20 @@
+> # ⚠️ DOCUMENTO DEPRECIADO — 2026-09-08
+>
+> **Não use este arquivo como fonte de verdade.** A numeração de stories aqui
+> **conflita** com `epics.md`, que é o documento que o `sprint-status.yaml` rastreia.
+>
+> Exemplo do conflito: a "Story 2.1" aqui é *"Criar Tabelas Transactions e Positions
+> com RLS"*, enquanto em `epics.md` a 2.1 é *"Catálogo de Ativos e Histórico de Preços"*
+> (agora dividida em 2.1a e 2.1b). Este arquivo também referencia uma "Story 0.1" que
+> não existe na numeração atual.
+>
+> **Conteúdo que vale preservar:** a implementação de `recalculate_position()`
+> (function + trigger Postgres para recalcular preço médio ponderado a partir de
+> transações) só existe aqui. Ela pertence às **Stories 2.2 e 2.5** e deve ser
+> aproveitada quando essas stories forem implementadas.
+>
+> Ver `sprint-change-proposal-2026-09-08.md` §4.11.
+
 # Valora MVP - Histórias Detalhadas
 
 **Data:** 2026-08-15  

@@ -591,28 +591,39 @@ So that eu analise os dados fora da plataforma.
 ### Story 2.8: Reimplementar Ingestão de Dados de Mercado
 
 > Adicionada em 2026-09-08 — ver `sprint-change-proposal-2026-09-08.md` §4.9.
+> **Status: done** (2026-09-08). Preços BR migrados para COTAHIST oficial e
+> ingestão automatizada. As demais fontes (US/REIT, cripto) seguem via carga.
 
 As a desenvolvedor,
-I want Edge Functions de ingestão que funcionem e estejam versionadas,
-So that o histórico de preços possa ser semeado e mantido atualizado.
+I want ingestão de preços automatizada e a partir de fonte oficial,
+So that o histórico se mantenha atualizado sem dado sintético nem trabalho manual.
 
-**Acceptance Criteria:**
+**Resultado verificado (2026-09-08):**
 
-**Given** as três Edge Functions atuais, das quais `sync-br-assets` (v3) e `sync-market-data` (v12) são stubs vazios de 516 bytes, e `sync-global-assets` (v2) busca apenas cotação instantânea
-**When** a ingestão é reimplementada
-**Then** existe função de **carga histórica** que busca janela de 12 meses por provedor (brapi `range=1y&interval=1d`; Twelve Data `/time_series`; CoinGecko `/market_chart`)
-**And** existe função de **refresh diário**, distinta da carga histórica
-**And** o código-fonte reside em `supabase/functions/` e é publicado via `supabase functions deploy`
-**And** `verify_jwt = true` em todas as funções
-**And** os stubs vazios são removidos ou implementados
-**And** a ingestão respeita os limites do plano gratuito (Twelve Data: 8 créditos/min; brapi: 1 ticker por requisição)
+- **Preços BR agora vêm do COTAHIST oficial da B3** (`b3_cotahist`), não mais do
+  brapi com backfill sintético. Os 27 ativos BR têm 6.700 linhas de dado oficial;
+  `synthetic` foi zerado. Validado contra o brapi em janela sobreposta: 175
+  amostras, 0 divergência.
+- **Edge Function `sync-b3-prices`** deployada, `verify_jwt=true`. Baixa o COTAHIST
+  mensal, parseia em streaming (para não estourar o limite de memória do worker) e
+  faz upsert idempotente por `(ticker, date)`. Não usa o SDK do Supabase — fala
+  direto com o PostgREST via fetch, porque o import do SDK via esm.sh causava
+  BOOT_ERROR no deploy sem import map.
+- **Agendamento** via `pg_cron` + `pg_net` (migration `005`): seg–sex às 22:00 UTC.
+  A service role key fica no Vault, não no código. Cadeia completa provada:
+  marcou-se uma linha com valor falso, o job disparou, e o valor oficial foi
+  restaurado (HTTP 200, 567 linhas/mês).
 
-**Nota de segurança:** `verify_jwt` exige JWT válido do projeto, e a anon key **é** um
-JWT válido. Como a anon key é pública no bundle do frontend, `verify_jwt` bloqueia
-varredura anônima mas não quem leia o JS da aplicação. Proteção real para função de
-ingestão exige segredo compartilhado próprio ou remoção do acesso público.
+**Fonte:** `https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_M{MMAAAA}.ZIP`
+— publicada pela própria B3, sem chave e sem quota.
 
-**Dependência:** habilita a conclusão da Story 2.1b.
+**Pendências:**
+- **`adjusted_close = close`** para os BR: o COTAHIST é preço bruto. O ajuste real
+  por proventos depende do histórico de dividendos (Épico 3).
+- Os stubs `sync-br-assets` e `sync-market-data` continuam no repositório como
+  registro; podem ser removidos do servidor.
+- US/REIT e cripto ainda não têm refresh agendado — só carga via
+  `scripts/seed-price-history.mjs`.
 
 
 ---

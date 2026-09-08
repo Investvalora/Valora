@@ -13,15 +13,36 @@ código abaixo é o **transpilado**, não necessariamente o fonte original: come
 podem ter sido preservados, mas formatação e tipos TypeScript podem diferir do que
 foi escrito originalmente.
 
-## Estado encontrado
+| Function | Versão | Estado |
+|---|---|---|
+| `sync-b3-prices` | ativa | **Ingestão de preços B3 via COTAHIST oficial.** Agendada (pg_cron, seg–sex 22:00 UTC). Substitui `sync-br-assets` |
+| `sync-market-data` | 12 | **stub vazio** — sem código executável. Pode ser removida |
+| `sync-br-assets` | 3 | **stub vazio** — substituída por `sync-b3-prices`. Pode ser removida |
+| `sync-global-assets` | 2 | cotação atual de US/cripto; ver limitação abaixo |
 
-| Function | Versão | Bundle | Estado |
-|---|---|---|---|
-| `sync-market-data` | 12 | 516 B | **stub vazio** — sem código executável |
-| `sync-br-assets` | 3 | 516 B | **stub vazio** — sem código executável |
-| `sync-global-assets` | 2 | 578 KB | funcional, mas ver limitação abaixo |
+## sync-b3-prices (fonte oficial B3)
 
-## Limitação estrutural de `sync-global-assets`
+Baixa o COTAHIST mensal da B3 (`bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_M{MMAAAA}.ZIP`),
+parseia os registros de mercado à vista e faz upsert em `price_history` com
+`source='b3_cotahist'`. Sem chave, sem quota — a B3 publica o arquivo aberto.
+
+Decisões de implementação, todas motivadas por erro observado no deploy via
+Management API (sem CLI, sem import map):
+
+- **Não usa `@supabase/supabase-js`.** O import via esm.sh causava `BOOT_ERROR`.
+  Isolado por bisseção: `Deno.serve` + TypeScript + `DecompressionStream` bootam;
+  o SDK não. A function fala direto com o PostgREST via `fetch` + service role key.
+- **Parsing em streaming.** Baixar e decodificar os ~83 MB de texto do arquivo de
+  uma vez estourava `WORKER_RESOURCE_LIMIT`. A function descomprime com
+  `DecompressionStream('deflate-raw')`, decodifica com `TextDecoderStream('latin1')`
+  e quebra em linhas incrementalmente, guardando só as linhas dos tickers-alvo.
+- **`Deno.serve` nativo**, não `std@0.168.0/http/server` (que dá BOOT_ERROR neste
+  runtime quando publicado sem eszip).
+
+Agendamento em `supabase/migrations/005_schedule_b3_price_sync.sql`. A service role
+key fica no Vault (`vault.decrypted_secrets`), nunca no código versionado.
+
+## Limitação de `sync-global-assets`
 
 A function busca **cotação atual**, não série histórica:
 

@@ -4,49 +4,68 @@
 
 ## Goal
 
-Este épico entrega o núcleo funcional do Valora: a carteira consolidada do investidor. O usuário passa a cadastrar posições manualmente ou importá-las via CSV de transações, visualizar a lista consolidada com valor de mercado, peso relativo e variação, entender a diversificação por classe de ativo e exposição internacional, e receber alertas de inconsistências nos dados (posição sem transações, dividendo esperado não recebido, cotação desatualizada). É a primeira tela pós-login e a base sobre a qual os épicos de patrimônio, proventos, rentabilidade, score e preço-teto se apoiam. Também estabelece o catálogo de ativos seed e o histórico de preços que alimentam todas as telas subsequentes, além da rastreabilidade de origem de dados e a exportação em CSV.
+Entregar a carteira como produto utilizável: o usuário cadastra posições manualmente ou importa transações via CSV, vê a lista consolidada com valor de mercado, peso e a procedência de cada número, entende a diversificação por classe e a exposição internacional, recebe alertas de inconsistência nos próprios dados e exporta o que está na tela. É o épico que transforma a autenticação do Épico 1 em valor real e que produz a base de dados de mercado sobre a qual os Épicos 3 a 6 calculam patrimônio, proventos, rentabilidade, score e preço-teto.
 
 ## Stories
 
-- Story 2.1a: Schema e Catálogo de Ativos — **done** (2026-09-08)
-- Story 2.1b: Histórico de Preços de 12 Meses — **blocked** (credenciais de API)
+- Story 2.1a: Schema e Catálogo de Ativos
+- Story 2.1b: Histórico de Preços de 12 Meses
 - Story 2.2: Adicionar Posição Manual
 - Story 2.3: Visualizar Lista de Posições com Rastreabilidade
 - Story 2.4: Composição por Classe e Exposição Internacional
 - Story 2.5: Importar Transações via CSV
 - Story 2.6: Lista de Alertas, Badge e Geração On-Demand
 - Story 2.7: Exportar Relatórios em CSV
+- Story 2.8: Reimplementar Ingestão de Dados de Mercado
 
 ## Requirements & Constraints
 
-- Posições e transações são dados privados: cada usuário só acessa suas próprias linhas. Posição é única por `(user_id, ticker)`; quantidade > 0 e preço médio ≥ 0.
-- Tickers só podem referenciar ativos existentes no catálogo; ticker desconhecido deve avisar o usuário e oferecer busca, sem quebrar o fluxo.
-- Lista de posições exibe cotação atual (último fechamento), valor de mercado, peso relativo e variação; ordenação padrão por peso decrescente, com opções por ticker e variação. Cotação com mais de 1 dia recebe flag de "cotação antiga".
-- Toda cotação/dado exibido deve mostrar origem (`source`) e data de atualização (rastreabilidade).
-- Composição por classe cobre: Ações BR, FIIs, BDRs, Stocks US, REITs, Cryptos. Exposição internacional = soma (BDR + stocks US + REITs + crypto) ÷ patrimônio total.
-- Importação CSV: colunas `data, ticker, tipo, quantidade, preço, corretagem`. Valida formato, exibe preview com correção inline, reporta erros com linha/coluna e exemplo esperado. Limite MVP: 1000 transações por arquivo; preview de até 500 linhas em <2s.
-- Alertas cobrem inconsistência, oportunidade e evento; status `novo|lido|ignorado`. Alertas duplicados (mesmo tipo + ticker + usuário) não são recriados enquanto o anterior estiver ativo. Badge no menu mostra contagem de "novos".
-- Exportação CSV funcional para as tabelas exibidas (até 1000 linhas em <2s). Botões "Sincronizar dados" e "Gerar insights" são placeholders ("Em breve") no MVP.
-- Metas de performance: lista de 50 posições ≤2s (p95); geração de alertas para 50 ativos <5s; seed completo <30s.
-- Contraste do tema dark deve atender WCAG 2.1 AA; navegação por teclado funcional.
+**Posições.** Ticker precisa existir no catálogo — desconhecido não vira posição, informa "Ativo não encontrado" e oferece busca. Quantidade > 0, preço médio ≥ 0, `(user_id, ticker)` único com erro claro na duplicata. Posição existe validamente sem nenhuma transação.
+
+**Importação CSV.** Colunas `data, ticker, tipo, quantidade, preço, corretagem`. Fluxo obrigatório: validar → preview → correção inline → confirmar. Erro de formato aponta linha, coluna, problema e exemplo esperado; ticker desconhecido marca a linha para corrigir ou pular. Limite de 1000 transações, com a contagem de linhas verificada **antes** do parse completo; preview de 500 linhas em <2s. O arquivo típico vem do Excel brasileiro: converter ISO-8859-1, remover BOM UTF-8, aceitar separador `;` com decimal `,`. Quantidade zero é inválida em compra e válida em venda.
+
+**Lista de posições.** Ticker, nome, quantidade, preço médio, cotação atual, valor de mercado, peso relativo e variação % desde a aquisição. Ordenação padrão por peso decrescente; alternativas por ticker e variação.
+
+**Rastreabilidade (transversal).** Toda cotação, dividendo e indicador exibido carrega ícone de info com fonte e data de atualização. Dado velho é sinalizado: >1 dia sinaliza cotação antiga na lista, >7 dias gera alerta, >90 dias marca fundamentals. Nunca interpolar dado faltante — mostrar lacuna honesta.
+
+**Composição.** Classes: Ações BR, FIIs, BDRs, Stocks US, REITs, Cryptos. Exposição internacional = (BDR + stocks US + REITs + crypto) / patrimônio total. Total da carteira em destaque; tooltip por fatia com valor em R$ e ticker principal da classe.
+
+**Alertas.** Três inconsistências no MVP: posição sem transações, dividendo esperado não recebido (>95 dias desde o último de ativo pagador), ativo sem cotação recente (>7 dias). Geração on-demand. Idempotência obrigatória: mesmo tipo + ticker + usuário não recria alerta enquanto o anterior está ativo. Lista cronológica com status `novo | lido | ignorado`, badge com contagem de `novo`, ações de marcar lido e ignorar. Sem notificação externa no MVP.
+
+**Exportação.** CSV com as colunas da tabela exibida, até 1000 linhas em <2s. "Sincronizar dados" e "Gerar insights" respondem "Em breve".
+
+**Performance.** 50 posições em ≤2s (p95); geração de alertas para 50 ativos em <5s; transição de tela <500ms. Queries limitadas a 50 posições no MVP.
+
+**Segurança e acessibilidade.** RLS por `user_id = auth.uid()` em toda tabela de dado de usuário; service role key nunca em bundle frontend; Edge Function sensível exige JWT válido. Navegação por teclado, contraste WCAG 2.1 AA no tema dark, desktop otimizado e tablet/mobile funcionais.
 
 ## Technical Decisions
 
-- **Módulo alvo:** `portfolio/` (posições, transações, importação CSV, composição) e `alerts/`. Seguir a estrutura de módulos autocontidos (`components/`, `hooks/`, `services/`, `types/`).
-- **Dados:** acesso exclusivamente via hooks TanStack Query (`useQuery`/`useMutation`); services encapsulam chamadas Supabase. Query keys estruturadas `['portfolio', 'positions', userId]`. Após mutations, invalidar cache em vez de usar Realtime — exceto alertas, candidatos a subscription.
-- **Cálculos híbridos:** soma de patrimônio, peso relativo, agrupamento por classe, exposição internacional, ganho de capital % e ordenação/filtros são client-side. Preço médio ponderado (transações → posição) e geração de alertas são server-side.
-- **Tabelas privadas com RLS (`user_id = auth.uid()`):** `positions`, `transactions`, `alerts`. Tabelas públicas sem RLS, leitura autenticada: `assets`, `price_history`.
-- **Posições independentes de transações:** posição pode existir sozinha (gera alerta "sem transações"). Quando há transações para um ticker+usuário, preço médio ponderado e quantidade líquida são recalculados no servidor.
-- **Alertas on-demand:** Edge Function `generate-alerts` (em `supabase/functions/generate-alerts/`) varre posições/transações do usuário, é idempotente e protegida por auth; cliente invalida `['alerts', userId]` após sucesso.
-- **Cotação USD:** hook `useUSDRate()` consome a AwesomeAPI com `staleTime` 1h, fallback para R$5,00 e badge "taxa USD aproximada" em falha.
-- **Enums relevantes:** `transaction_type (buy|sell|dividend|jcp|bonus)`, `alert_type (inconsistency|opportunity|event)`, `alert_status (new|read|ignored)`, `asset_type (stock_br|fii|bdr|stock_us|reit|crypto)`.
-- **Performance:** índices em `(user_id, ticker)`; queries limitadas a 50 posições no MVP; gráficos lazy-loaded.
+**RLS universal.** Toda tabela do schema `public` tem RLS habilitado, sem exceção. Dado de usuário → policy `user_id = auth.uid()`. Tabela de mercado (`assets`, `price_history`, `dividends`, `fundamentals`, `benchmarks`) → RLS ativo com policy `FOR SELECT TO authenticated USING (true)`, escrita só via service role, `anon` sem grant algum. Motivo: os default privileges do Supabase concedem escrita a `anon`/`authenticated` em toda tabela nova do `public`, e sem RLS esses grants viram escrita real. Ressalva: RLS **não** intercepta `TRUNCATE`.
+
+**Posições independentes, transações opcionais.** Quando existem transações para um ticker do usuário, preço médio ponderado e quantidade líquida são recalculados **no servidor**. O recálculo precisa disparar também na remoção de transação — a posição pode voltar a não ter nenhuma, o que recria o alerta correspondente.
+
+**Divisão cliente/servidor.** Cliente: somas, peso relativo, agrupamento por classe, exposição internacional, ordenação, filtros, formatação. Servidor: recálculo de preço médio, geração de alertas, validações complexas de importação.
+
+**Cotação USD/BRL.** Primária BCB PTAX (oficial, sem chave nem quota, CORS verificado — fetch client-side viável). Cadeia: BCB → AwesomeAPI → última taxa em localStorage → R$ 5,00. `staleTime` 1h. PTAX publica só em dia útil: fim de semana e feriado consomem a última cotação da série, não são erro. Badge "taxa USD aproximada" no fallback.
+
+**Modelo de dados.** `assets` tem `currency` (BRL|USD), `quote_provider`, `provider_symbol`, `active`; par de moedas não é ativo investível e não pertence a `assets`. `price_history` é único por `(ticker, date)`, com `source` por linha (`brapi | twelvedata | coingecko | b3_cotahist | synthetic`) e `adjusted_close`; ingestão idempotente por `ON CONFLICT (ticker, date)`.
+
+**Estado da base de mercado.** Preços BR vêm do COTAHIST oficial da B3, com refresh agendado em dia útil. US/REIT e cripto ainda não têm refresh agendado — só carga manual, o que faz a flag de cotação antiga disparar legitimamente nessas classes. `adjusted_close = close` nos ativos BR: COTAHIST é preço bruto, e o ajuste por proventos depende do histórico de dividendos (Épico 3).
+
+**Padrões de acesso.** Todo acesso a dados via hooks TanStack Query; services de módulo encapsulam o client Supabase; query keys `['dominio','recurso',...params]`; invalidar cache após mutation. Realtime apenas para alertas — dado alterado pelo próprio usuário se resolve com invalidação. Estado global em Zustand por módulo. Gráficos lazy-loaded. Edge Functions versionadas no repo com `verify_jwt` ativo; atenção: a anon key é JWT válido e público no bundle, então isso barra varredura anônima mas não quem leia o JS.
+
+## UX & Interaction Patterns
+
+Não existe artefato de UX no projeto; a referência são os protótipos HTML (`valora_carteira.html` e correlatos) e o design system compilado. Tema dark-only.
+
+Carteira é a tela padrão pós-login. Menu lateral fixo com item ativo destacado e badge de alertas. Na Carteira convivem card de patrimônio total, card de composição com pizza, lista de posições e os alertas de inconsistência à vista. "Adicionar Posição" abre modal a partir da Carteira. A importação CSV é fluxo de duas etapas — upload com preview corrigível inline, depois confirmação — e ao concluir faz desaparecer os alertas de "posição sem transações" dos tickers importados.
 
 ## Cross-Story Dependencies
 
-- Story 2.1a (schema + catálogo) está **concluída**, o que **destrava a 2.2 imediatamente**: a 2.2 só precisa de `assets` para validar ticker. Story 2.1b (histórico de 12 meses) está bloqueada em credenciais e afeta apenas a 2.3, que lê cotações de `price_history` — hoje só os 6 ativos de cripto têm série completa.
-- Story 2.3 e 2.4 dependem de posições cadastradas em 2.2. A conversão USD em 2.3 usa o hook AwesomeAPI (compartilhado, também usado por patrimônio/rentabilidade).
-- Story 2.5 (importação CSV) alimenta o recálculo de posições e habilita dados de dividendos consumidos pelos Épicos 3 e 4.
-- Story 2.6 depende de posições/transações e da tabela `alerts`; a detecção de "dividendo esperado" pressupõe dados de dividendos (seed no Épico 3) para ser plena.
-- Story 2.7 reutiliza o padrão de exportação CSV adotado por outras telas (Proventos no Épico 3).
-- Depende do Épico 1 (autenticação, layout com menu lateral e tabela `users`) já concluído.
+- **2.2** depende apenas do catálogo (2.1a, concluída) — está destravada e não espera as demais.
+- **2.3 e 2.4** dependem do histórico de preços (2.1b) e de `assets.currency`/`type`; a conversão USD da 2.3 depende do hook de cotação do dólar.
+- **2.5** é a única fonte de `transactions`, das quais dependem o alerta de "posição sem transações" (2.6) e os proventos do Épico 3; compartilha com a 2.2 a lógica de posição.
+- **2.6** consome posições, transações e `price_history`; o alerta de dividendo não recebido só produz resultado com histórico de dividendos (Épico 3). Lista e badge são estendidos pelos alertas de valuation do Épico 6, que reutilizam o mesmo fluxo de geração.
+- **2.7** define o padrão de exportação reaproveitado por Proventos (Épico 3) e Rentabilidade (Épico 4); **2.3** define o padrão de rastreabilidade reaproveitado pela tela de detalhe de ativo (Épico 6).
+- **2.8** mantém o histórico atualizado; a pendência de `adjusted_close` nos ativos BR bloqueia o retorno total correto do Épico 4 até existir histórico de dividendos.
+- As regras de classe de ativo e exposição internacional da 2.4 reaparecem nos cards do Épico 3 — devem viver em código compartilhado, não duplicadas.

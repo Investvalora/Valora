@@ -6,9 +6,9 @@ import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
+import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
 
 // Placeholder pages
-const CarteiraPage = () => <div className="p-8 text-white">Carteira (Em desenvolvimento)</div>
 const PatrimonioPage = () => <div className="p-8 text-white">Patrimônio (Em desenvolvimento)</div>
 const ProventosPage = () => <div className="p-8 text-white">Proventos (Em desenvolvimento)</div>
 const RentabilidadePage = () => <div className="p-8 text-white">Rentabilidade (Em desenvolvimento)</div>

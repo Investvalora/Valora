@@ -31,7 +31,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-08-2026 14:00
-last_updated: 09-08-2026 15:45
+last_updated: 09-08-2026 18:40
 project: Valora
 project_key: NOKEY
 tracking_system: file-system
@@ -48,7 +48,7 @@ development_status:
   epic-2: in-progress
   2-1a-schema-e-catalogo-de-ativos: done
   2-1b-historico-de-precos-12-meses: done
-  2-2-adicionar-posição-manual: ready-for-dev
+  2-2-adicionar-posição-manual: in-progress
   2-3-visualizar-lista-de-posições-com-rastreabilidade: backlog
   2-4-composição-por-classe-e-exposição-internacional: backlog
   2-5-importar-transações-via-csv: backlog

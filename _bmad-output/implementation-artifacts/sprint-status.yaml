@@ -54,7 +54,7 @@ development_status:
   2-5-importar-transações-via-csv: backlog
   2-6-lista-de-alertas-badge-e-geração-on-demand: backlog
   2-7-exportar-relatórios-em-csv: backlog
-  2-8-reimplementar-ingestao-de-dados-de-mercado: backlog
+  2-8-reimplementar-ingestao-de-dados-de-mercado: done
   epic-2-retrospective: optional
 
   epic-3: backlog

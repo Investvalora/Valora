@@ -26,7 +26,7 @@ INSERT INTO public.assets (ticker, name, type, currency, quote_provider, provide
   ('BTLG11', 'BTG Pactual Logística', 'fii'::asset_type, 'BRL', 'brapi'::quote_provider, 'BTLG11', TRUE),
   ('CPLE3', 'Copel ON', 'stock_br'::asset_type, 'BRL', 'brapi'::quote_provider, 'CPLE3', TRUE),
   ('DIS', 'Walt Disney Co', 'stock_us'::asset_type, 'USD', 'twelvedata'::quote_provider, 'DIS', TRUE),
-  ('ELET3', 'Eletrobras ON', 'stock_br'::asset_type, 'BRL', 'brapi'::quote_provider, 'ELET3', TRUE),
+  ('AXIA3', 'AXIA Energia ON', 'stock_br'::asset_type, 'BRL', 'brapi'::quote_provider, 'AXIA3', TRUE),
   ('EQIX', 'Equinix Inc', 'reit'::asset_type, 'USD', 'twelvedata'::quote_provider, 'EQIX', TRUE),
   ('ETH', 'Ethereum', 'crypto'::asset_type, 'USD', 'coingecko'::quote_provider, 'ethereum', TRUE),
   ('GGBR4', 'Gerdau PN', 'stock_br'::asset_type, 'BRL', 'brapi'::quote_provider, 'GGBR4', TRUE),

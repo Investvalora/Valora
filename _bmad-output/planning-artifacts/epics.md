@@ -190,7 +190,8 @@ Server-side (lógica de negócio): Score Fundamentalista, Preço-Teto (Bazin), p
 
 **AR-7: RLS Strategy**
 Tabelas privadas (RLS ativo): users, positions, transactions, score_rules, alerts, user_preferences. Policy: user_id = auth.uid().
-Tabelas públicas (sem RLS): assets, price_history, dividends, fundamentals, benchmarks. Dados de mercado compartilhados (AD-6).
+Tabelas de mercado (RLS ativo, policy permissiva de leitura): assets, price_history, dividends, fundamentals, benchmarks. Dados compartilhados, escritos apenas via service role. Policy: `FOR SELECT TO authenticated USING (true)`. O role `anon` não recebe grant (AD-6, emendado em 2026-09-08).
+Toda tabela do schema `public` tem RLS habilitado, sem exceção: os default privileges do Supabase concedem escrita a anon/authenticated em toda tabela nova, e sem RLS esses grants viram escrita real. Ressalva: RLS não intercepta `TRUNCATE` — ver migration `004`.
 
 **AR-8: Posições Independentes + Transações Opcionais**
 positions tabela independente — usuário pode cadastrar posição diretamente. transactions tabela opcional — quando existe, recalcula preço médio ponderado e quantidade líquida via trigger Postgres ou Edge Function (AD-8).
@@ -415,21 +416,77 @@ Usuários podem cadastrar suas posições manualmente ou via CSV, visualizar a c
 
 **FRs cobertos:** FR-5, FR-6, FR-7, FR-8, FR-9, FR-20, FR-21, FR-22, FR-23, FR-25, FR-28
 
-### Story 2.1: Catálogo de Ativos e Histórico de Preços Seed
+### Story 2.1a: Schema e Catálogo de Ativos
+
+> **Status: done** (2026-09-08). Resultado da divisão da Story 2.1 original —
+> ver `sprint-change-proposal-2026-09-08.md` §4.8.
 
 As a usuário autenticado,
-I want um catálogo de ativos com cotações históricas,
-So that eu possa cadastrar posições em tickers reconhecidos e ver valor de mercado.
+I want um catálogo de ativos reconhecidos,
+So that eu possa cadastrar posições em tickers válidos.
 
 **Acceptance Criteria:**
 
 **Given** o banco de dados do ambiente de desenvolvimento
-**When** as migrations e o `supabase/seed.sql` são executados
-**Then** a tabela pública `assets` contém ~50 ativos seed (ações BR, FIIs, BDRs, stocks US, REITs, cryptos) com ticker, nome, tipo e moeda (FR-22)
-**And** a tabela pública `price_history` contém série diária simulada dos últimos 12 meses por ticker seed, com `source = 'seed'` (FR-23)
-**And** as tabelas públicas não têm RLS e são legíveis por role `authenticated` (AR-7)
+**When** as migrations `003`/`004` e o `supabase/seed.sql` são aplicados
+**Then** a tabela `assets` contém 51 ativos (ações BR, FIIs, BDRs, stocks US, REITs, cryptos) com ticker, nome, tipo, moeda e provedor de cotação (FR-22)
+**And** `assets` e `price_history` têm RLS habilitado, com policy de SELECT para o role `authenticated` (AR-7)
+**And** o role `anon` não recebe grant algum, e nenhum role de cliente possui `TRUNCATE`
 **And** o usuário consegue buscar ativo por ticker ou nome
-**And** o seed completa em <30s (NFR-9)
+**And** aplicar o `seed.sql` completa em <30s (NFR-9)
+
+**Nota de modelagem:** par de moedas não é ativo investível e não pertence a `assets`.
+A cotação USD/BRL é responsabilidade do hook `useUSDRate()` (AD-12).
+
+### Story 2.1b: Histórico de Preços de 12 Meses
+
+> **Status: done** (2026-09-08).
+
+As a usuário autenticado,
+I want cotações históricas dos ativos do catálogo,
+So that eu possa ver valor de mercado, variação e evolução patrimonial.
+
+**Acceptance Criteria:**
+
+**Given** o catálogo populado e as chaves de API configuradas
+**When** o job de ingestão é executado
+**Then** `price_history` contém série diária dos últimos 12 meses para os 51 ativos do catálogo (FR-23)
+**And** cada linha registra sua procedência em `source` (`brapi` | `twelvedata` | `coingecko` | `synthetic`)
+**And** trechos não cobertos pelo plano gratuito do provedor são preenchidos por simulação ancorada no primeiro fechamento real, marcados `source = 'synthetic'`
+**And** a reexecução é idempotente (`ON CONFLICT (ticker, date)`)
+
+**Resultado verificado (2026-09-08):** 51/51 ativos, 13.773 linhas.
+
+| Classe | Ativos | Dias | Fonte |
+|---|---|---|---|
+| `stock_br` | 14 | 261 | brapi (64 reais) + synthetic (197) |
+| `fii` | 8 | 261 | brapi (64 reais) + synthetic (197) |
+| `bdr` | 5 | 261 | brapi (64 reais) + synthetic (197) |
+| `stock_us` | 14 | 252 | twelvedata, 100% real |
+| `reit` | 4 | 252 | twelvedata, 100% real |
+| `crypto` | 6 | 365 | coingecko, 100% real |
+
+Composição por procedência: 61,4% real (twelvedata 32,9%, coingecko 15,9%, brapi 12,5%),
+38,6% sintético — concentrado nos 9 meses anteriores à janela de 3 meses do plano
+gratuito da brapi.
+
+Integridade verificada: zero OHLC incoerente, zero `close` não-positivo, zero linha
+órfã, zero duplicata `(ticker, date)`. Os 51 tickers respondem à query dominante da
+Story 2.3 (`DISTINCT ON (ticker) ... ORDER BY ticker, date DESC`).
+
+**Limitações registradas:**
+- O plano gratuito da brapi limita o range a 3 meses (`range=1y` retorna
+  "Ranges permitidos: 1d, 5d, 1mo, 3mo"). Assinar o Startup elimina os 38,6%
+  sintéticos e libera dividendos para o Épico 3.
+- `high`/`low` são NULL nas linhas de cripto: o plano gratuito do CoinGecko não
+  entrega OHLC diário. Preferiu-se campo vazio a valor inventado.
+- O trecho sintético exclui fins de semana mas não feriados da B3.
+- Correção de catálogo: `CPLE6` foi migrado para `CPLE3` — a Copel converteu as
+  preferenciais em ordinárias na reestruturação societária, e `CPLE6` não existe mais.
+
+**Reprodutibilidade:** `node scripts/seed-price-history.mjs [--only=provedor] [--dry-run]`.
+O PRNG da simulação é semeado pelo ticker, então reexecuções produzem a mesma série.
+
 
 ### Story 2.2: Adicionar Posição Manual
 
@@ -530,6 +587,33 @@ So that eu analise os dados fora da plataforma.
 **Then** um CSV é baixado com as colunas da tabela exibida (FR-28)
 **And** até 1000 linhas exportam em <2s (NFR-12)
 **And** os botões "Sincronizar dados" e "Gerar insights" exibem "Em breve"
+
+### Story 2.8: Reimplementar Ingestão de Dados de Mercado
+
+> Adicionada em 2026-09-08 — ver `sprint-change-proposal-2026-09-08.md` §4.9.
+
+As a desenvolvedor,
+I want Edge Functions de ingestão que funcionem e estejam versionadas,
+So that o histórico de preços possa ser semeado e mantido atualizado.
+
+**Acceptance Criteria:**
+
+**Given** as três Edge Functions atuais, das quais `sync-br-assets` (v3) e `sync-market-data` (v12) são stubs vazios de 516 bytes, e `sync-global-assets` (v2) busca apenas cotação instantânea
+**When** a ingestão é reimplementada
+**Then** existe função de **carga histórica** que busca janela de 12 meses por provedor (brapi `range=1y&interval=1d`; Twelve Data `/time_series`; CoinGecko `/market_chart`)
+**And** existe função de **refresh diário**, distinta da carga histórica
+**And** o código-fonte reside em `supabase/functions/` e é publicado via `supabase functions deploy`
+**And** `verify_jwt = true` em todas as funções
+**And** os stubs vazios são removidos ou implementados
+**And** a ingestão respeita os limites do plano gratuito (Twelve Data: 8 créditos/min; brapi: 1 ticker por requisição)
+
+**Nota de segurança:** `verify_jwt` exige JWT válido do projeto, e a anon key **é** um
+JWT válido. Como a anon key é pública no bundle do frontend, `verify_jwt` bloqueia
+varredura anônima mas não quem leia o JS da aplicação. Proteção real para função de
+ingestão exige segredo compartilhado próprio ou remoção do acesso público.
+
+**Dependência:** habilita a conclusão da Story 2.1b.
+
 
 ---
 

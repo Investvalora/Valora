@@ -405,7 +405,11 @@ Sistema possui tabela `assets` pré-populada com ~50 ativos representativos: aç
 
 #### FR-23: Histórico de Preços Seed
 
-Tabela `price_history` contém série diária simulada (últimos 12 meses) para ativos seed.
+Tabela `price_history` contém série diária dos últimos 12 meses para os ativos do catálogo, obtida de provedor real quando o plano gratuito cobre a janela, e simulada apenas no trecho descoberto.
+
+A coluna `source` carrega a procedência **por linha**: `'brapi' | 'twelvedata' | 'coingecko' | 'bcb' | 'synthetic'`. Isso atende o requisito de rastreabilidade do §4.11 melhor que um rótulo uniforme, e já era antecipado pela nota `[NOTE FOR PM]` deste mesmo §4.9.
+
+**Estado em 2026-09-08:** 51 ativos, 13.773 linhas, 61,4% de procedência real (Twelve Data 32,9%, CoinGecko 15,9%, brapi 12,5%) e 38,6% simulada — esta concentrada nos 9 meses que o plano gratuito da brapi não cobre.
 
 **Consequências (testáveis):**
 - Queries de patrimônio e rentabilidade funcionam sobre esses dados.
@@ -420,11 +424,13 @@ Tabelas `dividends` e `fundamentals` contêm histórico trimestral simulado de d
 - Dados marcados com flag `source = 'seed'` para rastreabilidade.
 
 **Fora de Escopo MVP:**
-- Integração com APIs reais (Brapi, Alpha Vantage, Yahoo Finance, CVM, B3) — entra em v2.
-- Atualização automática de cotações — dados permanecem estáticos no MVP.
+- **Atualização automática e recorrente de cotações** — o MVP faz uma carga histórica única a partir de provedores reais (brapi, Twelve Data, CoinGecko); o refresh periódico entra em v2 via Edge Function agendada.
+- Fundamentals e dividendos de provedor real — o plano gratuito da brapi não inclui dividendos, então o Épico 3 segue com dado simulado até haver decisão de custo.
+- Integração com CVM e B3 diretamente — entra em v2.
 
 **Feature-specific NFRs:**
-- Seed scripts rodam em <30s para popular banco de dados inicial.
+- Aplicar `supabase/seed.sql` (catálogo + histórico já materializado) roda em <30s.
+- **A ingestão via API é job separado, não interativo, e não está sujeita ao orçamento de 30s.** Os limites dos planos gratuitos impõem o piso: os 18 ativos US a 8 créditos/min no Twelve Data levam ~2,5 min; os 27 ativos BR consomem 27 requisições na brapi, que aceita 1 ticker por chamada.
 
 **Notas:**
 - `[NOTE FOR PM: estrutura de tabelas já preparada para receber `source = 'api_brapi'|'user_manual'|'csv_import'` em v2]`.
@@ -616,7 +622,7 @@ Cada tela relevante oferece botões de ação:
 
 ## 9. Questões em Aberto
 
-1. **Qual API de cotação externa usar em v2?** Candidatas: Brapi (gratuita, BR), Alpha Vantage (grátis limitado, US), Yahoo Finance (scraping). Critério: custo, cobertura BR, estabilidade.
+1. ~~**Qual API de cotação externa usar em v2?**~~ — **RESOLVIDA em 2026-09-08.** brapi (ações BR, FIIs, BDRs), Twelve Data (stocks US, REITs), CoinGecko (cripto), BCB PTAX (USD/BRL). Descartados: Alpha Vantage (25 req/dia), Yahoo Finance (`HTTP 429` na primeira chamada), Finnhub para histórico (candles são pagos). Matriz com limites e licenças em `ARCHITECTURE-SPINE.md` → "Dados Externos (MVP)". **Ressalva de licença:** o tier gratuito do Twelve Data é "personal & non-commercial" — adequado ao uso acadêmico atual, impeditivo se o Valora for comercializado.
 2. **Critérios de alerta de "dividendo esperado não recebido"?** Sistema precisa saber calendário de pagamento de dividendos; no MVP com dados seed, como simular? `[ASSUMPTION: basear em histórico trimestral; se passou >95 dias desde último dividendo de FII/ação pagadora, gerar alerta]`.
 3. **Job de alertas roda quando?** Diário via cron (Supabase Edge Function agendada) ou on-demand (usuário clica "Atualizar alertas")? `[ASSUMPTION: on-demand no MVP para simplicidade; agendar em v2]`.
 

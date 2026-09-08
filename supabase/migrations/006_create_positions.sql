@@ -61,6 +61,12 @@ CREATE TABLE public.positions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT positions_quantity_positiva      CHECK (quantity > 0),
   CONSTRAINT positions_average_price_nao_negativo CHECK (average_price >= 0)
+  -- Falta aqui, deliberadamente, um `CHECK (acquisition_date <= CURRENT_DATE)`:
+  -- `CURRENT_DATE` é STABLE, não IMMUTABLE, e o Postgres recusa a criação da
+  -- constraint. Um CHECK só é reavaliado na escrita, então uma expressão que
+  -- muda com o tempo tornaria linhas já gravadas retroativamente inválidas —
+  -- o que romperia dump/restore e VALIDATE CONSTRAINT. "Data no futuro" é
+  -- recusada no cliente, em `positionSchema.acquisitionDate`.
 );
 
 -- Unicidade de `(user_id, ticker)` — o AC pede erro claro na duplicata, que

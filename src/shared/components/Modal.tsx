@@ -6,6 +6,13 @@ interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
+  /**
+   * `false` bloqueia Escape, clique no overlay e o botão de fechar. Existe para
+   * o intervalo em que uma escrita está em voo: fechar no meio desmonta quem
+   * dispara a revalidação e o feedback de sucesso, e a linha gravada só
+   * apareceria no próximo carregamento.
+   */
+  dismissible?: boolean
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -25,7 +32,7 @@ const FOCUSABLE_SELECTOR = [
  * Não usa `<dialog>` nativo porque o suporte a estilização do backdrop ainda
  * é irregular e o fechamento nativo por Escape escapa ao controle do React.
  */
-export function Modal({ isOpen, title, onClose, children }: ModalProps) {
+export function Modal({ isOpen, title, onClose, children, dismissible = true }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
@@ -69,6 +76,22 @@ export function Modal({ isOpen, title, onClose, children }: ModalProps) {
     }
   }, [isOpen])
 
+  // Desabilitar o controle que está com o foco o joga para o `body`, e a partir
+  // dali Tab volta a percorrer a página de fundo — o foco escapa do diálogo sem
+  // que ninguém tenha pedido. Acontece de verdade quando `dismissible` vira
+  // `false` no submit e o botão de fechar é desabilitado sob o foco do usuário.
+  useEffect(() => {
+    if (!isOpen) return
+
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    const active = document.activeElement
+    if (!active || active === document.body || !dialog.contains(active)) {
+      dialog.focus()
+    }
+  }, [isOpen, dismissible])
+
   // Escape e Tab tratados no container do diálogo: o foco está sempre preso
   // dentro dele, e assim um filho (ex.: o autocomplete de ticker) pode
   // interceptar Escape antes com `stopPropagation`, para fechar só a própria
@@ -76,7 +99,7 @@ export function Modal({ isOpen, title, onClose, children }: ModalProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.stopPropagation()
-      onClose()
+      if (dismissible) onClose()
       return
     }
 
@@ -109,7 +132,7 @@ export function Modal({ isOpen, title, onClose, children }: ModalProps) {
       // `mousedown` no overlay, e não `click`, para que arrastar de dentro do
       // diálogo e soltar no overlay não feche o modal.
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
+        if (dismissible && event.target === event.currentTarget) onClose()
       }}
     >
       <div
@@ -128,8 +151,9 @@ export function Modal({ isOpen, title, onClose, children }: ModalProps) {
           <button
             type="button"
             onClick={onClose}
+            disabled={!dismissible}
             aria-label="Fechar"
-            className="rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent"
           >
             &times;
           </button>

@@ -44,7 +44,8 @@ context:
 | Ticker fora do catálogo | `PETR99` | "Ativo não encontrado", campo oferece busca | Bloqueia submit; FK nunca violada |
 | Posição duplicada | `(user_id, ticker)` já existe | Mensagem clara nomeando o ticker | Captura `23505`, não vaza texto cru |
 | Quantidade inválida | `0` ou `-5` | Erro de campo do Zod | Submit bloqueado |
-| Decimal pt-BR | `10,50` | Normaliza para `10.50` antes de enviar | Não numérico vira erro de campo |
+| Decimal pt-BR | `10,50` e `1.500,00` | Normaliza para `10.50` e `1500` — vírgula é o separador decimal, ponto é milhar | Não numérico vira erro de campo |
+| Ponto sem vírgula (ambíguo) | `1.500` ou `10.50` | Erro de campo pedindo vírgula para os decimais | Nunca inferir se o ponto é milhar ou decimal: gravar `1.500` como 1,5 é erro de 1000× num valor financeiro |
 | Isolamento por usuário | usuário B consulta posições de A | Zero linhas | RLS filtra, sem erro |
 
 </frozen-after-approval>
@@ -92,16 +93,28 @@ Criar do zero: módulo `portfolio`, componente de Modal (não há portal, focus 
 - [x] Testes da matriz de I/O -- `src/test/supabaseMock.ts` substitui o client Supabase, e não o `positionService`, de modo que o service real roda e o teste inspeciona o payload que iria ao banco: é o que permite afirmar que o `user_id` vem da sessão
 - [x] `supabase/tests/` -- harness de RLS persistido (stub + asserções + runner), antes escrito em `/tmp` e perdido; `supabase/migrations/README.md` atualizado até a `006`, que listava só a `001`
 
+- [x] `src/modules/portfolio/schemas/positionSchema.ts` -- rejeitar ponto sem vírgula com erro de campo, em vez de tratá-lo como decimal -- regra renegociada por Samuel em 2026-09-08; ver Spec Change Log
+- [x] Asserções para os guards hoje desprotegidos -- `sanitizeSearchTerm`, `stopPropagation` do Escape no combobox, Escape/overlay/foco/Tab do `Modal`, os quatro ramos de SQLSTATE (23505, 23503, 23514, 42501), o argumento de moeda em `formatMoney` e o `.limit(POSITIONS_LIMIT)` -- mutação provou que remover qualquer um deles deixa a suíte verde
+
 **Acceptance Criteria:**
 - Dado um usuário autenticado na Carteira, quando cadastra ticker do catálogo com quantidade > 0, preço ≥ 0 e data, então existe linha em `positions` com o `user_id` da sessão e a tabela reflete a posição sem recarregar a página.
 - Dados dois usuários com posições, quando um consulta `positions`, então só as próprias linhas retornam, e `anon` não tem privilégio algum sobre a tabela nova.
 - Dada uma posição recém-criada, quando é lida, então vale sem nenhuma transação associada (AD-8).
 - Dado `pnpm install` concluído, quando `pnpm build` e `pnpm lint` rodam, então ambos passam sem erro.
 
+## Spec Change Log
+
+- **2026-09-08 — iteração 1.**
+  **Achados que dispararam:** (1) `intent_gap` — a matriz especificava só `10,50` → `10.50` e não dizia o que fazer com ponto sem vírgula; verificado que `parseDecimalPtBr('1.500')` devolvia `1.5` e `'12.345'` devolvia `12.345`. (2) `bad_spec` — a seção Verification não exigia asserção para os guards que a implementação criou, e teste por mutação provou que remover `sanitizeSearchTerm`, o `stopPropagation` do Escape, o gerenciamento de foco do `Modal`, a mensagem do 23514, o argumento de moeda ou o `.limit(50)` deixava 39/39 verdes. (3) `bad_spec` — Verification não fixava timezone, então uma regressão de data passaria num runner UTC.
+  **O que foi emendado:** a linha da matriz de decimal foi renegociada por Samuel (regra "rejeitar ambíguo") e desdobrada em duas linhas; duas tasks novas foram acrescentadas; Verification passa a fixar TZ.
+  **Estado ruim evitado:** gravar valor financeiro 1000× menor em silêncio, e um conjunto de guards sem rede que voltariam a quebrar sem que nenhum teste percebesse.
+  **KEEP — deve sobreviver a qualquer re-derivação:** a migration `006` como está (quatro policies por operação com `WITH CHECK` no INSERT e UPDATE, `REVOKE ALL` antes do `GRANT`, FK de ticker com `ON DELETE RESTRICT`, unicidade e índice no mesmo objeto); o harness de RLS que reproduz os DEFAULT PRIVILEGES amplos do Supabase antes de aplicar as migrations, para o REVOKE não passar por vacuidade; `src/test/supabaseMock.ts` substituindo o client e não o service, que é o que permite afirmar que o `user_id` vem da sessão; e a disciplina de provar cada teste por mutação antes de considerá-lo cobertura.
+
 ## Verification
 
 **Commands:**
-- `pnpm test:run` -- Vitest sobre a matriz de I/O: `positionSchema.test.ts` (decimal pt-BR, quantidade inválida), `positionService.test.ts` (`user_id` da sessão, SQLSTATE propagado), `AddPositionForm.test.tsx` (23505 nomeando o ticker sem vazar texto cru, "Ativo não encontrado" bloqueando o submit, insert + invalidação da query key), `CarteiraPage.test.tsx` (modal fecha e tabela revalida) -- esperado: 4 arquivos, 39 testes, zero falha
+- `pnpm test:run` -- Vitest sobre a matriz de I/O: `positionSchema.test.ts` (decimal pt-BR e ponto ambíguo rejeitado, quantidade inválida), `positionService.test.ts` (`user_id` da sessão, SQLSTATE propagado, `sanitizeSearchTerm`, `.limit`), `AddPositionForm.test.tsx` (os quatro ramos de SQLSTATE, "Ativo não encontrado" bloqueando o submit, insert + invalidação da query key, Escape sobre a lista de sugestões), `CarteiraPage.test.tsx` (modal fecha e tabela revalida), `Modal.test.tsx` (Escape, overlay, Tab e devolução de foco) -- esperado: zero falha
+- TZ fixado na configuração do Vitest, não deixado ao ambiente: `formatDate` existe para evitar o deslocamento de dia que `new Date()` causa em fuso negativo, e num runner UTC essa regressão passa verde. Confirmar rodando também com `TZ=America/Sao_Paulo` explícito -- esperado: zero falha nos dois casos
 - `pnpm test:rls` -- harness persistido em `supabase/tests/`: sobe `postgres:15-alpine`, aplica `000_stub_supabase.sql` (schema `auth`, `auth.users`, `auth.uid()`, roles, `pgcrypto`/`pg_trgm` e os DEFAULT PRIVILEGES amplos do Supabase, para que o REVOKE da 006 não passe por vacuidade), aplica `001`→`004` e `006` (pula a `005`, que exige `pg_cron`/`pg_net`/`vault`) e roda `010_positions_rls_test.sql` -- esperado: 32 asserções PASS e status 0; status diferente de zero na primeira falha, o que torna o script usável como gate
 - `pnpm build` -- esperado: `tsc -b` sem erro (projetos `app`, `node` e `test`) e bundle gerado
 - `pnpm lint` -- esperado: zero erro

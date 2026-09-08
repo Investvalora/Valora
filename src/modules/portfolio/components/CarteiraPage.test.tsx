@@ -44,6 +44,34 @@ function createQueryClient() {
   })
 }
 
+function renderPage(queryClient = createQueryClient()) {
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  return render(<CarteiraPage />, { wrapper })
+}
+
+/** Catálogo respondendo ao lookup exato e ao autocomplete. */
+function catalogResponds() {
+  supabaseMock.on('assets', (chain) => {
+    const isExactLookup = chain.calls.some((call) => call.method === 'maybeSingle')
+    return isExactLookup
+      ? { data: CATALOG_ASSET, error: null }
+      : { data: [CATALOG_ASSET], error: null }
+  })
+}
+
+/** Preenche o formulário do modal já aberto. */
+function fillModalForm() {
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'PETR4' } })
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '100' } })
+  fireEvent.change(screen.getByLabelText('Preço médio'), { target: { value: '32,10' } })
+  fireEvent.change(screen.getByLabelText('Data de aquisição'), {
+    target: { value: '2026-01-15' },
+  })
+}
+
 beforeEach(() => {
   resetSupabaseMock()
   useAuthStore.setState({
@@ -109,5 +137,185 @@ describe('CarteiraPage — cadastro válido (linha da matriz)', () => {
 
     // A leitura sempre filtra pelo usuário da sessão.
     expect(supabaseMock.callArgs('positions', 'eq')).toContainEqual(['user_id', SESSION_USER_ID])
+  })
+})
+
+describe('CarteiraPage — modal não fecha com escrita em voo', () => {
+  /**
+   * Fechar o modal no meio do INSERT desmonta o formulário, e com ele os
+   * callbacks por chamada da mutation: o aviso de sucesso desaparece e, no
+   * caminho de erro, o usuário não recebe aviso algum — o cadastro falha em
+   * silêncio absoluto. Enquanto a escrita está em voo, nada fecha.
+   */
+  function insertHeldOpen() {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    supabaseMock.on('positions', (chain) => {
+      if (chain.calls.some((call) => call.method === 'insert')) {
+        return gate.then(() => ({
+          data: CREATED_ROW,
+          error: null,
+        })) as unknown as { data: unknown; error: unknown }
+      }
+      return { data: [], error: null }
+    })
+
+    return () => release()
+  }
+
+  async function openAndSubmit() {
+    catalogResponds()
+    const release = insertHeldOpen()
+
+    renderPage()
+    await screen.findByText('Nenhuma posição cadastrada')
+
+    fireEvent.click(screen.getByRole('button', { name: '+ adicionar posição' }))
+    await screen.findByRole('dialog')
+
+    fillModalForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar posição' }))
+
+    await waitFor(() => expect(supabaseMock.chainsWith('positions', 'insert')).toHaveLength(1))
+
+    return release
+  }
+
+  it('Escape não fecha enquanto salva', async () => {
+    const release = await openAndSubmit()
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    release()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    // Só quando a escrita conclui é que o modal fecha — e com o aviso.
+    expect(await screen.findByRole('status')).toHaveTextContent('Posição em PETR4 cadastrada.')
+  })
+
+  it('clique no overlay não fecha enquanto salva', async () => {
+    const release = await openAndSubmit()
+
+    const overlay = screen.getByRole('dialog').parentElement as HTMLElement
+    fireEvent.mouseDown(overlay)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    release()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('os botões de fechar e cancelar ficam desabilitados enquanto salva', async () => {
+    const release = await openAndSubmit()
+
+    expect(screen.getByRole('button', { name: 'Fechar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    release()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('volta a fechar normalmente depois que a escrita conclui', async () => {
+    catalogResponds()
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    renderPage()
+    await screen.findByText('Nenhuma posição cadastrada')
+
+    fireEvent.click(screen.getByRole('button', { name: '+ adicionar posição' }))
+    await screen.findByRole('dialog')
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+})
+
+describe('CarteiraPage — sessão ainda carregando', () => {
+  /**
+   * Sem `userId` a query fica desabilitada, `isLoading` é falso e a página
+   * concluía "0 posições cadastradas" com o estado vazio antes de qualquer
+   * consulta. É afirmar carteira vazia sem ter olhado.
+   */
+  it('mostra carregamento em vez de afirmar carteira vazia', () => {
+    useAuthStore.setState({ user: null, session: null, loading: true })
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    renderPage()
+
+    expect(screen.getByText('Carregando...')).toBeInTheDocument()
+    expect(screen.getByText('Carregando posições...')).toBeInTheDocument()
+    expect(screen.queryByText('Nenhuma posição cadastrada')).toBeNull()
+    expect(screen.queryByText('0 posições cadastradas')).toBeNull()
+    // E nada foi consultado: a afirmação anterior não tinha base nenhuma.
+    expect(supabaseMock.chains).toHaveLength(0)
+  })
+
+  it('mostra o estado vazio depois que a sessão resolve e a consulta volta vazia', async () => {
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    renderPage()
+
+    expect(await screen.findByText('Nenhuma posição cadastrada')).toBeInTheDocument()
+    expect(screen.getByText('0 posições cadastradas')).toBeInTheDocument()
+  })
+})
+
+describe('CarteiraPage — falha de revalidação', () => {
+  /**
+   * Uma revalidação perdida não apaga a lista já carregada: esconder linhas que
+   * o usuário está lendo por causa de um refetch com erro é regressão de
+   * informação, e ainda faria o cabeçalho anunciar "0 posições".
+   */
+  it('mantém as linhas em cache e acrescenta o banner de erro', async () => {
+    let shouldFail = false
+    supabaseMock.on('positions', () =>
+      shouldFail
+        ? { data: null, error: { code: '08006', message: 'connection failure', details: null, hint: null } }
+        : { data: [CREATED_ROW], error: null },
+    )
+
+    const queryClient = createQueryClient()
+    renderPage(queryClient)
+
+    const row = await screen.findByRole('row', { name: /PETR4/ })
+    expect(row).toBeInTheDocument()
+
+    shouldFail = true
+    await queryClient.refetchQueries({ queryKey: ['portfolio', 'positions', SESSION_USER_ID] })
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Não foi possível atualizar suas posições')
+
+    // A linha continua na tela.
+    expect(screen.getByRole('row', { name: /PETR4/ })).toBeInTheDocument()
+    expect(screen.getByText('1 posição cadastrada')).toBeInTheDocument()
+    expect(screen.queryByText('Nenhuma posição cadastrada')).toBeNull()
+  })
+
+  it('sem cache algum, não afirma carteira vazia', async () => {
+    supabaseMock.on('positions', () => ({
+      data: null,
+      error: { code: '08006', message: 'connection failure', details: null, hint: null },
+    }))
+
+    renderPage()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Não foi possível carregar suas posições.')
+
+    // Nem tabela nem estado vazio: ninguém conseguiu olhar a carteira.
+    expect(screen.queryByText('Nenhuma posição cadastrada')).toBeNull()
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByText('0 posições cadastradas')).toBeNull()
+    expect(screen.getByText('Não foi possível carregar as posições.')).toBeInTheDocument()
   })
 })

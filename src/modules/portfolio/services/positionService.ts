@@ -16,9 +16,13 @@ const POSITION_COLUMNS =
  * Remove os metacaracteres da sintaxe de filtro do PostgREST antes de
  * interpolar o termo em `.or(...)`. Sem isso, uma vírgula ou parêntese
  * digitados pelo usuário viram sintaxe de filtro, não texto de busca.
+ *
+ * `%` e `_` saem porque são os dois curingas de ILIKE: `%` casa qualquer
+ * sequência e `_` casa exatamente um caractere. Deixar o `_` passar mantinha
+ * o curinga de um caractere aberto mesmo com o `%` bloqueado.
  */
 function sanitizeSearchTerm(term: string): string {
-  return term.replace(/[,.()%*\\"']/g, ' ').trim()
+  return term.replace(/[,.()%*_\\"']/g, ' ').trim()
 }
 
 export const positionService = {
@@ -57,12 +61,18 @@ export const positionService = {
    * Ativo do catálogo pelo ticker exato. Devolve `null` quando não existe —
    * é o que produz "Ativo não encontrado" antes de qualquer INSERT, para que
    * a FK nunca seja violada.
+   *
+   * O filtro `active = true` é o mesmo de `searchAssets`, e por isso: sem ele,
+   * um ativo delistado ficava invisível no autocomplete e ainda assim
+   * cadastrável digitando o ticker exato. Os dois caminhos precisam concordar
+   * sobre o que é catálogo válido.
    */
   async findAssetByTicker(ticker: string): Promise<Asset | null> {
     const { data, error } = await supabase
       .from('assets')
       .select(ASSET_COLUMNS)
       .eq('ticker', ticker.trim().toUpperCase())
+      .eq('active', true)
       .maybeSingle()
 
     if (error) throw error

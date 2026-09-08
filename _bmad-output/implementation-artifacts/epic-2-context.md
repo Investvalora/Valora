@@ -34,7 +34,7 @@ Entregar a carteira como produto utilizável: o usuário cadastra posições man
 
 **Exportação.** CSV com as colunas da tabela exibida, até 1000 linhas em <2s. "Sincronizar dados" e "Gerar insights" respondem "Em breve".
 
-**Performance.** 50 posições em ≤2s (p95); geração de alertas para 50 ativos em <5s; transição de tela <500ms. Queries limitadas a 50 posições no MVP.
+**Performance.** 50 posições em ≤2s (p95); geração de alertas para 50 ativos em <5s; transição de tela <500ms; aplicar o `seed.sql` completo (catálogo + histórico já materializado) em <30s (NFR-9). Queries limitadas a 50 posições no MVP. A ingestão via API é job separado, não interativo, e **não** está sujeita ao orçamento de 30s — os limites dos planos gratuitos impõem o piso.
 
 **Segurança e acessibilidade.** RLS por `user_id = auth.uid()` em toda tabela de dado de usuário; service role key nunca em bundle frontend; Edge Function sensível exige JWT válido. Navegação por teclado, contraste WCAG 2.1 AA no tema dark, desktop otimizado e tablet/mobile funcionais.
 
@@ -43,6 +43,8 @@ Entregar a carteira como produto utilizável: o usuário cadastra posições man
 **RLS universal.** Toda tabela do schema `public` tem RLS habilitado, sem exceção. Dado de usuário → policy `user_id = auth.uid()`. Tabela de mercado (`assets`, `price_history`, `dividends`, `fundamentals`, `benchmarks`) → RLS ativo com policy `FOR SELECT TO authenticated USING (true)`, escrita só via service role, `anon` sem grant algum. Motivo: os default privileges do Supabase concedem escrita a `anon`/`authenticated` em toda tabela nova do `public`, e sem RLS esses grants viram escrita real. Ressalva: RLS **não** intercepta `TRUNCATE`.
 
 **Posições independentes, transações opcionais.** Quando existem transações para um ticker do usuário, preço médio ponderado e quantidade líquida são recalculados **no servidor**. O recálculo precisa disparar também na remoção de transação — a posição pode voltar a não ter nenhuma, o que recria o alerta correspondente.
+
+**Alertas on-demand.** O botão "Atualizar Alertas" dispara a Edge Function `generate-alerts` (`POST /functions/v1/generate-alerts`, versionada em `supabase/functions/generate-alerts/`), que varre `positions` e `transactions` do `user_id`, detecta as inconsistências e insere/atualiza `alerts`. É idempotente e protegida por auth; o cliente invalida a query key `['alerts', userId]` após o sucesso, e o refetch decorrente é o que atualiza lista e badge (AD-14).
 
 **Divisão cliente/servidor.** Cliente: somas, peso relativo, agrupamento por classe, exposição internacional, ordenação, filtros, formatação. Servidor: recálculo de preço médio, geração de alertas, validações complexas de importação.
 

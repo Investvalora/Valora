@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AMBIGUOUS_DECIMAL_MESSAGE,
   parseDecimalPtBr,
   positionSchema,
   toNewPosition,
@@ -24,6 +25,17 @@ function fieldErrors(values: PositionSchema, field: keyof PositionSchema): strin
     .map((issue) => issue.message)
 }
 
+/** `YYYY-MM-DD` deslocado em dias a partir de hoje, no fuso local. */
+function isoDateFromToday(offsetDays: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 describe('parseDecimalPtBr', () => {
   it('normaliza decimal pt-BR: 10,50 vira 10.50', () => {
     expect(parseDecimalPtBr('10,50')).toBe(10.5)
@@ -32,16 +44,31 @@ describe('parseDecimalPtBr', () => {
   it('trata ponto como separador de milhar quando existe vírgula', () => {
     expect(parseDecimalPtBr('1.234,56')).toBe(1234.56)
     expect(parseDecimalPtBr('1.234.567,89')).toBe(1234567.89)
+    expect(parseDecimalPtBr('1.500,00')).toBe(1500)
   })
 
-  it('mantém o ponto como separador decimal quando não há vírgula', () => {
-    expect(parseDecimalPtBr('10.50')).toBe(10.5)
+  it('aceita inteiro sem separador algum', () => {
     expect(parseDecimalPtBr('100')).toBe(100)
+    expect(parseDecimalPtBr('1500')).toBe(1500)
+  })
+
+  it('aceita vírgula como único separador', () => {
+    expect(parseDecimalPtBr('1500,5')).toBe(1500.5)
   })
 
   it('tolera espaço e prefixo de moeda', () => {
     expect(parseDecimalPtBr(' R$ 32,10 ')).toBe(32.1)
   })
+
+  // Regra renegociada em 2026-09-08: ponto sem vírgula é ambíguo entre milhar e
+  // decimal, e adivinhar erra por 1000× num valor financeiro. Recusa, não
+  // palpite — nem para o lado do milhar.
+  it.each(['1.500', '10.50', '12.345', '0.123', '1.500.000'])(
+    'recusa ponto sem vírgula por ser ambíguo: %j',
+    (raw) => {
+      expect(Number.isNaN(parseDecimalPtBr(raw))).toBe(true)
+    },
+  )
 
   it.each(['abc', 'dez reais', '1e3', '10,5,5', '1..2', '', '   ', '10a'])(
     'devolve NaN para entrada não numérica: %j',
@@ -62,6 +89,18 @@ describe('positionSchema — decimal pt-BR (linha da matriz)', () => {
       average_price: 1234.56,
       acquisition_date: '2026-01-15',
     })
+  })
+
+  it.each([
+    ['1.500,00', 1500],
+    ['1500', 1500],
+    ['1500,5', 1500.5],
+    ['10,50', 10.5],
+  ])('aceita %j e grava %d', (raw, expected) => {
+    const values: PositionSchema = { ...VALID_FORM, averagePrice: raw }
+
+    expect(positionSchema.safeParse(values).success).toBe(true)
+    expect(toNewPosition(values).average_price).toBe(expected)
   })
 
   it('normaliza o preço médio antes de enviar', () => {
@@ -85,6 +124,63 @@ describe('positionSchema — decimal pt-BR (linha da matriz)', () => {
       )
     },
   )
+})
+
+describe('positionSchema — ponto sem vírgula (linha da matriz)', () => {
+  it.each(['1.500', '10.50', '12.345', '0.123'])(
+    'quantidade %j é recusada com erro pedindo a vírgula',
+    (raw) => {
+      const values: PositionSchema = { ...VALID_FORM, quantity: raw }
+
+      expect(positionSchema.safeParse(values).success).toBe(false)
+      expect(fieldErrors(values, 'quantity')).toContain(AMBIGUOUS_DECIMAL_MESSAGE)
+    },
+  )
+
+  it.each(['1.500', '10.50', '12.345', '0.123'])(
+    'preço médio %j é recusado com erro pedindo a vírgula',
+    (raw) => {
+      const values: PositionSchema = { ...VALID_FORM, averagePrice: raw }
+
+      expect(positionSchema.safeParse(values).success).toBe(false)
+      expect(fieldErrors(values, 'averagePrice')).toContain(AMBIGUOUS_DECIMAL_MESSAGE)
+    },
+  )
+
+  it('não confunde ambíguo com não numérico: a mensagem orienta o formato', () => {
+    // Se `1.500` virasse 1,5 em silêncio, este teste passaria e o usuário
+    // gravaria mil vezes menos. A distinção da mensagem é a garantia.
+    expect(fieldErrors({ ...VALID_FORM, quantity: '1.500' }, 'quantity')).not.toContain(
+      'Quantidade inválida. Use números, por exemplo 10,5',
+    )
+    expect(AMBIGUOUS_DECIMAL_MESSAGE).toContain('vírgula')
+  })
+})
+
+describe('positionSchema — data de aquisição', () => {
+  it('aceita hoje e uma data passada', () => {
+    expect(
+      positionSchema.safeParse({ ...VALID_FORM, acquisitionDate: isoDateFromToday(0) }).success,
+    ).toBe(true)
+    expect(
+      positionSchema.safeParse({ ...VALID_FORM, acquisitionDate: isoDateFromToday(-1) }).success,
+    ).toBe(true)
+  })
+
+  it.each([1, 30, 400])('recusa data %d dia(s) no futuro', (offset) => {
+    const values: PositionSchema = { ...VALID_FORM, acquisitionDate: isoDateFromToday(offset) }
+
+    expect(positionSchema.safeParse(values).success).toBe(false)
+    expect(fieldErrors(values, 'acquisitionDate')).toContain(
+      'Data de aquisição não pode estar no futuro',
+    )
+  })
+
+  it('recusa data que não existe no calendário', () => {
+    expect(fieldErrors({ ...VALID_FORM, acquisitionDate: '2026-02-30' }, 'acquisitionDate')).toContain(
+      'Data inválida',
+    )
+  })
 })
 
 describe('positionSchema — quantidade inválida (linha da matriz)', () => {

@@ -74,6 +74,17 @@ describe('positionService.listPositions', () => {
 
     expect(supabaseMock.callArgs('positions', 'eq')).toEqual([['user_id', SESSION_USER_ID]])
   })
+
+  // O limite é o NFR de performance do Épico 2 ("50 posições em ≤2s"): sem ele
+  // a consulta traz a tabela inteira do usuário e o teto de latência deixa de
+  // ter qualquer garantia.
+  it('limita a consulta a 50 posições', async () => {
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    await positionService.listPositions(SESSION_USER_ID)
+
+    expect(supabaseMock.callArgs('positions', 'limit')).toEqual([[50]])
+  })
 })
 
 describe('positionService.findAssetByTicker', () => {
@@ -81,7 +92,7 @@ describe('positionService.findAssetByTicker', () => {
     supabaseMock.on('assets', () => ({ data: null, error: null }))
 
     await expect(positionService.findAssetByTicker('PETR99')).resolves.toBeNull()
-    expect(supabaseMock.callArgs('assets', 'eq')).toEqual([['ticker', 'PETR99']])
+    expect(supabaseMock.callArgs('assets', 'eq')).toContainEqual(['ticker', 'PETR99'])
   })
 
   it('normaliza o ticker para maiúsculas antes de consultar', async () => {
@@ -92,6 +103,59 @@ describe('positionService.findAssetByTicker', () => {
 
     await positionService.findAssetByTicker(' petr4 ')
 
-    expect(supabaseMock.callArgs('assets', 'eq')).toEqual([['ticker', 'PETR4']])
+    expect(supabaseMock.callArgs('assets', 'eq')).toContainEqual(['ticker', 'PETR4'])
+  })
+
+  // Os dois caminhos precisam concordar sobre o que é catálogo: sem este filtro
+  // um ativo delistado nunca aparece no autocomplete e ainda assim é
+  // cadastrável digitando o ticker exato.
+  it('exige active = true, como o autocomplete', async () => {
+    supabaseMock.on('assets', () => ({ data: null, error: null }))
+
+    await positionService.findAssetByTicker('PETR4')
+
+    expect(supabaseMock.callArgs('assets', 'eq')).toContainEqual(['active', true])
+  })
+})
+
+describe('positionService.searchAssets', () => {
+  it('exige active = true', async () => {
+    supabaseMock.on('assets', () => ({ data: [], error: null }))
+
+    await positionService.searchAssets('PETR')
+
+    expect(supabaseMock.callArgs('assets', 'eq')).toContainEqual(['active', true])
+  })
+
+  /**
+   * O termo é interpolado dentro de `.or(...)`, que é a própria sintaxe de
+   * filtro do PostgREST: vírgula separa condições, parênteses agrupam, e `%` e
+   * `_` são os curingas de ILIKE. Um termo cru transforma busca em filtro.
+   *
+   * A asserção é sobre o argumento exato que chega ao client, e não sobre a
+   * função de saneamento: é o argumento que o banco recebe.
+   */
+  it('não deixa metacaractere de filtro nem curinga de ILIKE chegar ao .or()', async () => {
+    supabaseMock.on('assets', () => ({ data: [], error: null }))
+
+    await positionService.searchAssets('pe,tr(o)%br*as_x')
+
+    const [[filter]] = supabaseMock.callArgs('assets', 'or') as [[string]]
+
+    // Os únicos `%` presentes são os quatro do próprio padrão `ilike.%...%`.
+    expect(filter.match(/%/g)).toHaveLength(4)
+    expect(filter).not.toContain('_')
+    expect(filter).not.toContain('(o)')
+    expect(filter).not.toContain('*')
+    // Vírgulas: só a que separa as duas condições `ticker` e `name`.
+    expect(filter.match(/,/g)).toHaveLength(1)
+    expect(filter).toBe('ticker.ilike.%pe tr o  br as x%,name.ilike.%pe tr o  br as x%')
+  })
+
+  it('não consulta o catálogo quando o termo é só metacaractere', async () => {
+    supabaseMock.on('assets', () => ({ data: [], error: null }))
+
+    await expect(positionService.searchAssets('%_*')).resolves.toEqual([])
+    expect(supabaseMock.callArgs('assets', 'or')).toEqual([])
   })
 })

@@ -2,7 +2,7 @@ import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PositionSchema, positionSchema, toNewPosition } from '../schemas/positionSchema'
-import { useAddPosition } from '../hooks/useAddPosition'
+import { MISSING_SESSION_CODE, useAddPosition } from '../hooks/useAddPosition'
 import { useAssetLookup, useAssetSearch } from '../hooks/useAssetSearch'
 import { Asset } from '../types'
 
@@ -10,6 +10,12 @@ interface AddPositionFormProps {
   /** Chamada com o ticker gravado; a página fecha o modal e avisa o usuário. */
   onSuccess: (ticker: string) => void
   onCancel: () => void
+  /**
+   * Avisa a página quando há escrita em voo, para que ela impeça o modal de
+   * fechar no meio: fechar desmonta este componente, e com ele o aviso de
+   * sucesso e a revalidação da lista.
+   */
+  onBusyChange?: (isBusy: boolean) => void
 }
 
 // Mesma composição dos campos do módulo `auth`, com `placeholder-gray-400` em
@@ -44,22 +50,63 @@ function getErrorCode(error: unknown): string | undefined {
   return typeof code === 'string' ? code : undefined
 }
 
+/**
+ * Texto de diagnóstico do erro, concatenado só para *inspeção*: é onde o
+ * Postgres nomeia a constraint violada. Nada daqui vai para a tela.
+ */
+function getErrorDiagnostics(error: unknown): string {
+  if (typeof error !== 'object' || error === null) return ''
+
+  const { message, details, hint } = error as {
+    message?: unknown
+    details?: unknown
+    hint?: unknown
+  }
+
+  return [message, details, hint].filter((part) => typeof part === 'string').join(' ')
+}
+
+/**
+ * `positions` tem duas foreign keys — `ticker` para `assets` e `user_id` para
+ * `public.users` —, e as duas produzem 23503. Culpar o ticker sem olhar qual
+ * delas falhou manda o usuário corrigir um campo correto quando o problema é a
+ * conta dele não ter linha em `public.users`.
+ */
+function describeForeignKeyError(error: unknown, ticker: string): string {
+  const diagnostics = getErrorDiagnostics(error)
+
+  if (/positions_ticker_fkey|\bassets\b|\(ticker\)/i.test(diagnostics)) {
+    return `O ativo ${ticker} não está no catálogo.`
+  }
+
+  if (/positions_user_id_fkey|\busers\b|\(user_id\)/i.test(diagnostics)) {
+    return 'Sua conta não está pronta para receber posições. Entre novamente e, se persistir, fale com o suporte.'
+  }
+
+  // Constraint não identificada: não atribuir culpa a campo algum.
+  return 'Não foi possível salvar a posição: um dos dados informados não corresponde a um registro existente.'
+}
+
 function describeInsertError(error: unknown, ticker: string): string {
   switch (getErrorCode(error)) {
     case '23505':
       return `Você já tem uma posição em ${ticker}. Edite a posição existente em vez de cadastrar outra.`
     case '23503':
-      return `O ativo ${ticker} não está no catálogo.`
+      return describeForeignKeyError(error, ticker)
     case '23514':
       return 'Valores fora do permitido: quantidade precisa ser maior que zero e preço médio não pode ser negativo.'
     case '42501':
-      return 'Sem permissão para gravar esta posição. Entre novamente e tente de novo.'
+      // RLS recusou a escrita. Na prática é sessão vencida ou trocada entre o
+      // carregamento da tela e o submit, e não falta de permissão do usuário.
+      return 'Sua sessão não está mais válida. Entre novamente e repita o cadastro.'
+    case MISSING_SESSION_CODE:
+      return 'Sessão expirada. Entre novamente para cadastrar posições.'
     default:
       return 'Não foi possível salvar a posição. Tente novamente.'
   }
 }
 
-export function AddPositionForm({ onSuccess, onCancel }: AddPositionFormProps) {
+export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositionFormProps) {
   const [errorMessage, setErrorMessage] = useState('')
   const [notFoundTicker, setNotFoundTicker] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -91,7 +138,21 @@ export function AddPositionForm({ onSuccess, onCancel }: AddPositionFormProps) {
   const exactMatch = suggestions.find((asset) => asset.ticker === typedTicker) ?? null
   const isSuggestionsOpen = showSuggestions && suggestions.length > 0
 
-  const selectAsset = (asset: Asset) => {
+  // A lista é debounceada: entre a última tecla e a resposta do catálogo ela
+  // encurta sem que nada zere o índice realçado — as setas não passam por
+  // `onChange`. Sem este ajuste, `suggestions[highlightedIndex]` fica
+  // `undefined` e o Enter seguinte quebra a tela.
+  useEffect(() => {
+    setHighlightedIndex((current) => Math.min(current, suggestions.length - 1))
+  }, [suggestions.length])
+
+  /**
+   * Escolhe o ativo. Aceita `undefined` de propósito: é a segunda barreira
+   * contra o índice defasado, para que um realce fora de faixa não vire crash.
+   */
+  const selectAsset = (asset: Asset | undefined) => {
+    if (!asset) return
+
     setValue('ticker', asset.ticker, { shouldValidate: true })
     setShowSuggestions(false)
     setHighlightedIndex(-1)
@@ -167,6 +228,12 @@ export function AddPositionForm({ onSuccess, onCancel }: AddPositionFormProps) {
 
   const isSubmitting = isCheckingTicker || addPosition.isPending
   const tickerErrorId = errors.ticker ? 'ticker-error' : undefined
+
+  // A página é a dona do modal, então é ela quem precisa saber que há escrita
+  // em voo para não deixar o modal ser fechado.
+  useEffect(() => {
+    onBusyChange?.(isSubmitting)
+  }, [isSubmitting, onBusyChange])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -345,7 +412,8 @@ export function AddPositionForm({ onSuccess, onCancel }: AddPositionFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-dark-border px-4 py-3 font-semibold text-gray-300 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={isSubmitting}
+          className="rounded-lg border border-dark-border px-4 py-3 font-semibold text-gray-300 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
         >
           Cancelar
         </button>

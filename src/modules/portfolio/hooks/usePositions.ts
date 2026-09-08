@@ -13,12 +13,20 @@ export function positionsQueryKey(userId: string | undefined) {
 
 /** Posições do usuário da sessão. */
 export function usePositions() {
-  const { user } = useAuth()
+  const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
 
-  return useQuery<PositionWithAsset[]>({
+  const query = useQuery<PositionWithAsset[]>({
     queryKey: positionsQueryKey(userId),
     queryFn: () => positionService.listPositions(userId as string),
     enabled: Boolean(userId),
   })
+
+  return {
+    ...query,
+    // Enquanto a sessão está sendo restaurada não existe `userId`, a query
+    // fica desabilitada e `isLoading` é falso. Sem somar o estado da sessão, a
+    // página concluiria "nenhuma posição" antes de qualquer consulta ao banco.
+    isLoading: query.isLoading || isSessionLoading,
+  }
 }

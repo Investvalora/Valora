@@ -28,7 +28,7 @@ export function SignupForm() {
       setSession(data.session)
       navigate('/carteira')
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Signup error:', error)
 
       // Handle specific Supabase errors

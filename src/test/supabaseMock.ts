@@ -41,6 +41,11 @@ const CHAIN_METHODS = [
   'upsert',
   'eq',
   'neq',
+  // `in` e `gte` são a consulta de cotação da Story 2.3
+  // (`.in('ticker', ...).gte('date', ...)`): sem estarem aqui, a cadeia estoura
+  // com "is not a function" antes de qualquer asserção.
+  'in',
+  'gte',
   'or',
   'ilike',
   'order',

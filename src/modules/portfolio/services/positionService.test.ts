@@ -8,10 +8,13 @@ vi.mock('../../../shared/services/supabaseClient', async () => {
 })
 
 import { resetSupabaseMock, supabaseMock } from '../../../test/supabaseMock'
-import { positionService } from './positionService'
+import { normalizeTickers, positionService } from './positionService'
 
 const SESSION_USER_ID = '11111111-1111-4111-8111-111111111111'
 const FORM_TICKER = 'PETR4'
+
+/** `updated_at` das linhas de cotação — TIMESTAMPTZ, não DATE. */
+const NOW = '2026-02-10T21:30:00Z'
 
 /** Erro de unicidade como o PostgREST o devolve para `(user_id, ticker)`. */
 const DUPLICATE_ERROR = {
@@ -87,8 +90,126 @@ describe('positionService.listPositions', () => {
   })
 })
 
-describe('positionService.findAssetByTicker', () => {
-  it('devolve null para ticker fora do catálogo', async () => {
+describe('normalizeTickers', () => {
+  it('normaliza, deduplica e ordena', () => {
+    expect(normalizeTickers([' petr4 ', 'PETR4', 'vale3', ''])).toEqual(['PETR4', 'VALE3'])
+  })
+
+  /**
+   * A ordem estável é o que mantém a query key das cotações igual para a mesma
+   * carteira: sem ela, cada reordenação da tabela criaria uma chave nova e
+   * refaria a consulta.
+   */
+  it('a mesma carteira em outra ordem produz a mesma lista', () => {
+    expect(normalizeTickers(['VALE3', 'PETR4'])).toEqual(normalizeTickers(['PETR4', 'VALE3']))
+  })
+})
+
+describe('positionService.listLatestQuotes', () => {
+  const QUOTE_ROWS = [
+    // Ordem que o banco devolve: `(ticker, date desc)`.
+    { ticker: 'PETR4', date: '2026-02-10', close: 34.5, source: 'b3_cotahist', updated_at: NOW },
+    { ticker: 'PETR4', date: '2026-02-09', close: 33.9, source: 'b3_cotahist', updated_at: NOW },
+    { ticker: 'VALE3', date: '2026-02-06', close: 60.1, source: 'b3_cotahist', updated_at: NOW },
+  ]
+
+  it('devolve um fechamento por ticker, o mais recente', async () => {
+    supabaseMock.on('price_history', () => ({ data: QUOTE_ROWS, error: null }))
+
+    const quotes = await positionService.listLatestQuotes(['PETR4', 'VALE3'])
+
+    expect(quotes).toHaveLength(2)
+    expect(quotes.find((quote) => quote.ticker === 'PETR4')).toMatchObject({
+      date: '2026-02-10',
+      close: 34.5,
+    })
+    expect(quotes.find((quote) => quote.ticker === 'VALE3')).toMatchObject({ date: '2026-02-06' })
+  })
+
+  /**
+   * A dedupe compara datas em vez de confiar na ordenação do servidor: se ela
+   * mudar, o pior caso é a mesma resposta, e não uma cotação antiga exibida como
+   * se fosse a atual.
+   */
+  it('não depende da ordem em que as linhas vieram', async () => {
+    supabaseMock.on('price_history', () => ({ data: [...QUOTE_ROWS].reverse(), error: null }))
+
+    const quotes = await positionService.listLatestQuotes(['PETR4', 'VALE3'])
+
+    expect(quotes.find((quote) => quote.ticker === 'PETR4')?.date).toBe('2026-02-10')
+  })
+
+  it('pede só os tickers da carteira, normalizados', async () => {
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    await positionService.listLatestQuotes([' petr4 ', 'PETR4', 'vale3'])
+
+    expect(supabaseMock.callArgs('price_history', 'in')).toEqual([['ticker', ['PETR4', 'VALE3']]])
+  })
+
+  /**
+   * Sem a janela, a consulta arrasta 12 meses de série de até 50 tickers para
+   * usar o último ponto de cada um.
+   */
+  it('limita a janela por data, contada do dia local', async () => {
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    await positionService.listLatestQuotes(['PETR4'], new Date(2026, 1, 10))
+
+    expect(supabaseMock.callArgs('price_history', 'gte')).toEqual([['date', '2026-01-31']])
+  })
+
+  it('ordena por ticker e por data decrescente, servindo o índice', async () => {
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    await positionService.listLatestQuotes(['PETR4'])
+
+    expect(supabaseMock.callArgs('price_history', 'order')).toEqual([
+      ['ticker', { ascending: true }],
+      ['date', { ascending: false }],
+    ])
+  })
+
+  /**
+   * `(ticker, date)` é único, então a janela admite no máximo 11 linhas por
+   * ticker: o teto não pode truncar dado real, e existe para não deixar o limite
+   * default do PostgREST decidir.
+   */
+  it('dimensiona o limite pela janela, sem cortar tickers', async () => {
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    await positionService.listLatestQuotes(['PETR4', 'VALE3'])
+
+    expect(supabaseMock.callArgs('price_history', 'limit')).toEqual([[22]])
+  })
+
+  it('sem tickers, não consulta nada', async () => {
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    await expect(positionService.listLatestQuotes([])).resolves.toEqual([])
+    await expect(positionService.listLatestQuotes(['   '])).resolves.toEqual([])
+    expect(supabaseMock.chains).toHaveLength(0)
+  })
+
+  it('propaga o erro do PostgREST, para o chamador degradar sem apagar a lista', async () => {
+    supabaseMock.on('price_history', () => ({
+      data: null,
+      error: { code: '08006', message: 'connection failure', details: null, hint: null },
+    }))
+
+    await expect(positionService.listLatestQuotes(['PETR4'])).rejects.toMatchObject({
+      code: '08006',
+    })
+  })
+
+  it('resposta vazia não é erro — é ausência de cotação na janela', async () => {
+    supabaseMock.on('price_history', () => ({ data: null, error: null }))
+
+    await expect(positionService.listLatestQuotes(['PETR4'])).resolves.toEqual([])
+  })
+})
+
+describe('positionService.findAssetByTicker', () => {  it('devolve null para ticker fora do catálogo', async () => {
     supabaseMock.on('assets', () => ({ data: null, error: null }))
 
     await expect(positionService.findAssetByTicker('PETR99')).resolves.toBeNull()

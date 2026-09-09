@@ -13,6 +13,7 @@ import {
 } from '../positionRows'
 import type { PositionSort, PositionSortColumn } from '../types'
 import { AddPositionForm } from './AddPositionForm'
+import { CompositionCard } from './CompositionCard'
 import { PositionsTable } from './PositionsTable'
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
@@ -179,6 +180,19 @@ export function CarteiraPage() {
             </div>
           )}
         </section>
+      )}
+
+      {/* Composição consome o mesmo `derived` do card acima: com uma derivação
+          própria os dois totais poderiam divergir na mesma tela. O estado de
+          carregamento e a contagem de excluídas também vêm de cima, para o card
+          não afirmar "sem cotação" enquanto as cotações estão em voo. */}
+      {hasPositions && (
+        <CompositionCard
+          rows={derived.rows}
+          totalBRL={derived.totalBRL}
+          isQuotesLoading={quotesQuery.isLoading || usdRateQuery.isLoading}
+          missingValueCount={derived.missingValueCount}
+        />
       )}
 
       {successMessage && (

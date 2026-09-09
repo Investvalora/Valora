@@ -109,6 +109,7 @@ export function derivePositionRows({
     const quantity = toNumber(position.quantity)
     const averagePrice = toNumber(position.average_price)
     const currency = position.asset?.currency ?? null
+    const type = position.asset?.type ?? null
 
     const needsUSDRate = currency === 'USD'
     const conversion = needsUSDRate ? usdRate : 1
@@ -135,6 +136,7 @@ export function derivePositionRows({
       ticker: position.ticker,
       name: position.asset?.name ?? null,
       currency,
+      type,
       quantity,
       averagePrice,
       acquisitionDate: position.acquisition_date,

@@ -84,6 +84,15 @@ export interface PositionRow {
   name: string | null
   /** Moeda do ativo; nula quando o join do catálogo não veio. */
   currency: AssetCurrency | null
+  /**
+   * Classe do ativo; nula quando o join do catálogo não veio.
+   *
+   * Moeda e classe respondem a perguntas diferentes e por isso ambas vivem na
+   * linha: a conversão para BRL depende da moeda, e a composição/exposição
+   * internacional dependem da classe — BDR é negociado em BRL e ainda assim é
+   * exposição ao exterior.
+   */
+  type: AssetType | null
   quantity: number
   averagePrice: number
   /** DATE `YYYY-MM-DD`, exibida como veio quando não casa o formato. */
@@ -102,4 +111,46 @@ export interface PositionRow {
   isStaleQuote: boolean
   /** O valor de mercado desta linha passou pela conversão USD. */
   usesUSDRate: boolean
+}
+
+/**
+ * Chave de uma fatia da composição: as seis classes do catálogo mais o bucket
+ * de classe desconhecida.
+ *
+ * O bucket existe porque uma posição avaliada sem `type` (join do catálogo
+ * ausente) tem valor de mercado real e já está dentro do total da carteira:
+ * descartá-la das fatias faria os percentuais somarem menos de 100% sem dizer
+ * por quê. Ela aparece como "Outros" e não conta como exposição internacional —
+ * não há base para afirmar que é.
+ */
+export type AssetClassKey = AssetType | 'unknown'
+
+/** Uma classe de ativo com posição avaliada na carteira. */
+export interface AssetClassSlice {
+  type: AssetClassKey
+  /** Rótulo em pt-BR, resolvido na derivação para o card não decidir texto. */
+  label: string
+  /** Soma dos valores de mercado da classe, em BRL. */
+  valueBRL: number
+  /** Fatia do total da carteira, em pontos percentuais (0–100). */
+  percent: number
+  /** Ticker de maior valor de mercado na classe; desempate alfabético. */
+  topTicker: string
+}
+
+/**
+ * Composição da carteira por classe, já em BRL.
+ *
+ * Só existe fatia para classe com posição avaliada — classe sem posição não
+ * aparece, e carteira sem nada avaliado devolve `slices` vazio em vez de fatias
+ * de 0%.
+ */
+export interface CompositionSummary {
+  slices: AssetClassSlice[]
+  /** Total avaliado sobre o qual os percentuais foram calculados, em BRL. */
+  totalBRL: number
+  /** (BDR + Stocks US + REITs + Cryptos) / total, em pontos percentuais. */
+  internationalPercent: number
+  /** Soma em BRL das classes internacionais. */
+  internationalValueBRL: number
 }

@@ -638,3 +638,130 @@ describe('CarteiraPage — rastreabilidade na tela', () => {
     expect(screen.getByRole('row', { name: /PETR4/ })).toHaveTextContent('Cotação antiga')
   })
 })
+
+const BDR_ROW = {
+  id: 'pos-aapl34',
+  user_id: SESSION_USER_ID,
+  ticker: 'AAPL34',
+  quantity: 20,
+  average_price: 40,
+  acquisition_date: '2026-01-20',
+  created_at: '2026-01-20T00:00:00Z',
+  updated_at: '2026-01-20T00:00:00Z',
+  asset: { ticker: 'AAPL34', name: 'Apple BDR', type: 'bdr', currency: 'BRL' },
+}
+
+/** Card de composição: nomeado pelo próprio título via `aria-labelledby`. */
+function compositionCard(): HTMLElement {
+  return screen.getByRole('region', { name: 'Composição por classe' })
+}
+
+describe('CarteiraPage — composição por classe', () => {
+  it('agrega as classes sobre o mesmo total do card de patrimônio', async () => {
+    supabaseMock.on('positions', () => ({ data: [CREATED_ROW, BDR_ROW], error: null }))
+    supabaseMock.on('price_history', () => ({
+      data: [quoteRow(), quoteRow({ ticker: 'AAPL34', close: 50 })],
+      error: null,
+    }))
+
+    renderPage()
+    await screen.findByRole('row', { name: /AAPL34/ })
+
+    // PETR4: 100 × 34,50 = 3.450,00; AAPL34: 20 × 50 = 1.000,00. Total 4.450,00.
+    await waitFor(() =>
+      expect(within(patrimonyCard()).getByText('R$ 4.450,00')).toBeInTheDocument(),
+    )
+
+    const card = compositionCard()
+    expect(within(card).getByText('R$ 4.450,00')).toBeInTheDocument()
+
+    const entries = within(within(card).getByRole('list')).getAllByRole('listitem')
+    expect(entries[0]).toHaveTextContent('Ações BR')
+    expect(entries[0]).toHaveTextContent('R$ 3.450,00')
+    expect(entries[0]).toHaveTextContent('77,53%')
+    expect(entries[0]).toHaveTextContent('Maior posição: PETR4')
+    expect(entries[1]).toHaveTextContent('BDRs')
+    expect(entries[1]).toHaveTextContent('R$ 1.000,00')
+    expect(entries[1]).toHaveTextContent('22,47%')
+
+    // BDR é cotado em BRL e ainda assim é exposição ao exterior.
+    expect(card).toHaveTextContent('Exposição internacional: 22,47% (R$ 1.000,00)')
+  })
+
+  /**
+   * O gráfico real precisa montar em jsdom (dublê de `ResizeObserver` no setup):
+   * se estourasse, a fronteira de erro engoliria a falha em silêncio e o teste
+   * acima continuaria verde sobre uma tela sem pizza.
+   */
+  it('carrega o gráfico lazy sem cair na fronteira de erro', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    supabaseMock.on('positions', () => ({ data: [CREATED_ROW], error: null }))
+    supabaseMock.on('price_history', () => ({ data: [quoteRow()], error: null }))
+
+    renderPage()
+    await screen.findByRole('row', { name: /PETR4/ })
+
+    await waitFor(() =>
+      expect(document.querySelector('.recharts-responsive-container')).not.toBeNull(),
+    )
+
+    const degraded = consoleWarn.mock.calls.some(
+      ([message]) => typeof message === 'string' && message.includes('Gráfico de composição'),
+    )
+    expect(degraded).toBe(false)
+  })
+
+  it('sem cotação alguma, a composição mostra lacuna em vez de pizza vazia', async () => {
+    supabaseMock.on('positions', () => ({ data: [CREATED_ROW], error: null }))
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+
+    renderPage()
+    await screen.findByRole('row', { name: /PETR4/ })
+
+    await waitFor(() =>
+      expect(compositionCard()).toHaveTextContent(
+        'Nenhuma posição com cotação disponível para calcular a composição.',
+      ),
+    )
+    expect(compositionCard()).not.toHaveTextContent('0,00%')
+    expect(within(compositionCard()).queryByRole('list')).toBeNull()
+  })
+
+  it('carteira vazia não renderiza o card de composição', async () => {
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    renderPage()
+    await screen.findByText('Nenhuma posição cadastrada')
+
+    expect(screen.queryByRole('region', { name: 'Composição por classe' })).toBeNull()
+  })
+
+  /**
+   * Carteira com ativo em dólar exercita a fiação `isQuotesLoading =
+   * quotesQuery.isLoading || usdRateQuery.isLoading`: a taxa USD é uma segunda
+   * consulta em voo, e a composição só fecha depois dela. Ao final, o valor
+   * convertido entra na exposição internacional e a mensagem de ausência não
+   * aparece — se a fiação ignorasse a taxa, o card teria piscado "sem cotação"
+   * para a posição em dólar.
+   */
+  it('inclui a posição em dólar na exposição internacional, sem acusar ausência', async () => {
+    supabaseMock.on('positions', () => ({ data: [CREATED_ROW, USD_ROW], error: null }))
+    supabaseMock.on('price_history', () => ({
+      data: [quoteRow(), quoteRow({ ticker: 'AAPL', close: 150, source: 'twelvedata' })],
+      error: null,
+    }))
+
+    renderPage()
+    await screen.findByRole('row', { name: /AAPL/ })
+
+    // PETR4: 100 × 34,50 = 3.450,00; AAPL: 10 × 150 × 5,12 = 7.680,00. Total 11.130,00.
+    const card = compositionCard()
+    await waitFor(() => expect(within(card).getByText('R$ 11.130,00')).toBeInTheDocument())
+
+    // Só o stock US é exterior: 7.680 de 11.130 = 69,00%.
+    expect(card).toHaveTextContent('Exposição internacional: 69,00% (R$ 7.680,00)')
+    expect(card).not.toHaveTextContent('Nenhuma posição com cotação disponível')
+    expect(card).not.toHaveTextContent('não entra')
+  })
+})

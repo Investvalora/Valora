@@ -7,3 +7,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-visualizar-lista-de-posicoes.md`
   summary: Flag "Cotação antiga" considera apenas fim de semana; feriados da B3 (Carnaval, Corpus Christi, feriados da praça de SP) ainda produzem falso-positivo até existir calendário de pregões.
   evidence: Story 2.3 renegociou o AC para "> 1 dia útil" (opção A1), que pula sábado/domingo com aritmética simples mas não conhece feriados B3. A alternativa robusta (A2) é comparar cada `date` com o pregão mais recente presente no próprio `price_history` — não precisa de calendário externo nem de "hoje". Retomar quando o Épico 3 trouxer o calendário de proventos/pregões, ou implementar A2 sobre `price_history`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-composicao-por-classe-e-exposicao-internacional.md`
+  summary: A leitura de `positions` com join do catálogo em `positionService` usa `as unknown as PositionWithAsset[]`, então `tsc` não garante que `type` (e demais colunas) sigam em `ASSET_COLUMNS`; remover `type` do select compilaria e só quebraria em runtime (composição vira uma fatia "Outros" de 100%).
+  evidence: Gap de type-safety pré-existente (o cast antecede a Story 2.4), exposto incidentalmente porque a 2.4 passou a depender de `type` vir do select. Correção fora do escopo desta story: tipar o retorno do PostgREST ou cobrir o select com um teste que valide as colunas pedidas. Sem branch de UI própria — é robustez de contrato de dados.

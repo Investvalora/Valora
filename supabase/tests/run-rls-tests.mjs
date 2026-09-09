@@ -1,22 +1,28 @@
 #!/usr/bin/env node
 /**
- * Harness de RLS de `public.positions` — Story 2.2
+ * Harness de RLS e de recálculo do schema `public` — Stories 2.2 e 2.5
  *
- * Cobre a linha "Isolamento por usuário" da matriz de I/O da spec, que é
- * comportamento de banco e não tem como ser testada em unidade: usuário B
- * consultando as posições de A recebe zero linhas.
+ * Cobre as linhas das matrizes de I/O que são comportamento de BANCO e não têm
+ * como ser testadas em unidade: o isolamento por usuário de `positions` e de
+ * `transactions` (usuário B consultando o dado de A recebe zero linhas) e a
+ * aritmética do trigger `recalculate_position_on_transaction`.
  *
  * O QUE FAZ
  *   Sobe um `postgres:15-alpine` efêmero, aplica o stub do ambiente Supabase
- *   (`000_stub_supabase.sql`), aplica as migrations e roda as asserções
- *   (`010_positions_rls_test.sql`). Derruba o container ao final, inclusive em
- *   caso de falha.
+ *   (`000_stub_supabase.sql`), aplica as migrations e roda os arquivos de
+ *   asserção na ordem. Derruba o container ao final, inclusive em caso de
+ *   falha.
  *
  * MIGRATIONS APLICADAS
- *   001, 002, 003, 004 e 006. A 005 é PULADA de propósito: agenda o sync de
- *   preços via `pg_cron`/`pg_net` e lê segredo do `vault`, três extensões que
- *   não existem na imagem oficial do Postgres. Ela não toca `positions`, então
- *   pular não afeta o que está sob teste.
+ *   001, 002, 003, 004, 006 e 007. A 005 é PULADA de propósito: agenda o sync
+ *   de preços via `pg_cron`/`pg_net` e lê segredo do `vault`, três extensões
+ *   que não existem na imagem oficial do Postgres. Ela não toca `positions`
+ *   nem `transactions`, então pular não afeta o que está sob teste.
+ *
+ * ASSERÇÕES
+ *   `010_positions_rls_test.sql` e depois `020_transactions_rls_test.sql`, no
+ *   MESMO banco. A 020 usa identidades e fixtures próprias justamente para não
+ *   depender do estado que a 010 deixa nem colidir com ele.
  *
  * SAÍDA
  *   Status 0 quando toda asserção passa. Qualquer `FAIL` levanta exceção no
@@ -52,11 +58,12 @@ const MIGRATIONS = [
   '003_create_assets_price_history.sql',
   '004_harden_default_privileges.sql',
   '006_create_positions.sql',
+  '007_create_transactions.sql',
 ]
 
 /** Stub primeiro, asserções depois; as migrations entram no meio. */
 const STUB = '000_stub_supabase.sql'
-const ASSERTIONS = '010_positions_rls_test.sql'
+const ASSERTIONS = ['010_positions_rls_test.sql', '020_transactions_rls_test.sql']
 
 function docker(args, options = {}) {
   return execFileSync('docker', args, { encoding: 'utf8', ...options })
@@ -188,9 +195,11 @@ function main() {
     applySql(`migration ${migration}`, join(MIGRATIONS_DIR, migration))
   }
 
-  applySql(`asserções de RLS (${ASSERTIONS})`, join(TESTS_DIR, ASSERTIONS))
+  for (const assertions of ASSERTIONS) {
+    applySql(`asserções (${assertions})`, join(TESTS_DIR, assertions))
+  }
 
-  log('\n✔ todas as asserções de RLS de public.positions passaram')
+  log('\n✔ todas as asserções de RLS e de recálculo passaram')
 }
 
 try {

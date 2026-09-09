@@ -2,7 +2,7 @@
 title: 'Story 2.2 — Adicionar Posição Manual'
 type: 'feature'
 created: '2026-09-08'
-status: 'in-review'
+status: 'done'
 baseline_commit: '6ba9670277bbfe08df4a96d7ecf0d0f9405c8267'
 review_loop_iteration: 1
 context:

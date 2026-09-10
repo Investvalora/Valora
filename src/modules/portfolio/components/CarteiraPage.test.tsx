@@ -10,8 +10,14 @@ vi.mock('../../../shared/services/supabaseClient', async () => {
   return { supabase: supabaseMock.client }
 })
 
+vi.mock('../export/positionsCsv', async () => {
+  const actual = await vi.importActual<typeof import('../export/positionsCsv')>('../export/positionsCsv')
+  return { ...actual, downloadPositionsCsv: vi.fn() }
+})
+
 import { resetSupabaseMock, supabaseMock } from '../../../test/supabaseMock'
 import { useAuthStore } from '../../auth/store'
+import { downloadPositionsCsv } from '../export/positionsCsv'
 import { CarteiraPage } from './CarteiraPage'
 
 const SESSION_USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -113,6 +119,7 @@ function stubUSDSources({ rate }: { rate: number | null }) {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   resetSupabaseMock()
   useAuthStore.setState({
     user: { id: SESSION_USER_ID } as User,
@@ -611,6 +618,64 @@ describe('CarteiraPage — ordenação da lista', () => {
       'ascending',
     )
     expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute('aria-sort', 'none')
+  })
+
+  it('exporta as linhas na ordem ativa sem buscar dados novos', async () => {
+    supabaseMock.on('positions', () => ({ data: SORT_POSITIONS, error: null }))
+    supabaseMock.on('price_history', () => ({ data: SORT_QUOTES, error: null }))
+
+    renderPage()
+    await screen.findByRole('row', { name: /VALE3/ })
+    await waitFor(() => expect(tickerOrder()).toEqual(['VALE3', 'ITUB4', 'PETR4']))
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Ticker/ }))
+    const callsBeforeExport = supabaseMock.chains.length
+
+    await user.click(screen.getByRole('button', { name: 'Exportar CSV' }))
+
+    expect(downloadPositionsCsv).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(downloadPositionsCsv).mock.calls[0][0].map((row) => row.ticker)).toEqual([
+      'ITUB4',
+      'PETR4',
+      'VALE3',
+    ])
+    expect(supabaseMock.chains).toHaveLength(callsBeforeExport)
+    expect(screen.getByRole('status')).toHaveTextContent('Relatório CSV baixado.')
+  })
+
+  it('desabilita exportação sem linhas e mantém ações futuras sem rede', async () => {
+    const fetchMock = stubUSDSources({ rate: 5.12 })
+    supabaseMock.on('positions', () => ({ data: [], error: null }))
+
+    renderPage()
+    await screen.findByText('Nenhuma posição cadastrada')
+
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled()
+    const callsBeforeActions = supabaseMock.chains.length
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Sincronizar dados' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Sincronizar dados: Em breve.')
+    await user.click(screen.getByRole('button', { name: 'Gerar insights' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Gerar insights: Em breve.')
+    expect(downloadPositionsCsv).not.toHaveBeenCalled()
+    expect(supabaseMock.chains).toHaveLength(callsBeforeActions)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('informa falha síncrona do download de forma acessível', async () => {
+    supabaseMock.on('positions', () => ({ data: [SORT_POSITIONS[0]], error: null }))
+    supabaseMock.on('price_history', () => ({ data: [SORT_QUOTES[0]], error: null }))
+    vi.mocked(downloadPositionsCsv).mockImplementationOnce(() => {
+      throw new Error('download unavailable')
+    })
+
+    renderPage()
+    await screen.findByRole('row', { name: /PETR4/ })
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Exportar CSV' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível baixar o relatório CSV.')
   })
 })
 

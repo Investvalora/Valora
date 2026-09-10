@@ -41,6 +41,17 @@ export interface NewPosition {
   acquisition_date: string
 }
 
+export type TransactionType = 'buy' | 'sell' | 'dividend' | 'jcp' | 'bonus'
+
+export interface NewTransaction {
+  ticker: string
+  type: TransactionType
+  quantity: number
+  price: number
+  brokerage_fee: number
+  transaction_date: string
+}
+
 /**
  * Último fechamento conhecido de um ticker, lido de `price_history`.
  *

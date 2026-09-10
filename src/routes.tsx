@@ -8,6 +8,7 @@ import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecovery
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
 import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
 import { TransactionImportPage } from './modules/portfolio/components/TransactionImportPage'
+import { AlertsPage } from './modules/alerts/components/AlertsPage'
 
 // Placeholder pages
 const PatrimonioPage = () => <div className="p-8 text-white">Patrimônio (Em desenvolvimento)</div>
@@ -15,7 +16,6 @@ const ProventosPage = () => <div className="p-8 text-white">Proventos (Em desenv
 const RentabilidadePage = () => <div className="p-8 text-white">Rentabilidade (Em desenvolvimento)</div>
 const ScorePage = () => <div className="p-8 text-white">Score (Em desenvolvimento)</div>
 const EstrategiasPage = () => <div className="p-8 text-white">Estratégias (Em desenvolvimento)</div>
-const AlertasPage = () => <div className="p-8 text-white">Alertas (Em desenvolvimento)</div>
 
 export function AppRoutes() {
   return (
@@ -40,7 +40,7 @@ export function AppRoutes() {
           <Route path="rentabilidade" element={<RentabilidadePage />} />
           <Route path="score" element={<ScorePage />} />
           <Route path="estrategias" element={<EstrategiasPage />} />
-          <Route path="alertas" element={<AlertasPage />} />
+          <Route path="alertas" element={<AlertsPage />} />
         </Route>
       </Route>
     </Routes>

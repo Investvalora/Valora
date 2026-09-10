@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
+import { useNewAlertsCount } from '../../modules/alerts/hooks/useAlerts'
 
 const menuItems = [
   { path: '/carteira', label: 'Carteira' },
@@ -14,6 +15,7 @@ const menuItems = [
 export function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { data: newAlerts = 0 } = useNewAlertsCount()
 
   const handleLogout = async () => {
     await logout()
@@ -54,7 +56,14 @@ export function Layout() {
                   }`
                 }
               >
-                {item.label}
+                <span className="flex items-center justify-between gap-3">
+                  {item.label}
+                  {item.path === '/alertas' && newAlerts > 0 && (
+                    <span aria-label={`${newAlerts} alertas novos`} className="min-w-5 rounded-full bg-amber-400 px-1.5 py-0.5 text-center text-xs font-bold text-slate-950">
+                      {newAlerts}
+                    </span>
+                  )}
+                </span>
               </NavLink>
             ))}
           </nav>

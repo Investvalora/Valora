@@ -94,13 +94,25 @@ supabase db push
 **Executar após:** 006
 **Necessário para:** Story 2.5 (Importar Transações via CSV)
 
+### 008_create_alerts.sql
+- Cria alertas de inconsistência por usuário, com FK para `assets` e RLS por `auth.uid()`
+
+**Executar após:** 007
+**Necessário para:** Story 2.6 (Alertas)
+
+### 009_create_dividends_and_fundamentals.sql
+- Cria `dividends` e `fundamentals` com FK para `assets`, chaves únicas por ativo e período e índices por ticker/data
+- Habilita RLS; `authenticated` só consulta e `anon` não recebe grant; `service_role` é o único role com escrita
+- O seed inclui quatro trimestres passados, determinísticos e marcados como `source = 'seed'`
+
+**Executar após:** 008
+**Necessário para:** Story 3.1 (Seed de Dividendos e Indicadores Fundamentalistas)
+
 ## Testar RLS localmente
 
 `supabase/tests/` traz um harness que sobe um Postgres efêmero, aplica as
-migrations e verifica o que é comportamento de BANCO e não é testável em
-unidade: o isolamento por usuário de `public.positions` e de
-`public.transactions` (a linha "Isolamento por usuário" das matrizes das
-Stories 2.2 e 2.5) e a aritmética do recálculo de preço médio.
+migrations e verifica comportamento de banco: isolamento por usuário,
+recálculo de posições, alertas e acesso/seed das tabelas de mercado.
 
 ```bash
 pnpm test:rls                    # exige docker no PATH
@@ -117,9 +129,10 @@ Arquivos:
 | `tests/000_stub_supabase.sql` | Schema `auth`, `auth.users`, `auth.uid()`, roles `anon`/`authenticated`/`service_role`, extensões `pgcrypto` e `pg_trgm`, e os DEFAULT PRIVILEGES amplos do Supabase — aplicados **antes** das migrations, para que o `REVOKE` da 006 e da 007 seja exercitado de verdade |
 | `tests/010_positions_rls_test.sql` | Asserções: B lê zero linhas de A, UPDATE/DELETE de B não alcançam A, A não insere posição de B (42501), `anon` sem privilégio algum, `authenticated` sem TRUNCATE, e os SQLSTATE 23505/23514/23503 das constraints |
 | `tests/020_transactions_rls_test.sql` | Asserções da 007: isolamento A/B em `transactions`, 42501, `anon` sem grant, 23503/23514, `seq` imutável (428C9), função sem `SECURITY DEFINER`, trigger em I/U/D (`tgtype` 29) — e a matriz do recálculo: média móvel (10,00 → 15,00 → 15,00), lote de mesma data em ordem-sensível dando **20,00**, venda que zera **apagando a linha**, venda maior que a posição (por último e antes das compras), DELETE recalculando, dividendo sem compra não materializando posição, UPDATE de ticker recalculando os dois pares, e chamada com `user_id` alheio inerte |
-| `tests/run-rls-tests.mjs` | Runner: container, ordem de aplicação e teardown |
+| `tests/030_market_seed_rls_test.sql` | Asserções: RLS, grants, seed, idempotência e FKs dos dados de mercado |
+| `tests/run-rls-tests.mjs` | Runner: container, ordem de aplicação, seed e teardown |
 
-O harness aplica `001`→`004`, `006` e `007`, e depois os dois arquivos de
+O harness aplica `001`→`004`, `006`→`009`, e depois os quatro arquivos de
 asserção no mesmo banco (a `020` usa identidades e fixtures próprias para não
 depender do estado da `010`). A **`005` é pulada**: depende de `pg_cron`,
 `pg_net` e `vault`, que não existem em `postgres:15-alpine`, e não toca

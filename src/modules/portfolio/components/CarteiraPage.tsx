@@ -5,6 +5,7 @@ import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import type { USDRateSource } from '../../../shared/services/usdRateService'
 import { useLatestQuotes } from '../hooks/useLatestQuotes'
 import { usePositions } from '../hooks/usePositions'
+import { downloadPositionsCsv } from '../export/positionsCsv'
 import {
   DEFAULT_POSITION_SORT,
   derivePositionRows,
@@ -39,6 +40,7 @@ const USD_SOURCE_LABEL: Record<USDRateSource, string> = {
 export function CarteiraPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [sort, setSort] = useState<PositionSort>(DEFAULT_POSITION_SORT)
 
@@ -80,6 +82,23 @@ export function CarteiraPage() {
   const handleSortChange = useCallback((column: PositionSortColumn) => {
     setSort((current) => nextSort(current, column))
   }, [])
+
+  const handleExport = () => {
+    setSuccessMessage('')
+    setErrorMessage('')
+
+    try {
+      downloadPositionsCsv(sortedRows)
+      setSuccessMessage('Relatório CSV baixado.')
+    } catch {
+      setErrorMessage('Não foi possível baixar o relatório CSV.')
+    }
+  }
+
+  const showComingSoon = (action: string) => {
+    setErrorMessage('')
+    setSuccessMessage(`${action}: Em breve.`)
+  }
 
   const openModal = () => {
     setSuccessMessage('')
@@ -123,6 +142,28 @@ export function CarteiraPage() {
 
         <div className="flex flex-wrap gap-3">
           <a href="/carteira/importar-transacoes" className="rounded-lg border border-blue-500 px-4 py-3 text-sm font-semibold text-blue-200 transition-colors hover:bg-blue-500/10">Importar transações</a>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={sortedRows.length === 0}
+            className="rounded-lg border border-green-500 px-4 py-3 text-sm font-semibold text-green-200 transition-colors hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Exportar CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => showComingSoon('Sincronizar dados')}
+            className="rounded-lg border border-gray-600 px-4 py-3 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-700/50"
+          >
+            Sincronizar dados
+          </button>
+          <button
+            type="button"
+            onClick={() => showComingSoon('Gerar insights')}
+            className="rounded-lg border border-gray-600 px-4 py-3 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-700/50"
+          >
+            Gerar insights
+          </button>
           <button type="button" onClick={openModal} className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">+ adicionar posição</button>
         </div>
       </header>
@@ -195,6 +236,12 @@ export function CarteiraPage() {
       {successMessage && (
         <div className="mb-6 rounded-lg border border-green-500/50 bg-green-500/10 p-4" role="status">
           <p className="text-sm text-green-400">{successMessage}</p>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-4" role="alert">
+          <p className="text-sm text-red-400">{errorMessage}</p>
         </div>
       )}
 

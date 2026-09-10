@@ -7,6 +7,7 @@ import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
 import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
+import { TransactionImportPage } from './modules/portfolio/components/TransactionImportPage'
 
 // Placeholder pages
 const PatrimonioPage = () => <div className="p-8 text-white">Patrimônio (Em desenvolvimento)</div>
@@ -33,6 +34,7 @@ export function AppRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<CarteiraPage />} />
           <Route path="carteira" element={<CarteiraPage />} />
+          <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
           <Route path="patrimonio" element={<PatrimonioPage />} />
           <Route path="proventos" element={<ProventosPage />} />
           <Route path="rentabilidade" element={<RentabilidadePage />} />

@@ -121,13 +121,10 @@ export function CarteiraPage() {
           <p className="mt-1 text-sm text-gray-400">{summary}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={openModal}
-          className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          + adicionar posição
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <a href="/carteira/importar-transacoes" className="rounded-lg border border-blue-500 px-4 py-3 text-sm font-semibold text-blue-200 transition-colors hover:bg-blue-500/10">Importar transações</a>
+          <button type="button" onClick={openModal} className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">+ adicionar posição</button>
+        </div>
       </header>
 
       {hasPositions && (

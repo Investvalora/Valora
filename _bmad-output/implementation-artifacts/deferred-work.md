@@ -1,3 +1,6 @@
+- source_spec: spec-2-6-alertas-badge-geracao-on-demand.md
+  summary: Implementar alerta de dividendo esperado não recebido quando o Épico 3 persistir a tabela dividends.
+  evidence: A Story 2.6 não possui fonte persistida de dividendos e a geração por transações de provento criaria falsos positivos.
 # Trabalho diferido
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-2-adicionar-posicao-manual.md`

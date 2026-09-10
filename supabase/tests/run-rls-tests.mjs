@@ -14,7 +14,7 @@
  *   falha.
  *
  * MIGRATIONS APLICADAS
- *   001, 002, 003, 004, 006 e 007. A 005 é PULADA de propósito: agenda o sync
+ *   001, 002, 003, 004, 006, 007 e 008. A 005 é PULADA de propósito: agenda o sync
  *   de preços via `pg_cron`/`pg_net` e lê segredo do `vault`, três extensões
  *   que não existem na imagem oficial do Postgres. Ela não toca `positions`
  *   nem `transactions`, então pular não afeta o que está sob teste.
@@ -59,11 +59,12 @@ const MIGRATIONS = [
   '004_harden_default_privileges.sql',
   '006_create_positions.sql',
   '007_create_transactions.sql',
+  '008_create_alerts.sql',
 ]
 
 /** Stub primeiro, asserções depois; as migrations entram no meio. */
 const STUB = '000_stub_supabase.sql'
-const ASSERTIONS = ['010_positions_rls_test.sql', '020_transactions_rls_test.sql']
+const ASSERTIONS = ['010_positions_rls_test.sql', '020_transactions_rls_test.sql', '021_alerts_rls_test.sql']
 
 function docker(args, options = {}) {
   return execFileSync('docker', args, { encoding: 'utf8', ...options })

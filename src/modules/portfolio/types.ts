@@ -73,7 +73,7 @@ export interface LatestQuote {
 }
 
 /** Coluna pela qual a lista pode ser ordenada. */
-export type PositionSortColumn = 'ticker' | 'weight' | 'change'
+export type PositionSortColumn = 'ticker' | 'weight' | 'change' | 'score'
 
 export type SortDirection = 'asc' | 'desc'
 
@@ -122,6 +122,12 @@ export interface PositionRow {
   isStaleQuote: boolean
   /** O valor de mercado desta linha passou pela conversão USD. */
   usesUSDRate: boolean
+  /**
+   * Pontuação de score fundamentalista calculada client-side.
+   * `null`      = fundamentals indisponível para este ticker (exibe "N/A").
+   * `undefined` = nenhum score está ativo na sessão (coluna oculta).
+   */
+  score?: number | null
 }
 
 /**

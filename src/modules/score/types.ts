@@ -54,3 +54,19 @@ export const OPERATOR_LABELS: Record<ScoreOperator, string> = {
   gte: 'maior ou igual (≥)',
   between: 'entre',
 }
+
+/** Linha da tabela `fundamentals` (apenas o registro mais recente por ticker). */
+export interface FundamentalsRow {
+  ticker: string
+  reference_date: string
+  pl: number | null
+  pvp: number | null
+  roe: number | null
+  dy: number | null
+  debt_equity: number | null
+  net_margin: number | null
+  updated_at: string
+}
+
+/** Resultado do cálculo de score por ticker. `null` = sem fundamentals. */
+export type ScoreByTicker = Map<string, number | null>

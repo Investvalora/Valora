@@ -184,7 +184,13 @@ export function sortPositionRows(rows: PositionRow[], sort: PositionSort): Posit
         ? a.ticker.localeCompare(b.ticker, 'pt-BR') * direction
         : sort.column === 'weight'
           ? compareNullableNumbers(a.weightPercent, b.weightPercent, direction)
-          : compareNullableNumbers(a.changePercent, b.changePercent, direction)
+          : sort.column === 'score'
+            ? compareNullableNumbers(
+                a.score !== undefined ? a.score : null,
+                b.score !== undefined ? b.score : null,
+                direction,
+              )
+            : compareNullableNumbers(a.changePercent, b.changePercent, direction)
 
     // Desempate estável por ticker: sem ele, duas posições de mesmo peso
     // trocam de lugar entre renders e a lista "pisca" sem motivo.
@@ -197,6 +203,7 @@ const INITIAL_DIRECTION: Record<PositionSort['column'], PositionSort['direction'
   ticker: 'asc',
   weight: 'desc',
   change: 'desc',
+  score: 'desc',
 }
 
 /** Clique no header: inverte se já é a coluna ativa, senão adota a coluna. */

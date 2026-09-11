@@ -34,3 +34,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-1-criar-e-editar-regras-de-score.md`
   summary: Adicionar testes de integração para hooks e ScoreRuleForm (create/update/delete/upsert e coerção threshold_max→null).
   evidence: Nenhum teste cobre os caminhos de escrita dos hooks nem o comportamento de onSubmit do ScoreRuleForm; padrão de mock de Supabase já existe no projeto (supabaseMock.ts). Não causa bug imediato pois build+lint+testes de validação passam, mas regressões em payloads ou cache invalidation não seriam detectadas automaticamente.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-aplicar-score-na-carteira.md`
+  summary: Adicionar testes para sortPositionRows com coluna 'score' e para PositionsTable com prop scoreByTicker.
+  evidence: Nenhum teste cobre o novo branch de score em sortPositionRows (null/undefined ao fim) nem a renderização condicional da coluna Score em PositionsTable (N/A, +N/-N, tooltip de dados antigos). Padrão de mock Supabase já existe no projeto para adicionar esses casos.

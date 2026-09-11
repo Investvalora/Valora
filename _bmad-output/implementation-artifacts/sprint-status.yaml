@@ -31,7 +31,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-08-2026 14:00
-last_updated: 09-10-2026
+last_updated: 09-10-2026 (manual update: 09-10-2026 — stories 2-4 to 3-1 marked done by Samuel Leite; 3-2 in-progress)
 project: Valora
 project_key: NOKEY
 tracking_system: file-system
@@ -45,21 +45,21 @@ development_status:
   1-5-recuperação-de-senha: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
+  epic-2: done
   2-1a-schema-e-catalogo-de-ativos: done
   2-1b-historico-de-precos-12-meses: done
   2-2-adicionar-posição-manual: done
   2-3-visualizar-lista-de-posições-com-rastreabilidade: done
-  2-4-composição-por-classe-e-exposição-internacional: review
-  2-5-importar-transações-via-csv: review
-  2-6-lista-de-alertas-badge-e-geração-on-demand: review
-  2-7-exportar-relatórios-em-csv: review
+  2-4-composição-por-classe-e-exposição-internacional: done
+  2-5-importar-transações-via-csv: done
+  2-6-lista-de-alertas-badge-e-geração-on-demand: done
+  2-7-exportar-relatórios-em-csv: done
   2-8-reimplementar-ingestao-de-dados-de-mercado: done
   epic-2-retrospective: optional
 
   epic-3: in-progress
-  3-1-seed-de-dividendos-e-indicadores-fundamentalistas: review
-  3-2-tela-patrimônio-evolução-composição-e-exposição: backlog
+  3-1-seed-de-dividendos-e-indicadores-fundamentalistas: done
+  3-2-tela-patrimônio-evolução-composição-e-exposição: review
   3-3-tela-proventos-timeline-mensal-e-tabela-por-ativo: backlog
   epic-3-retrospective: optional
 

@@ -11,7 +11,7 @@ import { TransactionImportPage } from './modules/portfolio/components/Transactio
 import { AlertsPage } from './modules/alerts/components/AlertsPage'
 import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
 import { ProventosPage } from './modules/dividends/components/ProventosPage'
-const RentabilidadePage = () => <div className="p-8 text-white">Rentabilidade (Em desenvolvimento)</div>
+import { RentabilidadePage } from './modules/performance/components/RentabilidadePage'
 const ScorePage = () => <div className="p-8 text-white">Score (Em desenvolvimento)</div>
 const EstrategiasPage = () => <div className="p-8 text-white">Estratégias (Em desenvolvimento)</div>
 

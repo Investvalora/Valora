@@ -31,7 +31,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-08-2026 14:00
-last_updated: 09-10-2026 (manual update: 09-10-2026 — stories 2-4 to 3-1 marked done by Samuel Leite; 3-2 in-progress)
+last_updated: 09-11-2026 (manual update: 09-11-2026 — story 3-3 iniciada)
 project: Valora
 project_key: NOKEY
 tracking_system: file-system
@@ -60,7 +60,7 @@ development_status:
   epic-3: in-progress
   3-1-seed-de-dividendos-e-indicadores-fundamentalistas: done
   3-2-tela-patrimônio-evolução-composição-e-exposição: review
-  3-3-tela-proventos-timeline-mensal-e-tabela-por-ativo: backlog
+  3-3-tela-proventos-timeline-mensal-e-tabela-por-ativo: in-progress
   epic-3-retrospective: optional
 
   epic-4: backlog

@@ -1,5 +1,9 @@
 export type AlertStatus = 'novo' | 'lido' | 'ignorado'
-export type AlertType = 'position_no_transactions' | 'stale_quote'
+export type AlertType =
+  | 'position_no_transactions'
+  | 'stale_quote'
+  | 'opportunity'
+  | 'overvalued'
 
 export interface Alert {
   id: string

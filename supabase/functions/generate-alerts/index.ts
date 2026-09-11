@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
 }
 
-import { findAlertCandidates } from './logic.ts'
+import { findAlertCandidates, findBazinAlertCandidates } from './logic.ts'
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -72,19 +72,35 @@ Deno.serve(async (request) => {
 
     const positions = (await positionsResponse.json()) as Array<{ ticker: string }>
     const transactions = (await transactionsResponse.json()) as Array<{ ticker: string }>
-    const quotes: Array<{ ticker: string; date: string }> = []
+    const quotes: Array<{ ticker: string; date: string; close: number }> = []
     let created = 0
 
     for (const position of positions) {
       const quoteResponse = await rest(
-        `price_history?ticker=eq.${position.ticker}&select=ticker,date&order=date.desc&limit=1`,
+        `price_history?ticker=eq.${position.ticker}&select=ticker,date,close&order=date.desc&limit=1`,
       )
       if (!quoteResponse.ok) throw new Error('Falha ao ler cotações.')
-      const [quote] = (await quoteResponse.json()) as Array<{ ticker: string; date: string }>
+      const [quote] = (await quoteResponse.json()) as Array<{ ticker: string; date: string; close: number }>
       if (quote) quotes.push(quote)
     }
 
-    for (const candidate of findAlertCandidates(positions, transactions, quotes)) {
+    // Busca dividendos dos últimos 365 dias para o cálculo Bazin
+    const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const dividends: Array<{ ticker: string; value_per_share: number }> = []
+    if (positions.length > 0) {
+      const tickerList = positions.map((p) => p.ticker).join(',')
+      const dividendsResponse = await rest(
+        `dividends?ticker=in.(${tickerList})&ex_date=gte.${since}&value_per_share=gt.0&select=ticker,value_per_share`,
+      )
+      if (!dividendsResponse.ok) throw new Error('Falha ao ler dividendos.')
+      dividends.push(...(await dividendsResponse.json()))
+    }
+
+    const inconsistencyCandidates = findAlertCandidates(positions, transactions, quotes)
+    const bazinCandidates = findBazinAlertCandidates(positions, dividends, quotes)
+    const allCandidates = [...inconsistencyCandidates, ...bazinCandidates]
+
+    for (const candidate of allCandidates) {
       created += Number(
         await insertAlert(userId, {
           ...candidate,

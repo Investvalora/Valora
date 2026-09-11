@@ -1,10 +1,16 @@
 import type { WealthPeriod } from '../types'
 
-const PERIODS: WealthPeriod[] = ['1M', '3M', '6M', '1A', 'Tudo']
+const DEFAULT_PERIODS: WealthPeriod[] = ['1M', '3M', '6M', '1A', 'Tudo']
 
 interface PeriodSelectorProps {
   value: WealthPeriod
   onChange: (period: WealthPeriod) => void
+  /**
+   * Subconjunto de períodos a exibir.
+   * Quando omitido, exibe todos os períodos disponíveis.
+   * O valor de `value` deve pertencer ao subconjunto fornecido.
+   */
+  periods?: WealthPeriod[]
 }
 
 /**
@@ -13,14 +19,14 @@ interface PeriodSelectorProps {
  * Acessível: `role="group"` agrupa os botões logicamente; cada botão usa
  * `aria-pressed` para comunicar o estado selecionado a leitores de tela.
  */
-export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
+export function PeriodSelector({ value, onChange, periods = DEFAULT_PERIODS }: PeriodSelectorProps) {
   return (
     <div
       role="group"
       aria-label="Selecionar período"
       className="inline-flex rounded-lg border border-dark-border bg-dark-bg p-1 gap-1"
     >
-      {PERIODS.map((period) => {
+      {periods.map((period) => {
         const isActive = period === value
 
         return (

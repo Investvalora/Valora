@@ -10,7 +10,7 @@ import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
 import { TransactionImportPage } from './modules/portfolio/components/TransactionImportPage'
 import { AlertsPage } from './modules/alerts/components/AlertsPage'
 import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
-const ProventosPage = () => <div className="p-8 text-white">Proventos (Em desenvolvimento)</div>
+import { ProventosPage } from './modules/dividends/components/ProventosPage'
 const RentabilidadePage = () => <div className="p-8 text-white">Rentabilidade (Em desenvolvimento)</div>
 const ScorePage = () => <div className="p-8 text-white">Score (Em desenvolvimento)</div>
 const EstrategiasPage = () => <div className="p-8 text-white">Estratégias (Em desenvolvimento)</div>

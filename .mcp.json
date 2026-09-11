@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "resend": {
+      "type": "http",
+      "url": "https://mcp.resend.com/mcp"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp"
+    }
+  }
+}

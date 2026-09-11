@@ -1,7 +1,7 @@
 import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
 import type { PositionWithAsset } from '../../portfolio/types'
-import type { BenchmarkRow, NormalizedPoint, PerformanceSeries } from '../types'
+import type { BenchmarkRow, NormalizedPoint, PerformanceSeries, AssetReturnRow } from '../types'
 
 // ---------------------------------------------------------------------------
 // normalizeToBase100
@@ -130,4 +130,89 @@ export function extractReturnPct(series: PerformanceSeries): number | null {
   const last = series.points.length > 0 ? series.points[series.points.length - 1] : undefined
   if (!last || last.normalized === null) return null
   return last.normalized / 100 - 1
+}
+
+
+// ---------------------------------------------------------------------------
+// computeAssetRows  (Story 4.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deriva as linhas da tabela de Rentabilidade por Ativo.
+ *
+ * Para cada posição calcula:
+ * - `capitalGainPct` = `((cotação atual − preço médio) / preço médio) × 100`
+ *   → `null` quando cotação ausente **ou** `average_price = 0`.
+ * - `dividendsReceived` = Σ `value_per_share × quantity` de `dividendRows`
+ *   filtrados pelo ticker. Zero é um resultado legítimo (nenhum provento).
+ * - `dividendsPct` = `(dividendsReceived / (average_price × quantity)) × 100`
+ *   → `null` quando `average_price = 0` ou `quantity = 0`.
+ * - `totalReturnPct` = `(capitalGainPct ?? 0) + (dividendsPct ?? 0)`
+ *   → `null` quando **ambos** os componentes são `null`.
+ *
+ * A lista é ordenada por `totalReturnPct` decrescente por padrão.
+ * Linhas com `totalReturnPct = null` vão ao final.
+ *
+ * Exportado para testes unitários.
+ */
+export function computeAssetRows(
+  positions: PositionWithAsset[],
+  lastPricesMap: Map<string, number>,
+  dividendRows: DividendRow[],
+): AssetReturnRow[] {
+  // Pré-computa proventos por ticker para O(n) em vez de O(n²)
+  const dividendsByTicker = new Map<string, number>()
+  for (const row of dividendRows) {
+    const prev = dividendsByTicker.get(row.ticker) ?? 0
+    dividendsByTicker.set(row.ticker, prev + row.total_value)
+  }
+
+  const rows: AssetReturnRow[] = positions.map((p) => {
+    const avgPrice = p.average_price ?? 0
+    const qty = p.quantity ?? 0
+    const name = p.asset?.name ?? null
+
+    // Cotação atual — null quando não disponível
+    const currentPrice = lastPricesMap.get(p.ticker) ?? null
+
+    // Ganho de capital
+    const capitalGainPct =
+      currentPrice !== null && avgPrice > 0
+        ? ((currentPrice - avgPrice) / avgPrice) * 100
+        : null
+
+    // Proventos recebidos (0 é resultado válido — não é ausência)
+    const dividendsReceived = dividendsByTicker.get(p.ticker) ?? 0
+
+    // Proventos %
+    const dividendsPct =
+      avgPrice > 0 && qty > 0
+        ? (dividendsReceived / (avgPrice * qty)) * 100
+        : null
+
+    // Retorno total
+    const totalReturnPct =
+      capitalGainPct !== null || dividendsPct !== null
+        ? (capitalGainPct ?? 0) + (dividendsPct ?? 0)
+        : null
+
+    return {
+      ticker: p.ticker,
+      name,
+      totalReturnPct,
+      capitalGainPct,
+      dividendsReceived,
+      dividendsPct,
+    }
+  })
+
+  // Ordena por retorno total decrescente; nulls vão ao final
+  rows.sort((a, b) => {
+    if (a.totalReturnPct === null && b.totalReturnPct === null) return 0
+    if (a.totalReturnPct === null) return 1
+    if (b.totalReturnPct === null) return -1
+    return b.totalReturnPct - a.totalReturnPct
+  })
+
+  return rows
 }

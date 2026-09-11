@@ -31,7 +31,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-08-2026 14:00
-last_updated: 09-11-2026 (sprint-sync: story 3-3 done; epic-3 done; story 4-1 in-progress)
+last_updated: 09-11-2026 (sprint-sync: story 4-2 in-review)
 project: Valora
 project_key: NOKEY
 tracking_system: file-system
@@ -65,7 +65,7 @@ development_status:
 
   epic-4: in-progress
   4-1-retorno-total-e-comparação-com-benchmarks: in-progress
-  4-2-rentabilidade-por-ativo-ganho-de-capital-vs-proventos: backlog
+  4-2-rentabilidade-por-ativo-ganho-de-capital-vs-proventos: review
   epic-4-retrospective: optional
 
   epic-5: backlog

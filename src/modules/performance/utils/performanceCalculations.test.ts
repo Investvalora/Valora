@@ -4,6 +4,7 @@ import {
   computePortfolioReturn,
   buildBenchmarkSeries,
   extractReturnPct,
+  computeAssetRows,
 } from './performanceCalculations'
 import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
@@ -258,5 +259,293 @@ describe('extractReturnPct', () => {
       ],
     }
     expect(extractReturnPct(series)).toBeNull()
+  })
+})
+
+
+// ---------------------------------------------------------------------------
+// computeAssetRows  (Story 4.2)
+// ---------------------------------------------------------------------------
+
+describe('computeAssetRows', () => {
+  function makePos(
+    ticker: string,
+    average_price: number,
+    quantity: number,
+    name = ticker,
+  ): PositionWithAsset {
+    return {
+      id: `id-${ticker}`,
+      user_id: 'u1',
+      ticker,
+      quantity,
+      average_price,
+      acquisition_date: '2025-01-01',
+      created_at: '2025-01-01T00:00:00Z',
+      updated_at: '2025-01-01T00:00:00Z',
+      asset: { ticker, name, type: 'stock_br', currency: 'BRL' },
+    } as unknown as PositionWithAsset
+  }
+
+  function makeDividendRow(ticker: string, value_per_share: number, quantity: number): DividendRow {
+    return {
+      ticker,
+      type: 'dividend',
+      ex_date: '2026-03-15',
+      payment_date: '2026-04-01',
+      value_per_share,
+      quantity,
+      total_value: value_per_share * quantity,
+    }
+  }
+
+  it('happy path — linha completa com cotação e dividendos', () => {
+    // PETR4: avgPrice=20, qty=100, cotação=22, dividendos=50
+    const positions = [makePos('PETR4', 20, 100, 'Petrobras')]
+    const lastPricesMap = new Map([['PETR4', 22]])
+    const dividendRows = [makeDividendRow('PETR4', 0.5, 100)] // total=50
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.ticker).toBe('PETR4')
+    expect(row.name).toBe('Petrobras')
+    // capitalGainPct = ((22-20)/20)*100 = 10
+    expect(row.capitalGainPct).toBeCloseTo(10)
+    // dividendsReceived = 50
+    expect(row.dividendsReceived).toBeCloseTo(50)
+    // dividendsPct = (50 / (20*100)) * 100 = 2.5
+    expect(row.dividendsPct).toBeCloseTo(2.5)
+    // totalReturnPct = 10 + 2.5 = 12.5
+    expect(row.totalReturnPct).toBeCloseTo(12.5)
+  })
+
+  it('sem cotação — capitalGainPct é null; retorno = dividendsPct', () => {
+    const positions = [makePos('VALE3', 80, 50)]
+    const lastPricesMap = new Map<string, number>() // sem cotação para VALE3
+    const dividendRows = [makeDividendRow('VALE3', 2, 50)] // total=100
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.capitalGainPct).toBeNull()
+    // dividendsPct = (100 / (80*50)) * 100 = 2.5
+    expect(row.dividendsPct).toBeCloseTo(2.5)
+    // totalReturnPct = 0 (capitalGain null →0) + 2.5 = 2.5
+    expect(row.totalReturnPct).toBeCloseTo(2.5)
+  })
+
+  it('sem dividendos no período — dividendsReceived=0, dividendsPct=0', () => {
+    const positions = [makePos('ITUB4', 30, 200)]
+    const lastPricesMap = new Map([['ITUB4', 33]])
+    const dividendRows: DividendRow[] = [] // nenhum dividendo
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.dividendsReceived).toBe(0)
+    // dividendsPct = (0 / (30*200)) * 100 = 0
+    expect(row.dividendsPct).toBeCloseTo(0)
+    // capitalGainPct = ((33-30)/30)*100 = 10
+    expect(row.capitalGainPct).toBeCloseTo(10)
+    expect(row.totalReturnPct).toBeCloseTo(10)
+  })
+
+  it('preço médio zero — capitalGainPct e dividendsPct são null', () => {
+    const positions = [makePos('BPAN4', 0, 100)]
+    const lastPricesMap = new Map([['BPAN4', 5]])
+    const dividendRows = [makeDividendRow('BPAN4', 0.1, 100)]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.capitalGainPct).toBeNull()
+    expect(row.dividendsPct).toBeNull()
+    expect(row.totalReturnPct).toBeNull()
+    // dividendsReceived ainda é computado (é soma de total_value, não % )
+    expect(row.dividendsReceived).toBeCloseTo(10)
+  })
+
+  it('sem cotação e preço médio zero — todos os % são null', () => {
+    const positions = [makePos('XPTO3', 0, 50)]
+    const lastPricesMap = new Map<string, number>()
+    const dividendRows: DividendRow[] = []
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.capitalGainPct).toBeNull()
+    expect(row.dividendsPct).toBeNull()
+    expect(row.totalReturnPct).toBeNull()
+    expect(row.dividendsReceived).toBe(0)
+  })
+
+  it('ordena por totalReturnPct decrescente — nulls ao final', () => {
+    const positions = [
+      makePos('A', 10, 100),  // retorno alto
+      makePos('B', 10, 100),  // retorno médio
+      makePos('C', 0, 100),   // null
+    ]
+    const lastPricesMap = new Map([
+      ['A', 15], // +50%
+      ['B', 11], // +10%
+    ])
+    const dividendRows: DividendRow[] = []
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows[0].ticker).toBe('A')
+    expect(rows[1].ticker).toBe('B')
+    expect(rows[2].ticker).toBe('C')
+    expect(rows[2].totalReturnPct).toBeNull()
+  })
+
+  it('dividendos de múltiplos pagamentos são somados para o mesmo ticker', () => {
+    const positions = [makePos('KDIF11', 100, 10)]
+    const lastPricesMap = new Map([['KDIF11', 100]])
+    // Dois pagamentos de proventos no período
+    const dividendRows = [
+      makeDividendRow('KDIF11', 5, 10),  // 50
+      makeDividendRow('KDIF11', 3, 10),  // 30
+    ]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+    // dividendsReceived = 50 + 30 = 80
+    expect(rows[0].dividendsReceived).toBeCloseTo(80)
+    // dividendsPct = (80 / (100*10)) * 100 = 8
+    expect(rows[0].dividendsPct).toBeCloseTo(8)
+  })
+
+  it('retorna array vazio quando não há posições', () => {
+    const rows = computeAssetRows([], new Map(), [])
+    expect(rows).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// computeAssetRows
+// ---------------------------------------------------------------------------
+
+describe('computeAssetRows', () => {
+  // Helper: cria DividendRow para um ticker
+  function makeDividendForTicker(ticker: string, valuePerShare: number, qty: number): DividendRow {
+    return {
+      ticker,
+      type: 'dividend',
+      ex_date: '2026-06-15',
+      payment_date: '2026-07-01',
+      value_per_share: valuePerShare,
+      quantity: qty,
+      total_value: valuePerShare * qty,
+    }
+  }
+
+  it('happy path — linha completa com cotação e dividendos', () => {
+    const positions = [makePosition('PETR4', 30.00, 100)]
+    const lastPricesMap = new Map([['PETR4', 36.00]])
+    const dividendRows = [makeDividendForTicker('PETR4', 1.50, 100)]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+
+    expect(row.ticker).toBe('PETR4')
+    // capitalGain = (36 - 30) / 30 * 100 = 20%
+    expect(row.capitalGainPct).toBeCloseTo(20)
+    // dividendsReceived = 1.50 * 100 = 150
+    expect(row.dividendsReceived).toBeCloseTo(150)
+    // dividendsPct = 150 / (30 * 100) * 100 = 5%
+    expect(row.dividendsPct).toBeCloseTo(5)
+    // totalReturn = 20 + 5 = 25%
+    expect(row.totalReturnPct).toBeCloseTo(25)
+  })
+
+  it('sem cotação atual — capitalGainPct é null, totalReturn = dividendsPct', () => {
+    const positions = [makePosition('BBAS3', 50.00, 10)]
+    const lastPricesMap = new Map<string, number>() // sem cotação
+    const dividendRows = [makeDividendForTicker('BBAS3', 2.00, 10)]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+    const row = rows[0]
+
+    expect(row.capitalGainPct).toBeNull()
+    expect(row.dividendsReceived).toBeCloseTo(20)
+    // dividendsPct = 20 / (50 * 10) * 100 = 4%
+    expect(row.dividendsPct).toBeCloseTo(4)
+    // totalReturn = 0 + 4 = 4% (capitalGain ?? 0)
+    expect(row.totalReturnPct).toBeCloseTo(4)
+  })
+
+  it('sem dividendos no período — dividendsReceived = 0, dividendsPct = 0', () => {
+    const positions = [makePosition('ITUB4', 25.00, 200)]
+    const lastPricesMap = new Map([['ITUB4', 27.50]])
+    const dividendRows: DividendRow[] = [] // nenhum provento
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+    const row = rows[0]
+
+    expect(row.dividendsReceived).toBe(0)
+    expect(row.dividendsPct).toBeCloseTo(0)
+    // capitalGain = (27.50 - 25) / 25 * 100 = 10%
+    expect(row.capitalGainPct).toBeCloseTo(10)
+    expect(row.totalReturnPct).toBeCloseTo(10)
+  })
+
+  it('preço médio zero — capitalGainPct e dividendsPct são null', () => {
+    const positions = [makePosition('KNRI11', 0, 50)]
+    const lastPricesMap = new Map([['KNRI11', 100.00]])
+    const dividendRows = [makeDividendForTicker('KNRI11', 1.00, 50)]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+    const row = rows[0]
+
+    expect(row.capitalGainPct).toBeNull()
+    expect(row.dividendsPct).toBeNull()
+    // totalReturn: ambos null → null
+    expect(row.totalReturnPct).toBeNull()
+    // dividendsReceived ainda é calculado (não depende do preço médio)
+    expect(row.dividendsReceived).toBeCloseTo(50)
+  })
+
+  it('ordena por totalReturnPct decrescente; nulls vão ao final', () => {
+    const positions = [
+      makePosition('A', 10, 1),
+      makePosition('B', 0, 1),  // preço médio zero → totalReturn null
+      makePosition('C', 20, 1),
+    ]
+    const lastPricesMap = new Map([
+      ['A', 15],  // +50%
+      ['C', 18],  // -10%
+    ])
+    const dividendRows: DividendRow[] = []
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    expect(rows[0].ticker).toBe('A')  // +50%
+    expect(rows[1].ticker).toBe('C')  // -10%
+    expect(rows[2].ticker).toBe('B')  // null → final
+  })
+
+  it('múltiplas linhas de dividendo para o mesmo ticker são somadas', () => {
+    const positions = [makePosition('HGLG11', 100.00, 10)]
+    const lastPricesMap = new Map([['HGLG11', 110.00]])
+    const dividendRows = [
+      makeDividendForTicker('HGLG11', 1.00, 10), // 10
+      makeDividendForTicker('HGLG11', 0.50, 10), // 5
+    ]
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+    expect(rows[0].dividendsReceived).toBeCloseTo(15)
+  })
+
+  it('retorna array vazio quando não há posições', () => {
+    const rows = computeAssetRows([], new Map(), [])
+    expect(rows).toHaveLength(0)
   })
 })

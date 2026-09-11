@@ -12,9 +12,10 @@ import {
   computePortfolioReturn,
   buildBenchmarkSeries,
   extractReturnPct,
+  computeAssetRows,
 } from '../utils/performanceCalculations'
 import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
-import type { PerformancePeriod, PerformanceSeries, PerformanceSummary } from '../types'
+import type { PerformancePeriod, PerformanceSeries, PerformanceSummary, AssetReturnRow } from '../types'
 import type { PositionWithAsset } from '../../portfolio/types'
 import type { DividendRaw } from '../../dividends/types'
 import type { WealthPeriod } from '../../wealth/types'
@@ -52,6 +53,12 @@ export interface UsePerformanceResult {
   benchmarkSeries: PerformanceSeries[]
   /** Resumo de retornos para os cards. */
   summary: PerformanceSummary
+  /**
+   * Linhas da tabela de rentabilidade por ativo (Story 4.2).
+   * Derivado client-side a partir de `positions`, `wealth.lastPricesMap` e `dividendRows`.
+   * Ordenado por `totalReturnPct` decrescente por padrão.
+   */
+  assetRows: AssetReturnRow[]
   isLoading: boolean
   isError: boolean
   error: Error | null
@@ -190,6 +197,12 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     return { portfolioReturnPct, cdiReturnPct, ibovReturnPct, ifixReturnPct, vscdipPp }
   }, [portfolioReturnPct, benchmarkSeries])
 
+  // Linhas da tabela de rentabilidade por ativo (Story 4.2)
+  const assetRows = useMemo<AssetReturnRow[]>(
+    () => computeAssetRows(positions, wealth.lastPricesMap, dividendRows),
+    [positions, wealth.lastPricesMap, dividendRows],
+  )
+
   const isLoading =
     wealth.isLoading ||
     positionsQuery.isLoading ||
@@ -216,6 +229,7 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     portfolioSeries,
     benchmarkSeries,
     summary,
+    assetRows,
     isLoading,
     isError,
     error,

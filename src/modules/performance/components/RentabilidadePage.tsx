@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
 import { usePerformance } from '../hooks/usePerformance'
+import { AssetReturnTable } from './AssetReturnTable'
 import type { PerformancePeriod } from '../types'
 import type { WealthPeriod } from '../../wealth/types'
 
@@ -124,6 +125,7 @@ export function RentabilidadePage() {
     portfolioSeries,
     benchmarkSeries,
     summary,
+    assetRows,
     isLoading,
     isError,
     error,
@@ -264,6 +266,9 @@ export function RentabilidadePage() {
           </ChartErrorBoundary>
         )}
       </div>
+
+      {/* Tabela de rentabilidade por ativo */}
+      <AssetReturnTable rows={assetRows} />
     </div>
   )
 }

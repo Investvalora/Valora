@@ -9,9 +9,7 @@ import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
 import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
 import { TransactionImportPage } from './modules/portfolio/components/TransactionImportPage'
 import { AlertsPage } from './modules/alerts/components/AlertsPage'
-
-// Placeholder pages
-const PatrimonioPage = () => <div className="p-8 text-white">Patrimônio (Em desenvolvimento)</div>
+import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
 const ProventosPage = () => <div className="p-8 text-white">Proventos (Em desenvolvimento)</div>
 const RentabilidadePage = () => <div className="p-8 text-white">Rentabilidade (Em desenvolvimento)</div>
 const ScorePage = () => <div className="p-8 text-white">Score (Em desenvolvimento)</div>

@@ -62,10 +62,79 @@ INSERT INTO public.assets (ticker, name, type, currency, quote_provider, provide
   ('WEGE3', 'WEG ON', 'stock_br'::asset_type, 'BRL', 'brapi'::quote_provider, 'WEGE3', TRUE),
   ('WMT', 'Walmart Inc', 'stock_us'::asset_type, 'USD', 'twelvedata'::quote_provider, 'WMT', TRUE),
   ('XPML11', 'XP Malls', 'fii'::asset_type, 'BRL', 'brapi'::quote_provider, 'XPML11', TRUE),
-  ('XRP', 'Ripple', 'crypto'::asset_type, 'USD', 'coingecko'::quote_provider, 'ripple', TRUE);
+  ('XRP', 'Ripple', 'crypto'::asset_type, 'USD', 'coingecko'::quote_provider, 'ripple', TRUE)
+ON CONFLICT (ticker) DO UPDATE SET
+  name = EXCLUDED.name, type = EXCLUDED.type, currency = EXCLUDED.currency,
+  quote_provider = EXCLUDED.quote_provider, provider_symbol = EXCLUDED.provider_symbol,
+  active = EXCLUDED.active;
 
--- Reexecução: atualiza metadados sem duplicar
--- (o INSERT acima falha em conflito; use este bloco se precisar re-rodar)
--- ON CONFLICT (ticker) DO UPDATE SET
---   name = EXCLUDED.name, type = EXCLUDED.type, currency = EXCLUDED.currency,
---   quote_provider = EXCLUDED.quote_provider, provider_symbol = EXCLUDED.provider_symbol;
+-- Proventos e fundamentos simulados: quatro trimestres fechados, sem rede.
+-- Os valores derivam da posição alfabética do ticker e do trimestre, portanto
+-- permanecem estáveis entre execuções e ambientes.
+WITH periods(reference_date, period_no) AS (
+  VALUES
+    (DATE '2025-03-31', 1),
+    (DATE '2025-06-30', 2),
+    (DATE '2025-09-30', 3),
+    (DATE '2025-12-31', 4)
+),
+asset_order AS (
+  SELECT ticker, type, abs(mod(hashtextextended(ticker, 0)::NUMERIC, 1000000)) AS asset_no
+  FROM public.assets
+)
+INSERT INTO public.dividends (ticker, ex_date, payment_date, value_per_share, type, source)
+SELECT
+  asset_order.ticker,
+  periods.reference_date - 16,
+  periods.reference_date - 2,
+  round((0.08 + (asset_order.asset_no % 9) * 0.02 + periods.period_no * 0.01)::NUMERIC, 6),
+  CASE WHEN asset_order.type = 'fii' THEN 'jcp' ELSE 'dividend' END,
+  'seed'
+FROM asset_order
+CROSS JOIN periods
+WHERE asset_order.type <> 'crypto'
+ON CONFLICT (ticker, ex_date, type) DO UPDATE SET
+  payment_date = EXCLUDED.payment_date,
+  value_per_share = EXCLUDED.value_per_share,
+  source = EXCLUDED.source
+WHERE public.dividends.source = 'seed';
+
+WITH periods(reference_date, period_no) AS (
+  VALUES
+    (DATE '2025-03-31', 1),
+    (DATE '2025-06-30', 2),
+    (DATE '2025-09-30', 3),
+    (DATE '2025-12-31', 4)
+),
+asset_order AS (
+  SELECT ticker, abs(mod(hashtextextended(ticker, 0)::NUMERIC, 1000000)) AS asset_no
+  FROM public.assets
+)
+INSERT INTO public.fundamentals (
+  ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, source
+)
+SELECT
+  asset_order.ticker,
+  periods.reference_date,
+  round((5 + (asset_order.asset_no % 17) + periods.period_no * 0.25)::NUMERIC, 4),
+  round((0.7 + (asset_order.asset_no % 8) * 0.12)::NUMERIC, 4),
+  round((6 + (asset_order.asset_no % 15) + periods.period_no * 0.4)::NUMERIC, 4),
+  round((2 + (asset_order.asset_no % 10) * 0.35)::NUMERIC, 4),
+  round((0.2 + (asset_order.asset_no % 12) * 0.08)::NUMERIC, 4),
+  round((4 + (asset_order.asset_no % 18) * 0.8)::NUMERIC, 4),
+  round((0.5 + (asset_order.asset_no % 13) * 0.18 + periods.period_no * 0.02)::NUMERIC, 4),
+  round((4 + (asset_order.asset_no % 20) * 0.7)::NUMERIC, 4),
+  'seed'
+FROM asset_order
+CROSS JOIN periods
+ON CONFLICT (ticker, reference_date) DO UPDATE SET
+  pl = EXCLUDED.pl,
+  pvp = EXCLUDED.pvp,
+  roe = EXCLUDED.roe,
+  dy = EXCLUDED.dy,
+  debt_equity = EXCLUDED.debt_equity,
+  net_margin = EXCLUDED.net_margin,
+  lpa = EXCLUDED.lpa,
+  vpa = EXCLUDED.vpa,
+  source = EXCLUDED.source
+WHERE public.fundamentals.source = 'seed';

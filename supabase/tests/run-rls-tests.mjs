@@ -14,13 +14,14 @@
  *   falha.
  *
  * MIGRATIONS APLICADAS
- *   001, 002, 003, 004, 006, 007 e 008. A 005 é PULADA de propósito: agenda o sync
+ *   001, 002, 003, 004, 006, 007, 008 e 009. A 005 é PULADA de propósito: agenda o sync
  *   de preços via `pg_cron`/`pg_net` e lê segredo do `vault`, três extensões
  *   que não existem na imagem oficial do Postgres. Ela não toca `positions`
  *   nem `transactions`, então pular não afeta o que está sob teste.
  *
  * ASSERÇÕES
- *   `010_positions_rls_test.sql` e depois `020_transactions_rls_test.sql`, no
+ *   `010_positions_rls_test.sql`, `020_transactions_rls_test.sql`,
+ *   `021_alerts_rls_test.sql` e `030_market_seed_rls_test.sql`, no
  *   MESMO banco. A 020 usa identidades e fixtures próprias justamente para não
  *   depender do estado que a 010 deixa nem colidir com ele.
  *
@@ -60,11 +61,13 @@ const MIGRATIONS = [
   '006_create_positions.sql',
   '007_create_transactions.sql',
   '008_create_alerts.sql',
+  '009_create_dividends_and_fundamentals.sql',
 ]
 
 /** Stub primeiro, asserções depois; as migrations entram no meio. */
 const STUB = '000_stub_supabase.sql'
-const ASSERTIONS = ['010_positions_rls_test.sql', '020_transactions_rls_test.sql', '021_alerts_rls_test.sql']
+const SEED = join(TESTS_DIR, '..', 'seed.sql')
+const ASSERTIONS = ['010_positions_rls_test.sql', '020_transactions_rls_test.sql', '021_alerts_rls_test.sql', '030_market_seed_rls_test.sql']
 
 function docker(args, options = {}) {
   return execFileSync('docker', args, { encoding: 'utf8', ...options })
@@ -197,6 +200,10 @@ function main() {
   }
 
   for (const assertions of ASSERTIONS) {
+    if (assertions === '030_market_seed_rls_test.sql') {
+      applySql('seed do catálogo e dos dados de mercado', SEED)
+      applySql('reexecução idempotente do seed', SEED)
+    }
     applySql(`asserções (${assertions})`, join(TESTS_DIR, assertions))
   }
 

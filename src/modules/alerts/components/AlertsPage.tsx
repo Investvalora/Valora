@@ -1,6 +1,6 @@
 import { useGenerateAlerts, useUpdateAlertStatus } from '../hooks/useAlertMutations'
 import { useAlerts } from '../hooks/useAlerts'
-import type { Alert } from '../types'
+import type { Alert, AlertType } from '../types'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -9,34 +9,88 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : dateFormatter.format(date)
 }
 
+/** Mapa de tipo → configuração visual. */
+const ALERT_CONFIG: Record<
+  AlertType,
+  { label: string; tickerColor: string; borderColor: string }
+> = {
+  position_no_transactions: {
+    label: 'Inconsistência',
+    tickerColor: 'text-amber-300',
+    borderColor: 'border-dark-border',
+  },
+  stale_quote: {
+    label: 'Cotação antiga',
+    tickerColor: 'text-amber-300',
+    borderColor: 'border-dark-border',
+  },
+  opportunity: {
+    label: 'Oportunidade',
+    tickerColor: 'text-green-400',
+    borderColor: 'border-green-500/30',
+  },
+  overvalued: {
+    label: 'Sobrevalorizado',
+    tickerColor: 'text-red-400',
+    borderColor: 'border-red-500/30',
+  },
+}
+
 function AlertCard({ alert }: { alert: Alert }) {
   const updateStatus = useUpdateAlertStatus()
   const isIgnored = alert.status === 'ignorado'
+  const config = ALERT_CONFIG[alert.type] ?? ALERT_CONFIG.position_no_transactions
 
   return (
-    <article className="rounded-lg border border-dark-border bg-dark-surface p-5" aria-label={alert.title}>
+    <article
+      className={`rounded-lg border ${config.borderColor} bg-dark-surface p-5`}
+      aria-label={alert.title}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">{alert.ticker}</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{alert.title}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <p className={`text-xs font-semibold uppercase tracking-wide ${config.tickerColor}`}>
+              {alert.ticker}
+            </p>
+            <span className="rounded-full border border-dark-border px-2 py-0.5 text-xs text-gray-400">
+              {config.label}
+            </span>
+          </div>
+          <h2 className="text-lg font-semibold text-white">{alert.title}</h2>
         </div>
-        <span className="rounded-full border border-dark-border px-2 py-1 text-xs text-gray-300">{alert.status}</span>
+        <span className="rounded-full border border-dark-border px-2 py-1 text-xs text-gray-300">
+          {alert.status}
+        </span>
       </div>
       <p className="mt-3 text-sm text-gray-300">{alert.description}</p>
       <p className="mt-3 text-xs text-gray-400">Criado em {formatDate(alert.created_at)}</p>
       {!isIgnored && (
         <div className="mt-4 flex flex-wrap gap-3">
           {alert.status === 'novo' && (
-            <button type="button" disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })} className="rounded-lg border border-blue-500 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50">
+            <button
+              type="button"
+              disabled={updateStatus.isPending}
+              onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })}
+              className="rounded-lg border border-blue-500 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
               Marcar como lido
             </button>
           )}
-          <button type="button" disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })} className="rounded-lg border border-gray-500 px-3 py-2 text-sm text-gray-200 hover:bg-gray-500/10 disabled:cursor-not-allowed disabled:opacity-50">
+          <button
+            type="button"
+            disabled={updateStatus.isPending}
+            onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })}
+            className="rounded-lg border border-gray-500 px-3 py-2 text-sm text-gray-200 hover:bg-gray-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
             Ignorar
           </button>
         </div>
       )}
-      {updateStatus.isError && <p className="mt-3 text-sm text-red-300" role="alert">Não foi possível atualizar este alerta. Tente novamente.</p>}
+      {updateStatus.isError && (
+        <p className="mt-3 text-sm text-red-300" role="alert">
+          Não foi possível atualizar este alerta. Tente novamente.
+        </p>
+      )}
     </article>
   )
 }

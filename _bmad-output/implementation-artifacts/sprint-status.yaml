@@ -31,7 +31,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-08-2026 14:00
-last_updated: 09-11-2026 (sprint-sync: story 6-1 review)
+last_updated: 09-11-2026 (sprint-sync: story 6-2 review)
 project: Valora
 project_key: NOKEY
 tracking_system: file-system
@@ -75,6 +75,6 @@ development_status:
 
   epic-6: in-progress
   6-1-calcular-preco-teto-pelo-metodo-bazin: review
-  6-2-alertas-de-oportunidade-e-sobrevalorização: backlog
+  6-2-alertas-de-oportunidade-e-sobrevalizacao: review
   6-3-tela-de-detalhe-do-ativo: backlog
   epic-6-retrospective: optional

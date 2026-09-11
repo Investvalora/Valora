@@ -30,3 +30,11 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-tela-patrimonio-evolucao-composicao-e-exposicao.md`
   summary: wealthService.listPriceHistory usa limit = tickers.length × 365; se o PostgREST tiver cap menor (padrão 1000), a série é truncada silenciosamente para carteiras com >2 tickers e período '1A'/'Tudo'.
   evidence: Com 50 tickers (limite do MVP) × 365 = 18.250 linhas, a query ultrapassa o padrão de 1000 linhas sem `Range` header. O Supabase permite aumentar o cap ou usar paginação; não foi corrigido nesta story porque: (a) o seed tem poucos ativos e o impacto no MVP é mínimo, (b) a correção adequada (paginação ou Supabase `Range`) ultrapassa o escopo de uma story de tela, e (c) buildWealthSeries usa abordagem permissiva que mascara truncamentos como gaps parciais em vez de erros óbvios. Retomar antes de aumentar o catálogo de ativos.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-criar-e-editar-regras-de-score.md`
+  summary: Adicionar testes de integração para hooks e ScoreRuleForm (create/update/delete/upsert e coerção threshold_max→null).
+  evidence: Nenhum teste cobre os caminhos de escrita dos hooks nem o comportamento de onSubmit do ScoreRuleForm; padrão de mock de Supabase já existe no projeto (supabaseMock.ts). Não causa bug imediato pois build+lint+testes de validação passam, mas regressões em payloads ou cache invalidation não seriam detectadas automaticamente.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-aplicar-score-na-carteira.md`
+  summary: Adicionar testes para sortPositionRows com coluna 'score' e para PositionsTable com prop scoreByTicker.
+  evidence: Nenhum teste cobre o novo branch de score em sortPositionRows (null/undefined ao fim) nem a renderização condicional da coluna Score em PositionsTable (N/A, +N/-N, tooltip de dados antigos). Padrão de mock Supabase já existe no projeto para adicionar esses casos.

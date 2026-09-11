@@ -12,10 +12,13 @@ import {
   nextSort,
   sortPositionRows,
 } from '../positionRows'
-import type { PositionSort, PositionSortColumn } from '../types'
+import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { CompositionCard } from './CompositionCard'
 import { PositionsTable } from './PositionsTable'
+import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
+import { useFundamentals } from '../../score/hooks/useFundamentals'
+import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -43,6 +46,8 @@ export function CarteiraPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [sort, setSort] = useState<PositionSort>(DEFAULT_POSITION_SORT)
+  // Nome do score ativo selecionado na Carteira (estado local da sessão).
+  const [activeScoreName, setActiveScoreName] = useState<string | null>(null)
 
   const { data: positions = [], isLoading, isError, refetch } = usePositions()
 
@@ -77,7 +82,51 @@ export function CarteiraPage() {
     [positions, quotes, usdRate],
   )
 
-  const sortedRows = useMemo(() => sortPositionRows(derived.rows, sort), [derived.rows, sort])
+  // ── Score Fundamentalista ──────────────────────────────────────────────────
+
+  // Regras do usuário — carregadas apenas uma vez (staleTime 5min).
+  const { data: allRules = [] } = useScoreRules()
+
+  // Nomes únicos de scores disponíveis para o seletor.
+  const scoreNames = useMemo(() => {
+    const names = Array.from(groupRulesByName(allRules).keys())
+    return names.sort()
+  }, [allRules])
+
+  // Regras do score ativo (todas com o mesmo nome).
+  const activeRules = useMemo(() => {
+    if (!activeScoreName) return []
+    return allRules.filter((r) => r.name === activeScoreName)
+  }, [allRules, activeScoreName])
+
+  // Fundamentals carregados apenas quando há score ativo.
+  const fundamentalsQuery = useFundamentals(activeScoreName ? tickers : [])
+  const fundamentals = useMemo(() => fundamentalsQuery.data ?? [], [fundamentalsQuery.data])
+
+  // Map de updated_at por ticker para o tooltip "⚠️ Dados antigos".
+  const fundamentalsUpdatedAt = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const row of fundamentals) {
+      map.set(row.ticker, row.updated_at)
+    }
+    return map
+  }, [fundamentals])
+
+  // Cálculo síncrono via useMemo — sem chamada ao banco (AD-5, AD-9).
+  const scoreByTicker = useCalculateScore(activeRules, fundamentals)
+
+  // Enriquece as linhas derivadas com o campo `score` opcional ANTES de ordenar,
+  // para que sortPositionRows veja o campo score quando column === 'score'.
+  const enrichedRows = useMemo((): PositionRow[] => {
+    if (!activeScoreName || scoreByTicker.size === 0) return derived.rows
+    return derived.rows.map((row) => ({
+      ...row,
+      score: scoreByTicker.has(row.ticker) ? (scoreByTicker.get(row.ticker) ?? null) : null,
+    }))
+  }, [derived.rows, activeScoreName, scoreByTicker])
+
+  // Ordena após o enriquecimento para que a coluna score seja válida no sort.
+  const scoredRows = useMemo(() => sortPositionRows(enrichedRows, sort), [enrichedRows, sort])
 
   const handleSortChange = useCallback((column: PositionSortColumn) => {
     setSort((current) => nextSort(current, column))
@@ -88,7 +137,7 @@ export function CarteiraPage() {
     setErrorMessage('')
 
     try {
-      downloadPositionsCsv(sortedRows)
+      downloadPositionsCsv(scoredRows)
       setSuccessMessage('Relatório CSV baixado.')
     } catch {
       setErrorMessage('Não foi possível baixar o relatório CSV.')
@@ -145,7 +194,7 @@ export function CarteiraPage() {
           <button
             type="button"
             onClick={handleExport}
-            disabled={sortedRows.length === 0}
+            disabled={scoredRows.length === 0}
             className="rounded-lg border border-green-500 px-4 py-3 text-sm font-semibold text-green-200 transition-colors hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Exportar CSV
@@ -233,6 +282,49 @@ export function CarteiraPage() {
         />
       )}
 
+      {/* Seletor de score — visível apenas quando o usuário tem regras cadastradas. */}
+      {scoreNames.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <label htmlFor="score-selector" className="text-sm font-medium text-gray-300 flex-shrink-0">
+            Score ativo:
+          </label>
+          <select
+            id="score-selector"
+            value={activeScoreName ?? ''}
+            onChange={(e) => {
+              const value = e.target.value
+              setActiveScoreName(value || null)
+              // Ao desselecionar o score, resetar ordenação apenas se a coluna
+              // ativa for 'score' — preservar o sort do usuário nas demais colunas.
+              if (!value && sort.column === 'score') setSort(DEFAULT_POSITION_SORT)
+            }}
+            className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— Nenhum —</option>
+            {scoreNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          {activeScoreName && fundamentalsQuery.isLoading && (
+            <span className="text-xs text-gray-400">Carregando fundamentals…</span>
+          )}
+          {activeScoreName && fundamentalsQuery.isError && (
+            <span className="inline-flex items-center gap-2 text-xs text-red-400">
+              Erro ao carregar fundamentals.
+              <button
+                type="button"
+                onClick={() => fundamentalsQuery.refetch()}
+                className="underline hover:text-red-300"
+              >
+                Tentar novamente
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
       {successMessage && (
         <div className="mb-6 rounded-lg border border-green-500/50 bg-green-500/10 p-4" role="status">
           <p className="text-sm text-green-400">{successMessage}</p>
@@ -290,7 +382,13 @@ export function CarteiraPage() {
       {isLoading ? (
         <p className="text-sm text-gray-400">Carregando...</p>
       ) : hasPositions || !isError ? (
-        <PositionsTable rows={sortedRows} sort={sort} onSortChange={handleSortChange} />
+        <PositionsTable
+          rows={scoredRows}
+          sort={sort}
+          onSortChange={handleSortChange}
+          scoreByTicker={activeScoreName ? scoreByTicker : undefined}
+          fundamentalsUpdatedAt={activeScoreName ? fundamentalsUpdatedAt : undefined}
+        />
       ) : null}
 
       <Modal

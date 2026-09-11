@@ -12,7 +12,7 @@ import { AlertsPage } from './modules/alerts/components/AlertsPage'
 import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
 import { ProventosPage } from './modules/dividends/components/ProventosPage'
 import { RentabilidadePage } from './modules/performance/components/RentabilidadePage'
-const ScorePage = () => <div className="p-8 text-white">Score (Em desenvolvimento)</div>
+import { ScorePage } from './modules/score/components/ScorePage'
 const EstrategiasPage = () => <div className="p-8 text-white">Estratégias (Em desenvolvimento)</div>
 
 export function AppRoutes() {

@@ -6,6 +6,17 @@ interface PositionsTableProps {
   rows: PositionRow[]
   sort: PositionSort
   onSortChange: (column: PositionSortColumn) => void
+  /**
+   * Quando presente, exibe a coluna "Score" com a pontuação por ticker.
+   * `null` no valor = fundamentals indisponível → exibe "N/A".
+   * Ausência da prop = coluna oculta (nenhum score ativo).
+   */
+  scoreByTicker?: Map<string, number | null>
+  /**
+   * Data de referência dos fundamentals por ticker (`updated_at`), usada para
+   * exibir o aviso "⚠️ Dados antigos" quando > 90 dias.
+   */
+  fundamentalsUpdatedAt?: Map<string, string>
 }
 
 const quantityFormatter = new Intl.NumberFormat('pt-BR', {
@@ -202,7 +213,24 @@ function changeColor(value: number | null): string {
   return value > 0 ? 'text-green-400' : 'text-red-400'
 }
 
-export function PositionsTable({ rows, sort, onSortChange }: PositionsTableProps) {
+/** 90 dias em milissegundos — limite para flag "Dados antigos". */
+const STALE_FUNDAMENTALS_MS = 90 * 24 * 60 * 60 * 1000
+
+/** Verifica se o updated_at dos fundamentals é mais antigo que 90 dias. */
+function isStaleFundamentals(updatedAt: string | undefined): boolean {
+  if (!updatedAt) return false
+  const parsed = new Date(updatedAt)
+  if (Number.isNaN(parsed.getTime())) return false
+  return Date.now() - parsed.getTime() > STALE_FUNDAMENTALS_MS
+}
+
+export function PositionsTable({
+  rows,
+  sort,
+  onSortChange,
+  scoreByTicker,
+  fundamentalsUpdatedAt,
+}: PositionsTableProps) {
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-dark-border p-10 text-center">
@@ -252,6 +280,15 @@ export function PositionsTable({ rows, sort, onSortChange }: PositionsTableProps
               onSortChange={onSortChange}
               align="right"
             />
+            {scoreByTicker && (
+              <SortableHeader
+                column="score"
+                label="Score"
+                sort={sort}
+                onSortChange={onSortChange}
+                align="right"
+              />
+            )}
             <th scope="col" className={HEADER_CLASS}>
               Data de aquisição
             </th>
@@ -276,6 +313,35 @@ export function PositionsTable({ rows, sort, onSortChange }: PositionsTableProps
               <td className={`${CELL_CLASS} text-right ${changeColor(row.changePercent)}`}>
                 {formatChange(row.changePercent)}
               </td>
+              {scoreByTicker && (
+                <td className={`${CELL_CLASS} text-right font-mono`}>
+                  {(() => {
+                    const score = scoreByTicker.get(row.ticker)
+                    if (score === undefined || score === null) {
+                      return <span className="text-gray-500">N/A</span>
+                    }
+                    const updatedAt = fundamentalsUpdatedAt?.get(row.ticker)
+                    const stale = isStaleFundamentals(updatedAt)
+                    return (
+                      <span className="inline-flex items-center justify-end gap-1">
+                        <span className={score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-200'}>
+                          {score > 0 ? `+${score}` : `${score}`}
+                        </span>
+                        {stale && (
+                          <Tooltip label={`Dados fundamentalistas de ${row.ticker}`}>
+                            <span className="block font-semibold text-white">
+                              Dados de {row.ticker}
+                            </span>
+                            <span className="mt-1 block text-amber-300">
+                              ⚠️ Dados antigos (mais de 90 dias)
+                            </span>
+                          </Tooltip>
+                        )}
+                      </span>
+                    )
+                  })()}
+                </td>
+              )}
               <td className={CELL_CLASS}>{formatDate(row.acquisitionDate)}</td>
             </tr>
           ))}

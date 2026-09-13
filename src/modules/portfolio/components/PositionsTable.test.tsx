@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { PositionsTable } from './PositionsTable'
 import {
   DEFAULT_POSITION_SORT,
@@ -60,11 +61,13 @@ function renderTable(input: Partial<DerivePositionRowsInput> = {}, sort = DEFAUL
   })
 
   return render(
-    <PositionsTable
-      rows={sortPositionRows(derived.rows, sort)}
-      sort={sort}
-      onSortChange={() => {}}
-    />,
+    <MemoryRouter>
+      <PositionsTable
+        rows={sortPositionRows(derived.rows, sort)}
+        sort={sort}
+        onSortChange={() => {}}
+      />
+    </MemoryRouter>,
   )
 }
 
@@ -393,7 +396,7 @@ describe('PositionsTable — ordenação', () => {
   }
 
   it('começa por peso decrescente', () => {
-    render(<SortableTable />)
+    render(<MemoryRouter><SortableTable /></MemoryRouter>)
 
     expect(tickerOrder()).toEqual(['PETR4', 'AAPL4'])
     expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute(
@@ -407,7 +410,7 @@ describe('PositionsTable — ordenação', () => {
   })
 
   it('alterna para ticker e move o aria-sort de coluna', async () => {
-    render(<SortableTable />)
+    render(<MemoryRouter><SortableTable /></MemoryRouter>)
     const user = userEvent.setup()
 
     await user.click(screen.getByRole('button', { name: /Ticker/ }))
@@ -421,7 +424,7 @@ describe('PositionsTable — ordenação', () => {
   })
 
   it('alterna para variação e inverte no segundo clique', async () => {
-    render(<SortableTable />)
+    render(<MemoryRouter><SortableTable /></MemoryRouter>)
     const user = userEvent.setup()
 
     // PETR4 +7,48% contra AAPL4 −50%.
@@ -470,7 +473,7 @@ describe('PositionsTable — ordenação', () => {
       )
     }
 
-    render(<WithGap />)
+    render(<MemoryRouter><WithGap /></MemoryRouter>)
     const user = userEvent.setup()
 
     expect(tickerOrder()).toEqual(['PETR4', 'ZZZZ3'])
@@ -493,11 +496,13 @@ describe('PositionsTable — ordenação', () => {
     })
 
     render(
-      <PositionsTable
-        rows={derived.rows}
-        sort={DEFAULT_POSITION_SORT}
-        onSortChange={onSortChange}
-      />,
+      <MemoryRouter>
+        <PositionsTable
+          rows={derived.rows}
+          sort={DEFAULT_POSITION_SORT}
+          onSortChange={onSortChange}
+        />
+      </MemoryRouter>,
     )
 
     fireEvent.click(screen.getByRole('button', { name: /Ticker/ }))
@@ -509,7 +514,9 @@ describe('PositionsTable — ordenação', () => {
 describe('PositionsTable — estado vazio', () => {
   it('convida ao primeiro cadastro quando não há posição', () => {
     render(
-      <PositionsTable rows={[]} sort={DEFAULT_POSITION_SORT} onSortChange={() => {}} />,
+      <MemoryRouter>
+        <PositionsTable rows={[]} sort={DEFAULT_POSITION_SORT} onSortChange={() => {}} />
+      </MemoryRouter>,
     )
 
     expect(screen.getByText('Nenhuma posição cadastrada')).toBeInTheDocument()

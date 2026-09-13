@@ -356,3 +356,83 @@ export function PositionsTable({
     </div>
   )
 }
+
+// ─── PositionRows: tbody reutilizável ────────────────────────────────────────
+//
+// Renderiza apenas as <tr> de posições, sem <table> nem <tbody>, para que o
+// GroupedPositionsTable possa usá-las dentro de seus próprios grupos.
+// As mesmas props do PositionsTable são aceitas, exceto as de estrutura de tabela.
+
+export interface PositionRowsProps {
+  rows: PositionRow[]
+  sort: PositionSort
+  onSortChange: (column: PositionSortColumn) => void
+  scoreByTicker?: Map<string, number | null>
+  fundamentalsUpdatedAt?: Map<string, string>
+}
+
+export function PositionRows({
+  rows,
+  scoreByTicker,
+  fundamentalsUpdatedAt,
+}: PositionRowsProps) {
+  return (
+    <>
+      {rows.map((row) => (
+        <tr key={row.id} className="border-t border-dark-border hover:bg-dark-surface/40 transition-colors">
+          <th scope="row" className={`${CELL_CLASS} text-left font-semibold text-white`}>
+            <Link
+              to={`/ativo/${row.ticker}`}
+              className="hover:text-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+            >
+              {row.ticker}
+            </Link>
+          </th>
+          <td className={CELL_CLASS}>{row.name ?? MISSING}</td>
+          <td className={`${CELL_CLASS} text-right`}>{formatQuantity(row.quantity)}</td>
+          <td className={`${CELL_CLASS} text-right`}>
+            {formatMoney(row.averagePrice, row.currency)}
+          </td>
+          <td className={`${CELL_CLASS} text-right`}>
+            <QuoteCell row={row} />
+          </td>
+          <td className={`${CELL_CLASS} text-right`}>{formatBRL(row.marketValueBRL)}</td>
+          <td className={`${CELL_CLASS} text-right`}>{formatWeight(row.weightPercent)}</td>
+          <td className={`${CELL_CLASS} text-right ${changeColor(row.changePercent)}`}>
+            {formatChange(row.changePercent)}
+          </td>
+          {scoreByTicker && (
+            <td className={`${CELL_CLASS} text-right font-mono`}>
+              {(() => {
+                const score = scoreByTicker.get(row.ticker)
+                if (score === undefined || score === null) {
+                  return <span className="text-gray-500">N/A</span>
+                }
+                const updatedAt = fundamentalsUpdatedAt?.get(row.ticker)
+                const stale = isStaleFundamentals(updatedAt)
+                return (
+                  <span className="inline-flex items-center justify-end gap-1">
+                    <span className={score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-200'}>
+                      {score > 0 ? `+${score}` : `${score}`}
+                    </span>
+                    {stale && (
+                      <Tooltip label={`Dados fundamentalistas de ${row.ticker}`}>
+                        <span className="block font-semibold text-white">
+                          Dados de {row.ticker}
+                        </span>
+                        <span className="mt-1 block text-amber-300">
+                          ⚠️ Dados antigos (mais de 90 dias)
+                        </span>
+                      </Tooltip>
+                    )}
+                  </span>
+                )
+              })()}
+            </td>
+          )}
+          <td className={CELL_CLASS}>{formatDate(row.acquisitionDate)}</td>
+        </tr>
+      ))}
+    </>
+  )
+}

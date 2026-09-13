@@ -15,7 +15,7 @@ import {
 import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { CompositionCard } from './CompositionCard'
-import { PositionsTable } from './PositionsTable'
+import { GroupedPositionsTable } from './GroupedPositionsTable'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
@@ -382,8 +382,9 @@ export function CarteiraPage() {
       {isLoading ? (
         <p className="text-sm text-gray-400">Carregando...</p>
       ) : hasPositions || !isError ? (
-        <PositionsTable
+        <GroupedPositionsTable
           rows={scoredRows}
+          totalBRL={derived.totalBRL}
           sort={sort}
           onSortChange={handleSortChange}
           scoreByTicker={activeScoreName ? scoreByTicker : undefined}

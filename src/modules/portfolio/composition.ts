@@ -183,3 +183,105 @@ export function deriveComposition(rows: PositionRow[], totalBRL: number): Compos
     internationalPercent: (internationalValueBRL / totalBRL) * 100,
   }
 }
+
+// ─── Agrupamento para a tabela "Meus Ativos" ─────────────────────────────────
+
+/**
+ * Resumo de um grupo de ativos da mesma classe, para o header expansível
+ * da tabela agrupada.
+ */
+export interface GroupSummary {
+  key: AssetClassKey
+  label: string
+  color: string
+  /** Número de posições no grupo. */
+  count: number
+  /** Soma dos `marketValueBRL` do grupo. `null` quando nenhuma linha tem valor. */
+  totalValueBRL: number | null
+  /**
+   * Variação % média ponderada pelo valor de mercado.
+   * `null` quando nenhuma linha tem cotação válida.
+   */
+  avgChangePercent: number | null
+  /** Peso do grupo em % do total da carteira. `null` quando totalBRL = 0. */
+  weightPercent: number | null
+}
+
+/**
+ * Agrupa as linhas de posição por classe de ativo, respeitando a ordem fixa
+ * de `DISPLAY_ORDER`.
+ *
+ * Retorna um array de `{ summary, rows }` — apenas grupos com pelo menos uma
+ * linha. A ordem é sempre `ASSET_CLASS_ORDER` seguido de `'unknown'` se
+ * houver posições sem tipo.
+ *
+ * @param rows    Linhas derivadas por `derivePositionRows` (já têm `marketValueBRL` e `changePercent`).
+ * @param totalBRL Total da carteira em BRL, para calcular `weightPercent`.
+ */
+export function groupRowsByClass(
+  rows: PositionRow[],
+  totalBRL: number,
+): Array<{ summary: GroupSummary; rows: PositionRow[] }> {
+  // Agrupar linhas por classe
+  const rowsByKey = new Map<AssetClassKey, PositionRow[]>()
+
+  for (const row of rows) {
+    const key: AssetClassKey = row.type ?? UNKNOWN_ASSET_CLASS
+    const group = rowsByKey.get(key)
+    if (group) {
+      group.push(row)
+    } else {
+      rowsByKey.set(key, [row])
+    }
+  }
+
+  const result: Array<{ summary: GroupSummary; rows: PositionRow[] }> = []
+
+  for (const key of DISPLAY_ORDER) {
+    const groupRows = rowsByKey.get(key)
+    if (!groupRows || groupRows.length === 0) continue
+
+    // Soma do valor de mercado do grupo
+    let groupValueBRL = 0
+    let hasAnyValue = false
+
+    // Média ponderada da variação % pelo valor de mercado
+    let weightedChangeSum = 0
+    let weightedChangeTotal = 0
+
+    for (const row of groupRows) {
+      if (row.marketValueBRL !== null && Number.isFinite(row.marketValueBRL)) {
+        groupValueBRL += row.marketValueBRL
+        hasAnyValue = true
+
+        if (row.changePercent !== null && Number.isFinite(row.changePercent)) {
+          weightedChangeSum += row.changePercent * row.marketValueBRL
+          weightedChangeTotal += row.marketValueBRL
+        }
+      }
+    }
+
+    const totalValueBRL = hasAnyValue ? groupValueBRL : null
+    const avgChangePercent =
+      weightedChangeTotal > 0 ? weightedChangeSum / weightedChangeTotal : null
+    const weightPercent =
+      totalValueBRL !== null && Number.isFinite(totalBRL) && totalBRL > 0
+        ? (totalValueBRL / totalBRL) * 100
+        : null
+
+    result.push({
+      summary: {
+        key,
+        label: assetClassLabel(key),
+        color: assetClassColor(key),
+        count: groupRows.length,
+        totalValueBRL,
+        avgChangePercent,
+        weightPercent,
+      },
+      rows: groupRows,
+    })
+  }
+
+  return result
+}

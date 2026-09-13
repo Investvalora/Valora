@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Tooltip } from '../../../shared/components/Tooltip'
 import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
 
@@ -298,7 +299,12 @@ export function PositionsTable({
           {rows.map((row) => (
             <tr key={row.id} className="border-t border-dark-border">
               <th scope="row" className={`${CELL_CLASS} text-left font-semibold text-white`}>
-                {row.ticker}
+                <Link
+                  to={`/ativo/${row.ticker}`}
+                  className="hover:text-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                >
+                  {row.ticker}
+                </Link>
               </th>
               <td className={CELL_CLASS}>{row.name ?? MISSING}</td>
               <td className={`${CELL_CLASS} text-right`}>{formatQuantity(row.quantity)}</td>

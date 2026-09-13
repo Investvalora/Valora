@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 
@@ -52,7 +53,9 @@ function createQueryClient() {
 
 function renderPage(queryClient = createQueryClient()) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
   )
 
   return render(<CarteiraPage />, { wrapper })
@@ -160,7 +163,9 @@ describe('CarteiraPage — cadastro válido (linha da matriz)', () => {
     })
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>
+      </MemoryRouter>
     )
     render(<CarteiraPage />, { wrapper })
 

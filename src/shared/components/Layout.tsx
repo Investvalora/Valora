@@ -3,7 +3,6 @@ import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { useNewAlertsCount } from '../../modules/alerts/hooks/useAlerts'
 
 const menuItems = [
-  { path: '/resumo', label: 'Resumo' },
   { path: '/carteira', label: 'Carteira' },
   { path: '/patrimonio', label: 'Patrimônio' },
   { path: '/proventos', label: 'Proventos' },

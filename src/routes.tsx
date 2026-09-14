@@ -15,7 +15,6 @@ import { RentabilidadePage } from './modules/performance/components/Rentabilidad
 import { ScorePage } from './modules/score/components/ScorePage'
 import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
 import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
-import { ResumoDashboard } from './modules/dashboard/components/ResumoDashboard'
 
 export function AppRoutes() {
   return (
@@ -32,8 +31,7 @@ export function AppRoutes() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Layout />}>
-          <Route index element={<ResumoDashboard />} />
-          <Route path="resumo" element={<ResumoDashboard />} />
+          <Route index element={<CarteiraPage />} />
           <Route path="carteira" element={<CarteiraPage />} />
           <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
           <Route path="patrimonio" element={<PatrimonioPage />} />

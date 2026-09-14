@@ -4,6 +4,7 @@ import { useNewAlertsCount } from '../../modules/alerts/hooks/useAlerts'
 
 const menuItems = [
   { path: '/carteira', label: 'Carteira' },
+  { path: '/lancamentos', label: 'Lançamentos' },
   { path: '/patrimonio', label: 'Patrimônio' },
   { path: '/proventos', label: 'Proventos' },
   { path: '/rentabilidade', label: 'Rentabilidade' },

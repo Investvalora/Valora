@@ -121,4 +121,22 @@ export const transactionsService = {
 
     if (error) throw error
   },
+
+  /**
+   * Lista todas as transações do usuário (todos os tickers).
+   * Ordenadas por `transaction_date DESC, seq DESC`.
+   * Limite de 2000 registros — suficiente para a tela de lançamentos no MVP.
+   */
+  async listAll(userId: string): Promise<Transaction[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(TRANSACTION_COLUMNS)
+      .eq('user_id', userId)
+      .order('transaction_date', { ascending: false })
+      .order('seq', { ascending: false })
+      .limit(2000)
+
+    if (error) throw error
+    return (data ?? []) as unknown as Transaction[]
+  },
 }

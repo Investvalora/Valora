@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Tooltip } from '../../../shared/components/Tooltip'
+import { RowActionsMenu } from './RowActionsMenu'
 import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
 
 interface PositionsTableProps {
@@ -369,12 +370,15 @@ export interface PositionRowsProps {
   onSortChange: (column: PositionSortColumn) => void
   scoreByTicker?: Map<string, number | null>
   fundamentalsUpdatedAt?: Map<string, string>
+  /** Quando `true`, exibe a coluna de ações "..." no final de cada linha. */
+  showActions?: boolean
 }
 
 export function PositionRows({
   rows,
   scoreByTicker,
   fundamentalsUpdatedAt,
+  showActions = false,
 }: PositionRowsProps) {
   return (
     <>
@@ -431,6 +435,16 @@ export function PositionRows({
             </td>
           )}
           <td className={CELL_CLASS}>{formatDate(row.acquisitionDate)}</td>
+          {showActions && (
+            <td className={`${CELL_CLASS} text-right`}>
+              <RowActionsMenu
+                positionId={row.id}
+                ticker={row.ticker}
+                assetType={row.type}
+                assetName={row.name}
+              />
+            </td>
+          )}
         </tr>
       ))}
     </>

@@ -179,4 +179,15 @@ export const positionService = {
     if (error) throw error
     return (data ?? []) as unknown as Asset[]
   },
+
+  /** Remove uma posição pelo id. RLS garante que só o dono pode excluir. */
+  async deletePosition(userId: string, positionId: string): Promise<void> {
+    const { error } = await supabase
+      .from('positions')
+      .delete()
+      .eq('id', positionId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+  },
 }

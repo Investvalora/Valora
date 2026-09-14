@@ -287,6 +287,7 @@ export function GroupedPositionsTable({
                         />
                       )}
                       <th className={HEADER_CLASS}>Aquisição</th>
+                      <th className={`${HEADER_CLASS} text-right`}>Opções</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -296,6 +297,7 @@ export function GroupedPositionsTable({
                       onSortChange={onSortChange}
                       scoreByTicker={scoreByTicker}
                       fundamentalsUpdatedAt={fundamentalsUpdatedAt}
+                      showActions={true}
                     />
                   </tbody>
                 </table>

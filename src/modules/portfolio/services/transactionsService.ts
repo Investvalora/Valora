@@ -3,6 +3,34 @@ import { parseDecimalPtBr } from '../schemas/positionSchema'
 import type { NewTransaction } from '../types'
 import type { CsvImportError, ParsedTransactionRow } from '../csv/csvParser'
 
+/** Linha completa de `public.transactions` retornada ao frontend. */
+export interface Transaction {
+  id: string
+  seq: number
+  user_id: string
+  ticker: string
+  type: 'buy' | 'sell' | 'dividend' | 'jcp' | 'bonus'
+  quantity: number
+  price: number
+  brokerage_fee: number
+  tax: number
+  transaction_date: string
+  created_at: string
+}
+
+/** Payload de criação de transação manual (buy/sell). */
+export interface NewManualTransaction {
+  ticker: string
+  type: 'buy' | 'sell'
+  quantity: number
+  price: number
+  brokerage_fee?: number
+  transaction_date: string
+}
+
+const TRANSACTION_COLUMNS =
+  'id, seq, user_id, ticker, type, quantity, price, brokerage_fee, tax, transaction_date, created_at'
+
 function tickerError(row: ParsedTransactionRow): CsvImportError {
   return {
     row: row.rowNumber,
@@ -43,5 +71,54 @@ export const transactionsService = {
     const { error } = await supabase.from('transactions').insert(payload.map((transaction) => ({ ...transaction, user_id: userId })))
     if (error) throw error
     return payload.length
+  },
+
+  /**
+   * Lista as transações de um ticker para o usuário.
+   * Ordenadas por `transaction_date DESC, seq DESC` (mais recentes primeiro).
+   */
+  async listByTicker(userId: string, ticker: string): Promise<Transaction[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(TRANSACTION_COLUMNS)
+      .eq('user_id', userId)
+      .eq('ticker', ticker.toUpperCase())
+      .order('transaction_date', { ascending: false })
+      .order('seq', { ascending: false })
+
+    if (error) throw error
+    return (data ?? []) as unknown as Transaction[]
+  },
+
+  /** Insere uma transação manual (buy ou sell). */
+  async addManualTransaction(userId: string, payload: NewManualTransaction): Promise<Transaction> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        ticker: payload.ticker.toUpperCase(),
+        type: payload.type,
+        quantity: payload.quantity,
+        price: payload.price,
+        brokerage_fee: payload.brokerage_fee ?? 0,
+        tax: 0,
+        transaction_date: payload.transaction_date,
+      })
+      .select(TRANSACTION_COLUMNS)
+      .single()
+
+    if (error) throw error
+    return data as unknown as Transaction
+  },
+
+  /** Remove uma transação pelo id. RLS garante isolamento por user_id. */
+  async deleteTransaction(userId: string, id: string): Promise<void> {
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId)
+
+    if (error) throw error
   },
 }

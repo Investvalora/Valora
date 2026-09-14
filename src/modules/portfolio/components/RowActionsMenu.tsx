@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Modal } from '../../../shared/components/Modal'
 import { AddTransactionModal } from './AddTransactionModal'
@@ -23,8 +24,8 @@ export function RowActionsMenu({
   const [isOpen, setIsOpen] = useState(false)
   const [modal, setModal] = useState<'add' | 'list' | 'delete' | null>(null)
   const [deleteError, setDeleteError] = useState('')
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
 
-  const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   const deletePosition = useDeletePosition()
@@ -34,7 +35,14 @@ export function RowActionsMenu({
     if (!isOpen) return
 
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      // Verifica se o clique foi fora do trigger E fora do portal do dropdown
+      const dropdownPortal = document.getElementById('row-actions-portal')
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node) &&
+        dropdownPortal &&
+        !dropdownPortal.contains(e.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -46,11 +54,26 @@ export function RowActionsMenu({
       }
     }
 
+    // Recalcula posição ao scroll/resize
+    function handleScroll() {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect()
+        setDropdownPos({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.right + window.scrollX - 208, // 208 = w-52 = 13rem
+        })
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('resize', handleScroll)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('scroll', handleScroll, true)
+      window.removeEventListener('resize', handleScroll)
     }
   }, [isOpen])
 
@@ -114,11 +137,20 @@ export function RowActionsMenu({
   return (
     <>
       {/* Botão trigger */}
-      <div className="relative" ref={menuRef}>
+      <div className="relative">
         <button
           ref={triggerRef}
           type="button"
-          onClick={() => setIsOpen((v) => !v)}
+          onClick={() => {
+            if (!isOpen && triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect()
+              setDropdownPos({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.right + window.scrollX - 208,
+              })
+            }
+            setIsOpen((v) => !v)
+          }}
           className="rounded p-1.5 text-gray-400 hover:text-white hover:bg-dark-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label={`Ações para ${ticker}`}
           aria-haspopup="true"
@@ -131,30 +163,33 @@ export function RowActionsMenu({
             <circle cx="19" cy="12" r="1.5" />
           </svg>
         </button>
-
-        {/* Dropdown */}
-        {isOpen && (
-          <div
-            role="menu"
-            className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-dark-border bg-dark-surface shadow-xl py-1"
-          >
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                onClick={item.onClick}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-dark-bg ${
-                  item.danger ? 'text-red-400 hover:text-red-300' : 'text-gray-200 hover:text-white'
-                }`}
-              >
-                <span className="flex-shrink-0">{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Dropdown renderizado via portal — escapa de overflow:hidden/auto de qualquer ancestral */}
+      {isOpen && createPortal(
+        <div
+          id="row-actions-portal"
+          role="menu"
+          style={{ position: 'absolute', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+          className="w-52 rounded-xl border border-dark-border bg-dark-surface shadow-xl py-1"
+        >
+          {menuItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={item.onClick}
+              className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-dark-bg ${
+                item.danger ? 'text-red-400 hover:text-red-300' : 'text-gray-200 hover:text-white'
+              }`}
+            >
+              <span className="flex-shrink-0">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
 
       {/* Modal: Adicionar Lançamento */}
       <AddTransactionModal

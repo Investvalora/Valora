@@ -16,9 +16,43 @@ foi escrito originalmente.
 | Function | Versão | Estado |
 |---|---|---|
 | `sync-b3-prices` | ativa | **Ingestão de preços B3 via COTAHIST oficial.** Agendada (pg_cron, seg–sex 22:00 UTC). Substitui `sync-br-assets` |
+| `sync-brapi-prices` | ativa | **Atualização intradiária de cotações BR via brapi.dev.** Agendada 14×/dia (a cada 30min, 13h–19h30 UTC, seg–sex). Ver seção abaixo |
+| `sync-bolsai-fundamentals` | ativa | **Fundamentais e dividendos BR via bolsai.dev.** Agendada 1×/dia (21h UTC, seg–sex). Ver seção abaixo |
 | `sync-market-data` | 12 | **stub vazio** — sem código executável. Pode ser removida |
 | `sync-br-assets` | 3 | **stub vazio** — substituída por `sync-b3-prices`. Pode ser removida |
 | `sync-global-assets` | 2 | cotação atual de US/cripto; ver limitação abaixo |
+
+## sync-brapi-prices (cotações intradiárias BR)
+
+Busca cotação atual (`regularMarketPrice`, open, high, low, volume) de todos os
+ativos BR ativos (`quote_provider = 'brapi'`) via `GET /api/quote/{tickers}` da
+brapi.dev. Agrupa até 20 tickers por requisição para economizar cota. Upsert em
+`price_history` com `source = 'brapi'` para a data do pregão corrente.
+
+Funciona em complemento ao `sync-b3-prices`: durante o pregão atualiza os preços
+ao vivo; à noite o COTAHIST grava o fechamento oficial e sobrescreve `source` para
+`'b3_cotahist'`.
+
+Agendamento em `supabase/migrations/013_schedule_brapi_intraday_sync.sql`:
+
+| Job pg_cron | UTC | BRT | Momento |
+|---|---|---|---|
+| `sync-brapi-abertura` | 12:00 | 09:00 | Abertura |
+| `sync-brapi-manha` | 14:00 | 11:00 | Meio da manhã |
+| `sync-brapi-tarde` | 16:00 | 13:00 | Pós-almoço |
+| `sync-brapi-pre-fechamento` | 18:00 | 15:00 | Pré-fechamento |
+
+Consumo estimado: ~264 req/mês (< 2% do limite free de 15.000/mês).
+
+Variáveis de ambiente necessárias:
+- `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` — padrão Supabase
+- `BRAPI_KEY` — token da brapi.dev; configurar via `supabase secrets set BRAPI_KEY=<valor>`
+
+Deploy:
+```bash
+supabase functions deploy sync-brapi-prices --project-ref <ref>
+supabase secrets set BRAPI_KEY=<valor> --project-ref <ref>
+```
 
 ## sync-b3-prices (fonte oficial B3)
 
@@ -86,3 +120,24 @@ supabase functions deploy sync-global-assets --project-ref zawjqzekqfnmvwglahnk
 
 Secrets já configurados no projeto (valores não recuperáveis por API — são write-only):
 `BRAPI_API_KEY`, `FINNHUB_API_KEY`, `COINGECKO_API_KEY`.
+
+## sync-bolsai-fundamentals (fundamentos + dividendos diários)
+
+Busca 27 indicadores fundamentalistas TTM e histórico de dividendos/JCP de
+todos os ativos BR ativos (`stock_br`, `fii`, `bdr`) via API da bolsai.dev.
+Upsert em `fundamentals` (snapshot diário TTM) e `dividends` (histórico completo).
+
+Agendamento: **21h00 UTC (18h00 BRT)**, 1× por dia seg–sex.  
+`timeout_milliseconds = 120000` — 27 ativos × 2 endpoints × 400ms pausa ≈ 22s de execução.
+
+**Consumo:** 27 ativos × 2 endpoints = 54 req/execução (27% dos 200 req/dia free).
+
+**Endpoints bolsai usados:**
+- `GET /api/v1/fundamentals/{ticker}` → pl, pvp, roe, dy, net_margin, lpa, vpa, net_debt_ebitda
+- `GET /api/v1/dividends/{ticker}` → payments[] com ex_date, payment_date, value_per_share, type
+
+Deploy:
+```bash
+supabase functions deploy sync-bolsai-fundamentals --project-ref <ref>
+supabase secrets set BOLSAI_KEY=<valor> --project-ref <ref>
+```

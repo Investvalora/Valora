@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { PositionSchema, positionSchema, toNewPosition } from '../schemas/positionSchema'
 import { MISSING_SESSION_CODE, useAddPosition } from '../hooks/useAddPosition'
 import { useAssetLookup, useAssetSearch } from '../hooks/useAssetSearch'
+import { useLookupExternalAsset } from '../hooks/useLookupExternalAsset'
 import { Asset } from '../types'
 
 interface AddPositionFormProps {
@@ -115,13 +116,13 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
 
   const addPosition = useAddPosition()
   const lookupAsset = useAssetLookup()
+  const { state: externalLookup, lookup: lookupExternal, reset: resetExternal } = useLookupExternalAsset()
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    setError,
     setFocus,
     clearErrors,
     formState: { errors },
@@ -147,6 +148,41 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
   }, [suggestions.length])
 
   /**
+   * Dispara busca externa automaticamente quando o usuário para de digitar
+   * e o ticker não está no catálogo local.
+   *
+   * Condições para disparar:
+   *  - ticker tem ≥ 4 chars (tickers BR têm mínimo 4: VALE, ITUB…)
+   *  - apenas letras e dígitos (evita "Tesouro IPCA+ 2029" e similares)
+   *  - o debounce longo (900ms) estabilizou — o usuário parou de digitar
+   *  - o catálogo terminou de buscar sem resultado
+   *  - o lookup externo está idle OU o ticker mudou desde o último not_found
+   */
+  const debouncedTickerForExternal = useDebouncedValue(typedTicker, 900)
+
+  // Padrão de ticker válido da B3/brapi: 4–7 chars, só letras maiúsculas e dígitos
+  const TICKER_PATTERN = /^[A-Z0-9]{4,7}$/
+
+  useEffect(() => {
+    // Aguarda o debounce longo estabilizar igual ao atual — garante que o
+    // usuário realmente parou de digitar (não só o debounce curto do catálogo)
+    if (debouncedTickerForExternal !== typedTicker) return
+    if (!TICKER_PATTERN.test(debouncedTickerForExternal)) return
+    if (isSearching) return
+    if (suggestions.length > 0 || exactMatch) return
+
+    const canDispatch =
+      externalLookup.status === 'idle' ||
+      // Se o ticker mudou desde o último not_found, tenta de novo
+      (externalLookup.status === 'not_found' && externalLookup.ticker !== debouncedTickerForExternal)
+
+    if (canDispatch) {
+      lookupExternal(debouncedTickerForExternal)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedTickerForExternal, typedTicker, isSearching, suggestions.length, externalLookup.status])
+
+  /**
    * Escolhe o ativo. Aceita `undefined` de propósito: é a segunda barreira
    * contra o índice defasado, para que um realce fora de faixa não vire crash.
    */
@@ -157,6 +193,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     setShowSuggestions(false)
     setHighlightedIndex(-1)
     setNotFoundTicker('')
+    resetExternal()
   }
 
   const handleTickerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -210,10 +247,28 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     }
 
     if (!asset) {
-      setError('ticker', { type: 'manual', message: 'Ativo não encontrado' })
+      // Não encontrou no catálogo local.
+      // Se o lookup externo já terminou com resultado, usa-o para prosseguir.
+      if (externalLookup.status === 'found') {
+        // O ativo foi inserido no catálogo pela EF — prossegue direto.
+        addPosition.mutate(payload, {
+          onSuccess: () => onSuccess(payload.ticker),
+          onError: (error) => {
+            console.error('Add position error:', error)
+            setErrorMessage(describeInsertError(error, payload.ticker))
+          },
+        })
+        return
+      }
+
+      // Lookup externo em andamento ou ainda não iniciado — aguarda.
       setNotFoundTicker(payload.ticker)
-      setShowSuggestions(true)
+      setShowSuggestions(false)
       setFocus('ticker')
+      // Se por algum motivo o efeito automático não disparou, força agora.
+      if (externalLookup.status === 'idle') {
+        lookupExternal(payload.ticker)
+      }
       return
     }
 
@@ -226,7 +281,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     })
   }
 
-  const isSubmitting = isCheckingTicker || addPosition.isPending
+  const isSubmitting = isCheckingTicker || addPosition.isPending || externalLookup.status === 'loading'
   const tickerErrorId = errors.ticker ? 'ticker-error' : undefined
 
   // A página é a dona do modal, então é ela quem precisa saber que há escrita
@@ -262,6 +317,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
                 setShowSuggestions(true)
                 setHighlightedIndex(-1)
                 setNotFoundTicker('')
+                resetExternal()
                 // "Ativo não encontrado" é erro manual: a validação só roda no
                 // submit, então sem isto a mensagem ficaria colada na tela
                 // enquanto o usuário corrige o ticker.
@@ -320,17 +376,53 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
           </p>
         )}
 
-        {notFoundTicker && (
+        {/* ── Fallback de busca externa ─────────────────────────────────── */}
+        {externalLookup.status === 'loading' && (
+          <p className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-500 border-t-white" aria-hidden="true" />
+            Buscando {typedTicker || notFoundTicker} na B3…
+          </p>
+        )}
+
+        {externalLookup.status === 'found' && (
+          <div className="mt-2 rounded-lg border border-blue-500/40 bg-blue-500/10 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-300">
+              Ativo encontrado na B3{externalLookup.created ? ' · adicionado ao catálogo' : ''}
+            </p>
+            <button
+              type="button"
+              onClick={() => selectAsset(externalLookup.asset)}
+              className="flex w-full items-center justify-between rounded-lg border border-blue-500/30 bg-dark-bg px-4 py-2 text-left transition-colors hover:bg-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <span className="font-semibold text-white">{externalLookup.asset.ticker}</span>
+              <span className="truncate text-sm text-gray-300">{externalLookup.asset.name} · {externalLookup.asset.currency}</span>
+            </button>
+          </div>
+        )}
+
+        {externalLookup.status === 'not_found' && (
+          <p className="mt-2 text-sm text-red-400">
+            "{externalLookup.ticker}" não foi encontrado na B3. Verifique o código do ativo.
+          </p>
+        )}
+
+        {externalLookup.status === 'error' && (
+          <p className="mt-2 text-sm text-amber-300">
+            {externalLookup.message}
+          </p>
+        )}
+
+        {notFoundTicker && externalLookup.status === 'idle' && (
           <p className="mt-1 text-sm text-gray-400">
             {isSearching
               ? `Buscando ativos parecidos com ${notFoundTicker}...`
               : suggestions.length > 0
                 ? 'Escolha um dos ativos sugeridos acima.'
-                : `Nenhum ativo do catálogo corresponde a ${notFoundTicker}. Busque por ticker ou por nome, ex.: "Petrobras".`}
+                : `"${notFoundTicker}" não está no catálogo. Clique em "Adicionar posição" novamente para buscar na B3.`}
           </p>
         )}
 
-        {!errors.ticker && !notFoundTicker && exactMatch && (
+        {!errors.ticker && !notFoundTicker && externalLookup.status === 'idle' && exactMatch && (
           <p className="mt-1 text-sm text-gray-400">
             {exactMatch.name} · {exactMatch.currency}
           </p>

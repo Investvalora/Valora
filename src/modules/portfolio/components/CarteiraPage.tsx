@@ -6,6 +6,8 @@ import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import type { USDRateSource } from '../../../shared/services/usdRateService'
 import { useLatestQuotes } from '../hooks/useLatestQuotes'
 import { usePositions } from '../hooks/usePositions'
+import { useFixedIncomePositions } from '../hooks/useFixedIncomePositions'
+import { useCalcFixedIncome } from '../hooks/useCalcFixedIncome'
 import { downloadPositionsCsv } from '../export/positionsCsv'
 import {
   DEFAULT_POSITION_SORT,
@@ -14,9 +16,10 @@ import {
   sortPositionRows,
 } from '../positionRows'
 import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
+import { FIXED_INCOME_TYPE_LABEL } from '../types'
 import { AddPositionForm } from './AddPositionForm'
+import { AddFixedIncomeForm } from './AddFixedIncomeForm'
 import { GroupedPositionsTable } from './GroupedPositionsTable'
-import { CompositionCard } from './CompositionCard'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
@@ -161,6 +164,7 @@ class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
 export function CarteiraPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isFiModalOpen, setIsFiModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -172,6 +176,10 @@ export function CarteiraPage() {
 
   // ── Posições e cotações ────────────────────────────────────────────────────
   const { data: positions = [], isLoading, isError, refetch } = usePositions()
+
+  // ── Renda Fixa ─────────────────────────────────────────────────────────────
+  const { rows: fiRows, totalBRL: fiTotalBRL, isLoading: fiLoading } = useFixedIncomePositions()
+  const { calc: calcFiValues, state: calcFiState } = useCalcFixedIncome()
 
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
   const quotesQuery = useLatestQuotes(tickers)
@@ -278,6 +286,10 @@ export function CarteiraPage() {
           <button type="button" onClick={openModal}
             className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
             + adicionar posição
+          </button>
+          <button type="button" onClick={() => setIsFiModalOpen(true)}
+            className="rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            + renda fixa
           </button>
           <button
             type="button"
@@ -412,44 +424,6 @@ export function CarteiraPage() {
         </div>
       )}
 
-      {/* ── Seção patrimônio total (acessível para testes e leitores de tela) ── */}
-      {hasPositions && (
-        <section
-          aria-label="Patrimônio total"
-          className="rounded-lg border border-dark-border bg-dark-surface p-5"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Patrimônio total</p>
-          <p className="mt-1 text-2xl font-bold text-white">
-            {derived.rows.length > derived.missingValueCount ? brlFormatter.format(derived.totalBRL) : '—'}
-          </p>
-          {(quotesQuery.isLoading || usdRateQuery.isLoading) && (
-            <p className="mt-2 text-sm text-gray-400">Carregando cotações...</p>
-          )}
-          {derived.missingValueCount > 0 && !quotesQuery.isLoading && !usdRateQuery.isLoading && (
-            <p className="mt-2 text-sm text-amber-300">
-              {derived.missingValueCount === 1
-                ? '1 posição sem cotação disponível não entra no total.'
-                : `${derived.missingValueCount} posições sem cotação disponível não entram no total.`}
-            </p>
-          )}
-          {hasUSDPosition && usdRate && (
-            <p className="mt-2 text-xs text-gray-500">
-              R$ {usdRateFormatter.format(usdRate.rate)} / US$
-            </p>
-          )}
-        </section>
-      )}
-
-      {/* ── CompositionCard (acessível para testes) ─────────────────────── */}
-      {hasPositions && (
-        <CompositionCard
-          rows={derived.rows}
-          totalBRL={derived.totalBRL}
-          isQuotesLoading={quotesQuery.isLoading || usdRateQuery.isLoading}
-          missingValueCount={derived.missingValueCount}
-        />
-      )}
-
       {/* ── Seletor de score ───────────────────────────────────────────────── */}
       {scoreNames.length > 0 && (
         <div className="flex flex-wrap items-center gap-3">
@@ -533,9 +507,133 @@ export function CarteiraPage() {
         />
       ) : null}
 
+      {/* ── Renda Fixa ─────────────────────────────────────────────────── */}
+      <section aria-labelledby="fi-heading">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 id="fi-heading" className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+            Renda Fixa
+            {fiRows.length > 0 && (
+              <span className="ml-2 text-gray-500 normal-case tracking-normal font-normal">
+                ({fiRows.length})
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-3">
+            {fiRows.some(r => r.isStale) && (
+              <span className="text-xs text-amber-400">valores desatualizados</span>
+            )}
+            <button
+              type="button"
+              onClick={calcFiValues}
+              disabled={calcFiState === 'loading' || fiRows.length === 0}
+              className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-700/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {calcFiState === 'loading' ? 'Calculando…' : '↻ Atualizar valores'}
+            </button>
+          </div>
+        </div>
+
+        {fiLoading ? (
+          <p className="text-sm text-gray-400">Carregando renda fixa…</p>
+        ) : fiRows.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-dark-border p-6 text-center">
+            <p className="text-sm text-gray-400">
+              Nenhuma posição de renda fixa cadastrada.{' '}
+              <button
+                type="button"
+                onClick={() => setIsFiModalOpen(true)}
+                className="text-emerald-400 underline hover:text-emerald-300"
+              >
+                Adicionar
+              </button>
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto rounded-lg border border-dark-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-dark-border bg-dark-surface/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Nome</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Tipo</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Aplicado</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Valor atual</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Rendimento</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-dark-border">
+                  {fiRows.map((row) => (
+                    <tr key={row.id} className="bg-dark-surface hover:bg-dark-bg/50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-white">{row.name}</td>
+                      <td className="px-4 py-3 text-gray-300">{FIXED_INCOME_TYPE_LABEL[row.type]}</td>
+                      <td className="px-4 py-3 text-right text-gray-300">
+                        {fmtBRL(row.principal)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {row.currentValue !== null ? (
+                          <span className={row.isStale ? 'text-amber-300' : 'text-white'}>
+                            {fmtBRL(row.currentValue)}
+                            {row.isStale && (
+                              <Tooltip label="Valor desatualizado">
+                                <span className="block text-xs text-amber-400">estimado</span>
+                              </Tooltip>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {row.gainBRL !== null && row.gainPercent !== null ? (
+                          <span className={row.gainBRL >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {row.gainBRL >= 0 ? '+' : ''}{fmtBRL(row.gainBRL)}{' '}
+                            <span className="text-xs">
+                              ({row.gainPercent >= 0 ? '+' : ''}{row.gainPercent.toFixed(2)}%)
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-300">
+                        {row.maturity_date
+                          ? new Date(row.maturity_date + 'T12:00:00').toLocaleDateString('pt-BR')
+                          : <span className="text-gray-500">Sem venc.</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-dark-border bg-dark-surface/50">
+                    <td colSpan={2} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Total</td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
+                      {fmtBRL(fiRows.reduce((s, r) => s + r.principal, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
+                      {fmtBRL(fiTotalBRL)}
+                    </td>
+                    <td colSpan={2} />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
+
       {/* ── Modal adicionar posição ─────────────────────────────────────────── */}
       <Modal isOpen={isModalOpen} title="Adicionar posição" onClose={closeModal} dismissible={!isSaving}>
         <AddPositionForm onSuccess={handleSuccess} onCancel={closeModal} onBusyChange={setIsSaving} />
+      </Modal>
+
+      {/* ── Modal adicionar renda fixa ──────────────────────────────────────── */}
+      <Modal isOpen={isFiModalOpen} title="Adicionar renda fixa" onClose={() => setIsFiModalOpen(false)} dismissible={!isSaving}>
+        <AddFixedIncomeForm
+          onSuccess={() => { setIsFiModalOpen(false); setSuccessMessage('Posição de renda fixa adicionada.') }}
+          onCancel={() => setIsFiModalOpen(false)}
+          onBusyChange={setIsSaving}
+        />
       </Modal>
     </div>
   )

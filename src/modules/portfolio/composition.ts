@@ -27,12 +27,13 @@ import type {
  * fatia sem rótulo na tela.
  */
 export const ASSET_CLASS_LABEL: Record<AssetType, string> = {
-  stock_br: 'Ações BR',
-  fii: 'FIIs',
-  bdr: 'BDRs',
-  stock_us: 'Stocks US',
-  reit: 'REITs',
-  crypto: 'Cryptos',
+  stock_br:     'Ações BR',
+  fii:          'FIIs',
+  bdr:          'BDRs',
+  stock_us:     'Stocks US',
+  reit:         'REITs',
+  crypto:       'Cryptos',
+  fixed_income: 'Renda Fixa',
 }
 
 /** Bucket das posições avaliadas cuja classe não veio no catálogo. */
@@ -53,6 +54,7 @@ export const ASSET_CLASS_ORDER: readonly AssetType[] = [
   'stock_us',
   'reit',
   'crypto',
+  'fixed_income',
 ]
 
 /**
@@ -74,12 +76,13 @@ export const INTERNATIONAL_TYPES: readonly AssetType[] = ['bdr', 'stock_us', 're
  * percentual.
  */
 export const ASSET_CLASS_COLOR: Record<AssetType, string> = {
-  stock_br: '#38bdf8',
-  fii: '#4ade80',
-  bdr: '#facc15',
-  stock_us: '#a78bfa',
-  reit: '#fb923c',
-  crypto: '#f472b6',
+  stock_br:     '#38bdf8',
+  fii:          '#4ade80',
+  bdr:          '#facc15',
+  stock_us:     '#a78bfa',
+  reit:         '#fb923c',
+  crypto:       '#f472b6',
+  fixed_income: '#34d399',
 }
 
 export const UNKNOWN_ASSET_CLASS_COLOR = '#94a3b8'

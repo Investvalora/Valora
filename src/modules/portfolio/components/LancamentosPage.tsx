@@ -75,12 +75,13 @@ class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
 // Mapa de labels alternativos mais amigáveis para o badge
 const TYPE_BADGE_LABEL: Record<AssetType, string> = {
-  stock_br: 'Ações',
-  fii: 'FIIs',
-  bdr: 'BDRs',
-  stock_us: 'Stocks',
-  reit: 'REITs',
-  crypto: 'Criptos',
+  stock_br:     'Ações',
+  fii:          'FIIs',
+  bdr:          'BDRs',
+  stock_us:     'Stocks',
+  reit:         'REITs',
+  crypto:       'Criptos',
+  fixed_income: 'Renda Fixa',
 }
 
 function AssetTypeBadge({ assetType }: { assetType: AssetType | null }) {

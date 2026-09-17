@@ -81,7 +81,7 @@ interface BrapiResponse {
 async function pgSelectAtivosBR(): Promise<AtivoRow[]> {
   const url =
     `${SUPABASE_URL}/rest/v1/assets` +
-    `?select=ticker,provider_symbol&active=eq.true&type=in.(stock_br,fii,bdr)`;
+    `?select=ticker,provider_symbol&active=eq.true&type=in.(stock_br,fii,bdr,etf_br)`;
   const r = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });

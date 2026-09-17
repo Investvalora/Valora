@@ -40,7 +40,7 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 async function pgSelectAtivosBR(): Promise<{ ticker: string; provider_symbol: string | null }[]> {
   const url = `${SUPABASE_URL}/rest/v1/assets`
-    + `?select=ticker,provider_symbol&active=eq.true&type=in.(stock_br,fii,bdr)`;
+    + `?select=ticker,provider_symbol&active=eq.true&type=in.(stock_br,fii,bdr,etf_br)`;
   const r = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });

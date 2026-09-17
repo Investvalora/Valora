@@ -79,9 +79,11 @@ const TYPE_BADGE_LABEL: Record<AssetType, string> = {
   fii:          'FIIs',
   bdr:          'BDRs',
   stock_us:     'Stocks',
+  etf_us:       'ETF US',
   reit:         'REITs',
   crypto:       'Criptos',
   fixed_income: 'Renda Fixa',
+  etf_br:       'ETF BR',
 }
 
 function AssetTypeBadge({ assetType }: { assetType: AssetType | null }) {

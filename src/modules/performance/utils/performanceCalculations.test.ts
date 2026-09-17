@@ -157,16 +157,90 @@ describe('computePortfolioReturn', () => {
   })
 
   it('desconta aportes da fórmula de retorno', () => {
-    // valorInicial=10000, valorFinal=11000, proventos=0, aportes=9000
-    // retorno = (11000 + 0 - 9000) / 10000 - 1 = 2000/10000 - 1 = -0.8
-    // A fórmula reflete que o capital aportado (custo) é subtraído do numerador.
+    // valorInicial=10000 (primeiro ponto = 2026-01-01)
+    // PETR4 comprada em 2026-03-15 (POSTERIOR ao primeiro ponto) → desconta
+    // retorno = (11000 + 0 - 9000) / 10000 - 1 = -0.8
     const series = makeWealth([
       ['2026-01-01', 10000],
       ['2026-06-30', 11000],
     ])
-    const positions = [makePosition('PETR4', 90, 100)] // 90×100 = 9000
+    const positions = [
+      {
+        id: '1',
+        user_id: 'u1',
+        ticker: 'PETR4',
+        quantity: 100,
+        average_price: 90,
+        acquisition_date: '2026-03-15', // posterior ao primeiro ponto → descontado
+        created_at: '2026-03-15T00:00:00Z',
+        updated_at: '2026-03-15T00:00:00Z',
+        asset: { ticker: 'PETR4', name: 'PETR4', type: 'stock_br', currency: 'BRL' },
+      } as unknown as PositionWithAsset,
+    ]
     const result = computePortfolioReturn(series, [], positions)
     expect(result).toBeCloseTo(-0.8)
+  })
+
+  it('NÃO desconta posição cuja acquisition_date coincide com o primeiro ponto', () => {
+    // PETR4 comprada exatamente em 2026-01-01 (= primeiro ponto da série)
+    // Seu custo já está precificado em valorInicial=10000 → não deve ser subtraída
+    // retorno = (11000 / 10000) - 1 = 10%
+    const series = makeWealth([
+      ['2026-01-01', 10000],
+      ['2026-06-30', 11000],
+    ])
+    const positions = [
+      {
+        id: '1',
+        user_id: 'u1',
+        ticker: 'PETR4',
+        quantity: 100,
+        average_price: 90,
+        acquisition_date: '2026-01-01', // igual ao primeiro ponto → NÃO descontado
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        asset: { ticker: 'PETR4', name: 'PETR4', type: 'stock_br', currency: 'BRL' },
+      } as unknown as PositionWithAsset,
+    ]
+    const result = computePortfolioReturn(series, [], positions)
+    expect(result).toBeCloseTo(0.1)
+  })
+
+  it('ignora posições adicionadas antes do período no cálculo de aportes', () => {
+    const series = makeWealth([
+      ['2026-01-01', 10000],
+      ['2026-06-30', 11000],
+    ])
+    // Posição com acquisition_date ANTES do período (não deve ser considerada)
+    const positions = [makePosition('PETR4', 90, 100)] // acquisition_date='2025-01-01'
+    const result = computePortfolioReturn(series, [], positions)
+    // Sem aportes mid-period → retorno = (11000/10000) - 1 = 10%
+    expect(result).toBeCloseTo(0.1)
+  })
+
+  it('soma apenas aportes de posições adicionadas DEPOIS do primeiro ponto', () => {
+    const series = makeWealth([
+      ['2026-01-01', 10000],
+      ['2026-06-30', 11500],
+    ])
+    const positions = [
+      makePosition('PETR4', 90, 100), // acquisition_date='2025-01-01' → IGNORADA (anterior)
+      {
+        id: '2',
+        user_id: 'u1',
+        ticker: 'VALE3',
+        quantity: 50,
+        average_price: 80,
+        acquisition_date: '2026-04-01', // posterior ao primeiro ponto → DESCONTADA
+        created_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:00Z',
+        asset: { ticker: 'VALE3', name: 'VALE3', type: 'stock_br', currency: 'BRL' },
+      } as unknown as PositionWithAsset,
+    ]
+    const result = computePortfolioReturn(series, [], positions)
+    // aportes mid-period = 80 × 50 = 4000 (só VALE3)
+    // retorno = (11500 - 4000) / 10000 - 1 = -0.25
+    expect(result).toBeCloseTo(-0.25)
   })
 
   it('usa o primeiro e o último ponto não-nulos como valorInicial/valorFinal', () => {
@@ -300,7 +374,6 @@ describe('computeAssetRows', () => {
   }
 
   it('happy path — linha completa com cotação e dividendos', () => {
-    // PETR4: avgPrice=20, qty=100, cotação=22, dividendos=50
     const positions = [makePos('PETR4', 20, 100, 'Petrobras')]
     const lastPricesMap = new Map([['PETR4', 22]])
     const dividendRows = [makeDividendRow('PETR4', 0.5, 100)] // total=50
@@ -319,6 +392,43 @@ describe('computeAssetRows', () => {
     expect(row.dividendsPct).toBeCloseTo(2.5)
     // totalReturnPct = 10 + 2.5 = 12.5
     expect(row.totalReturnPct).toBeCloseTo(12.5)
+  })
+
+  it('com filtro de período — retorna apenas posições adicionadas no período', () => {
+    const positions = [
+      { ...makePos('PETR4', 20, 100), acquisition_date: '2026-01-15' }, // dentro do período
+      { ...makePos('VALE3', 80, 50), acquisition_date: '2025-12-01' },  // fora do período
+    ]
+    const lastPricesMap = new Map([
+      ['PETR4', 22],
+      ['VALE3', 85],
+    ])
+    const dividendRows: DividendRow[] = []
+
+    // Período: jan/2026
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows, '2026-01-01', '2026-01-31')
+
+    // Apenas PETR4 deve aparecer (acquisition_date dentro do período)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].ticker).toBe('PETR4')
+  })
+
+  it('sem filtro de período — retorna todas as posições', () => {
+    const positions = [
+      makePos('PETR4', 20, 100),
+      makePos('VALE3', 80, 50),
+    ]
+    const lastPricesMap = new Map([
+      ['PETR4', 22],
+      ['VALE3', 85],
+    ])
+    const dividendRows: DividendRow[] = []
+
+    // Sem período especificado
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows)
+
+    // Todas as posições devem aparecer
+    expect(rows).toHaveLength(2)
   })
 
   it('sem cotação — capitalGainPct é null; retorno = dividendsPct', () => {
@@ -464,6 +574,23 @@ describe('computeAssetRows', () => {
     expect(row.dividendsPct).toBeCloseTo(5)
     // totalReturn = 20 + 5 = 25%
     expect(row.totalReturnPct).toBeCloseTo(25)
+  })
+
+  it('com filtro de período — retorna apenas posições adicionadas no período', () => {
+    const positions = [
+      { ...makePosition('PETR4', 30, 100), acquisition_date: '2026-03-15' }, // dentro
+      { ...makePosition('VALE3', 50, 10), acquisition_date: '2025-06-01' },  // fora
+    ]
+    const lastPricesMap = new Map([
+      ['PETR4', 36],
+      ['VALE3', 55],
+    ])
+    const dividendRows: DividendRow[] = []
+
+    const rows = computeAssetRows(positions, lastPricesMap, dividendRows, '2026-01-01', '2026-06-30')
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0].ticker).toBe('PETR4')
   })
 
   it('sem cotação atual — capitalGainPct é null, totalReturn = dividendsPct', () => {

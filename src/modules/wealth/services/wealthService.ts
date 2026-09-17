@@ -11,7 +11,7 @@ import type { PositionSnapshot, PriceHistoryRow } from '../types'
  */
 
 const POSITIONS_SNAPSHOT_COLUMNS =
-  'ticker, quantity, asset:assets(currency, type)'
+  'ticker, quantity, acquisition_date, asset:assets(currency, type)'
 
 const PRICE_HISTORY_COLUMNS = 'ticker, date, close'
 
@@ -44,12 +44,14 @@ export const wealthService = {
     return ((data ?? []) as unknown as Array<{
       ticker: string
       quantity: number
+      acquisition_date: string
       asset: { currency: 'BRL' | 'USD'; type: string | null } | null
     }>).map((row) => ({
       ticker: row.ticker,
       quantity: row.quantity,
       currency: (row.asset?.currency ?? 'BRL') as 'BRL' | 'USD',
       type: (row.asset?.type as PositionSnapshot['type']) ?? null,
+      acquisitionDate: row.acquisition_date,
     }))
   },
 
@@ -72,6 +74,35 @@ export const wealthService = {
       .gte('date', since)
       .order('date', { ascending: true })
       .limit(tickers.length * 365)
+
+    if (error) throw error
+
+    return (data ?? []) as unknown as PriceHistoryRow[]
+  },
+
+  /**
+   * Último preço conhecido de cada ticker (janela de 10 dias para cobrir
+   * fins de semana e feriados).
+   *
+   * Usado para calcular patrimônio atual — não depende do histórico completo.
+   * Retorna no máximo `tickers.length` linhas (uma por ticker).
+   */
+  async listLatestPrices(tickers: string[]): Promise<PriceHistoryRow[]> {
+    if (tickers.length === 0) return []
+
+    const windowDays = 10
+    const since = new Date()
+    since.setDate(since.getDate() - windowDays)
+    const sinceStr = since.toISOString().slice(0, 10)
+
+    const { data, error } = await supabase
+      .from('price_history')
+      .select(PRICE_HISTORY_COLUMNS)
+      .in('ticker', tickers)
+      .gte('date', sinceStr)
+      .order('ticker', { ascending: true })
+      .order('date', { ascending: false })
+      .limit(tickers.length * (windowDays + 1))
 
     if (error) throw error
 

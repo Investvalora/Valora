@@ -33,12 +33,17 @@ export function buildLastPricesMap(priceRows: PriceHistoryRow[]): Map<string, nu
  * Conversão USD → BRL: ativos internacionais com `currency = 'USD'`
  * têm seu close multiplicado pela taxa.
  *
+ * `earliestDate` (opcional): quando informado, pontos anteriores a essa data
+ * são removidos da série. Garante que o gráfico nunca mostre patrimônio
+ * retroativo a períodos em que o investidor ainda não tinha os ativos.
+ *
  * Exportado para ser testável de forma isolada.
  */
 export function buildWealthSeries(
   positions: PositionSnapshot[],
   priceRows: PriceHistoryRow[],
   usdRate: number,
+  earliestDate?: string,
 ): WealthPoint[] {
   if (positions.length === 0) return []
   if (priceRows.length === 0) return []
@@ -57,6 +62,9 @@ export function buildWealthSeries(
   const byDate = new Map<string, Map<string, number>>()
   for (const row of priceRows) {
     const key = String(row.date).slice(0, 10)
+    // Descartar pontos anteriores à primeira compra (defesa dupla: o hook
+    // já filtra o since, mas dados em cache podem ter range maior)
+    if (earliestDate && key < earliestDate) continue
     let dayMap = byDate.get(key)
     if (!dayMap) {
       dayMap = new Map()

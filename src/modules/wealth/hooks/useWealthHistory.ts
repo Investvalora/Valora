@@ -44,6 +44,40 @@ function periodSince(period: WealthPeriod): string {
   return shiftIsoDate(-PERIOD_DAYS[period])
 }
 
+/**
+ * Retorna a mais recente entre duas datas ISO `YYYY-MM-DD`.
+ * Garante que nunca buscamos dados anteriores à primeira compra.
+ */
+function maxDate(a: string, b: string): string {
+  return a >= b ? a : b
+}
+
+/**
+ * Data de aquisição mais antiga entre todas as posições.
+ * Retorna `null` quando não há posições.
+ */
+function earliestAcquisitionDate(positions: PositionSnapshot[]): string | null {
+  if (positions.length === 0) return null
+  return positions.reduce(
+    (min, p) => (p.acquisitionDate < min ? p.acquisitionDate : min),
+    positions[0].acquisitionDate,
+  )
+}
+
+/**
+ * Data de aquisição mais recente entre todas as posições.
+ * Usada para ancorar séries históricas com quantidades atuais: só faz sentido
+ * mostrar patrimônio a partir do dia em que o último ativo entrou na carteira.
+ * Retorna `null` quando não há posições.
+ */
+function latestAcquisitionDate(positions: PositionSnapshot[]): string | null {
+  if (positions.length === 0) return null
+  return positions.reduce(
+    (max, p) => (p.acquisitionDate > max ? p.acquisitionDate : max),
+    positions[0].acquisitionDate,
+  )
+}
+
 export interface UseWealthHistoryResult {
   /** Série temporal de patrimônio para o período selecionado. */
   series: WealthPoint[]
@@ -65,6 +99,19 @@ export interface UseWealthHistoryResult {
   lastPricesMap: Map<string, number>
   /** Taxa USD/BRL efetiva usada no cálculo (com fallback aplicado). */
   usdRate: number
+  /**
+   * Data de aquisição mais antiga da carteira em `YYYY-MM-DD`.
+   * Usada para ancorar o início dos gráficos e KPIs.
+   * `null` enquanto as posições ainda estão carregando.
+   */
+  earliestDate: string | null
+  /**
+   * Data de aquisição mais recente da carteira em `YYYY-MM-DD`.
+   * Usada para ancorar séries históricas com quantidades atuais: a série só
+   * faz sentido a partir do dia em que o último ativo entrou na carteira.
+   * `null` enquanto as posições ainda estão carregando.
+   */
+  latestDate: string | null
 }
 
 /**
@@ -79,9 +126,10 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
   const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
 
-  const since = useMemo(() => periodSince(period), [period])
+  // Piso do período selecionado (ex: hoje − 365 para '1A')
+  const periodFloor = useMemo(() => periodSince(period), [period])
 
-  // 1. Posições com tipo e moeda
+  // 1. Posições com tipo, moeda e data de aquisição
   const positionsQuery = useQuery({
     queryKey: ['wealth', 'positions-snapshot', userId],
     queryFn: () => wealthService.listPositionsSnapshot(userId as string),
@@ -96,17 +144,47 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
 
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
 
-  // 2. Histórico de preços para o período
+  // Data da compra mais antiga na carteira
+  const earliestDate = useMemo(() => earliestAcquisitionDate(positions), [positions])
+
+  // Data da compra mais recente na carteira — usada para ancorar séries
+  // históricas com quantidades atuais (evita meses parciais no dashboard)
+  const latestDate = useMemo(() => latestAcquisitionDate(positions), [positions])
+
+  // `since` efetivo: nunca buscamos dados antes da primeira compra.
+  // maxDate garante que se o período selecionado começar depois da primeira
+  // compra, usamos o período — caso contrário ancoramos na compra.
+  const since = useMemo(
+    () => (earliestDate ? maxDate(periodFloor, earliestDate) : periodFloor),
+    [periodFloor, earliestDate],
+  )
+
+  // 2. Histórico de preços a partir do since efetivo (para a série do gráfico)
+  // Só dispara após termos as posições (earliestDate !== null garante isso)
   const historyQuery = useQuery({
     queryKey: wealthHistoryQueryKey(userId, period, tickers),
     queryFn: () => wealthService.listPriceHistory(tickers, since),
-    enabled: Boolean(userId) && tickers.length > 0,
+    enabled: Boolean(userId) && tickers.length > 0 && earliestDate !== null,
     staleTime: WEALTH_STALE_TIME_MS,
   })
 
   const priceRows: PriceHistoryRow[] = useMemo(
     () => historyQuery.data ?? [],
     [historyQuery.data],
+  )
+
+  // 2b. Últimos preços (janela de 10 dias) — para lastPricesMap e patrimônio atual.
+  //     Query separada para não depender do limite do histórico completo.
+  const latestPricesQuery = useQuery({
+    queryKey: ['wealth', 'latest-prices', userId, [...tickers].sort()],
+    queryFn: () => wealthService.listLatestPrices(tickers),
+    enabled: Boolean(userId) && tickers.length > 0,
+    staleTime: WEALTH_STALE_TIME_MS,
+  })
+
+  const latestPriceRows: PriceHistoryRow[] = useMemo(
+    () => latestPricesQuery.data ?? [],
+    [latestPricesQuery.data],
   )
 
   // 3. Taxa USD/BRL — só busca quando há ativo internacional
@@ -126,19 +204,21 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
   // `?? 5` não cobre 0 porque 0 é falsy para `||` mas truthy para `??`.
   const usdRate = usdRateQuery.data?.rate || 5 // fallback R$ 5,00
 
-  // 4. Mapa de último preço por ticker (para composição)
-  const lastPricesMap = useMemo(() => buildLastPricesMap(priceRows), [priceRows])
+  // 4. Mapa de último preço por ticker — usa a query dedicada de preços recentes
+  //    para garantir que o patrimônio atual não seja afetado pelo limite do histórico
+  const lastPricesMap = useMemo(() => buildLastPricesMap(latestPriceRows), [latestPriceRows])
 
-  // 5. Série temporal derivada no cliente
+  // 5. Série temporal derivada no cliente — ancorada na primeira compra
   const series = useMemo(
-    () => buildWealthSeries(positions, priceRows, usdRate),
-    [positions, priceRows, usdRate],
+    () => buildWealthSeries(positions, priceRows, usdRate, earliestDate ?? undefined),
+    [positions, priceRows, usdRate, earliestDate],
   )
 
   const isLoading =
     isSessionLoading ||
     positionsQuery.isLoading ||
     (tickers.length > 0 && historyQuery.isLoading) ||
+    (tickers.length > 0 && latestPricesQuery.isLoading) ||
     (hasInternational && usdRateQuery.isLoading)
 
   const isError =
@@ -162,5 +242,7 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
     positions,
     lastPricesMap,
     usdRate,
+    earliestDate,
+    latestDate,
   }
 }

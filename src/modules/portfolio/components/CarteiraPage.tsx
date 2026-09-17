@@ -327,10 +327,10 @@ export function CarteiraPage() {
         <KpiCard
           icon="💡"
           title="Lucro total"
-          main={fmtBRL(dashboard.ganhoCapitalBRL)}
+          main={fmtBRL(dashboard.lucroTotalBRL)}
           mainColor={
-            dashboard.ganhoCapitalBRL === null ? 'text-white'
-              : dashboard.ganhoCapitalBRL >= 0 ? 'text-green-400' : 'text-red-400'
+            dashboard.lucroTotalBRL === null ? 'text-white'
+              : dashboard.lucroTotalBRL >= 0 ? 'text-green-400' : 'text-red-400'
           }
           sub1Label="Ganho de Capital"
           sub1Value={fmtBRL(dashboard.ganhoCapitalBRL)}
@@ -344,15 +344,43 @@ export function CarteiraPage() {
           sub1Label="Total"
           sub1Value={fmtBRL(dashboard.proventos12mBRL)}
         />
-        <KpiCard
-          icon="📊"
-          title="Rentabilidade (12M)"
-          main={dashboard.variacaoPct !== null ? fmtSignedPct(dashboard.variacaoPct) : '—'}
-          mainColor={
-            dashboard.variacaoPct === null ? 'text-white'
-              : dashboard.variacaoPct >= 0 ? 'text-green-400' : 'text-red-400'
-          }
-        />
+        {/* Card de Rentabilidade — dois valores lado a lado, estilo Investidor10 */}
+        <div className="rounded-xl border border-dark-border bg-dark-surface p-5 flex flex-col gap-2 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base" aria-hidden="true">📊</span>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Rentabilidade</p>
+          </div>
+          <div className="flex gap-6 flex-wrap">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-gray-500">Últimos 12M</p>
+              <p className={`text-xl font-bold tabular-nums ${
+                dashboard.variacaoPct === null ? 'text-gray-500'
+                  : dashboard.variacaoPct >= 0 ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                {dashboard.variacaoPct !== null
+                  ? `${fmtSignedPct(dashboard.variacaoPct)}%`
+                  : '—'}
+                {dashboard.variacaoPct !== null && (
+                  <span className="ml-1 text-sm">{dashboard.variacaoPct >= 0 ? '↗' : '↘'}</span>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-gray-500">Total</p>
+              <p className={`text-xl font-bold tabular-nums ${
+                dashboard.rentabilidadeTotalPct === null ? 'text-gray-500'
+                  : dashboard.rentabilidadeTotalPct >= 0 ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                {dashboard.rentabilidadeTotalPct !== null
+                  ? `${fmtSignedPct(dashboard.rentabilidadeTotalPct)}%`
+                  : '—'}
+                {dashboard.rentabilidadeTotalPct !== null && (
+                  <span className="ml-1 text-sm">{dashboard.rentabilidadeTotalPct >= 0 ? '↗' : '↘'}</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Gráfico de barras + pizza ───────────────────────────────────────── */}

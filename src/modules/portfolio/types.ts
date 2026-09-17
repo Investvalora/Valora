@@ -1,8 +1,8 @@
 /** Moeda de cotação do ativo. Espelha o CHECK de `assets.currency` (003). */
 export type AssetCurrency = 'BRL' | 'USD'
 
-/** Classe do ativo. Espelha o enum `public.asset_type` (003 + 014). */
-export type AssetType = 'stock_br' | 'fii' | 'bdr' | 'stock_us' | 'reit' | 'crypto' | 'fixed_income'
+/** Classe do ativo. Espelha o enum `public.asset_type` (003 + 014 + 021). */
+export type AssetType = 'stock_br' | 'fii' | 'bdr' | 'stock_us' | 'etf_us' | 'reit' | 'crypto' | 'fixed_income' | 'etf_br'
 
 // ─── Renda Fixa ────────────────────────────────────────────────────────────
 

@@ -25,6 +25,8 @@ export interface PositionSnapshot {
   currency: 'BRL' | 'USD'
   /** Tipo do ativo, necessário para determinar exposição internacional. */
   type: AssetType | null
+  /** Data de aquisição no formato `YYYY-MM-DD`. Usada para ancorar o início da série. */
+  acquisitionDate: string
 }
 
 /** Linha de preço histórico, conforme retornado por `price_history`. */

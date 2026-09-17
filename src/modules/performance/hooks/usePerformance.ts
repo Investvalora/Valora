@@ -8,14 +8,20 @@ import { dividendService } from '../../dividends/services/dividendService'
 import { benchmarkService } from '../services/benchmarkService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
 import {
-  normalizeToBase100,
-  computePortfolioReturn,
-  buildBenchmarkSeries,
-  extractReturnPct,
   computeAssetRows,
+  computeMonthlyPortfolioReturns,
+  computeMonthlyBenchmarkReturns,
+  buildMonthlyAccumulatedSeries,
+  accumulatedReturnFromMonthly,
+  buildIntramonthlySeries,
+  buildIntramonthlyBenchmarkSeries,
+  extractReturnPct,
+  normalizeToBase100,
+  computeMonthlyTableData,
 } from '../utils/performanceCalculations'
 import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
 import type { PerformancePeriod, PerformanceSeries, PerformanceSummary, AssetReturnRow } from '../types'
+import type { MonthlyTableRow } from '../utils/performanceCalculations'
 import type { PositionWithAsset } from '../../portfolio/types'
 import type { DividendRaw } from '../../dividends/types'
 import type { WealthPeriod } from '../../wealth/types'
@@ -47,18 +53,19 @@ export function performanceQueryKey(userId: string | undefined, period: Performa
 }
 
 export interface UsePerformanceResult {
-  /** Série da carteira normalizada a 100, para o gráfico. */
+  /** Série da carteira (acumulada mês a mês, base 100). */
   portfolioSeries: PerformanceSeries
-  /** Séries dos benchmarks normalizadas a 100, para o gráfico. */
+  /** Séries dos benchmarks (acumuladas mês a mês, base 100). */
   benchmarkSeries: PerformanceSeries[]
   /** Resumo de retornos para os cards. */
   summary: PerformanceSummary
-  /**
-   * Linhas da tabela de rentabilidade por ativo (Story 4.2).
-   * Derivado client-side a partir de `positions`, `wealth.lastPricesMap` e `dividendRows`.
-   * Ordenado por `totalReturnPct` decrescente por padrão.
-   */
+  /** Linhas da tabela de rentabilidade por ativo. */
   assetRows: AssetReturnRow[]
+  /**
+   * Tabela de rentabilidade mês a mês, agrupada por ano.
+   * Ordenada por ano decrescente. Usada para a grade estilo Investidor10.
+   */
+  monthlyTableData: MonthlyTableRow[]
   isLoading: boolean
   isError: boolean
   error: Error | null
@@ -71,28 +78,36 @@ export interface UsePerformanceResult {
 /**
  * Hook principal da tela Rentabilidade.
  *
- * Orquestra:
- * 1. `useWealthHistory` — série temporal de patrimônio + posições + USD rate
- * 2. `positionService.listPositions` — average_price para cálculo de aportes
- * 3. `useDividends` — proventos recebidos no período
- * 4. `benchmarkService.listBenchmarks` — séries de CDI, IBOV e IFIX
+ * Usa cálculo **mês a mês** (estilo Investidor10):
+ * - Retorno de cada mês = valorFimMês / valorFimMêsAnterior − 1
+ * - Série acumulada = composição dos retornos mensais (base 100)
+ * - Benchmarks seguem o mesmo algoritmo com seus valores diários
  *
- * Toda a derivação (normalização, cálculo de retorno, resumo) é client-side
- * em `useMemo` — conforme classificação AD-5.
+ * Isso torna benchmarks e carteira independentes de datas exatas,
+ * eliminando problemas de lag D+1 e fins de semana.
  */
 export function usePerformance(period: PerformancePeriod): UsePerformanceResult {
   const { user } = useAuth()
   const userId = user?.id
 
-  const since = useMemo(
+  // 1. Série de patrimônio diário + posições snapshot + USD rate
+  const wealth = useWealthHistory(period as WealthPeriod)
+
+  // Piso do período selecionado
+  const periodFloor = useMemo(
     () => shiftIsoDate(-PERIOD_DAYS[period]),
     [period],
   )
 
-  // 1. Série de patrimônio + posições snapshot + USD rate
-  const wealth = useWealthHistory(period as WealthPeriod)
+  // `since` efetivo: nunca antes da primeira compra
+  const since = useMemo(() => {
+    if (wealth.earliestDate && wealth.earliestDate > periodFloor) {
+      return wealth.earliestDate
+    }
+    return periodFloor
+  }, [periodFloor, wealth.earliestDate])
 
-  // 2. Posições completas (com average_price para aportes)
+  // 2. Posições completas (com average_price para computeAssetRows)
   const positionsQuery = useQuery<PositionWithAsset[]>({
     queryKey: ['portfolio', 'positions', userId],
     queryFn: () => positionService.listPositions(userId as string),
@@ -110,8 +125,7 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     [positions],
   )
 
-  // 3. Dividendos do período — query direta ao service para suportar todos os
-  //    períodos de WealthPeriod (incluindo 1M e 3M que DividendPeriod não aceita)
+  // 3. Dividendos do período
   const dividendsQuery = useQuery<DividendRaw[]>({
     queryKey: ['performance', 'dividends', userId, period, tickers],
     queryFn: () =>
@@ -122,7 +136,6 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     staleTime: STALE_TIME_MS,
   })
 
-  // Enriquece as linhas brutas com quantity e total_value client-side
   const dividendRows = useMemo(() => {
     const raw = dividendsQuery.data ?? []
     const qtyMap = new Map<string, number>()
@@ -138,15 +151,25 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
       })
   }, [dividendsQuery.data, positions])
 
-  // 4. Benchmarks
+  // 4. Benchmarks — busca desde o mês de `since` para ter o mês anterior
+  //    como base do primeiro retorno mensal
+  const benchmarkSince = useMemo(() => {
+    // Vai um mês antes do início para poder calcular o retorno do primeiro mês
+    const [year, month] = since.split('-').map(Number)
+    const prevMonth = month === 1
+      ? `${year - 1}-12-01`
+      : `${year}-${String(month - 1).padStart(2, '0')}-01`
+    return prevMonth < periodFloor ? periodFloor : prevMonth
+  }, [since, periodFloor])
+
   const benchmarksQuery = useQuery({
-    queryKey: ['benchmarks', period],
-    queryFn: () => benchmarkService.listBenchmarks(since),
-    enabled: Boolean(userId),
+    queryKey: ['benchmarks', period, benchmarkSince],
+    queryFn: () => benchmarkService.listBenchmarks(benchmarkSince),
+    enabled: Boolean(userId) && !wealth.isLoading,
     staleTime: STALE_TIME_MS,
   })
 
-  // 5. USD rate — reusa o valor já carregado por useWealthHistory via cache
+  // 5. USD rate
   const hasInternational = useMemo(
     () =>
       wealth.positions.some(
@@ -160,34 +183,87 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
   const usdRateQuery = useUSDRate({ enabled: hasInternational })
 
   // --- Derivações client-side ---
+  //
+  // Estratégia dual:
+  // - ≥ 2 meses de dados → cálculo mês a mês acumulado (estilo Investidor10)
+  // - < 2 meses (carteira nova, período 1M dentro do mês corrente) → fallback
+  //   intra-mês: normaliza dia a dia a partir do primeiro ponto disponível
 
-  // Série da carteira normalizada
+  const portfolioMonthlyReturns = useMemo(
+    () => computeMonthlyPortfolioReturns(wealth.series),
+    [wealth.series],
+  )
+
+  // true quando não há meses suficientes para o cálculo MoM
+  const useIntramonthlyfallback = portfolioMonthlyReturns.size === 0
+
+  // Série da carteira
   const portfolioSeries = useMemo<PerformanceSeries>(() => {
-    const points = normalizeToBase100(wealth.series)
-    return { label: 'Carteira', color: '#3b82f6', points }
+    if (useIntramonthlyfallback) {
+      return buildIntramonthlySeries(wealth.series, 'Carteira', '#3b82f6')
+    }
+    return buildMonthlyAccumulatedSeries(portfolioMonthlyReturns, 'Carteira', '#3b82f6')
+  }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
+
+  // Retorno acumulado da carteira para os cards
+  const portfolioReturnPct = useMemo(() => {
+    if (useIntramonthlyfallback) {
+      // Intra-mês: (últimoPonto / primeiroPonto) − 1
+      const pts = normalizeToBase100(wealth.series)
+      if (pts.length === 0) return null
+      const last = pts[pts.length - 1]
+      if (!last || !Number.isFinite(last.normalized)) return null
+      return last.normalized / 100 - 1
+    }
+    return accumulatedReturnFromMonthly(portfolioMonthlyReturns)
+  }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
+
+  // Data do primeiro ponto válido — para ancorar o fallback dos benchmarks
+  const portfolioStartDate = useMemo(() => {
+    const first = wealth.series.find((p) => p.value !== null && Number.isFinite(p.value))
+    return first?.date ?? null
   }, [wealth.series])
 
-  // Séries dos benchmarks normalizadas
+  // Séries dos benchmarks
   const benchmarkSeries = useMemo<PerformanceSeries[]>(() => {
     const rows = benchmarksQuery.data ?? []
-    return buildBenchmarkSeries(rows, [...BENCHMARK_CONFIG])
-  }, [benchmarksQuery.data])
 
-  // Retorno acumulado da carteira
-  const portfolioReturnPct = useMemo(
-    () => computePortfolioReturn(wealth.series, dividendRows, positions),
-    [wealth.series, dividendRows, positions],
-  )
+    return BENCHMARK_CONFIG.map(({ name, label, color }) => {
+      if (useIntramonthlyfallback) {
+        // Fallback: série diária normalizada a partir de portfolioStartDate
+        return buildIntramonthlyBenchmarkSeries(
+          rows as Array<{ date: string; name: string; value: number }>,
+          name,
+          label,
+          color,
+          portfolioStartDate ?? since,
+        )
+      }
+
+      // Cálculo MoM alinhado pelos meses da carteira
+      const nameRows = rows
+        .filter((r) => r.name === name)
+        .map((r) => ({ date: r.date, value: Number(r.value) }))
+
+      const monthlyReturns = computeMonthlyBenchmarkReturns(nameRows)
+      const portfolioMonths = new Set(portfolioMonthlyReturns.keys())
+      const alignedReturns = new Map<string, number>()
+      for (const [month, ret] of monthlyReturns) {
+        if (portfolioMonths.has(month)) alignedReturns.set(month, ret)
+      }
+      return buildMonthlyAccumulatedSeries(alignedReturns, label, color)
+    })
+  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, portfolioStartDate, since])
 
   // Resumo para os cards
   const summary = useMemo<PerformanceSummary>(() => {
-    const cdiSeries  = benchmarkSeries.find((s) => s.label === 'CDI')
-    const ibovSeries = benchmarkSeries.find((s) => s.label === 'IBOV')
-    const ifixSeries = benchmarkSeries.find((s) => s.label === 'IFIX')
+    const [cdiSeries, ibovSeries, ifixSeries] = benchmarkSeries
 
-    const cdiReturnPct  = cdiSeries  ? extractReturnPct(cdiSeries)  : null
-    const ibovReturnPct = ibovSeries ? extractReturnPct(ibovSeries) : null
-    const ifixReturnPct = ifixSeries ? extractReturnPct(ifixSeries) : null
+    const toReturn = (s: PerformanceSeries): number | null => extractReturnPct(s)
+
+    const cdiReturnPct  = cdiSeries  ? toReturn(cdiSeries)  : null
+    const ibovReturnPct = ibovSeries ? toReturn(ibovSeries) : null
+    const ifixReturnPct = ifixSeries ? toReturn(ifixSeries) : null
 
     const vscdipPp =
       portfolioReturnPct !== null && cdiReturnPct !== null
@@ -197,10 +273,27 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     return { portfolioReturnPct, cdiReturnPct, ibovReturnPct, ifixReturnPct, vscdipPp }
   }, [portfolioReturnPct, benchmarkSeries])
 
-  // Linhas da tabela de rentabilidade por ativo (Story 4.2)
-  const assetRows = useMemo<AssetReturnRow[]>(
-    () => computeAssetRows(positions, wealth.lastPricesMap, dividendRows),
-    [positions, wealth.lastPricesMap, dividendRows],
+  // Tabela de rentabilidade por ativo
+  const assetRows = useMemo<AssetReturnRow[]>(() => {
+    const firstPoint = wealth.series.find((p) => p.value !== null && Number.isFinite(p.value))
+    const lastPoint = wealth.series.length > 0 ? wealth.series[wealth.series.length - 1] : null
+
+    if (firstPoint && lastPoint) {
+      return computeAssetRows(
+        positions,
+        wealth.lastPricesMap,
+        dividendRows,
+        firstPoint.date,
+        lastPoint.date,
+      )
+    }
+    return computeAssetRows(positions, wealth.lastPricesMap, dividendRows)
+  }, [positions, wealth.lastPricesMap, dividendRows, wealth.series])
+
+  // Tabela mês a mês (estilo Investidor10)
+  const monthlyTableData = useMemo<MonthlyTableRow[]>(
+    () => computeMonthlyTableData(portfolioMonthlyReturns),
+    [portfolioMonthlyReturns],
   )
 
   const isLoading =
@@ -230,6 +323,7 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
     benchmarkSeries,
     summary,
     assetRows,
+    monthlyTableData,
     isLoading,
     isError,
     error,

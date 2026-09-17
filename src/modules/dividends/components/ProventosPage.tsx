@@ -68,7 +68,7 @@ class ChartErrorBoundary extends Component<
  * Estados tratados: loading, erro, sem posições, sem dividendos no período.
  */
 export function ProventosPage() {
-  const [period, setPeriod] = useState<DividendPeriod>('6M')
+  const [period, setPeriod] = useState<DividendPeriod>('1A')
   const [sort, setSort] = useState<DividendSort>(DEFAULT_SORT)
   const [tickerFilter, setTickerFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')

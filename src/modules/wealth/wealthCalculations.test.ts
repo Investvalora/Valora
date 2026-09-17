@@ -9,13 +9,14 @@ import type { PositionSnapshot, PriceHistoryRow } from './types'
 function pos(
   ticker: string,
   quantity: number,
-  opts: { currency?: 'BRL' | 'USD'; type?: string | null } = {},
+  opts: { currency?: 'BRL' | 'USD'; type?: string | null; acquisitionDate?: string } = {},
 ): PositionSnapshot {
   return {
     ticker,
     quantity,
     currency: opts.currency ?? 'BRL',
     type: (opts.type !== undefined ? opts.type : 'stock_br') as PositionSnapshot['type'],
+    acquisitionDate: opts.acquisitionDate ?? '2025-01-01',
   }
 }
 

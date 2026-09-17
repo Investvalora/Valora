@@ -5,6 +5,7 @@ import { usePerformance } from '../hooks/usePerformance'
 import { AssetReturnTable } from './AssetReturnTable'
 import type { PerformancePeriod } from '../types'
 import type { WealthPeriod } from '../../wealth/types'
+import type { MonthlyTableRow } from '../utils/performanceCalculations'
 
 const PerformanceLineChart = lazy(() => import('./PerformanceLineChart'))
 
@@ -104,6 +105,78 @@ function SummaryCard({ label, returnPct, color, vscdipPp }: SummaryCardProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Tabela mês a mês (estilo Investidor10)
+// ---------------------------------------------------------------------------
+
+const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+const MONTH_KEYS   = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+
+const pctCellFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+})
+
+function fmtPct(v: number | null | undefined): string {
+  if (v === null || v === undefined) return '—'
+  return `${pctCellFormatter.format(v * 100)}%`
+}
+
+function MonthlyReturnTable({ rows }: { rows: MonthlyTableRow[] }) {
+  if (rows.length === 0) return null
+
+  return (
+    <div className="rounded-xl border border-dark-border bg-dark-surface p-6">
+      <h2 className="text-sm font-semibold text-gray-300 mb-4">Rentabilidade</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-right">
+          <thead>
+            <tr className="border-b border-dark-border text-gray-400">
+              <th className="text-left py-2 pr-3 font-medium w-14">Ano</th>
+              {MONTH_LABELS.map((m) => (
+                <th key={m} className="py-2 px-1.5 font-medium">{m}</th>
+              ))}
+              <th className="py-2 pl-3 font-medium text-gray-300">Retorno anual</th>
+              <th className="py-2 pl-3 font-medium text-gray-300">Acumulado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.year} className="border-b border-dark-border/50 hover:bg-dark-bg/30 transition-colors">
+                <td className="text-left py-2 pr-3 font-semibold text-white">{row.year}</td>
+                {MONTH_KEYS.map((key) => {
+                  const val = row.months.get(key) ?? null
+                  const color = val === null
+                    ? 'text-gray-600'
+                    : val >= 0 ? 'text-green-400' : 'text-red-400'
+                  return (
+                    <td key={key} className={`py-2 px-1.5 tabular-nums ${color}`}>
+                      {fmtPct(val)}
+                    </td>
+                  )
+                })}
+                <td className={`py-2 pl-3 tabular-nums font-semibold ${
+                  row.annualReturn === null ? 'text-gray-600'
+                    : row.annualReturn >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {fmtPct(row.annualReturn)}
+                </td>
+                <td className={`py-2 pl-3 tabular-nums font-semibold ${
+                  row.accumulatedReturn === null ? 'text-gray-600'
+                    : row.accumulatedReturn >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {fmtPct(row.accumulatedReturn)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 
@@ -126,6 +199,7 @@ export function RentabilidadePage() {
     benchmarkSeries,
     summary,
     assetRows,
+    monthlyTableData,
     isLoading,
     isError,
     error,
@@ -266,6 +340,11 @@ export function RentabilidadePage() {
           </ChartErrorBoundary>
         )}
       </div>
+
+      {/* Tabela mês a mês */}
+      {monthlyTableData.length > 0 && (
+        <MonthlyReturnTable rows={monthlyTableData} />
+      )}
 
       {/* Tabela de rentabilidade por ativo */}
       <AssetReturnTable rows={assetRows} />

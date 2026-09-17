@@ -43,8 +43,10 @@ const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   fii: 'FIIs',
   bdr: 'BDRs',
   stock_us: 'Stocks',
+  etf_us: 'ETF US',
   reit: 'REITs',
   crypto: 'Criptomoedas',
+  etf_br: 'ETF BR',
 }
 
 // ─── componente ──────────────────────────────────────────────────────────────

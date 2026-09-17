@@ -27,13 +27,15 @@ import type {
  * fatia sem rótulo na tela.
  */
 export const ASSET_CLASS_LABEL: Record<AssetType, string> = {
-  stock_br:     'Ações BR',
+  stock_br:     'Ações',
   fii:          'FIIs',
   bdr:          'BDRs',
-  stock_us:     'Stocks US',
+  stock_us:     'Stocks',
+  etf_us:       'ETFs',
   reit:         'REITs',
   crypto:       'Cryptos',
   fixed_income: 'Renda Fixa',
+  etf_br:       'ETFs',
 }
 
 /** Bucket das posições avaliadas cuja classe não veio no catálogo. */
@@ -49,9 +51,11 @@ export const UNKNOWN_ASSET_CLASS_LABEL = 'Outros'
  */
 export const ASSET_CLASS_ORDER: readonly AssetType[] = [
   'stock_br',
+  'etf_br',
   'fii',
   'bdr',
   'stock_us',
+  'etf_us',
   'reit',
   'crypto',
   'fixed_income',
@@ -64,7 +68,7 @@ export const ASSET_CLASS_ORDER: readonly AssetType[] = [
  * assim é exposição a empresa estrangeira, enquanto filtrar por `currency`
  * deixaria o BDR de fora e inflaria a fatia "nacional".
  */
-export const INTERNATIONAL_TYPES: readonly AssetType[] = ['bdr', 'stock_us', 'reit', 'crypto']
+export const INTERNATIONAL_TYPES: readonly AssetType[] = ['bdr', 'stock_us', 'etf_us', 'reit', 'crypto']
 
 /**
  * Cor de cada classe na pizza e no marcador da legenda.
@@ -80,9 +84,11 @@ export const ASSET_CLASS_COLOR: Record<AssetType, string> = {
   fii:          '#4ade80',
   bdr:          '#facc15',
   stock_us:     '#a78bfa',
+  etf_us:       '#c084fc',
   reit:         '#fb923c',
   crypto:       '#f472b6',
   fixed_income: '#34d399',
+  etf_br:       '#86efac',
 }
 
 export const UNKNOWN_ASSET_CLASS_COLOR = '#94a3b8'

@@ -65,6 +65,10 @@ export interface FundamentalsRow {
   dy: number | null
   debt_equity: number | null
   net_margin: number | null
+  /** Lucro por ação — usado no cálculo de Payout e Graham. Pode estar ausente em registros antigos. */
+  lpa?: number | null
+  /** Valor patrimonial por ação — usado no cálculo Graham. Pode estar ausente em registros antigos. */
+  vpa?: number | null
   updated_at: string
 }
 

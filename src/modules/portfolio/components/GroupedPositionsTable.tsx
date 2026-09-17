@@ -1,15 +1,11 @@
 import { useMemo, useState } from 'react'
-import {
-  groupRowsByClass,
-  ASSET_CLASS_LABEL,
-} from '../composition'
-import {
-  sortPositionRows,
-} from '../positionRows'
-import { PositionRows } from './PositionsTable'
+import { groupRowsByClass, ASSET_CLASS_LABEL } from '../composition'
+import { sortPositionRows } from '../positionRows'
+import { PositionRows, SortableHeader, HEADER_CLASS } from './PositionsTable'
 import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
+import type { ColumnId } from '../hooks/useColumnVisibility'
 
-// ─── formatadores ─────────────────────────────────────────────────────────────
+// ─── formatadores locais (só para o header do grupo) ─────────────────────────
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -17,40 +13,26 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
-
 const signedPctFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
   signDisplay: 'exceptZero',
 })
-
 const plainPctFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 })
-
 const MISSING = '—'
+const fmtBRL = (v: number | null) =>
+  v === null || !Number.isFinite(v) ? MISSING : brlFormatter.format(v)
+const fmtSignedPct = (v: number | null) =>
+  v === null || !Number.isFinite(v) ? MISSING : `${signedPctFormatter.format(v)}%`
+const fmtPct = (v: number | null) =>
+  v === null || !Number.isFinite(v) ? MISSING : `${plainPctFormatter.format(v)}%`
 
-function fmtBRL(v: number | null): string {
-  if (v === null || !Number.isFinite(v)) return MISSING
-  return brlFormatter.format(v)
-}
+// ─── ícone de classe ──────────────────────────────────────────────────────────
 
-function fmtSignedPct(v: number | null): string {
-  if (v === null || !Number.isFinite(v)) return MISSING
-  return `${signedPctFormatter.format(v)}%`
-}
-
-function fmtPct(v: number | null): string {
-  if (v === null || !Number.isFinite(v)) return MISSING
-  return `${plainPctFormatter.format(v)}%`
-}
-
-// ─── ícones de classe ─────────────────────────────────────────────────────────
-
-/** Ícone SVG simples por classe — letra inicial sobre fundo colorido. */
 function ClassIcon({ label, color }: { label: string; color: string }) {
-  // Pega a primeira letra do label para o símbolo (ex: "A" de Ações BR)
   const letter = label.charAt(0).toUpperCase()
   return (
     <span
@@ -63,48 +45,6 @@ function ClassIcon({ label, color }: { label: string; color: string }) {
   )
 }
 
-// ─── header de coluna da tabela interna ──────────────────────────────────────
-
-const HEADER_CLASS =
-  'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
-
-function ariaSort(sort: PositionSort, column: PositionSortColumn) {
-  if (sort.column !== column) return 'none' as const
-  return sort.direction === 'asc' ? ('ascending' as const) : ('descending' as const)
-}
-
-function SortableColHeader({
-  column,
-  label,
-  sort,
-  onSortChange,
-  align = 'left',
-}: {
-  column: PositionSortColumn
-  label: string
-  sort: PositionSort
-  onSortChange: (c: PositionSortColumn) => void
-  align?: 'left' | 'right'
-}) {
-  const isActive = sort.column === column
-  const alignClass = align === 'right' ? 'text-right' : 'text-left'
-
-  return (
-    <th scope="col" aria-sort={ariaSort(sort, column)} className={`${HEADER_CLASS} ${alignClass}`}>
-      <button
-        type="button"
-        onClick={() => onSortChange(column)}
-        className={`inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          isActive ? 'text-white' : 'text-gray-500'
-        }`}
-      >
-        {label}
-        <span aria-hidden="true">{isActive ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </button>
-    </th>
-  )
-}
-
 // ─── props ────────────────────────────────────────────────────────────────────
 
 interface GroupedPositionsTableProps {
@@ -114,6 +54,8 @@ interface GroupedPositionsTableProps {
   onSortChange: (column: PositionSortColumn) => void
   scoreByTicker?: Map<string, number | null>
   fundamentalsUpdatedAt?: Map<string, string>
+  /** Colunas opcionais visíveis — vem do useColumnVisibility da CarteiraPage. */
+  visibleColumns?: Set<ColumnId>
 }
 
 // ─── componente principal ─────────────────────────────────────────────────────
@@ -125,13 +67,12 @@ export function GroupedPositionsTable({
   onSortChange,
   scoreByTicker,
   fundamentalsUpdatedAt,
+  visibleColumns,
 }: GroupedPositionsTableProps) {
   const groups = useMemo(() => groupRowsByClass(rows, totalBRL), [rows, totalBRL])
-
-  // Todos os grupos começam expandidos
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
-  function toggle(key: string) {
+  function toggleGroup(key: string) {
     setCollapsed((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -139,6 +80,9 @@ export function GroupedPositionsTable({
       return next
     })
   }
+
+  // Helper de visibilidade — sem Set significa "tudo visível"
+  const show = (col: ColumnId) => !visibleColumns || visibleColumns.has(col)
 
   if (groups.length === 0) {
     return (
@@ -151,12 +95,10 @@ export function GroupedPositionsTable({
     )
   }
 
-  // Total de ativos para o título da seção
   const totalCount = groups.reduce((acc, g) => acc + g.summary.count, 0)
 
   return (
     <div className="space-y-3">
-      {/* Título da seção */}
       <h2 className="text-base font-semibold text-white">
         Meus Ativos{' '}
         <span className="text-gray-400 font-normal">({totalCount})</span>
@@ -165,37 +107,31 @@ export function GroupedPositionsTable({
       {groups.map(({ summary, rows: groupRows }) => {
         const isCollapsed = collapsed.has(summary.key)
         const sortedGroupRows = sortPositionRows(groupRows, sort)
-        const hasScoreCol = !!scoreByTicker
 
         return (
           <div
             key={summary.key}
             className="overflow-hidden rounded-xl border border-dark-border bg-dark-surface"
           >
-            {/* ── Header do grupo ──────────────────────────────────────────── */}
+            {/* ── Header do grupo ─────────────────────────────────────────── */}
             <button
               type="button"
-              onClick={() => toggle(summary.key)}
+              onClick={() => toggleGroup(summary.key)}
               className="w-full px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
               aria-expanded={!isCollapsed}
               aria-controls={`group-body-${summary.key}`}
               aria-label={`${summary.label} — ${summary.count} ativo${summary.count !== 1 ? 's' : ''}, ${isCollapsed ? 'expandir' : 'recolher'}`}
             >
-              {/* Ícone + label */}
               <span className="flex items-center gap-3 flex-shrink-0">
                 <ClassIcon label={summary.label} color={summary.color} />
-                <span className="text-base font-semibold text-white">
-                  {summary.label}
-                </span>
+                <span className="text-base font-semibold text-white">{summary.label}</span>
               </span>
 
-              {/* Contagem */}
               <span className="flex flex-col items-start">
                 <span className="text-xs text-gray-400">Ativos</span>
                 <span className="text-sm font-medium text-white">{summary.count}</span>
               </span>
 
-              {/* Valor total */}
               <span className="flex flex-col items-start ml-auto sm:ml-0">
                 <span className="text-xs text-gray-400">Valor total</span>
                 <span className="text-sm font-medium text-white tabular-nums">
@@ -203,12 +139,12 @@ export function GroupedPositionsTable({
                 </span>
               </span>
 
-              {/* Variação média */}
               <span className="flex flex-col items-start">
                 <span className="text-xs text-gray-400">Variação</span>
                 <span
                   className={`text-sm font-medium tabular-nums ${
-                    summary.avgChangePercent === null || !Number.isFinite(summary.avgChangePercent)
+                    summary.avgChangePercent === null ||
+                    !Number.isFinite(summary.avgChangePercent)
                       ? 'text-gray-400'
                       : summary.avgChangePercent > 0
                         ? 'text-green-400'
@@ -221,7 +157,6 @@ export function GroupedPositionsTable({
                 </span>
               </span>
 
-              {/* % na carteira */}
               <span className="flex flex-col items-start">
                 <span className="text-xs text-gray-400">% na carteira</span>
                 <span className="text-sm font-medium text-white tabular-nums">
@@ -229,7 +164,6 @@ export function GroupedPositionsTable({
                 </span>
               </span>
 
-              {/* Chevron */}
               <span
                 className={`ml-auto flex-shrink-0 text-gray-400 transition-transform duration-200 ${
                   isCollapsed ? '-rotate-90' : 'rotate-0'
@@ -240,7 +174,7 @@ export function GroupedPositionsTable({
               </span>
             </button>
 
-            {/* ── Tabela interna ────────────────────────────────────────────── */}
+            {/* ── Tabela interna ───────────────────────────────────────────── */}
             {!isCollapsed && (
               <div
                 id={`group-body-${summary.key}`}
@@ -248,11 +182,14 @@ export function GroupedPositionsTable({
               >
                 <table className="w-full border-collapse">
                   <caption className="sr-only">
-                    {ASSET_CLASS_LABEL[summary.key as keyof typeof ASSET_CLASS_LABEL] ?? summary.label} — posições
+                    {ASSET_CLASS_LABEL[summary.key as keyof typeof ASSET_CLASS_LABEL] ??
+                      summary.label}{' '}
+                    — posições
                   </caption>
                   <thead className="bg-dark-bg">
                     <tr>
-                      <SortableColHeader
+                      {/* Colunas fixas */}
+                      <SortableHeader
                         column="ticker"
                         label="Ticker"
                         sort={sort}
@@ -262,23 +199,56 @@ export function GroupedPositionsTable({
                       <th className={`${HEADER_CLASS} text-right`}>Quant.</th>
                       <th className={`${HEADER_CLASS} text-right`}>Preço médio</th>
                       <th className={`${HEADER_CLASS} text-right`}>Cotação</th>
-                      <th className={`${HEADER_CLASS} text-right`}>Valor mercado</th>
-                      <SortableColHeader
-                        column="weight"
-                        label="Peso"
-                        sort={sort}
-                        onSortChange={onSortChange}
-                        align="right"
-                      />
-                      <SortableColHeader
+
+                      {/* Colunas opcionais */}
+                      {show('saldo') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Saldo</th>
+                      )}
+                      {show('peso') && (
+                        <SortableHeader
+                          column="weight"
+                          label="% Carteira"
+                          sort={sort}
+                          onSortChange={onSortChange}
+                          align="right"
+                        />
+                      )}
+
+                      {/* Variação — sempre visível */}
+                      <SortableHeader
                         column="change"
                         label="Variação"
                         sort={sort}
                         onSortChange={onSortChange}
                         align="right"
                       />
-                      {hasScoreCol && (
-                        <SortableColHeader
+
+                      {show('proventos') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Proventos (12M)</th>
+                      )}
+                      {show('payout') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Payout %</th>
+                      )}
+                      {show('pl') && (
+                        <th className={`${HEADER_CLASS} text-right`}>P/L</th>
+                      )}
+                      {show('pvp') && (
+                        <th className={`${HEADER_CLASS} text-right`}>P/VP</th>
+                      )}
+                      {show('dy') && (
+                        <th className={`${HEADER_CLASS} text-right`}>DY %</th>
+                      )}
+                      {show('yieldOnCost') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Yield on Cost</th>
+                      )}
+                      {show('graham') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Preço Justo (Graham)</th>
+                      )}
+                      {show('bazin') && (
+                        <th className={`${HEADER_CLASS} text-right`}>Preço-Teto Bazin</th>
+                      )}
+                      {show('score') && scoreByTicker && (
+                        <SortableHeader
                           column="score"
                           label="Score"
                           sort={sort}
@@ -286,7 +256,11 @@ export function GroupedPositionsTable({
                           align="right"
                         />
                       )}
-                      <th className={HEADER_CLASS}>Aquisição</th>
+                      {show('aquisicao') && (
+                        <th className={HEADER_CLASS}>Aquisição</th>
+                      )}
+
+                      {/* Opções — sempre visível */}
                       <th className={`${HEADER_CLASS} text-right`}>Opções</th>
                     </tr>
                   </thead>
@@ -298,6 +272,7 @@ export function GroupedPositionsTable({
                       scoreByTicker={scoreByTicker}
                       fundamentalsUpdatedAt={fundamentalsUpdatedAt}
                       showActions={true}
+                      visibleColumns={visibleColumns}
                     />
                   </tbody>
                 </table>

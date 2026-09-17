@@ -201,13 +201,13 @@ describe('PositionsTable — data de aquisição', () => {
   it('exibe o dia que está na string ISO, sem deslocar pelo fuso', () => {
     renderTable({ positions: [position({ acquisition_date: '2026-01-05' })] })
 
-    expect(cellText('Data de aquisição')).toBe('05/01/2026')
+    expect(cellText('Aquisição')).toBe('05/01/2026')
   })
 
   it('data em formato inesperado é exibida como veio, sem virar Invalid Date', () => {
     renderTable({ positions: [position({ acquisition_date: 'sem data' })] })
 
-    expect(cellText('Data de aquisição')).toBe('sem data')
+    expect(cellText('Aquisição')).toBe('sem data')
   })
 })
 
@@ -216,10 +216,10 @@ describe('PositionsTable — cotação, valor de mercado, peso e variação', ()
     renderTable({ positions: [position()], quotes: [quote()] })
 
     expect(cellText('Cotação')).toContain('34,50')
-    // 100 × 34,50
-    expect(cellText('Valor de mercado')).toContain('3.450,00')
+    // 100 × 34,50 — coluna "Saldo"
+    expect(cellText('Saldo')).toContain('3.450,00')
     // Única posição avaliada: todo o peso está nela.
-    expect(cellText('Peso')).toBe('100,00%')
+    expect(cellText('% Carteira')).toBe('100,00%')
     // (34,50 − 32,10) / 32,10 = +7,48%
     expect(cellText('Variação')).toBe('+7,48%')
   })
@@ -247,15 +247,15 @@ describe('PositionsTable — cotação, valor de mercado, peso e variação', ()
 
     expect(cellText('Cotação', /AAPL/)).not.toContain('R$')
     // 10 × 150 × 5,12 = 7.680,00
-    expect(cellText('Valor de mercado', /AAPL/)).toContain('R$')
-    expect(cellText('Valor de mercado', /AAPL/)).toContain('7.680,00')
+    expect(cellText('Saldo', /AAPL/)).toContain('R$')
+    expect(cellText('Saldo', /AAPL/)).toContain('7.680,00')
   })
 
   it('sem cotação na janela, a posição continua listada e os derivados ficam vazios', () => {
     renderTable({ positions: [position()], quotes: [] })
 
     expect(screen.getByRole('row', { name: /PETR4/ })).toBeInTheDocument()
-    for (const column of ['Cotação', 'Valor de mercado', 'Peso', 'Variação']) {
+    for (const column of ['Cotação', 'Saldo', '% Carteira', 'Variação']) {
       expect(cellText(column)).toBe('—')
       // Zero afirmaria que a posição não vale nada; a verdade é que ninguém sabe.
       expect(cellText(column)).not.toContain('0,00')
@@ -277,8 +277,8 @@ describe('PositionsTable — cotação, valor de mercado, peso e variação', ()
     })
 
     // 3.000 e 3.000 → 50% cada.
-    expect(cellText('Peso', /PETR4/)).toBe('50,00%')
-    expect(cellText('Peso', /VALE3/)).toBe('50,00%')
+    expect(cellText('% Carteira', /PETR4/)).toBe('50,00%')
+    expect(cellText('% Carteira', /VALE3/)).toBe('50,00%')
   })
 })
 
@@ -399,7 +399,7 @@ describe('PositionsTable — ordenação', () => {
     render(<MemoryRouter><SortableTable /></MemoryRouter>)
 
     expect(tickerOrder()).toEqual(['PETR4', 'AAPL4'])
-    expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute(
+    expect(screen.getByRole('columnheader', { name: /% Carteira/ })).toHaveAttribute(
       'aria-sort',
       'descending',
     )
@@ -420,7 +420,7 @@ describe('PositionsTable — ordenação', () => {
       'aria-sort',
       'ascending',
     )
-    expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute('aria-sort', 'none')
+    expect(screen.getByRole('columnheader', { name: /% Carteira/ })).toHaveAttribute('aria-sort', 'none')
   })
 
   it('alterna para variação e inverte no segundo clique', async () => {
@@ -478,8 +478,8 @@ describe('PositionsTable — ordenação', () => {
 
     expect(tickerOrder()).toEqual(['PETR4', 'ZZZZ3'])
 
-    await user.click(screen.getByRole('button', { name: /Peso/ }))
-    expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute(
+    await user.click(screen.getByRole('button', { name: /% Carteira/ }))
+    expect(screen.getByRole('columnheader', { name: /% Carteira/ })).toHaveAttribute(
       'aria-sort',
       'ascending',
     )

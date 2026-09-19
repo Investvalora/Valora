@@ -16,8 +16,8 @@ export function AppShell() {
     : user?.email?.split('@')[0] ?? 'Sua conta'
 
   return (
-    <div className="flex min-h-dvh bg-dark-bg text-slate-100">
-      <aside className={`hidden shrink-0 border-r border-dark-border bg-dark-surface transition-[width] duration-200 md:block ${isSidebarCompact ? 'w-[56px]' : 'w-[200px]'}`}>
+    <div className="h-dvh overflow-hidden bg-dark-bg text-slate-100">
+      <aside className={`fixed inset-y-0 left-0 z-20 hidden border-r border-dark-border bg-dark-surface transition-[width] duration-200 md:block ${isSidebarCompact ? 'w-[56px]' : 'w-[200px]'}`}>
         <Sidebar
           alertCount={alertCount}
           accountName={accountName}
@@ -42,7 +42,7 @@ export function AppShell() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`flex h-full min-w-0 flex-col transition-[margin] duration-200 ${isSidebarCompact ? 'md:ml-[56px]' : 'md:ml-[200px]'}`}>
         <header className="flex h-16 items-center justify-between border-b border-dark-border bg-dark-surface/90 px-4 backdrop-blur md:hidden">
           <span className="text-lg font-bold tracking-tight text-white">Valora</span>
           <button

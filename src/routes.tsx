@@ -16,6 +16,7 @@ import { ScorePage } from './modules/score/components/ScorePage'
 import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
 import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
 import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
+import { AccountPage } from './modules/preferences/components/AccountPage'
 
 export function AppRoutes() {
   return (
@@ -42,6 +43,7 @@ export function AppRoutes() {
           <Route path="estrategias" element={<EstrategiasPage />} />
           <Route path="alertas" element={<AlertsPage />} />
           <Route path="lancamentos" element={<LancamentosPage />} />
+          <Route path="conta" element={<AccountPage />} />
           <Route path="ativo/:ticker" element={<AtivoDetailPage />} />
         </Route>
       </Route>

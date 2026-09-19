@@ -13,6 +13,7 @@ import { useScoreRules } from '../../score/hooks/useScoreRules'
 import { useScorePreferences } from '../../score/hooks/useScorePreferences'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useBazin } from '../../valuation/hooks/useBazin'
+import type { AssetCurrency } from '../../portfolio/types'
 import type { WealthPeriod } from '../../wealth/types'
 
 const PriceLineChart = lazy(() => import('./PriceLineChart'))
@@ -169,7 +170,11 @@ export function AtivoDetailPage() {
   const scoreValue = activeScoreName ? (scoreByTicker.get(ticker) ?? null) : undefined
 
   // ── Bazin ───────────────────────────────────────────────────────────────────
-  const { bazinByTicker } = useBazin([ticker], 0.06)
+  const bazinCurrencyMap = useMemo(
+    () => new Map([[ticker, (asset?.currency ?? 'BRL') as AssetCurrency]]),
+    [ticker, asset?.currency],
+  )
+  const { bazinByTicker } = useBazin([ticker], 0.06, bazinCurrencyMap)
   const bazin = bazinByTicker.get(ticker)
 
   // ── Cotação e posição ───────────────────────────────────────────────────────

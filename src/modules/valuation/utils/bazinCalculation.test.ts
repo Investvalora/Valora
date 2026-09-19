@@ -7,7 +7,8 @@ import {
   sortBazinResults,
 } from './bazinCalculation'
 import type { DividendRaw } from '../../dividends/types'
-import type { LatestQuote } from '../../portfolio/types'
+import type { AssetCurrency, LatestQuote } from '../../portfolio/types'
+import type { BazinResult } from '../types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,19 +128,23 @@ describe('applyBazin', () => {
   const divs = [div('PETR4', 1.20), div('PETR4', 1.20), div('VALE3', 2.00)]
   const quotes = [quote('PETR4', 35.00), quote('VALE3', 70.00)]
   const minDY = 0.06
+  // Todos os tickers de teste são BRL — mapa vazio faz fallback para 'BRL'.
+  const currencyMap = new Map<string, AssetCurrency>()
+  const usdRate = 5.0
 
   it('happy path: calcula teto e margem para ativo com dados completos', () => {
-    const result = applyBazin(['PETR4'], divs, quotes, minDY)
+    const result = applyBazin(['PETR4'], divs, quotes, minDY, currencyMap, usdRate)
     const r = result.get('PETR4')!
     expect(r.annualDividend).toBeCloseTo(2.40)
     expect(r.ceilingPrice).toBeCloseTo(40.00)
     expect(r.currentPrice).toBeCloseTo(35.00)
     expect(r.margin).toBeCloseTo(14.286, 2)
     expect(r.hasData).toBe(true)
+    expect(r.currency).toBe('BRL')
   })
 
   it('N/A: ativo sem dividendos → hasData=false, ceilingPrice=null, margin=null', () => {
-    const result = applyBazin(['BBAS3'], divs, quotes, minDY)
+    const result = applyBazin(['BBAS3'], divs, quotes, minDY, currencyMap, usdRate)
     const r = result.get('BBAS3')!
     expect(r.annualDividend).toBe(0)
     expect(r.hasData).toBe(false)
@@ -148,7 +153,7 @@ describe('applyBazin', () => {
   })
 
   it('cotação ausente: teto calculado, currentPrice=null, margin=null', () => {
-    const result = applyBazin(['VALE3'], divs, [], minDY) // sem quotes
+    const result = applyBazin(['VALE3'], divs, [], minDY, currencyMap, usdRate)
     const r = result.get('VALE3')!
     expect(r.ceilingPrice).toBeCloseTo(2.00 / 0.06, 2)
     expect(r.currentPrice).toBeNull()
@@ -157,30 +162,42 @@ describe('applyBazin', () => {
   })
 
   it('DY = 0: ceilingPrice e margin são null', () => {
-    const result = applyBazin(['PETR4'], divs, quotes, 0)
+    const result = applyBazin(['PETR4'], divs, quotes, 0, currencyMap, usdRate)
     const r = result.get('PETR4')!
     expect(r.ceilingPrice).toBeNull()
     expect(r.margin).toBeNull()
   })
 
   it('processa múltiplos tickers independentemente', () => {
-    const result = applyBazin(['PETR4', 'VALE3', 'BBAS3'], divs, quotes, minDY)
+    const result = applyBazin(['PETR4', 'VALE3', 'BBAS3'], divs, quotes, minDY, currencyMap, usdRate)
     expect(result.get('PETR4')!.hasData).toBe(true)
     expect(result.get('VALE3')!.hasData).toBe(true)
     expect(result.get('BBAS3')!.hasData).toBe(false)
   })
 
   it('retorna mapa vazio para lista de tickers vazia', () => {
-    const result = applyBazin([], divs, quotes, minDY)
+    const result = applyBazin([], divs, quotes, minDY, currencyMap, usdRate)
     expect(result.size).toBe(0)
+  })
+
+  it('converte dividendos e cotação USD→BRL pelo usdRate', () => {
+    const usdDivs = [div('AAPL', 0.24)]
+    const usdQuotes = [quote('AAPL', 219.49)]
+    const usdMap = new Map<string, AssetCurrency>([['AAPL', 'USD']])
+    const rate = 5.15
+    const result = applyBazin(['AAPL'], usdDivs, usdQuotes, minDY, usdMap, rate)
+    const r = result.get('AAPL')!
+    expect(r.annualDividend).toBeCloseTo(0.24 * rate, 4)
+    expect(r.currentPrice).toBeCloseTo(219.49 * rate, 2)
+    expect(r.currency).toBe('USD')
   })
 })
 
 // ─── sortBazinResults ─────────────────────────────────────────────────────────
 
 describe('sortBazinResults', () => {
-  function r(ticker: string, margin: number | null): { ticker: string; margin: number | null; annualDividend: number; ceilingPrice: number | null; currentPrice: number | null; hasData: boolean } {
-    return { ticker, margin, annualDividend: 1, ceilingPrice: margin !== null ? 40 : null, currentPrice: 35, hasData: margin !== null }
+  function r(ticker: string, margin: number | null): BazinResult {
+    return { ticker, currency: 'BRL', margin, annualDividend: 1, ceilingPrice: margin !== null ? 40 : null, currentPrice: 35, hasData: margin !== null }
   }
 
   it('ordena por margem decrescente', () => {

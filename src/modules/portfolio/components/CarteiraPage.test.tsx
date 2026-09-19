@@ -599,7 +599,7 @@ describe('CarteiraPage — ordenação da lista', () => {
 
     // Peso desc: 6.000 > 1.200 > 200.
     await waitFor(() => expect(tickerOrder()).toEqual(['VALE3', 'ITUB4', 'PETR4']))
-    expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute(
+    expect(screen.getByRole('columnheader', { name: /% Carteira/ })).toHaveAttribute(
       'aria-sort',
       'descending',
     )
@@ -622,7 +622,7 @@ describe('CarteiraPage — ordenação da lista', () => {
       'aria-sort',
       'ascending',
     )
-    expect(screen.getByRole('columnheader', { name: /Peso/ })).toHaveAttribute('aria-sort', 'none')
+    expect(screen.getByRole('columnheader', { name: /% Carteira/ })).toHaveAttribute('aria-sort', 'none')
   })
 
   it('exporta as linhas na ordem ativa sem buscar dados novos', async () => {

@@ -2,11 +2,10 @@ import { supabase } from '../../../shared/services/supabaseClient'
 import type { FundamentalsRow } from '../types'
 
 /**
- * Colunas selecionadas — apenas as usadas no cálculo de score e na UI.
- * `lpa` e `vpa` não são métricas de score no MVP, então são omitidos.
+ * Colunas selecionadas — inclui `lpa` e `vpa` para Graham e Payout.
  */
 const FUNDAMENTALS_COLUMNS =
-  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, updated_at'
+  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, updated_at'
 
 export const fundamentalsService = {
   /**

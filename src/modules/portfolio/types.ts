@@ -234,6 +234,37 @@ export interface PositionRow {
    * `undefined` = nenhum score está ativo na sessão (coluna oculta).
    */
   score?: number | null
+  // ── Colunas extras (opcionais — presentes quando fundamentals/dividendos carregam) ──
+  /** Saldo = valor de mercado em BRL (alias de marketValueBRL, exibido separado). */
+  // (já existe como marketValueBRL)
+  /** P/L da tabela fundamentals. */
+  pl?: number | null
+  /** P/VP da tabela fundamentals. */
+  pvp?: number | null
+  /** Dividend Yield % da tabela fundamentals. */
+  dy?: number | null
+  /** Proventos recebidos nos últimos 12M em BRL (qty × value_per_share). */
+  proventosRecebidosBRL?: number | null
+  /**
+   * Payout % = (dividendos_por_ação / lpa) × 100.
+   * `null` quando lpa ausente ou ≤ 0.
+   */
+  payoutPercent?: number | null
+  /**
+   * Yield on Cost % = (proventos_recebidos / custo_total) × 100.
+   * custo_total = averagePrice × quantity.
+   */
+  yieldOnCostPercent?: number | null
+  /**
+   * Preço Justo Graham = √(22,5 × LPA × VPA).
+   * `null` quando LPA ou VPA ausentes ou ≤ 0.
+   */
+  grahamPrice?: number | null
+  /**
+   * Preço-Teto Bazin = dividendo_anual / DY_mínimo (default 6%).
+   * `null` quando sem histórico de dividendos.
+   */
+  bazinCeiling?: number | null
 }
 
 /**

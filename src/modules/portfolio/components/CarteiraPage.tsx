@@ -15,15 +15,20 @@ import {
   nextSort,
   sortPositionRows,
 } from '../positionRows'
-import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
+import { enrichPositionRows } from '../enrichPositionRows'
+import type { PositionRow, PositionSort, PositionSortColumn, AssetCurrency } from '../types'
 import { FIXED_INCOME_TYPE_LABEL } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { AddFixedIncomeForm } from './AddFixedIncomeForm'
 import { GroupedPositionsTable } from './GroupedPositionsTable'
+import { ColumnEditorPanel } from './ColumnEditorPanel'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
+import { useColumnVisibility } from '../hooks/useColumnVisibility'
+import { useDividendTotals } from '../hooks/useDividendTotals'
+import { useBazin } from '../../valuation/hooks/useBazin'
 import { assetClassColor, assetClassLabel } from '../composition'
 import type { AssetClassSlice } from '../types'
 
@@ -170,6 +175,10 @@ export function CarteiraPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [sort, setSort] = useState<PositionSort>(DEFAULT_POSITION_SORT)
   const [activeScoreName, setActiveScoreName] = useState<string | null>(null)
+  const [showColumnEditor, setShowColumnEditor] = useState(false)
+
+  // ── Visibilidade de colunas ────────────────────────────────────────────────
+  const columnVisibility = useColumnVisibility()
 
   // ── Dashboard (KPIs + gráficos) ────────────────────────────────────────────
   const dashboard = useDashboard()
@@ -197,6 +206,46 @@ export function CarteiraPage() {
     [positions, quotes, usdRate],
   )
 
+  // ── Fundamentals — carregados sempre (não só com score ativo) ─────────────
+  const fundamentalsQuery = useFundamentals(tickers)
+  const fundamentals = useMemo(() => fundamentalsQuery.data ?? [], [fundamentalsQuery.data])
+
+  const fundamentalsByTicker = useMemo(() => {
+    const map = new Map(fundamentals.map((f) => [f.ticker, f]))
+    return map
+  }, [fundamentals])
+
+  const fundamentalsUpdatedAt = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const row of fundamentals) map.set(row.ticker, row.updated_at)
+    return map
+  }, [fundamentals])
+
+  // ── Proventos por ticker (12M) ─────────────────────────────────────────────
+  const quantityByTicker = useMemo(
+    () => new Map(positions.map((p) => [p.ticker, p.quantity])),
+    [positions],
+  )
+  const dividendTotals = useDividendTotals(tickers, quantityByTicker)
+
+  // ── Bazin (preço-teto) — reutiliza a lógica já existente na aba Estratégias
+  const currencyByTickerForBazin = useMemo<Map<string, AssetCurrency>>(
+    () => new Map(positions.map((p) => [p.ticker, p.asset?.currency ?? 'BRL'])),
+    [positions],
+  )
+  const { bazinByTicker } = useBazin(tickers, 0.06, currencyByTickerForBazin)
+
+  // ── Enriquecimento com pl, pvp, dy, proventos, payout, yieldOnCost, graham, bazin
+  const enrichedBase = useMemo(
+    () => enrichPositionRows({
+      rows: derived.rows,
+      fundamentalsByTicker,
+      dividendTotalsByTicker: dividendTotals,
+      bazinByTicker,
+    }),
+    [derived.rows, fundamentalsByTicker, dividendTotals, bazinByTicker],
+  )
+
   // ── Score ──────────────────────────────────────────────────────────────────
   const { data: allRules = [] } = useScoreRules()
 
@@ -209,24 +258,15 @@ export function CarteiraPage() {
     return allRules.filter((r) => r.name === activeScoreName)
   }, [allRules, activeScoreName])
 
-  const fundamentalsQuery = useFundamentals(activeScoreName ? tickers : [])
-  const fundamentals = useMemo(() => fundamentalsQuery.data ?? [], [fundamentalsQuery.data])
-
-  const fundamentalsUpdatedAt = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const row of fundamentals) map.set(row.ticker, row.updated_at)
-    return map
-  }, [fundamentals])
-
   const scoreByTicker = useCalculateScore(activeRules, fundamentals)
 
   const enrichedRows = useMemo((): PositionRow[] => {
-    if (!activeScoreName || scoreByTicker.size === 0) return derived.rows
-    return derived.rows.map((row) => ({
+    if (!activeScoreName || scoreByTicker.size === 0) return enrichedBase
+    return enrichedBase.map((row) => ({
       ...row,
       score: scoreByTicker.has(row.ticker) ? (scoreByTicker.get(row.ticker) ?? null) : null,
     }))
-  }, [derived.rows, activeScoreName, scoreByTicker])
+  }, [enrichedBase, activeScoreName, scoreByTicker])
 
   const scoredRows = useMemo(() => sortPositionRows(enrichedRows, sort), [enrichedRows, sort])
 
@@ -311,6 +351,23 @@ export function CarteiraPage() {
           >
             Gerar insights
           </button>
+          {/* Botão Editar colunas */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowColumnEditor((v) => !v)}
+              className="rounded-lg border border-gray-600 px-4 py-2.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-expanded={showColumnEditor}
+            >
+              ⊞ Editar colunas
+            </button>
+            {showColumnEditor && (
+              <ColumnEditorPanel
+                visibility={columnVisibility}
+                onClose={() => setShowColumnEditor(false)}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -531,7 +588,8 @@ export function CarteiraPage() {
           sort={sort}
           onSortChange={handleSortChange}
           scoreByTicker={activeScoreName ? scoreByTicker : undefined}
-          fundamentalsUpdatedAt={activeScoreName ? fundamentalsUpdatedAt : undefined}
+          fundamentalsUpdatedAt={fundamentalsUpdatedAt}
+          visibleColumns={columnVisibility.visible}
         />
       ) : null}
 

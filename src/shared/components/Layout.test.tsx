@@ -32,5 +32,7 @@ describe('Layout', () => {
     )
 
     expect(screen.getByLabelText('2 alertas novos')).toHaveTextContent('2')
+    expect(screen.getByRole('link', { name: 'Sua conta' })).toHaveAttribute('href', '/conta')
+    expect(screen.queryByRole('button', { name: /sair/i })).not.toBeInTheDocument()
   })
 })

@@ -3,8 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { dividendService } from '../../dividends/services/dividendService'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
+import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { USD_RATE_DEFAULT } from '../../../shared/services/usdRateService'
 import { applyBazin } from '../utils/bazinCalculation'
+import type { AssetCurrency } from '../../portfolio/types'
 import type { BazinByTicker } from '../types'
 
 /** staleTime de 5 minutos — dividendos mudam com pouca frequência (seed trimestral). */
@@ -22,6 +25,8 @@ export interface UseBazinResult {
   bazinByTicker: BazinByTicker
   isLoading: boolean
   isError: boolean
+  /** `true` quando a taxa USD/BRL não veio de uma fonte ao vivo (cache ou default). */
+  isUSDRateFallback: boolean
   refetch: () => void
 }
 
@@ -30,15 +35,27 @@ export interface UseBazinResult {
  *
  * Combina:
  * 1. Dividendos dos últimos 12 meses (query ao banco)
- * 2. Cotações mais recentes via `useLatestQuotes` (reutilizado sem modificação)
- * 3. Cálculo síncrono via `useMemo` — sem chamada ao banco, sem persistência (AD-5/AD-9)
+ * 2. Cotações mais recentes via `useLatestQuotes`
+ * 3. Taxa USD/BRL via `useUSDRate` — necessária para converter dividendos e
+ *    cotações de ativos USD (NVDA, AMZN, GOOGL, AAPL, META etc.) para BRL.
+ * 4. Cálculo síncrono via `useMemo` — sem chamada ao banco, sem persistência
  *
- * @param tickers  Lista de tickers da carteira do usuário.
- * @param minDY    DY mínimo em decimal (ex: 0.06 para 6%).
+ * @param tickers           Lista de tickers da carteira do usuário.
+ * @param minDY             DY mínimo em decimal (ex: 0.06 para 6%).
+ * @param currencyByTicker  Map ticker → 'BRL'|'USD', derivado das posições.
  */
-export function useBazin(tickers: string[], minDY: number): UseBazinResult {
+export function useBazin(
+  tickers: string[],
+  minDY: number,
+  currencyByTicker: Map<string, AssetCurrency>,
+): UseBazinResult {
   const { user } = useAuth()
   const userId = user?.id
+
+  const hasUSD = useMemo(
+    () => [...currencyByTicker.values()].some((c) => c === 'USD'),
+    [currencyByTicker],
+  )
 
   // Sempre 12 meses fixos — independente de seletor de período.
   const since = shiftIsoDate(-365, new Date())
@@ -57,24 +74,39 @@ export function useBazin(tickers: string[], minDY: number): UseBazinResult {
   // Query 2: cotações mais recentes (staleTime 60s, sem userId na key).
   const quotesQuery = useLatestQuotes(tickers)
 
+  // Query 3: taxa USD/BRL — só busca quando há ativos USD na carteira.
+  const usdRateQuery = useUSDRate({ enabled: hasUSD })
+
   const dividends = useMemo(() => dividendsQuery.data ?? [], [dividendsQuery.data])
   const quotes = useMemo(() => quotesQuery.data ?? [], [quotesQuery.data])
+  const usdRate = usdRateQuery.data?.rate ?? USD_RATE_DEFAULT
+  const isUSDRateFallback = usdRateQuery.data?.isFallback ?? true
 
-  // Cálculo síncrono — recalcula apenas quando dados ou DY mínimo mudam.
-  const bazinByTicker = useMemo(
-    () => applyBazin(tickers, dividends, quotes, minDY),
-    // tickers.join é instável para tickers com vírgula; JSON.stringify com sort garante key única e estável.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify([...tickers].sort()), dividends, quotes, minDY],
+  // Chave estável para o mapa de moedas (evita recálculo desnecessário).
+  const currencyKey = useMemo(
+    () => JSON.stringify([...currencyByTicker.entries()].sort()),
+    [currencyByTicker],
   )
 
-  const isLoading = dividendsQuery.isLoading || quotesQuery.isLoading
+  // Cálculo síncrono — recalcula apenas quando dados, DY mínimo ou câmbio mudam.
+  const bazinByTicker = useMemo(
+    () => applyBazin(tickers, dividends, quotes, minDY, currencyByTicker, usdRate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify([...tickers].sort()), dividends, quotes, minDY, currencyKey, usdRate],
+  )
+
+  const isLoading =
+    dividendsQuery.isLoading ||
+    quotesQuery.isLoading ||
+    (hasUSD && usdRateQuery.isLoading)
+
   const isError = dividendsQuery.isError || quotesQuery.isError
 
   const refetch = () => {
     void dividendsQuery.refetch()
     void quotesQuery.refetch()
+    if (hasUSD) void usdRateQuery.refetch()
   }
 
-  return { bazinByTicker, isLoading, isError, refetch }
+  return { bazinByTicker, isLoading, isError, isUSDRateFallback, refetch }
 }

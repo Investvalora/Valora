@@ -16,7 +16,7 @@ import {
   sortPositionRows,
 } from '../positionRows'
 import { enrichPositionRows } from '../enrichPositionRows'
-import type { PositionRow, PositionSort, PositionSortColumn } from '../types'
+import type { PositionRow, PositionSort, PositionSortColumn, AssetCurrency } from '../types'
 import { FIXED_INCOME_TYPE_LABEL } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { AddFixedIncomeForm } from './AddFixedIncomeForm'
@@ -229,7 +229,11 @@ export function CarteiraPage() {
   const dividendTotals = useDividendTotals(tickers, quantityByTicker)
 
   // ── Bazin (preço-teto) — reutiliza a lógica já existente na aba Estratégias
-  const { bazinByTicker } = useBazin(tickers, 0.06)
+  const currencyByTickerForBazin = useMemo<Map<string, AssetCurrency>>(
+    () => new Map(positions.map((p) => [p.ticker, p.asset?.currency ?? 'BRL'])),
+    [positions],
+  )
+  const { bazinByTicker } = useBazin(tickers, 0.06, currencyByTickerForBazin)
 
   // ── Enriquecimento com pl, pvp, dy, proventos, payout, yieldOnCost, graham, bazin
   const enrichedBase = useMemo(

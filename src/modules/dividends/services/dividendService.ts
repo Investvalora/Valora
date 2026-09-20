@@ -9,6 +9,20 @@ const DIVIDEND_COLUMNS = 'ticker, type, ex_date, payment_date, value_per_share'
 
 export const dividendService = {
   /**
+   * Sincroniza dividendos reais via Yahoo Finance para os tickers fornecidos
+   * (ou para todos os tickers da carteira se nenhum for informado).
+   * Os dados são persistidos na tabela `dividends` com source='yahoo',
+   * sobrescrevendo os dados sintéticos do seed.
+   */
+  async syncFromYahoo(tickers?: string[]): Promise<{ synced: number; inserted: number; tickers_processed: string[] }> {
+    const { data, error } = await supabase.functions.invoke('sync-dividends-yahoo', {
+      body: tickers && tickers.length > 0 ? { tickers } : {},
+    })
+    if (error) throw error
+    return data as { synced: number; inserted: number; tickers_processed: string[] }
+  },
+
+  /**
    * Proventos dos tickers fornecidos no intervalo `[since, hoje]`.
    *
    * Filtros aplicados no banco:

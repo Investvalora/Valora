@@ -63,3 +63,69 @@ export interface GrahamResult {
 
 /** Map de ticker → resultado Graham. */
 export type GrahamByTicker = Map<string, GrahamResult>
+
+// ─── Insights ─────────────────────────────────────────────────────────────────
+
+export type InsightStrategy = 'bazin' | 'graham'
+
+/**
+ * Registro de insight salvo pelo usuário.
+ * Espelha a tabela `public.insights`.
+ */
+export interface InsightRecord {
+  id: string
+  user_id: string
+  ticker: string
+  strategy: InsightStrategy
+  currency: AssetCurrency
+  /** DY mínimo usado no cálculo Bazin (decimal, ex: 0.06). Null para Graham. */
+  min_dy: number | null
+  /** Dividendo anual em BRL — Bazin. */
+  annual_dividend: number | null
+  /** Preço-teto Bazin em BRL. */
+  ceiling_price: number | null
+  /** Preço justo Graham em BRL. */
+  graham_price: number | null
+  /** Cotação em BRL no momento do cálculo. */
+  current_price: number | null
+  /** Margem de segurança (%). */
+  margin: number | null
+  /** LPA — Graham. */
+  lpa: number | null
+  /** VPA — Graham. */
+  vpa: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Payload para criar um insight Bazin. */
+export interface CreateBazinInsightPayload {
+  ticker: string
+  currency: AssetCurrency
+  min_dy: number
+  annual_dividend: number
+  ceiling_price: number | null
+  current_price: number | null
+  margin: number | null
+}
+
+/** Payload para criar um insight Graham. */
+export interface CreateGrahamInsightPayload {
+  ticker: string
+  currency: AssetCurrency
+  graham_price: number | null
+  current_price: number | null
+  margin: number | null
+  lpa: number | null
+  vpa: number | null
+}
+
+/** Resposta da Edge Function fetch-dividends-yahoo. */
+export interface YahooDividendsResponse {
+  ticker: string
+  symbol: string
+  annualDividend: number
+  payments: Array<{ date: string; amount: number }>
+  source: 'yahoo'
+}

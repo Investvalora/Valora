@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { positionService } from '../../portfolio/services/positionService'
 import { dividendService } from '../services/dividendService'
@@ -194,3 +194,30 @@ export function useHasPositions(): { hasPositions: boolean; isLoading: boolean }
   }
 }
 
+
+/**
+ * Sincroniza dividendos reais do Yahoo Finance para a carteira do usuário.
+ *
+ * Após o sucesso, invalida todas as queries de dividendos para que ProventosPage,
+ * Dashboard e AtivoDetailPage reflitam os dados atualizados automaticamente.
+ */
+export function useSyncDividends() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error('Sessão ausente. Entre novamente.')
+      return dividendService.syncFromYahoo()
+    },
+    onSuccess: () => {
+      // Invalida todas as queries que começam com 'dividends', 'dashboard' e
+      // 'portfolio' (inclui dividend-totals da tabela de posições)
+      void queryClient.invalidateQueries({ queryKey: ['dividends'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      void queryClient.invalidateQueries({ queryKey: ['assets', 'dividends'] })
+      void queryClient.invalidateQueries({ queryKey: ['portfolio', 'dividend-totals'] })
+    },
+  })
+}

@@ -1,35 +1,8 @@
-import { useMemo, useState } from 'react'
-import { Tooltip } from '../../../shared/components/Tooltip'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useHasPositions } from '../../dividends/hooks/useDividends'
-import { useBazin } from '../hooks/useBazin'
-import { useGraham } from '../hooks/useGraham'
-import { sortBazinResults } from '../utils/bazinCalculation'
-import type { AssetCurrency } from '../../portfolio/types'
-import type { BazinResult, GrahamResult } from '../types'
-
-// ─── tipos ────────────────────────────────────────────────────────────────────
-
-type StrategyId = 'bazin' | 'graham'
-
-interface Strategy {
-  id: StrategyId
-  label: string
-  description: string
-}
-
-const STRATEGIES: Strategy[] = [
-  {
-    id: 'bazin',
-    label: 'Bazin',
-    description: 'Preço-teto = Dividendo anual por ação ÷ DY mínimo desejado.',
-  },
-  {
-    id: 'graham',
-    label: 'Graham',
-    description: 'Preço justo = √(22,5 × LPA × VPA). Margem de segurança sobre a cotação atual.',
-  },
-]
+import { useState } from 'react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { useInsights, useDeleteInsight } from '../hooks/useInsights'
+import { NovoInsightModal } from './NovoInsightModal'
+import type { InsightRecord } from '../types'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
 
@@ -40,473 +13,326 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 2,
 })
 
-const decimalFormatter = new Intl.NumberFormat('pt-BR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
 const percentFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
   signDisplay: 'exceptZero',
 })
 
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+})
+
 const MISSING = '—'
 
-function formatBRL(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return MISSING
+function formatBRL(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return MISSING
   return brlFormatter.format(value)
 }
 
-/** Formata número sem símbolo de moeda — usado para LPA/VPA de ativos USD. */
-function formatDecimal(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return MISSING
-  return decimalFormatter.format(value)
-}
-
-function formatPercent(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return MISSING
+function formatPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return MISSING
   return `${percentFormatter.format(value)}%`
 }
 
-// ─── componentes compartilhados ───────────────────────────────────────────────
+// ─── MarginIndicator ──────────────────────────────────────────────────────────
 
-function MarginIndicator({ margin, positiveLabel, negativeLabel }: {
-  margin: number | null
+function MarginIndicator({
+  margin,
+  positiveLabel,
+  negativeLabel,
+}: {
+  margin: number | null | undefined
   positiveLabel?: string
   negativeLabel?: string
 }) {
-  if (margin === null) return <span className="text-gray-500">{MISSING}</span>
-
-  const isOpportunity = margin > 0
-  const color = isOpportunity ? 'text-green-400' : 'text-red-400'
-  const icon = isOpportunity ? '▲' : '▼'
-  const ariaLabel = isOpportunity
-    ? `${formatPercent(margin)} ${positiveLabel ?? 'acima'}`
-    : `${formatPercent(margin)} ${negativeLabel ?? 'abaixo'}`
-
+  if (margin == null || !Number.isFinite(margin)) {
+    return <span className="text-gray-500">{MISSING}</span>
+  }
+  const isOpp = margin > 0
   return (
     <span
-      className={`inline-flex items-center gap-1 font-semibold ${color}`}
-      aria-label={ariaLabel}
+      className={`inline-flex items-center gap-1 font-semibold ${isOpp ? 'text-green-400' : 'text-red-400'}`}
+      aria-label={`${formatPercent(margin)} ${isOpp ? (positiveLabel ?? 'acima') : (negativeLabel ?? 'abaixo')}`}
     >
-      <span aria-hidden="true">{icon}</span>
+      <span aria-hidden="true">{isOpp ? '▲' : '▼'}</span>
       {formatPercent(margin)}
     </span>
   )
 }
 
-function NaCell({ ticker, reason }: { ticker: string; reason: string }) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className="text-gray-500">N/A</span>
-      <Tooltip label={`Ausência de dados para ${ticker}`}>
-        <>
-          <span className="block font-semibold text-white">Sem dados</span>
-          <span className="mt-1 block text-gray-300 text-xs">{reason}</span>
-        </>
-      </Tooltip>
-    </span>
-  )
-}
+// ─── ExplicacaoCalculo ────────────────────────────────────────────────────────
 
-/** Badge exibido quando a taxa USD/BRL veio de cache ou constante. */
-function USDFallbackBadge() {
-  return (
-    <Tooltip label="Taxa USD/BRL aproximada">
-      <>
-        <span className="block font-semibold text-white">Taxa USD/BRL aproximada</span>
-        <span className="mt-1 block text-gray-300 text-xs">
-          Não foi possível obter a cotação atualizada do dólar. Os valores em BRL
-          para ativos USD foram calculados com uma taxa estimada e podem estar
-          ligeiramente desatualizados.
-        </span>
-      </>
-    </Tooltip>
-  )
-}
+/** Painel expansível com a conta passo a passo do insight. */
+function ExplicacaoCalculo({ insight }: { insight: InsightRecord }) {
+  const dyPct = insight.min_dy !== null ? (insight.min_dy * 100).toFixed(1) : '6,0'
 
-// ─── tabs de estratégia ───────────────────────────────────────────────────────
+  if (insight.strategy === 'bazin') {
+    const dividendo = insight.annual_dividend
+    const teto = insight.ceiling_price
+    const cotacao = insight.current_price
+    const margem = insight.margin
 
-function StrategyTabs({
-  active,
-  onChange,
-}: {
-  active: StrategyId
-  onChange: (id: StrategyId) => void
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Estratégias de valuation"
-      className="flex gap-1 rounded-xl border border-dark-border bg-dark-surface p-1 w-fit"
-    >
-      {STRATEGIES.map((s) => {
-        const isActive = s.id === active
-        return (
-          <button
-            key={s.id}
-            role="tab"
-            aria-selected={isActive}
-            aria-controls={`panel-${s.id}`}
-            id={`tab-${s.id}`}
-            type="button"
-            onClick={() => onChange(s.id)}
-            className={[
-              'px-5 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-              isActive
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-gray-400 hover:text-white hover:bg-dark-bg',
-            ].join(' ')}
-          >
-            {s.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── seção Bazin ──────────────────────────────────────────────────────────────
-
-const BAZIN_NA_REASON =
-  'Não há dividendos registrados para este ativo nos últimos 12 meses. O cálculo Bazin exige pelo menos um provento no período.'
-
-function BazinRow({ result }: { result: BazinResult }) {
-  const CELL = 'px-4 py-3 text-sm text-gray-200'
-  const CELL_RIGHT = `${CELL} text-right`
-
-  return (
-    <tr className="border-t border-dark-border hover:bg-dark-surface/50 transition-colors">
-      <th scope="row" className={`${CELL} font-semibold text-white text-left`}>
-        <span className="flex items-center gap-2">
-          {result.ticker}
-          {result.currency === 'USD' && (
-            <span className="text-xs text-gray-500 font-normal">USD→BRL</span>
-          )}
-        </span>
-      </th>
-      <td className={CELL_RIGHT}>
-        {result.hasData
-          ? formatBRL(result.annualDividend)
-          : <NaCell ticker={result.ticker} reason={BAZIN_NA_REASON} />}
-      </td>
-      <td className={CELL_RIGHT}>{formatBRL(result.currentPrice)}</td>
-      <td className={CELL_RIGHT}>
-        {result.ceilingPrice !== null
-          ? formatBRL(result.ceilingPrice)
-          : result.hasData
-            ? MISSING
-            : <NaCell ticker={result.ticker} reason={BAZIN_NA_REASON} />}
-      </td>
-      <td className={CELL_RIGHT}>
-        {result.hasData
-          ? <MarginIndicator margin={result.margin} positiveLabel="abaixo do teto" negativeLabel="acima do teto" />
-          : <NaCell ticker={result.ticker} reason={BAZIN_NA_REASON} />}
-      </td>
-    </tr>
-  )
-}
-
-interface BazinSectionProps {
-  tickers: string[]
-  currencyByTicker: Map<string, AssetCurrency>
-}
-
-function BazinSection({ tickers, currencyByTicker }: BazinSectionProps) {
-  const [minDYPct, setMinDYPct] = useState<number>(6)
-  const [inputError, setInputError] = useState<string>('')
-
-  const effectiveDY = minDYPct > 0 && minDYPct <= 100 ? minDYPct / 100 : 0.06
-
-  const { bazinByTicker, isLoading, isError, isUSDRateFallback, refetch } = useBazin(
-    tickers,
-    effectiveDY,
-    currencyByTicker,
-  )
-
-  const sortedResults = useMemo(
-    () => sortBazinResults(Array.from(bazinByTicker.values())),
-    [bazinByTicker],
-  )
-
-  const hasUSD = useMemo(
-    () => [...currencyByTicker.values()].some((c) => c === 'USD'),
-    [currencyByTicker],
-  )
-
-  function handleDYChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value
-    const parsed = parseFloat(raw)
-
-    setMinDYPct(isNaN(parsed) ? 0 : parsed)
-
-    if (raw === '' || isNaN(parsed)) {
-      setInputError('Informe um valor numérico para o DY mínimo.')
-      return
-    }
-    if (parsed <= 0) {
-      setInputError('DY mínimo deve ser maior que zero.')
-      return
-    }
-    if (parsed > 100) {
-      setInputError('DY mínimo não pode ser maior que 100%.')
-      return
-    }
-    setInputError('')
-    setMinDYPct(parsed)
-  }
-
-  if (isLoading) {
-    return <p className="text-gray-400 animate-pulse py-6">Carregando dados Bazin…</p>
-  }
-
-  if (isError) {
     return (
-      <div
-        role="alert"
-        className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col gap-3"
-      >
-        <p className="text-red-400 font-medium">Erro ao carregar dados de dividendos ou cotações.</p>
-        <button
-          type="button"
-          onClick={refetch}
-          className="self-start rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-        >
-          Tentar novamente
-        </button>
+      <div className="px-4 pb-4 text-sm text-gray-300 space-y-3">
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-400 flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5" />
+            Como o Bazin foi calculado
+          </p>
+          <p className="text-xs text-gray-400">
+            O método Bazin estima o <strong className="text-white">preço-teto</strong> — o valor máximo que
+            vale pagar por um ativo com base no dividendo que ele distribui. Se a cotação estiver
+            abaixo do teto, o ativo está numa faixa de oportunidade.
+          </p>
+
+          <div className="mt-3 space-y-1.5 font-mono text-xs">
+            <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+              <span className="text-gray-400">Dividendo anual (12 meses)</span>
+              <span className="text-white">{formatBRL(dividendo)}</span>
+            </div>
+            <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+              <span className="text-gray-400">DY mínimo desejado</span>
+              <span className="text-white">{dyPct}%</span>
+            </div>
+            <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+              <span className="text-gray-400">
+                Preço-teto = {formatBRL(dividendo)} ÷ {dyPct}%
+              </span>
+              <span className="text-white font-semibold">{formatBRL(teto)}</span>
+            </div>
+            <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+              <span className="text-gray-400">Cotação no momento</span>
+              <span className="text-white">{formatBRL(cotacao)}</span>
+            </div>
+            <div className="flex justify-between gap-4 pt-0.5">
+              <span className="text-gray-400">
+                Margem = ({formatBRL(teto)} − {formatBRL(cotacao)}) ÷ {formatBRL(cotacao)}
+              </span>
+              <MarginIndicator margin={margem} positiveLabel="abaixo do teto" negativeLabel="acima do teto" />
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-500 pt-1">
+            {(margem ?? 0) > 0
+              ? `A cotação está ${formatPercent(margem)} abaixo do teto — dentro da margem de segurança Bazin.`
+              : `A cotação está ${formatPercent(Math.abs(margem ?? 0))} acima do teto — fora da margem de segurança Bazin.`}
+          </p>
+          <p className="text-xs text-gray-600">
+            Dividendos dos últimos 12 meses via Yahoo Finance · Cotação via price_history
+          </p>
+        </div>
       </div>
     )
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Controle de DY mínimo */}
-      <div className="flex flex-wrap items-end gap-4 rounded-xl border border-dark-border bg-dark-surface px-6 py-5">
-        <div>
-          <label htmlFor="min-dy" className="block text-sm font-medium text-gray-300 mb-1">
-            DY mínimo desejado (%)
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="min-dy"
-              type="number"
-              step="0.5"
-              min="0.1"
-              max="100"
-              value={minDYPct || ''}
-              onChange={handleDYChange}
-              aria-invalid={!!inputError}
-              aria-describedby={inputError ? 'min-dy-error' : undefined}
-              className="w-28 px-3 py-2 rounded-lg border border-dark-border bg-dark-bg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <span className="text-gray-400 text-sm">%</span>
-          </div>
-          {inputError && (
-            <p id="min-dy-error" className="mt-1 text-xs text-red-400" role="alert">
-              {inputError}
-            </p>
-          )}
-        </div>
+  // Graham
+  const lpa = insight.lpa
+  const vpa = insight.vpa
+  const justo = insight.graham_price
+  const cotacao = insight.current_price
+  const margem = insight.margin
 
-        <div className="text-sm text-gray-400 flex-1">
-          <p>
-            Preço-teto ={' '}
-            <span className="text-white font-mono">
-              Dividendo 12M ÷ {(effectiveDY * 100).toFixed(1)}%
+  return (
+    <div className="px-4 pb-4 text-sm text-gray-300 space-y-3">
+      <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-purple-400 flex items-center gap-1.5">
+          <Info className="h-3.5 w-3.5" />
+          Como o Graham foi calculado
+        </p>
+        <p className="text-xs text-gray-400">
+          O método Graham estima o <strong className="text-white">preço justo</strong> com base no
+          lucro e no patrimônio por ação. A fórmula clássica de Benjamin Graham é{' '}
+          <span className="font-mono text-white">√(22,5 × LPA × VPA)</span>, onde 22,5 = 15 (P/L
+          máximo) × 1,5 (P/VP máximo).
+        </p>
+
+        <div className="mt-3 space-y-1.5 font-mono text-xs">
+          <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+            <span className="text-gray-400">LPA (Lucro Por Ação)</span>
+            <span className="text-white">{formatBRL(lpa)}</span>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+            <span className="text-gray-400">VPA (Valor Patrimonial Por Ação)</span>
+            <span className="text-white">{formatBRL(vpa)}</span>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+            <span className="text-gray-400">
+              Preço justo = √(22,5 × {formatBRL(lpa)} × {formatBRL(vpa)})
             </span>
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {sortedResults.filter((r) => r.hasData && r.margin !== null && r.margin > 0).length} ativo(s) abaixo do teto ·{' '}
-            {sortedResults.filter((r) => r.hasData && r.margin !== null && r.margin <= 0).length} acima
-          </p>
-        </div>
-
-        {hasUSD && isUSDRateFallback && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-400">
-            <span>⚠ Taxa USD/BRL aproximada</span>
-            <USDFallbackBadge />
+            <span className="text-white font-semibold">{formatBRL(justo)}</span>
           </div>
-        )}
-      </div>
+          <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
+            <span className="text-gray-400">Cotação no momento</span>
+            <span className="text-white">{formatBRL(cotacao)}</span>
+          </div>
+          <div className="flex justify-between gap-4 pt-0.5">
+            <span className="text-gray-400">
+              Margem = ({formatBRL(justo)} − {formatBRL(cotacao)}) ÷ {formatBRL(cotacao)}
+            </span>
+            <MarginIndicator margin={margem} positiveLabel="abaixo do justo" negativeLabel="acima do justo" />
+          </div>
+        </div>
 
-      {/* Tabela */}
-      {sortedResults.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-dark-border p-10 text-center">
-          <p className="text-gray-400">Nenhum dado de preço-teto disponível para a carteira atual.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-dark-border">
-          <table className="w-full border-collapse">
-            <caption className="sr-only">Preço-Teto Bazin por ativo da carteira</caption>
-            <thead className="bg-dark-bg">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Ticker</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Dividendo 12M (R$/ação)</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Cotação atual</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Preço-Teto Bazin</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Margem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedResults.map((result) => (
-                <BazinRow key={result.ticker} result={result} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <p className="text-xs text-gray-500 pt-1">
+          {(margem ?? 0) > 0
+            ? `A cotação está ${formatPercent(margem)} abaixo do preço justo — dentro da margem de segurança Graham.`
+            : `A cotação está ${formatPercent(Math.abs(margem ?? 0))} acima do preço justo — fora da margem de segurança Graham.`}
+        </p>
+        <p className="text-xs text-gray-600">
+          LPA e VPA via tabela de fundamentais · Cotação via price_history
+        </p>
+      </div>
     </div>
   )
 }
 
-// ─── seção Graham ─────────────────────────────────────────────────────────────
+// ─── InsightRow ───────────────────────────────────────────────────────────────
 
-const GRAHAM_NA_REASON =
-  'Sem LPA (Lucro Por Ação) ou VPA (Valor Patrimonial Por Ação) disponíveis. O cálculo Graham exige ambos positivos.'
+function InsightRow({
+  insight,
+  onDelete,
+  isDeleting,
+}: {
+  insight: InsightRecord
+  onDelete: () => void
+  isDeleting: boolean
+}) {
+  const [expanded, setExpanded] = useState(false)
 
-function GrahamRow({ result }: { result: GrahamResult }) {
   const CELL = 'px-4 py-3 text-sm text-gray-200'
   const CELL_RIGHT = `${CELL} text-right`
 
+  const refPrice = insight.strategy === 'bazin' ? insight.ceiling_price : insight.graham_price
+  const strategyLabel = insight.strategy === 'bazin' ? 'Bazin' : 'Graham'
+  const strategyColor = insight.strategy === 'bazin' ? 'text-blue-400' : 'text-purple-400'
+
   return (
-    <tr className="border-t border-dark-border hover:bg-dark-surface/50 transition-colors">
-      <th scope="row" className={`${CELL} font-semibold text-white text-left`}>
-        <span className="flex items-center gap-2">
-          {result.ticker}
-          {result.currency === 'USD' && (
-            <span className="text-xs text-gray-500 font-normal">USD→BRL</span>
+    <>
+      <tr
+        className="border-t border-dark-border hover:bg-dark-surface/50 transition-colors cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <th scope="row" className={`${CELL} font-semibold text-white text-left`}>
+          <span className="flex items-center gap-1.5">
+            {insight.ticker}
+            {insight.currency === 'USD' && (
+              <span className="text-xs text-gray-500 font-normal">USD→BRL</span>
+            )}
+          </span>
+        </th>
+        <td className={CELL}>
+          <span className={`text-xs font-semibold ${strategyColor}`}>{strategyLabel}</span>
+          {insight.strategy === 'bazin' && insight.min_dy !== null && (
+            <span className="text-xs text-gray-500 ml-1">
+              DY {(insight.min_dy * 100).toFixed(0)}%
+            </span>
           )}
-        </span>
-      </th>
+        </td>
+        <td className={CELL_RIGHT}>{formatBRL(refPrice)}</td>
+        <td className={CELL_RIGHT}>{formatBRL(insight.current_price)}</td>
+        <td className={CELL_RIGHT}>
+          <MarginIndicator
+            margin={insight.margin}
+            positiveLabel={insight.strategy === 'bazin' ? 'abaixo do teto' : 'abaixo do justo'}
+            negativeLabel={insight.strategy === 'bazin' ? 'acima do teto' : 'acima do justo'}
+          />
+        </td>
+        <td className={`${CELL_RIGHT} text-xs text-gray-500`}>
+          {dateFormatter.format(new Date(insight.created_at))}
+        </td>
+        <td className="px-4 py-3 text-right">
+          <span className="inline-flex items-center gap-2">
+            <span className="text-gray-500" aria-hidden="true">
+              {expanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </span>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              aria-label={`Remover insight de ${insight.ticker}`}
+              className="text-gray-500 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </span>
+        </td>
+      </tr>
 
-      {/* LPA */}
-      <td className={CELL_RIGHT}>
-        {result.lpa !== null && result.lpa !== undefined
-          ? (result.currency === 'USD' ? formatDecimal(result.lpa) : formatBRL(result.lpa))
-          : <NaCell ticker={result.ticker} reason={GRAHAM_NA_REASON} />}
-      </td>
-
-      {/* VPA */}
-      <td className={CELL_RIGHT}>
-        {result.vpa !== null && result.vpa !== undefined
-          ? (result.currency === 'USD' ? formatDecimal(result.vpa) : formatBRL(result.vpa))
-          : <NaCell ticker={result.ticker} reason={GRAHAM_NA_REASON} />}
-      </td>
-
-      {/* Cotação atual (em BRL) */}
-      <td className={CELL_RIGHT}>{formatBRL(result.currentPrice)}</td>
-
-      {/* Preço Justo Graham (em BRL) */}
-      <td className={CELL_RIGHT}>
-        {result.grahamPrice !== null
-          ? formatBRL(result.grahamPrice)
-          : <NaCell ticker={result.ticker} reason={GRAHAM_NA_REASON} />}
-      </td>
-
-      {/* Margem */}
-      <td className={CELL_RIGHT}>
-        {result.hasData
-          ? <MarginIndicator margin={result.margin} positiveLabel="abaixo do justo" negativeLabel="acima do justo" />
-          : <NaCell ticker={result.ticker} reason={GRAHAM_NA_REASON} />}
-      </td>
-    </tr>
+      {/* Painel expansível com a explicação do cálculo */}
+      {expanded && (
+        <tr className="border-t border-dark-border bg-dark-bg/50">
+          <td colSpan={7} className="p-0">
+            <ExplicacaoCalculo insight={insight} />
+          </td>
+        </tr>
+      )}
+    </>
   )
 }
 
-interface GrahamSectionProps {
-  tickers: string[]
-  currencyByTicker: Map<string, AssetCurrency>
-}
+// ─── InsightsList ─────────────────────────────────────────────────────────────
 
-function GrahamSection({ tickers, currencyByTicker }: GrahamSectionProps) {
-  const { sortedResults, isLoading, isError, isUSDRateFallback, refetch } = useGraham(
-    tickers,
-    currencyByTicker,
-  )
-
-  const hasUSD = useMemo(
-    () => [...currencyByTicker.values()].some((c) => c === 'USD'),
-    [currencyByTicker],
-  )
+function InsightsList() {
+  const { data: insights = [], isLoading, isError } = useInsights()
+  const deleteInsight = useDeleteInsight()
 
   if (isLoading) {
-    return <p className="text-gray-400 animate-pulse py-6">Carregando dados Graham…</p>
+    return <p className="text-sm text-gray-400 animate-pulse py-4">Carregando insights…</p>
   }
 
   if (isError) {
+    return <p className="text-sm text-red-400 py-4">Não foi possível carregar os insights.</p>
+  }
+
+  if (insights.length === 0) {
     return (
-      <div
-        role="alert"
-        className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col gap-3"
-      >
-        <p className="text-red-400 font-medium">Erro ao carregar fundamentals ou cotações.</p>
-        <button
-          type="button"
-          onClick={refetch}
-          className="self-start rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-        >
-          Tentar novamente
-        </button>
+      <div className="rounded-xl border border-dashed border-dark-border p-10 text-center">
+        <p className="text-gray-400 font-medium">Nenhum insight salvo ainda</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Clique em "Novo Insight" para analisar qualquer ativo com Bazin ou Graham.
+        </p>
       </div>
     )
   }
 
-  const withData = sortedResults.filter((r) => r.hasData && r.margin !== null)
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Sumário + badge USD */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dark-border bg-dark-surface px-6 py-4">
-        <div className="text-sm text-gray-400 flex-1">
-          <p>
-            Preço justo ={' '}
-            <span className="text-white font-mono">√(22,5 × LPA × VPA)</span>
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {withData.filter((r) => (r.margin ?? 0) > 0).length} ativo(s) abaixo do justo ·{' '}
-            {withData.filter((r) => (r.margin ?? 0) <= 0).length} acima
-          </p>
-        </div>
-
-        {hasUSD && isUSDRateFallback && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-400">
-            <span>⚠ Taxa USD/BRL aproximada</span>
-            <USDFallbackBadge />
-          </div>
-        )}
-      </div>
-
-      {/* Tabela */}
-      {sortedResults.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-dark-border p-10 text-center">
-          <p className="text-gray-400">Nenhum dado Graham disponível para a carteira atual.</p>
-          <p className="text-gray-500 text-sm mt-1">
-            O cálculo exige LPA e VPA positivos na tabela de fundamentals.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-dark-border">
-          <table className="w-full border-collapse">
-            <caption className="sr-only">Preço Justo Graham por ativo da carteira</caption>
-            <thead className="bg-dark-bg">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Ticker</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">LPA</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">VPA</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Cotação atual</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Preço Justo Graham</th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Margem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedResults.map((result) => (
-                <GrahamRow key={result.ticker} result={result} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+    <div className="overflow-x-auto rounded-xl border border-dark-border">
+      <table className="w-full border-collapse">
+        <caption className="sr-only">Insights salvos</caption>
+        <thead className="bg-dark-bg">
+          <tr>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Ativo</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Estratégia</th>
+            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Preço de referência</th>
+            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Cotação</th>
+            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Margem</th>
+            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Criado em</th>
+            <th scope="col" className="px-4 py-3 w-16" aria-label="Ações" />
+          </tr>
+        </thead>
+        <tbody>
+          {insights.map((insight) => (
+            <InsightRow
+              key={insight.id}
+              insight={insight}
+              onDelete={() => deleteInsight.mutate(insight.id)}
+              isDeleting={deleteInsight.isPending}
+            />
+          ))}
+        </tbody>
+      </table>
+      <p className="px-4 py-2 text-xs text-gray-600 border-t border-dark-border">
+        Clique em uma linha para ver como o cálculo foi feito.
+      </p>
     </div>
   )
 }
@@ -514,76 +340,36 @@ function GrahamSection({ tickers, currencyByTicker }: GrahamSectionProps) {
 // ─── página principal ─────────────────────────────────────────────────────────
 
 export function EstrategiasPage() {
-  const [activeStrategy, setActiveStrategy] = useState<StrategyId>('bazin')
+  const [showInsightModal, setShowInsightModal] = useState(false)
 
-  const { data: positions = [], isLoading: positionsLoading } = usePositions()
-  const { hasPositions, isLoading: hasPositionsLoading } = useHasPositions()
-
-  const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
-
-  // Mapa ticker → moeda, derivado das posições (asset.currency vem do join)
-  const currencyByTicker = useMemo<Map<string, AssetCurrency>>(() => {
-    const map = new Map<string, AssetCurrency>()
-    for (const p of positions) {
-      if (p.asset?.currency) map.set(p.ticker, p.asset.currency)
-    }
-    return map
-  }, [positions])
-
-  const isLoading = positionsLoading || hasPositionsLoading
-
-  const activeStrategyMeta = STRATEGIES.find((s) => s.id === activeStrategy)!
-
-  // ── Estado: carregando ──────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-white mb-6">Estratégias</h1>
-        <p className="text-gray-400 animate-pulse">Carregando dados…</p>
-      </div>
-    )
-  }
-
-  // ── Estado: sem posições ────────────────────────────────────────────────────
-  if (!hasPositions) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-white mb-6">Estratégias</h1>
-        <div className="rounded-xl border border-dark-border bg-dark-surface p-10 text-center">
-          <p className="text-gray-400 text-lg">Nenhuma posição cadastrada</p>
-          <p className="text-gray-500 text-sm mt-2">
-            Adicione ativos na Carteira para visualizar as estratégias de valuation.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Tela completa ────────────────────────────────────────────────────────────
   return (
     <div className="p-8 flex flex-col gap-6 max-w-5xl mx-auto">
+
       {/* Cabeçalho */}
-      <div>
-        <h1 className="text-2xl font-bold text-white mb-1">Estratégias</h1>
-        <p className="text-gray-400 text-sm">{activeStrategyMeta.description}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Estratégias</h1>
+          <p className="text-gray-400 text-sm">
+            Analise qualquer ativo com os métodos Bazin e Graham. Clique num insight para ver a conta.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowInsightModal(true)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Novo Insight
+        </button>
       </div>
 
-      {/* Seletor de estratégia */}
-      <StrategyTabs active={activeStrategy} onChange={setActiveStrategy} />
+      {/* Lista de insights */}
+      <InsightsList />
 
-      {/* Painel ativo */}
-      <div
-        role="tabpanel"
-        id={`panel-${activeStrategy}`}
-        aria-labelledby={`tab-${activeStrategy}`}
-      >
-        {activeStrategy === 'bazin' && (
-          <BazinSection tickers={tickers} currencyByTicker={currencyByTicker} />
-        )}
-        {activeStrategy === 'graham' && (
-          <GrahamSection tickers={tickers} currencyByTicker={currencyByTicker} />
-        )}
-      </div>
+      {/* Modal */}
+      {showInsightModal && (
+        <NovoInsightModal onClose={() => setShowInsightModal(false)} />
+      )}
     </div>
   )
 }

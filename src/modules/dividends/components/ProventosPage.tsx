@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
 import { DividendsTable } from './DividendsTable'
-import { useDividends, useHasPositions } from '../hooks/useDividends'
+import { useDividends, useHasPositions, useSyncDividends } from '../hooks/useDividends'
 import { buildMonthlyBars, filterAndSort, sumTotalValue } from '../utils/dividendCalculations'
 import { downloadDividendsCsv } from '../export/dividendsCsv'
 import type { DividendPeriod, DividendSort, DividendSortColumn } from '../types'
@@ -75,6 +75,7 @@ export function ProventosPage() {
 
   const { hasPositions, isLoading: isPositionsLoading } = useHasPositions()
   const { rows, isLoading, isError, error, refetch, availableTypes } = useDividends(period)
+  const syncDividends = useSyncDividends()
 
   // Barras mensais para o gráfico (antes dos filtros da tabela)
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
@@ -156,12 +157,40 @@ export function ProventosPage() {
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-white">Proventos</h1>
-        <PeriodSelector
-          value={period}
-          onChange={handlePeriodChange}
-          periods={DIVIDEND_PERIODS}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <PeriodSelector
+            value={period}
+            onChange={handlePeriodChange}
+            periods={DIVIDEND_PERIODS}
+          />
+          <button
+            type="button"
+            onClick={() => syncDividends.mutate()}
+            disabled={syncDividends.isPending}
+            title="Busca proventos reais via Yahoo Finance e atualiza o banco"
+            className="rounded-lg border border-blue-500/50 px-4 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+          >
+            {syncDividends.isPending ? 'Atualizando…' : 'Atualizar proventos'}
+          </button>
+        </div>
       </div>
+
+      {/* Feedback do sync */}
+      {syncDividends.isSuccess && (
+        <p className="rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-300" role="status">
+          ✓ {syncDividends.data.inserted} registro{syncDividends.data.inserted !== 1 ? 's' : ''} sincronizado{syncDividends.data.inserted !== 1 ? 's' : ''} via Yahoo Finance
+          {syncDividends.data.tickers_processed.length > 0 && (
+            <span className="text-green-500 ml-1">
+              ({syncDividends.data.tickers_processed.length} ativo{syncDividends.data.tickers_processed.length !== 1 ? 's' : ''})
+            </span>
+          )}
+        </p>
+      )}
+      {syncDividends.isError && (
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">
+          Não foi possível sincronizar os proventos. Tente novamente.
+        </p>
+      )}
 
       {/* Total do período em destaque */}
       <div className="rounded-xl border border-dark-border bg-dark-surface px-6 py-5 flex items-center justify-between">

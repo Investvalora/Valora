@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PositionSchema, positionSchema, toNewPosition } from '../schemas/positionSchema'
 import { MISSING_SESSION_CODE, useAddPosition } from '../hooks/useAddPosition'
-import { useAssetLookup, useAssetSearch } from '../hooks/useAssetSearch'
+import { useAssetLookup, useAssetSearch, useTickerLatestPrice } from '../hooks/useAssetSearch'
 import { useLookupExternalAsset } from '../hooks/useLookupExternalAsset'
 import { Asset } from '../types'
 
@@ -113,6 +113,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [isCheckingTicker, setIsCheckingTicker] = useState(false)
+  const [priceAutoFilled, setPriceAutoFilled] = useState(false)
 
   const addPosition = useAddPosition()
   const lookupAsset = useAssetLookup()
@@ -139,6 +140,9 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
   const exactMatch = suggestions.find((asset) => asset.ticker === typedTicker) ?? null
   const isSuggestionsOpen = showSuggestions && suggestions.length > 0
 
+  // Cotação mais recente para pré-preencher preço médio
+  const latestPrice = useTickerLatestPrice(typedTicker)
+
   // A lista é debounceada: entre a última tecla e a resposta do catálogo ela
   // encurta sem que nada zere o índice realçado — as setas não passam por
   // `onChange`. Sem este ajuste, `suggestions[highlightedIndex]` fica
@@ -146,6 +150,14 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
   useEffect(() => {
     setHighlightedIndex((current) => Math.min(current, suggestions.length - 1))
   }, [suggestions.length])
+
+  // Preenche o preço médio automaticamente quando a cotação chega
+  useEffect(() => {
+    if (latestPrice !== null && typedTicker && !priceAutoFilled) {
+      setValue('averagePrice', latestPrice.toFixed(2), { shouldValidate: false })
+      setPriceAutoFilled(true)
+    }
+  }, [latestPrice, typedTicker, priceAutoFilled, setValue])
 
   /**
    * Dispara busca externa automaticamente quando o usuário para de digitar
@@ -318,6 +330,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
                 setHighlightedIndex(-1)
                 setNotFoundTicker('')
                 resetExternal()
+                setPriceAutoFilled(false)
                 // "Ativo não encontrado" é erro manual: a validação só roda no
                 // submit, então sem isto a mensagem ficaria colada na tela
                 // enquanto o usuário corrige o ticker.
@@ -463,10 +476,16 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
             autoComplete="off"
             aria-invalid={errors.averagePrice ? true : undefined}
             aria-describedby={errors.averagePrice ? 'averagePrice-error' : undefined}
+            onFocus={() => setPriceAutoFilled(false)}
             {...register('averagePrice')}
             className={INPUT_CLASS}
             placeholder="32,10"
           />
+          {priceAutoFilled && latestPrice !== null && (
+            <p className="mt-1 text-xs text-gray-400">
+              Cotação atual: R$ {latestPrice.toFixed(2)} — você pode ajustar.
+            </p>
+          )}
           {errors.averagePrice && (
             <p id="averagePrice-error" className="mt-1 text-sm text-red-400">
               {errors.averagePrice.message}

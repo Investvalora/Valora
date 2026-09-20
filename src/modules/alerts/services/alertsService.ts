@@ -1,7 +1,8 @@
 import { supabase } from '../../../shared/services/supabaseClient'
-import type { Alert, AlertStatus } from '../types'
+import type { Alert, AlertCondition, AlertStatus } from '../types'
 
-const ALERT_COLUMNS = 'id, user_id, type, ticker, status, title, description, last_quote_date, created_at, updated_at'
+const ALERT_COLUMNS =
+  'id, user_id, type, ticker, status, title, description, last_quote_date, target_price, condition, created_at, updated_at'
 
 export const alertsService = {
   async listAlerts(userId: string): Promise<Alert[]> {
@@ -42,5 +43,44 @@ export const alertsService = {
       .single()
 
     if (error) throw error
+  },
+
+  async createPriceTargetAlert(
+    userId: string,
+    ticker: string,
+    targetPrice: number,
+    condition: AlertCondition,
+  ): Promise<Alert> {
+    const conditionLabel = condition === 'below' ? 'abaixo de' : 'acima de'
+    const priceFormatted = targetPrice.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+    const title = `Alerta de preço: ${ticker}`
+    const description = `Notificar quando ${ticker} estiver ${conditionLabel} ${priceFormatted}.`
+
+    const { data, error } = await supabase
+      .from('alerts')
+      .insert({
+        user_id: userId,
+        type: 'price_target',
+        ticker,
+        status: 'lido', // começa monitorando (lido = não aparece como "novo" até disparar)
+        title,
+        description,
+        target_price: targetPrice,
+        condition,
+      })
+      .select(ALERT_COLUMNS)
+      .single()
+
+    if (error) throw error
+    return data as unknown as Alert
+  },
+
+  async checkPriceTargets(): Promise<{ triggered: number }> {
+    const { data, error } = await supabase.functions.invoke('check-price-targets', { body: {} })
+    if (error) throw error
+    return data as { triggered: number }
   },
 }

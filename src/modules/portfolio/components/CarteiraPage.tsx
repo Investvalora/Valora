@@ -17,10 +17,9 @@ import {
 } from '../positionRows'
 import { enrichPositionRows } from '../enrichPositionRows'
 import type { PositionRow, PositionSort, PositionSortColumn, AssetCurrency } from '../types'
-import { FIXED_INCOME_TYPE_LABEL } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { AddFixedIncomeForm } from './AddFixedIncomeForm'
-import { GroupedPositionsTable } from './GroupedPositionsTable'
+import { GroupedPositionsTable, FixedIncomeGroup } from './GroupedPositionsTable'
 import { ColumnEditorPanel } from './ColumnEditorPanel'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
@@ -593,120 +592,15 @@ export function CarteiraPage() {
         />
       ) : null}
 
-      {/* ── Renda Fixa ─────────────────────────────────────────────────── */}
-      <section aria-labelledby="fi-heading">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id="fi-heading" className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Renda Fixa
-            {fiRows.length > 0 && (
-              <span className="ml-2 text-gray-500 normal-case tracking-normal font-normal">
-                ({fiRows.length})
-              </span>
-            )}
-          </h2>
-          <div className="flex items-center gap-3">
-            {fiRows.some(r => r.isStale) && (
-              <span className="text-xs text-amber-400">valores desatualizados</span>
-            )}
-            <button
-              type="button"
-              onClick={calcFiValues}
-              disabled={calcFiState === 'loading' || fiRows.length === 0}
-              className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-700/50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {calcFiState === 'loading' ? 'Calculando…' : '↻ Atualizar valores'}
-            </button>
-          </div>
-        </div>
-
-        {fiLoading ? (
-          <p className="text-sm text-gray-400">Carregando renda fixa…</p>
-        ) : fiRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-dark-border p-6 text-center">
-            <p className="text-sm text-gray-400">
-              Nenhuma posição de renda fixa cadastrada.{' '}
-              <button
-                type="button"
-                onClick={() => setIsFiModalOpen(true)}
-                className="text-emerald-400 underline hover:text-emerald-300"
-              >
-                Adicionar
-              </button>
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-lg border border-dark-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dark-border bg-dark-surface/50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Nome</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Tipo</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Aplicado</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Valor atual</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Rendimento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dark-border">
-                  {fiRows.map((row) => (
-                    <tr key={row.id} className="bg-dark-surface hover:bg-dark-bg/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white">{row.name}</td>
-                      <td className="px-4 py-3 text-gray-300">{FIXED_INCOME_TYPE_LABEL[row.type]}</td>
-                      <td className="px-4 py-3 text-right text-gray-300">
-                        {fmtBRL(row.principal)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {row.currentValue !== null ? (
-                          <span className={row.isStale ? 'text-amber-300' : 'text-white'}>
-                            {fmtBRL(row.currentValue)}
-                            {row.isStale && (
-                              <Tooltip label="Valor desatualizado">
-                                <span className="block text-xs text-amber-400">estimado</span>
-                              </Tooltip>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {row.gainBRL !== null && row.gainPercent !== null ? (
-                          <span className={row.gainBRL >= 0 ? 'text-green-400' : 'text-red-400'}>
-                            {row.gainBRL >= 0 ? '+' : ''}{fmtBRL(row.gainBRL)}{' '}
-                            <span className="text-xs">
-                              ({row.gainPercent >= 0 ? '+' : ''}{row.gainPercent.toFixed(2)}%)
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        {row.maturity_date
-                          ? new Date(row.maturity_date + 'T12:00:00').toLocaleDateString('pt-BR')
-                          : <span className="text-gray-500">Sem venc.</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-dark-border bg-dark-surface/50">
-                    <td colSpan={2} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Total</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
-                      {fmtBRL(fiRows.reduce((s, r) => s + r.principal, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
-                      {fmtBRL(fiTotalBRL)}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+      {/* ── Renda Fixa — grupo colapsável (inicia minimizado) ──────────────── */}
+      <FixedIncomeGroup
+        rows={fiRows}
+        totalBRL={fiTotalBRL}
+        isLoading={fiLoading}
+        calcFiValues={calcFiValues}
+        calcFiState={calcFiState}
+        onAdd={() => setIsFiModalOpen(true)}
+      />
 
       {/* ── Modal adicionar posição ─────────────────────────────────────────── */}
       <Modal isOpen={isModalOpen} title="Adicionar posição" onClose={closeModal} dismissible={!isSaving}>

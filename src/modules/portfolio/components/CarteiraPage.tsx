@@ -631,6 +631,7 @@ export function CarteiraPage() {
           scoreByTicker={activeScoreName ? scoreByTicker : undefined}
           fundamentalsUpdatedAt={fundamentalsUpdatedAt}
           visibleColumns={columnVisibility.visible}
+          defaultCollapsed
         />
       ) : null}
 

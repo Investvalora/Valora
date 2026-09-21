@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useId, useMemo } from 'react'
+import { Component, lazy, Suspense, useId, useMemo, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { assetClassColor, deriveComposition } from '../composition'
 import type { PositionRow } from '../types'
@@ -93,6 +93,8 @@ interface CompositionCardProps {
    * um número diferente do card de patrimônio ao lado.
    */
   missingValueCount: number
+  /** Quando true, o card inicia recolhido. Padrão: false. */
+  defaultCollapsed?: boolean
 }
 
 export function CompositionCard({
@@ -100,8 +102,10 @@ export function CompositionCard({
   totalBRL,
   isQuotesLoading,
   missingValueCount,
+  defaultCollapsed = false,
 }: CompositionCardProps) {
   const headingId = useId()
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const composition = useMemo(() => deriveComposition(rows, totalBRL), [rows, totalBRL])
 
   // Sem posição nenhuma não há composição para mostrar — o mesmo critério do
@@ -112,98 +116,127 @@ export function CompositionCard({
 
   return (
     <section
-      // `aria-labelledby` aponta para o próprio título: um `aria-label` com o
-      // mesmo texto duplicaria a string e a deixaria livre para divergir do
-      // heading na próxima edição.
       aria-labelledby={headingId}
-      className="mb-6 rounded-lg border border-dark-border bg-dark-surface p-6"
+      className="mb-6 overflow-hidden rounded-xl border border-dark-border bg-dark-surface"
     >
-      <h2
-        id={headingId}
-        className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+      {/* ── Header clicável ──────────────────────────────────────────────── */}
+      <button
+        type="button"
+        onClick={() => setCollapsed((v) => !v)}
+        className="w-full px-6 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+        aria-expanded={!collapsed}
+        aria-controls="composition-card-body"
+        aria-label={`Composição por classe — ${collapsed ? 'expandir' : 'recolher'}`}
       >
-        Composição por classe
-      </h2>
+        <h2
+          id={headingId}
+          className="text-xs font-semibold uppercase tracking-wide text-gray-400 flex-1 text-left"
+        >
+          Composição por classe
+        </h2>
 
-      {!hasComposition ? (
-        <>
-          <p className="mt-1 text-3xl font-bold text-white">{MISSING}</p>
-          <p className="mt-2 text-sm text-gray-400">
-            {isQuotesLoading
-              ? 'Carregando composição...'
-              : 'Nenhuma posição com cotação disponível para calcular a composição.'}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="mt-1 text-3xl font-bold text-white">
+        {/* Valor total resumido no header quando recolhido */}
+        {collapsed && hasComposition && (
+          <span className="text-sm font-medium text-white tabular-nums">
             {formatBRL(composition.totalBRL)}
-          </p>
+          </span>
+        )}
 
-          <p className="mt-1 text-sm text-gray-300">
-            Exposição internacional:{' '}
-            <span className="font-semibold text-white">
-              {formatPercent(composition.internationalPercent)}
-            </span>{' '}
-            ({formatBRL(composition.internationalValueBRL)})
-          </p>
+        {/* Chevron */}
+        <span
+          className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
+            collapsed ? '-rotate-90' : 'rotate-0'
+          }`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
+      </button>
 
-          <div className="mt-4 grid items-center gap-6 md:grid-cols-2">
-            {/* Fora da árvore de acessibilidade: um leitor de tela não tem o que
-                fazer com os `path`s da pizza, e a legenda ao lado carrega
-                exatamente a mesma informação em texto. */}
-            <div aria-hidden="true">
-              <ChartErrorBoundary>
-                <Suspense fallback={<div className="h-[220px]" />}>
-                  <CompositionPieChart
-                    slices={composition.slices}
-                    formatBRL={formatBRL}
-                    formatPercent={formatPercent}
-                  />
-                </Suspense>
-              </ChartErrorBoundary>
-            </div>
+      {/* ── Corpo colapsável ─────────────────────────────────────────────── */}
+      {!collapsed && (
+        <div id="composition-card-body" className="px-6 pb-6 border-t border-dark-border pt-4">
+          {!hasComposition ? (
+            <>
+              <p className="mt-1 text-3xl font-bold text-white">{MISSING}</p>
+              <p className="mt-2 text-sm text-gray-400">
+                {isQuotesLoading
+                  ? 'Carregando composição...'
+                  : 'Nenhuma posição com cotação disponível para calcular a composição.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-3xl font-bold text-white">
+                {formatBRL(composition.totalBRL)}
+              </p>
 
-            <ul aria-label="Classes de ativo da carteira" className="space-y-2">
-              {composition.slices.map((slice) => (
-                <li
-                  key={slice.type}
-                  className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-dark-border pb-2 last:border-b-0 last:pb-0"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium text-gray-200">
-                    {/* A cor é redundante com o rótulo — decorativa, portanto. */}
-                    <span
-                      aria-hidden="true"
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: assetClassColor(slice.type) }}
-                    />
-                    {slice.label}
-                  </span>
+              <p className="mt-1 text-sm text-gray-300">
+                Exposição internacional:{' '}
+                <span className="font-semibold text-white">
+                  {formatPercent(composition.internationalPercent)}
+                </span>{' '}
+                ({formatBRL(composition.internationalValueBRL)})
+              </p>
 
-                  <span className="text-sm text-gray-200">
-                    {formatBRL(slice.valueBRL)} · {formatPercent(slice.percent)}
-                  </span>
+              <div className="mt-4 grid items-center gap-6 md:grid-cols-2">
+                {/* Fora da árvore de acessibilidade: um leitor de tela não tem o que
+                    fazer com os `path`s da pizza, e a legenda ao lado carrega
+                    exatamente a mesma informação em texto. */}
+                <div aria-hidden="true">
+                  <ChartErrorBoundary>
+                    <Suspense fallback={<div className="h-[220px]" />}>
+                      <CompositionPieChart
+                        slices={composition.slices}
+                        formatBRL={formatBRL}
+                        formatPercent={formatPercent}
+                      />
+                    </Suspense>
+                  </ChartErrorBoundary>
+                </div>
 
-                  {/* O mesmo par que o tooltip da fatia mostra, alcançável sem
-                      mouse e sem depender do SVG. */}
-                  <span className="w-full text-xs text-gray-400">
-                    Maior posição: {slice.topTicker}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
+                <ul aria-label="Classes de ativo da carteira" className="space-y-2">
+                  {composition.slices.map((slice) => (
+                    <li
+                      key={slice.type}
+                      className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-dark-border pb-2 last:border-b-0 last:pb-0"
+                    >
+                      <span className="flex items-center gap-2 text-sm font-medium text-gray-200">
+                        {/* A cor é redundante com o rótulo — decorativa, portanto. */}
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: assetClassColor(slice.type) }}
+                        />
+                        {slice.label}
+                      </span>
 
-      {/* A ressalva é parte dos percentuais: uma composição que ignora posições
-          sem cotação e não diz isso vira diversificação inventada. */}
-      {missingValueCount > 0 && !isQuotesLoading && (
-        <p className="mt-3 text-sm text-amber-300">
-          {missingValueCount === 1
-            ? '1 posição sem cotação disponível não entra na composição.'
-            : `${missingValueCount} posições sem cotação disponível não entram na composição.`}
-        </p>
+                      <span className="text-sm text-gray-200">
+                        {formatBRL(slice.valueBRL)} · {formatPercent(slice.percent)}
+                      </span>
+
+                      {/* O mesmo par que o tooltip da fatia mostra, alcançável sem
+                          mouse e sem depender do SVG. */}
+                      <span className="w-full text-xs text-gray-400">
+                        Maior posição: {slice.topTicker}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {/* A ressalva é parte dos percentuais: uma composição que ignora posições
+              sem cotação e não diz isso vira diversificação inventada. */}
+          {missingValueCount > 0 && !isQuotesLoading && (
+            <p className="mt-3 text-sm text-amber-300">
+              {missingValueCount === 1
+                ? '1 posição sem cotação disponível não entra na composição.'
+                : `${missingValueCount} posições sem cotação disponível não entram na composição.`}
+            </p>
+          )}
+        </div>
       )}
     </section>
   )

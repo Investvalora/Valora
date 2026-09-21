@@ -175,6 +175,8 @@ export function CarteiraPage() {
   const [sort, setSort] = useState<PositionSort>(DEFAULT_POSITION_SORT)
   const [activeScoreName, setActiveScoreName] = useState<string | null>(null)
   const [showColumnEditor, setShowColumnEditor] = useState(false)
+  const [wealthChartCollapsed, setWealthChartCollapsed] = useState(true)
+  const [compositionChartCollapsed, setCompositionChartCollapsed] = useState(true)
 
   // ── Visibilidade de colunas ────────────────────────────────────────────────
   const columnVisibility = useColumnVisibility()
@@ -444,46 +446,86 @@ export function CarteiraPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
           {/* Evolução do patrimônio — barras mensais */}
-          <div className="lg:col-span-2 rounded-xl border border-dark-border bg-dark-surface p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-white">Evolução do Patrimônio</h2>
-              <span className="text-xs text-gray-500">Últimos 12 Meses</span>
-            </div>
-            {dashboard.monthlySeries.length === 0 ? (
-              <div className="flex items-center justify-center h-[280px]">
-                <p className="text-sm text-gray-400">Sem histórico disponível.</p>
+          <div className="lg:col-span-2 overflow-hidden rounded-xl border border-dark-border bg-dark-surface">
+            <button
+              type="button"
+              onClick={() => setWealthChartCollapsed((v) => !v)}
+              className="w-full px-5 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={!wealthChartCollapsed}
+              aria-controls="wealth-chart-body"
+              aria-label={`Evolução do Patrimônio — ${wealthChartCollapsed ? 'expandir' : 'recolher'}`}
+            >
+              <h2 className="text-sm font-semibold text-white flex-1 text-left">Evolução do Patrimônio</h2>
+              <span className="text-xs text-gray-500 flex-shrink-0">Últimos 12 Meses</span>
+              <span
+                className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
+                  wealthChartCollapsed ? '-rotate-90' : 'rotate-0'
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {!wealthChartCollapsed && (
+              <div id="wealth-chart-body" className="px-5 pb-5 border-t border-dark-border pt-2">
+                {dashboard.monthlySeries.length === 0 ? (
+                  <div className="flex items-center justify-center h-[280px]">
+                    <p className="text-sm text-gray-400">Sem histórico disponível.</p>
+                  </div>
+                ) : (
+                  <ChartErrorBoundary>
+                    <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
+                      <WealthBarChart data={dashboard.monthlySeries} />
+                    </Suspense>
+                  </ChartErrorBoundary>
+                )}
               </div>
-            ) : (
-              <ChartErrorBoundary>
-                <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
-                  <WealthBarChart data={dashboard.monthlySeries} />
-                </Suspense>
-              </ChartErrorBoundary>
             )}
           </div>
 
           {/* Ativos na carteira — pizza + legenda */}
-          <div className="rounded-xl border border-dark-border bg-dark-surface p-5 flex flex-col">
-            <h2 className="text-sm font-semibold text-white mb-2">Ativos na Carteira</h2>
-            {dashboard.compositionSlices.length === 0 ? (
-              <div className="flex items-center justify-center flex-1">
-                <p className="text-sm text-gray-400">Sem posições avaliadas.</p>
+          <div className="overflow-hidden rounded-xl border border-dark-border bg-dark-surface flex flex-col">
+            <button
+              type="button"
+              onClick={() => setCompositionChartCollapsed((v) => !v)}
+              className="w-full px-5 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={!compositionChartCollapsed}
+              aria-controls="composition-chart-body"
+              aria-label={`Ativos na Carteira — ${compositionChartCollapsed ? 'expandir' : 'recolher'}`}
+            >
+              <h2 className="text-sm font-semibold text-white flex-1 text-left">Ativos na Carteira</h2>
+              <span
+                className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
+                  compositionChartCollapsed ? '-rotate-90' : 'rotate-0'
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {!compositionChartCollapsed && (
+              <div id="composition-chart-body" className="px-5 pb-5 border-t border-dark-border pt-2 flex flex-col flex-1">
+                {dashboard.compositionSlices.length === 0 ? (
+                  <div className="flex items-center justify-center flex-1 min-h-[100px]">
+                    <p className="text-sm text-gray-400">Sem posições avaliadas.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div aria-hidden="true">
+                      <ChartErrorBoundary>
+                        <Suspense fallback={<div className="h-[220px]" />}>
+                          <CompositionPieChart
+                            slices={dashboard.compositionSlices}
+                            formatBRL={fmtBRL}
+                            formatPercent={(v) => `${pctPlainFormatter.format(v)}%`}
+                          />
+                        </Suspense>
+                      </ChartErrorBoundary>
+                    </div>
+                    <PieLegend slices={dashboard.compositionSlices} />
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <div aria-hidden="true">
-                  <ChartErrorBoundary>
-                    <Suspense fallback={<div className="h-[220px]" />}>
-                      <CompositionPieChart
-                        slices={dashboard.compositionSlices}
-                        formatBRL={fmtBRL}
-                        formatPercent={(v) => `${pctPlainFormatter.format(v)}%`}
-                      />
-                    </Suspense>
-                  </ChartErrorBoundary>
-                </div>
-                <PieLegend slices={dashboard.compositionSlices} />
-              </>
             )}
           </div>
         </div>

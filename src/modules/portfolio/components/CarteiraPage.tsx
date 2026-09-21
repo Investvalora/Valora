@@ -17,10 +17,9 @@ import {
 } from '../positionRows'
 import { enrichPositionRows } from '../enrichPositionRows'
 import type { PositionRow, PositionSort, PositionSortColumn, AssetCurrency } from '../types'
-import { FIXED_INCOME_TYPE_LABEL } from '../types'
 import { AddPositionForm } from './AddPositionForm'
 import { AddFixedIncomeForm } from './AddFixedIncomeForm'
-import { GroupedPositionsTable } from './GroupedPositionsTable'
+import { GroupedPositionsTable, FixedIncomeGroup } from './GroupedPositionsTable'
 import { ColumnEditorPanel } from './ColumnEditorPanel'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
@@ -176,6 +175,8 @@ export function CarteiraPage() {
   const [sort, setSort] = useState<PositionSort>(DEFAULT_POSITION_SORT)
   const [activeScoreName, setActiveScoreName] = useState<string | null>(null)
   const [showColumnEditor, setShowColumnEditor] = useState(false)
+  const [wealthChartCollapsed, setWealthChartCollapsed] = useState(true)
+  const [compositionChartCollapsed, setCompositionChartCollapsed] = useState(true)
 
   // ── Visibilidade de colunas ────────────────────────────────────────────────
   const columnVisibility = useColumnVisibility()
@@ -445,46 +446,86 @@ export function CarteiraPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
           {/* Evolução do patrimônio — barras mensais */}
-          <div className="lg:col-span-2 rounded-xl border border-dark-border bg-dark-surface p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-white">Evolução do Patrimônio</h2>
-              <span className="text-xs text-gray-500">Últimos 12 Meses</span>
-            </div>
-            {dashboard.monthlySeries.length === 0 ? (
-              <div className="flex items-center justify-center h-[280px]">
-                <p className="text-sm text-gray-400">Sem histórico disponível.</p>
+          <div className="lg:col-span-2 overflow-hidden rounded-xl border border-dark-border bg-dark-surface">
+            <button
+              type="button"
+              onClick={() => setWealthChartCollapsed((v) => !v)}
+              className="w-full px-5 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={!wealthChartCollapsed}
+              aria-controls="wealth-chart-body"
+              aria-label={`Evolução do Patrimônio — ${wealthChartCollapsed ? 'expandir' : 'recolher'}`}
+            >
+              <h2 className="text-sm font-semibold text-white flex-1 text-left">Evolução do Patrimônio</h2>
+              <span className="text-xs text-gray-500 flex-shrink-0">Últimos 12 Meses</span>
+              <span
+                className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
+                  wealthChartCollapsed ? '-rotate-90' : 'rotate-0'
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {!wealthChartCollapsed && (
+              <div id="wealth-chart-body" className="px-5 pb-5 border-t border-dark-border pt-2">
+                {dashboard.monthlySeries.length === 0 ? (
+                  <div className="flex items-center justify-center h-[280px]">
+                    <p className="text-sm text-gray-400">Sem histórico disponível.</p>
+                  </div>
+                ) : (
+                  <ChartErrorBoundary>
+                    <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
+                      <WealthBarChart data={dashboard.monthlySeries} />
+                    </Suspense>
+                  </ChartErrorBoundary>
+                )}
               </div>
-            ) : (
-              <ChartErrorBoundary>
-                <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
-                  <WealthBarChart data={dashboard.monthlySeries} />
-                </Suspense>
-              </ChartErrorBoundary>
             )}
           </div>
 
           {/* Ativos na carteira — pizza + legenda */}
-          <div className="rounded-xl border border-dark-border bg-dark-surface p-5 flex flex-col">
-            <h2 className="text-sm font-semibold text-white mb-2">Ativos na Carteira</h2>
-            {dashboard.compositionSlices.length === 0 ? (
-              <div className="flex items-center justify-center flex-1">
-                <p className="text-sm text-gray-400">Sem posições avaliadas.</p>
+          <div className="overflow-hidden rounded-xl border border-dark-border bg-dark-surface flex flex-col">
+            <button
+              type="button"
+              onClick={() => setCompositionChartCollapsed((v) => !v)}
+              className="w-full px-5 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={!compositionChartCollapsed}
+              aria-controls="composition-chart-body"
+              aria-label={`Ativos na Carteira — ${compositionChartCollapsed ? 'expandir' : 'recolher'}`}
+            >
+              <h2 className="text-sm font-semibold text-white flex-1 text-left">Ativos na Carteira</h2>
+              <span
+                className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
+                  compositionChartCollapsed ? '-rotate-90' : 'rotate-0'
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {!compositionChartCollapsed && (
+              <div id="composition-chart-body" className="px-5 pb-5 border-t border-dark-border pt-2 flex flex-col flex-1">
+                {dashboard.compositionSlices.length === 0 ? (
+                  <div className="flex items-center justify-center flex-1 min-h-[100px]">
+                    <p className="text-sm text-gray-400">Sem posições avaliadas.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div aria-hidden="true">
+                      <ChartErrorBoundary>
+                        <Suspense fallback={<div className="h-[220px]" />}>
+                          <CompositionPieChart
+                            slices={dashboard.compositionSlices}
+                            formatBRL={fmtBRL}
+                            formatPercent={(v) => `${pctPlainFormatter.format(v)}%`}
+                          />
+                        </Suspense>
+                      </ChartErrorBoundary>
+                    </div>
+                    <PieLegend slices={dashboard.compositionSlices} />
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <div aria-hidden="true">
-                  <ChartErrorBoundary>
-                    <Suspense fallback={<div className="h-[220px]" />}>
-                      <CompositionPieChart
-                        slices={dashboard.compositionSlices}
-                        formatBRL={fmtBRL}
-                        formatPercent={(v) => `${pctPlainFormatter.format(v)}%`}
-                      />
-                    </Suspense>
-                  </ChartErrorBoundary>
-                </div>
-                <PieLegend slices={dashboard.compositionSlices} />
-              </>
             )}
           </div>
         </div>
@@ -590,123 +631,19 @@ export function CarteiraPage() {
           scoreByTicker={activeScoreName ? scoreByTicker : undefined}
           fundamentalsUpdatedAt={fundamentalsUpdatedAt}
           visibleColumns={columnVisibility.visible}
+          defaultCollapsed
         />
       ) : null}
 
-      {/* ── Renda Fixa ─────────────────────────────────────────────────── */}
-      <section aria-labelledby="fi-heading">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id="fi-heading" className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Renda Fixa
-            {fiRows.length > 0 && (
-              <span className="ml-2 text-gray-500 normal-case tracking-normal font-normal">
-                ({fiRows.length})
-              </span>
-            )}
-          </h2>
-          <div className="flex items-center gap-3">
-            {fiRows.some(r => r.isStale) && (
-              <span className="text-xs text-amber-400">valores desatualizados</span>
-            )}
-            <button
-              type="button"
-              onClick={calcFiValues}
-              disabled={calcFiState === 'loading' || fiRows.length === 0}
-              className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-700/50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {calcFiState === 'loading' ? 'Calculando…' : '↻ Atualizar valores'}
-            </button>
-          </div>
-        </div>
-
-        {fiLoading ? (
-          <p className="text-sm text-gray-400">Carregando renda fixa…</p>
-        ) : fiRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-dark-border p-6 text-center">
-            <p className="text-sm text-gray-400">
-              Nenhuma posição de renda fixa cadastrada.{' '}
-              <button
-                type="button"
-                onClick={() => setIsFiModalOpen(true)}
-                className="text-emerald-400 underline hover:text-emerald-300"
-              >
-                Adicionar
-              </button>
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-lg border border-dark-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dark-border bg-dark-surface/50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Nome</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Tipo</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Aplicado</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Valor atual</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Rendimento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dark-border">
-                  {fiRows.map((row) => (
-                    <tr key={row.id} className="bg-dark-surface hover:bg-dark-bg/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white">{row.name}</td>
-                      <td className="px-4 py-3 text-gray-300">{FIXED_INCOME_TYPE_LABEL[row.type]}</td>
-                      <td className="px-4 py-3 text-right text-gray-300">
-                        {fmtBRL(row.principal)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {row.currentValue !== null ? (
-                          <span className={row.isStale ? 'text-amber-300' : 'text-white'}>
-                            {fmtBRL(row.currentValue)}
-                            {row.isStale && (
-                              <Tooltip label="Valor desatualizado">
-                                <span className="block text-xs text-amber-400">estimado</span>
-                              </Tooltip>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {row.gainBRL !== null && row.gainPercent !== null ? (
-                          <span className={row.gainBRL >= 0 ? 'text-green-400' : 'text-red-400'}>
-                            {row.gainBRL >= 0 ? '+' : ''}{fmtBRL(row.gainBRL)}{' '}
-                            <span className="text-xs">
-                              ({row.gainPercent >= 0 ? '+' : ''}{row.gainPercent.toFixed(2)}%)
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        {row.maturity_date
-                          ? new Date(row.maturity_date + 'T12:00:00').toLocaleDateString('pt-BR')
-                          : <span className="text-gray-500">Sem venc.</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-dark-border bg-dark-surface/50">
-                    <td colSpan={2} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Total</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
-                      {fmtBRL(fiRows.reduce((s, r) => s + r.principal, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-white">
-                      {fmtBRL(fiTotalBRL)}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+      {/* ── Renda Fixa — grupo colapsável (inicia minimizado) ──────────────── */}
+      <FixedIncomeGroup
+        rows={fiRows}
+        totalBRL={fiTotalBRL}
+        isLoading={fiLoading}
+        calcFiValues={calcFiValues}
+        calcFiState={calcFiState}
+        onAdd={() => setIsFiModalOpen(true)}
+      />
 
       {/* ── Modal adicionar posição ─────────────────────────────────────────── */}
       <Modal isOpen={isModalOpen} title="Adicionar posição" onClose={closeModal} dismissible={!isSaving}>

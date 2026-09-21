@@ -56,6 +56,8 @@ interface GroupedPositionsTableProps {
   fundamentalsUpdatedAt?: Map<string, string>
   /** Colunas opcionais visíveis — vem do useColumnVisibility da CarteiraPage. */
   visibleColumns?: Set<ColumnId>
+  /** Quando true, todos os grupos iniciam recolhidos. Padrão: false. */
+  defaultCollapsed?: boolean
 }
 
 // ─── componente principal ─────────────────────────────────────────────────────
@@ -68,9 +70,13 @@ export function GroupedPositionsTable({
   scoreByTicker,
   fundamentalsUpdatedAt,
   visibleColumns,
+  defaultCollapsed = false,
 }: GroupedPositionsTableProps) {
   const groups = useMemo(() => groupRowsByClass(rows, totalBRL), [rows, totalBRL])
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    if (!defaultCollapsed) return new Set()
+    return new Set(groupRowsByClass(rows, totalBRL).map((g) => g.summary.key))
+  })
 
   function toggleGroup(key: string) {
     setCollapsed((prev) => {

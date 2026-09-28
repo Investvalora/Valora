@@ -128,7 +128,7 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center"
       // `mousedown` no overlay, e não `click`, para que arrastar de dentro do
       // diálogo e soltar no overlay não feche o modal.
       onMouseDown={(event) => {
@@ -142,9 +142,9 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="w-full max-w-lg rounded-lg border border-dark-border bg-dark-surface shadow-xl focus:outline-none"
+        className="max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#121212] shadow-xl focus:outline-none"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dark-border p-6">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-800 p-6">
           <h2 id={titleId} className="text-xl font-bold text-white">
             {title}
           </h2>
@@ -153,7 +153,7 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
             onClick={onClose}
             disabled={!dismissible}
             aria-label="Fechar"
-            className="rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent"
+            className="rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent"
           >
             &times;
           </button>

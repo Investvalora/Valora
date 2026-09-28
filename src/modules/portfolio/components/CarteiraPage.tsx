@@ -28,6 +28,10 @@ import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useColumnVisibility } from '../hooks/useColumnVisibility'
 import { useDividendTotals } from '../hooks/useDividendTotals'
 import { useBazin } from '../../valuation/hooks/useBazin'
+import { useWallets } from '../hooks/useWallets'
+import { MobileCarteiraHome } from './MobileCarteiraHome'
+import { QuickTransactionModal } from './QuickTransactionModal'
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { assetClassColor, assetClassLabel } from '../composition'
 import type { AssetClassSlice } from '../types'
 
@@ -167,7 +171,11 @@ class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 // ─── Página ───────────────────────────────────────────────────────────────────
 
 export function CarteiraPage() {
+  const isMobile = useIsMobile()
+  const { selectedWallet } = useWallets()
+  const walletId = selectedWallet?.id ?? ''
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isQuickTransactionOpen, setIsQuickTransactionOpen] = useState(false)
   const [isFiModalOpen, setIsFiModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -182,13 +190,17 @@ export function CarteiraPage() {
   const columnVisibility = useColumnVisibility()
 
   // ── Dashboard (KPIs + gráficos) ────────────────────────────────────────────
-  const dashboard = useDashboard()
+  const dashboard = useDashboard(walletId)
 
   // ── Posições e cotações ────────────────────────────────────────────────────
-  const { data: positions = [], isLoading, isError, refetch } = usePositions()
+  const { data: positions = [], isLoading, isError, refetch } = usePositions(walletId)
 
   // ── Renda Fixa ─────────────────────────────────────────────────────────────
-  const { rows: fiRows, totalBRL: fiTotalBRL, isLoading: fiLoading } = useFixedIncomePositions()
+  const {
+    rows: fiRows,
+    totalBRL: fiTotalBRL,
+    isLoading: fiLoading,
+  } = useFixedIncomePositions(walletId)
   const { calc: calcFiValues, state: calcFiState } = useCalcFixedIncome()
 
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
@@ -306,7 +318,15 @@ export function CarteiraPage() {
     : null
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
+    <>
+      {isMobile && (
+        <MobileCarteiraHome
+          dashboard={dashboard}
+          onAddTransaction={() => setIsQuickTransactionOpen(true)}
+        />
+      )}
+      {!isMobile && (
+      <div className="mx-auto max-w-7xl space-y-6 p-8">
 
       {/* ── Cabeçalho ──────────────────────────────────────────────────────── */}
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -645,19 +665,25 @@ export function CarteiraPage() {
         onAdd={() => setIsFiModalOpen(true)}
       />
 
-      {/* ── Modal adicionar posição ─────────────────────────────────────────── */}
+      </div>
+      )}
       <Modal isOpen={isModalOpen} title="Adicionar posição" onClose={closeModal} dismissible={!isSaving}>
         <AddPositionForm onSuccess={handleSuccess} onCancel={closeModal} onBusyChange={setIsSaving} />
       </Modal>
-
-      {/* ── Modal adicionar renda fixa ──────────────────────────────────────── */}
       <Modal isOpen={isFiModalOpen} title="Adicionar renda fixa" onClose={() => setIsFiModalOpen(false)} dismissible={!isSaving}>
         <AddFixedIncomeForm
-          onSuccess={() => { setIsFiModalOpen(false); setSuccessMessage('Posição de renda fixa adicionada.') }}
+          onSuccess={() => {
+            setIsFiModalOpen(false)
+            setSuccessMessage('Posição de renda fixa adicionada.')
+          }}
           onCancel={() => setIsFiModalOpen(false)}
           onBusyChange={setIsSaving}
         />
       </Modal>
-    </div>
+      <QuickTransactionModal
+        isOpen={isQuickTransactionOpen}
+        onClose={() => setIsQuickTransactionOpen(false)}
+      />
+    </>
   )
 }

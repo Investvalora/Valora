@@ -33,7 +33,7 @@ export function AppRoutes() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Layout />}>
-          <Route index element={<CarteiraPage />} />
+          <Route index element={<Navigate to="/carteira" replace />} />
           <Route path="carteira" element={<CarteiraPage />} />
           <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
           <Route path="patrimonio" element={<PatrimonioPage />} />

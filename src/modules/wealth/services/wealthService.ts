@@ -30,11 +30,17 @@ export const wealthService = {
    * conversão USD → BRL. O join com `assets` via FK `positions.ticker`
    * garante coerência com o catálogo.
    */
-  async listPositionsSnapshot(userId: string): Promise<PositionSnapshot[]> {
-    const { data, error } = await supabase
+  async listPositionsSnapshot(userId: string, walletId?: string): Promise<PositionSnapshot[]> {
+    let query = supabase
       .from('positions')
       .select(POSITIONS_SNAPSHOT_COLUMNS)
       .eq('user_id', userId)
+
+    if (walletId !== undefined) {
+      query = query.eq('wallet_id', walletId)
+    }
+
+    const { data, error } = await query
       .gt('quantity', 0)
       .limit(TICKER_LIMIT)
 

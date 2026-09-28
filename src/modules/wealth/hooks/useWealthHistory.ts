@@ -33,8 +33,9 @@ export function wealthHistoryQueryKey(
   userId: string | undefined,
   period: WealthPeriod,
   tickers: string[] = [],
+  walletId?: string,
 ) {
-  return ['wealth', 'history', userId, period, [...tickers].sort()] as const
+  return ['wealth', 'history', userId, period, [...tickers].sort(), walletId] as const
 }
 
 /**
@@ -122,7 +123,10 @@ export interface UseWealthHistoryResult {
  * Expõe `positions`, `lastPricesMap` e `usdRate` para que a página possa
  * calcular a composição por classe reutilizando `deriveComposition`.
  */
-export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
+export function useWealthHistory(
+  period: WealthPeriod,
+  walletId?: string,
+): UseWealthHistoryResult {
   const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
 
@@ -131,9 +135,9 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
 
   // 1. Posições com tipo, moeda e data de aquisição
   const positionsQuery = useQuery({
-    queryKey: ['wealth', 'positions-snapshot', userId],
-    queryFn: () => wealthService.listPositionsSnapshot(userId as string),
-    enabled: Boolean(userId),
+    queryKey: ['wealth', 'positions-snapshot', userId, walletId],
+    queryFn: () => wealthService.listPositionsSnapshot(userId as string, walletId),
+    enabled: Boolean(userId) && walletId !== '',
     staleTime: WEALTH_STALE_TIME_MS,
   })
 
@@ -162,7 +166,7 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
   // 2. Histórico de preços a partir do since efetivo (para a série do gráfico)
   // Só dispara após termos as posições (earliestDate !== null garante isso)
   const historyQuery = useQuery({
-    queryKey: wealthHistoryQueryKey(userId, period, tickers),
+    queryKey: wealthHistoryQueryKey(userId, period, tickers, walletId),
     queryFn: () => wealthService.listPriceHistory(tickers, since),
     enabled: Boolean(userId) && tickers.length > 0 && earliestDate !== null,
     staleTime: WEALTH_STALE_TIME_MS,
@@ -216,6 +220,7 @@ export function useWealthHistory(period: WealthPeriod): UseWealthHistoryResult {
 
   const isLoading =
     isSessionLoading ||
+    walletId === '' ||
     positionsQuery.isLoading ||
     (tickers.length > 0 && historyQuery.isLoading) ||
     (tickers.length > 0 && latestPricesQuery.isLoading) ||

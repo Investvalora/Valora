@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import { deriveComposition } from '../../portfolio/composition'
 import type { PositionRow } from '../../portfolio/types'
 import { useWealthHistory } from '../hooks/useWealthHistory'
+import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { WealthPeriod, PositionSnapshot } from '../types'
 import { PeriodSelector } from './PeriodSelector'
 import { CompositionCards } from './CompositionCards'
@@ -99,6 +100,7 @@ function buildCompositionInput(
 
 export function PatrimonioPage() {
   const [period, setPeriod] = useState<WealthPeriod>('1M')
+  const { selectedWallet } = useWallets()
 
   const {
     series,
@@ -111,7 +113,7 @@ export function PatrimonioPage() {
     positions,
     lastPricesMap,
     usdRate,
-  } = useWealthHistory(period)
+  } = useWealthHistory(period, selectedWallet?.id ?? '')
 
   /**
    * Composição derivada do último preço conhecido por ticker.

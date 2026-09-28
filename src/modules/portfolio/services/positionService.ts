@@ -4,6 +4,7 @@ import { Asset, LatestQuote, NewPosition, Position, PositionWithAsset } from '..
 
 /** Limite de posições do MVP (NFR de performance do Épico 2). */
 const POSITIONS_LIMIT = 50
+const POSITION_PAGE_SIZE = 500
 
 /** Sugestões exibidas no autocomplete de ticker. */
 const ASSET_SEARCH_LIMIT = 8
@@ -21,7 +22,7 @@ const QUOTE_WINDOW_DAYS = 10
 const ASSET_COLUMNS = 'ticker, name, type, currency'
 
 const POSITION_COLUMNS =
-  'id, user_id, ticker, quantity, average_price, acquisition_date, created_at, updated_at'
+  'id, user_id, wallet_id, ticker, quantity, average_price, acquisition_date, created_at, updated_at'
 
 const QUOTE_COLUMNS = 'ticker, date, close, source, updated_at'
 
@@ -80,16 +81,49 @@ function pickLatestPerTicker(rows: LatestQuote[]): LatestQuote[] {
 
 export const positionService = {
   /** Posições do usuário, com o ativo do catálogo embutido pela FK. */
-  async listPositions(userId: string): Promise<PositionWithAsset[]> {
-    const { data, error } = await supabase
+  async listPositions(userId: string, walletId?: string): Promise<PositionWithAsset[]> {
+    let query = supabase
       .from('positions')
       .select(`${POSITION_COLUMNS}, asset:assets(${ASSET_COLUMNS})`)
       .eq('user_id', userId)
+
+    if (walletId !== undefined) {
+      query = query.eq('wallet_id', walletId)
+    }
+
+    const { data, error } = await query
       .order('ticker', { ascending: true })
       .limit(POSITIONS_LIMIT)
 
     if (error) throw error
     return (data ?? []) as unknown as PositionWithAsset[]
+  },
+
+  /** Carrega todas as posições para consolidar os totais das carteiras. */
+  async listAllPositions(userId: string): Promise<PositionWithAsset[]> {
+    const positions: PositionWithAsset[] = []
+    let page = 0
+
+    while (true) {
+      const start = page * POSITION_PAGE_SIZE
+      const end = start + POSITION_PAGE_SIZE - 1
+      const { data, error } = await supabase
+        .from('positions')
+        .select(`${POSITION_COLUMNS}, asset:assets(${ASSET_COLUMNS})`)
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(start, end)
+
+      if (error) throw error
+
+      const rows = (data ?? []) as unknown as PositionWithAsset[]
+      positions.push(...rows)
+
+      if (rows.length < POSITION_PAGE_SIZE) break
+      page += 1
+    }
+
+    return positions
   },
 
   /**

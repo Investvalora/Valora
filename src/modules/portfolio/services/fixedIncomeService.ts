@@ -5,17 +5,23 @@ import {
 } from '../types'
 
 const COLUMNS =
-  'id, user_id, name, type, indexer, rate, principal, ' +
+  'id, user_id, wallet_id, name, type, indexer, rate, principal, ' +
   'application_date, maturity_date, current_value, last_updated_at, ' +
   'active, created_at, updated_at'
 
 export const fixedIncomeService = {
   /** Lista posições ativas do usuário, ordenadas da mais recente para a mais antiga. */
-  async listPositions(userId: string): Promise<FixedIncomePosition[]> {
-    const { data, error } = await supabase
+  async listPositions(userId: string, walletId?: string): Promise<FixedIncomePosition[]> {
+    let query = supabase
       .from('fixed_income_positions')
       .select(COLUMNS)
       .eq('user_id', userId)
+
+    if (walletId !== undefined) {
+      query = query.eq('wallet_id', walletId)
+    }
+
+    const { data, error } = await query
       .eq('active', true)
       .order('application_date', { ascending: false })
 
@@ -27,11 +33,13 @@ export const fixedIncomeService = {
   async addPosition(
     userId: string,
     position: NewFixedIncomePosition,
+    walletId?: string,
   ): Promise<FixedIncomePosition> {
     const { data, error } = await supabase
       .from('fixed_income_positions')
       .insert({
         user_id: userId,
+        ...(walletId ? { wallet_id: walletId } : {}),
         ...position,
       })
       .select(COLUMNS)

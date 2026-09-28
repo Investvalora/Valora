@@ -1,10 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transactionsService } from '../services/transactionsService'
-import { allTransactionsQueryKey } from './useTransactions'
-import { positionsQueryKey } from './usePositions'
 import type { NewPosition } from '../types'
 import type { Transaction } from '../services/transactionsService'
+import { useWallets } from './useWallets'
 
 /**
  * Código sintético da sessão ausente, no mesmo formato dos SQLSTATE que o
@@ -38,11 +37,14 @@ export function useAddPosition() {
   const { user } = useAuth()
   const userId = user?.id
   const queryClient = useQueryClient()
+  const { selectedWallet } = useWallets()
 
   return useMutation<Transaction, Error, NewPosition>({
     mutationFn: (position: NewPosition) => {
       if (!userId) throw new MissingSessionError()
+      if (!selectedWallet) throw new Error('Selecione uma carteira antes de cadastrar a posição.')
       return transactionsService.addManualTransaction(userId, {
+        wallet_id: selectedWallet.id,
         ticker: position.ticker,
         type: 'buy',
         quantity: position.quantity,
@@ -53,9 +55,9 @@ export function useAddPosition() {
     },
     onSuccess: () => {
       // Invalida posições (o trigger do banco as recalculou)
-      queryClient.invalidateQueries({ queryKey: positionsQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
       // Invalida a lista de lançamentos para a tela de Lançamentos atualizar
-      queryClient.invalidateQueries({ queryKey: allTransactionsQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'transactions-all', userId] })
       // Invalida o snapshot de posições usado por wealth/dashboard para que
       // novos tickers entrem imediatamente na série de patrimônio
       queryClient.invalidateQueries({ queryKey: ['wealth', 'positions-snapshot', userId] })

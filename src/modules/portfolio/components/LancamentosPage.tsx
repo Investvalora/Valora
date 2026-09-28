@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { useAllTransactions, buildMonthlyAportes } from '../hooks/useTransactions'
 import { usePositions } from '../hooks/usePositions'
+import { useWallets } from '../hooks/useWallets'
 import { useDeleteTransaction } from '../hooks/useTransactions'
 import { AddTransactionModal } from './AddTransactionModal'
 import {
@@ -239,13 +240,14 @@ type PeriodOption = typeof PERIOD_OPTIONS[number]
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export function LancamentosPage() {
+  const { selectedWallet } = useWallets()
   const [period, setPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[1]) // 2 Anos
   const [assetTypeFilter, setAssetTypeFilter] = useState<AssetType | 'all'>('all')
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
 
   const { data: transactions = [], isLoading, isError, refetch } = useAllTransactions()
-  const { data: positions = [] } = usePositions()
+  const { data: positions = [] } = usePositions(selectedWallet?.id ?? '')
 
   // Map de ticker → {assetType, assetName, currency, quantityTotal}
   const positionMap = useMemo(() => {

@@ -5,7 +5,7 @@ import {
   type NewManualTransaction,
 } from '../services/transactionsService'
 import { positionService } from '../services/positionService'
-import { positionsQueryKey } from './usePositions'
+import { useWallets } from './useWallets'
 
 const STALE_TIME_MS = 5 * 60 * 1000
 
@@ -17,14 +17,16 @@ export function transactionsByTickerQueryKey(userId: string | undefined, ticker:
 export function useTransactionsByTicker(ticker: string) {
   const { user } = useAuth()
   const userId = user?.id
+  const { selectedWallet } = useWallets()
+  const walletId = selectedWallet?.id ?? ''
 
   return useQuery({
-    queryKey: transactionsByTickerQueryKey(userId, ticker),
+    queryKey: [...transactionsByTickerQueryKey(userId, ticker), walletId],
     queryFn: () => {
       if (!userId) throw new Error('Sessão não encontrada')
-      return transactionsService.listByTicker(userId, ticker)
+      return transactionsService.listByTicker(userId, ticker, walletId)
     },
-    enabled: Boolean(userId) && Boolean(ticker),
+    enabled: Boolean(userId) && Boolean(ticker) && Boolean(walletId),
     staleTime: STALE_TIME_MS,
   })
 }
@@ -38,11 +40,16 @@ export function useAddTransaction() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const userId = user?.id
+  const { selectedWallet } = useWallets()
 
   return useMutation({
     mutationFn: (payload: NewManualTransaction) => {
       if (!userId) throw new Error('Sessão não encontrada')
-      return transactionsService.addManualTransaction(userId, payload)
+      if (!selectedWallet) throw new Error('Selecione uma carteira.')
+      return transactionsService.addManualTransaction(userId, {
+        ...payload,
+        wallet_id: selectedWallet.id,
+      })
     },
     onSuccess: (_, payload) => {
       queryClient.invalidateQueries({
@@ -50,7 +57,9 @@ export function useAddTransaction() {
       })
       // O trigger de banco recalculate_position atualiza positions:
       // invalida a query para refletir o novo preço médio / quantidade.
-      queryClient.invalidateQueries({ queryKey: positionsQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
+      queryClient.invalidateQueries({ queryKey: ['wealth', 'positions-snapshot', userId] })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'transactions-all', userId] })
     },
   })
 }
@@ -63,7 +72,6 @@ export function useDeleteTransaction(ticker: string) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const userId = user?.id
-
   return useMutation({
     mutationFn: (id: string) => {
       if (!userId) throw new Error('Sessão não encontrada')
@@ -73,7 +81,9 @@ export function useDeleteTransaction(ticker: string) {
       queryClient.invalidateQueries({
         queryKey: transactionsByTickerQueryKey(userId, ticker),
       })
-      queryClient.invalidateQueries({ queryKey: positionsQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
+      queryClient.invalidateQueries({ queryKey: ['wealth', 'positions-snapshot', userId] })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'transactions-all', userId] })
     },
   })
 }
@@ -90,27 +100,29 @@ export function useDeletePosition() {
       return positionService.deletePosition(userId, positionId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: positionsQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
     },
   })
 }
 
-export function allTransactionsQueryKey(userId: string | undefined) {
-  return ['portfolio', 'transactions-all', userId] as const
+export function allTransactionsQueryKey(userId: string | undefined, walletId?: string) {
+  return ['portfolio', 'transactions-all', userId, walletId] as const
 }
 
 /** Lista todas as transações do usuário (todos os tickers). */
 export function useAllTransactions() {
   const { user } = useAuth()
   const userId = user?.id
+  const { selectedWallet } = useWallets()
+  const walletId = selectedWallet?.id ?? ''
 
   return useQuery({
-    queryKey: allTransactionsQueryKey(userId),
+    queryKey: allTransactionsQueryKey(userId, walletId),
     queryFn: () => {
       if (!userId) throw new Error('Sessão não encontrada')
-      return transactionsService.listAll(userId)
+      return transactionsService.listAll(userId, walletId)
     },
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && Boolean(walletId),
     staleTime: STALE_TIME_MS,
   })
 }

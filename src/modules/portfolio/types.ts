@@ -65,6 +65,7 @@ export const FIXED_INCOME_TYPE_INDEXER: Record<FixedIncomeType, FixedIncomeIndex
 export interface FixedIncomePosition {
   id: string
   user_id: string
+  wallet_id?: string
   name: string
   type: FixedIncomeType
   indexer: FixedIncomeIndexer
@@ -122,6 +123,7 @@ export interface Asset {
 export interface Position {
   id: string
   user_id: string
+  wallet_id?: string
   ticker: string
   quantity: number
   average_price: number

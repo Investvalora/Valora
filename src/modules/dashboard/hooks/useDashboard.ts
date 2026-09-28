@@ -103,16 +103,16 @@ export interface DashboardData {
   refetch: () => void
 }
 
-export function useDashboard(): DashboardData {
+export function useDashboard(walletId?: string): DashboardData {
   const { user } = useAuth()
   const userId = user?.id
 
   // ── Série histórica de renda variável ────────────────────────────────────
   // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
-  const wealth = useWealthHistory('Tudo')
+  const wealth = useWealthHistory('Tudo', walletId)
 
   // ── Renda fixa ───────────────────────────────────────────────────────────
-  const fi = useFixedIncomePositions()
+  const fi = useFixedIncomePositions(walletId)
   const fiTotalBRL = fi.totalBRL
   const fiPrincipalBRL = useMemo(
     () => fi.rows.reduce((sum, r) => sum + r.principal, 0),
@@ -121,9 +121,9 @@ export function useDashboard(): DashboardData {
 
   // ── Posições completas (com average_price para valor investido) ───────────
   const positionsQuery = useQuery({
-    queryKey: ['portfolio', 'positions', userId],
-    queryFn: () => positionService.listPositions(userId as string),
-    enabled: Boolean(userId),
+    queryKey: ['portfolio', 'positions', userId, walletId],
+    queryFn: () => positionService.listPositions(userId as string, walletId),
+    enabled: Boolean(userId) && walletId !== '',
     staleTime: STALE_TIME_MS,
   })
   const positions = useMemo(() => positionsQuery.data ?? [], [positionsQuery.data])
@@ -137,7 +137,7 @@ export function useDashboard(): DashboardData {
   const sinceProventos = useMemo(() => shiftIsoDate(-365), [])
 
   const dividendsQuery = useQuery({
-    queryKey: ['dashboard', 'dividends-12m', userId, tickers],
+    queryKey: ['dashboard', 'dividends-12m', userId, walletId, tickers],
     queryFn: () => dividendService.listDividendsByTickers(tickers, sinceProventos),
     enabled: Boolean(userId) && tickers.length > 0,
     staleTime: STALE_TIME_MS,

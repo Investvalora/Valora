@@ -22,6 +22,7 @@ import { downloadPositionsCsv } from '../export/positionsCsv'
 import { CarteiraPage } from './CarteiraPage'
 
 const SESSION_USER_ID = '11111111-1111-4111-8111-111111111111'
+const DEFAULT_WALLET_ID = '22222222-2222-4222-8222-222222222222'
 
 const CATALOG_ASSET = {
   ticker: 'PETR4',
@@ -124,6 +125,17 @@ function stubUSDSources({ rate }: { rate: number | null }) {
 beforeEach(() => {
   vi.clearAllMocks()
   resetSupabaseMock()
+  supabaseMock.on('wallets', () => ({
+    data: [{
+      id: DEFAULT_WALLET_ID,
+      user_id: SESSION_USER_ID,
+      name: 'Minha Carteira',
+      color: 'gold',
+      is_default: true,
+      created_at: '2026-01-01T00:00:00Z',
+    }],
+    error: null,
+  }))
   useAuthStore.setState({
     user: { id: SESSION_USER_ID } as User,
     session: { user: { id: SESSION_USER_ID } } as Session,

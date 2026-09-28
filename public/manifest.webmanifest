@@ -1,0 +1,25 @@
+{
+  "name": "Valora",
+  "short_name": "Valora",
+  "description": "Acompanhe suas carteiras de investimentos.",
+  "lang": "pt-BR",
+  "start_url": "/carteira",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "/icons/valora-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/valora-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

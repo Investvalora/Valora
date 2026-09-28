@@ -2,14 +2,15 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { fixedIncomeService } from '../services/fixedIncomeService'
+import { useWallets } from './useWallets'
 import {
   FixedIncomePosition,
   FixedIncomeRow,
   NewFixedIncomePosition,
 } from '../types'
 
-export function fiQueryKey(userId: string | undefined) {
-  return ['portfolio', 'fixed-income', userId] as const
+export function fiQueryKey(userId: string | undefined, walletId?: string) {
+  return ['portfolio', 'fixed-income', userId, walletId] as const
 }
 
 /** Deriva FixedIncomeRow a partir da posição armazenada. */
@@ -49,14 +50,14 @@ function toRow(pos: FixedIncomePosition): FixedIncomeRow {
 }
 
 /** Busca e lista posições de renda fixa do usuário. */
-export function useFixedIncomePositions() {
+export function useFixedIncomePositions(walletId?: string) {
   const { user } = useAuth()
   const userId = user?.id
 
   const query = useQuery<FixedIncomePosition[]>({
-    queryKey: fiQueryKey(userId),
-    queryFn: () => fixedIncomeService.listPositions(userId!),
-    enabled: Boolean(userId),
+    queryKey: fiQueryKey(userId, walletId),
+    queryFn: () => fixedIncomeService.listPositions(userId!, walletId),
+    enabled: Boolean(userId) && walletId !== '',
     staleTime: 5 * 60_000, // 5 min — muda só quando calc-fixed-income roda
   })
 
@@ -79,14 +80,17 @@ export function useAddFixedIncomePosition() {
   const { user } = useAuth()
   const userId = user?.id
   const queryClient = useQueryClient()
+  const { selectedWallet } = useWallets()
 
   return useMutation({
     mutationFn: (position: NewFixedIncomePosition) => {
       if (!userId) throw new Error('Sessão ausente.')
-      return fixedIncomeService.addPosition(userId, position)
+      if (!selectedWallet) throw new Error('Selecione uma carteira.')
+      return fixedIncomeService.addPosition(userId, position, selectedWallet.id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: fiQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', userId] })
     },
   })
 }

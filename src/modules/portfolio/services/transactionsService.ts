@@ -8,6 +8,7 @@ export interface Transaction {
   id: string
   seq: number
   user_id: string
+  wallet_id: string
   ticker: string
   type: 'buy' | 'sell' | 'dividend' | 'jcp' | 'bonus'
   quantity: number
@@ -20,6 +21,7 @@ export interface Transaction {
 
 /** Payload de criação de transação manual (buy/sell). */
 export interface NewManualTransaction {
+  wallet_id?: string
   ticker: string
   type: 'buy' | 'sell'
   quantity: number
@@ -29,7 +31,7 @@ export interface NewManualTransaction {
 }
 
 const TRANSACTION_COLUMNS =
-  'id, seq, user_id, ticker, type, quantity, price, brokerage_fee, tax, transaction_date, created_at'
+  'id, seq, user_id, wallet_id, ticker, type, quantity, price, brokerage_fee, tax, transaction_date, created_at'
 
 function tickerError(row: ParsedTransactionRow): CsvImportError {
   return {
@@ -56,7 +58,11 @@ export const transactionsService = {
     })
   },
 
-  async importTransactions(userId: string, rows: ParsedTransactionRow[]) {
+  async importTransactions(
+    userId: string,
+    rows: ParsedTransactionRow[],
+    walletId?: string,
+  ) {
     const selected = rows.filter((row) => row.selected && !row.skipped && row.errors.length === 0)
     const payload: NewTransaction[] = selected.map((row) => ({
       ticker: row.ticker,
@@ -68,7 +74,13 @@ export const transactionsService = {
     }))
 
     if (payload.length === 0) return 0
-    const { error } = await supabase.from('transactions').insert(payload.map((transaction) => ({ ...transaction, user_id: userId })))
+    const { error } = await supabase.from('transactions').insert(
+      payload.map((transaction) => ({
+        ...transaction,
+        user_id: userId,
+        ...(walletId ? { wallet_id: walletId } : {}),
+      })),
+    )
     if (error) throw error
     return payload.length
   },
@@ -77,12 +89,22 @@ export const transactionsService = {
    * Lista as transações de um ticker para o usuário.
    * Ordenadas por `transaction_date DESC, seq DESC` (mais recentes primeiro).
    */
-  async listByTicker(userId: string, ticker: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
+  async listByTicker(
+    userId: string,
+    ticker: string,
+    walletId?: string,
+  ): Promise<Transaction[]> {
+    let query = supabase
       .from('transactions')
       .select(TRANSACTION_COLUMNS)
       .eq('user_id', userId)
       .eq('ticker', ticker.toUpperCase())
+
+    if (walletId !== undefined) {
+      query = query.eq('wallet_id', walletId)
+    }
+
+    const { data, error } = await query
       .order('transaction_date', { ascending: false })
       .order('seq', { ascending: false })
 
@@ -96,6 +118,7 @@ export const transactionsService = {
       .from('transactions')
       .insert({
         user_id: userId,
+        ...(payload.wallet_id ? { wallet_id: payload.wallet_id } : {}),
         ticker: payload.ticker.toUpperCase(),
         type: payload.type,
         quantity: payload.quantity,
@@ -127,11 +150,17 @@ export const transactionsService = {
    * Ordenadas por `transaction_date DESC, seq DESC`.
    * Limite de 2000 registros — suficiente para a tela de lançamentos no MVP.
    */
-  async listAll(userId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
+  async listAll(userId: string, walletId?: string): Promise<Transaction[]> {
+    let query = supabase
       .from('transactions')
       .select(TRANSACTION_COLUMNS)
       .eq('user_id', userId)
+
+    if (walletId !== undefined) {
+      query = query.eq('wallet_id', walletId)
+    }
+
+    const { data, error } = await query
       .order('transaction_date', { ascending: false })
       .order('seq', { ascending: false })
       .limit(2000)

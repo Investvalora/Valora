@@ -108,6 +108,24 @@ supabase db push
 **Executar após:** 008
 **Necessário para:** Story 3.1 (Seed de Dividendos e Indicadores Fundamentalistas)
 
+### 024_create_wallets.sql
+
+Cria as carteiras do usuário e atribui os dados existentes à carteira padrão.
+Posições, lançamentos e renda fixa passam a ter `wallet_id`; o trigger de
+recálculo usa `(user_id, wallet_id, ticker)` para que um lançamento de uma
+carteira não altere outra. A FK composta impede vincular dados à carteira de
+outro usuário. Todas as tabelas novas mantêm RLS habilitada.
+
+**Executar após:** 023. Aplicar antes de publicar a interface com seleção de
+carteiras. Ao executar manualmente, registrar a versão em
+`supabase_migrations.schema_migrations`.
+
+### 025_expand_wallet_colors.sql
+
+Amplia a validação de `wallets.color` para rosa, vermelho, roxo e laranja,
+mantendo as quatro cores anteriores e os dados já cadastrados. Deve ser
+aplicada após a 024 antes de usar as novas cores no aplicativo.
+
 ## Testar RLS localmente
 
 `supabase/tests/` traz um harness que sobe um Postgres efêmero, aplica as

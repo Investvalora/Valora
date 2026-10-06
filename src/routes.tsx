@@ -1,5 +1,5 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
-import { Layout } from './shared/components/Layout'
+import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
 import { LoginForm } from './modules/auth/components/LoginForm'
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
@@ -17,34 +17,49 @@ import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
 import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
 import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
 import { AccountPage } from './modules/preferences/components/AccountPage'
+import { InicioPage } from './modules/inicio/components/InicioPage'
+import { AtivosPage } from './modules/ativos/components/AtivosPage'
+import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
+import { AnalisePage } from './modules/analise/components/AnalisePage'
 
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public routes */}
+      {/* ── Rotas públicas ── */}
       <Route element={<PublicOnlyRoute />}>
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/cadastro" element={<SignupForm />} />
+        <Route path="/login"           element={<LoginForm />} />
+        <Route path="/cadastro"        element={<SignupForm />} />
         <Route path="/recuperar-senha" element={<PasswordRecoveryForm />} />
       </Route>
-      <Route path="/signup" element={<Navigate to="/cadastro" replace />} />
-      <Route path="/reset-password" element={<ResetPasswordForm />} />
+      <Route path="/signup"          element={<Navigate to="/cadastro" replace />} />
+      <Route path="/reset-password"  element={<ResetPasswordForm />} />
 
-      {/* Protected routes */}
+      {/* ── App principal — novo fluxo ── */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/carteira" replace />} />
-          <Route path="carteira" element={<CarteiraPage />} />
+        <Route path="/" element={<AppShellNovo />}>
+          {/* Redireciona raiz para Início */}
+          <Route index element={<Navigate to="/inicio" replace />} />
+
+          {/* Novo fluxo */}
+          <Route path="inicio"     element={<InicioPage />} />
+
+          {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
+          <Route path="carteira"                    element={<CarteiraPage />} />
           <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
-          <Route path="patrimonio" element={<PatrimonioPage />} />
-          <Route path="proventos" element={<ProventosPage />} />
-          <Route path="rentabilidade" element={<RentabilidadePage />} />
-          <Route path="score" element={<ScorePage />} />
-          <Route path="estrategias" element={<EstrategiasPage />} />
-          <Route path="alertas" element={<AlertsPage />} />
-          <Route path="lancamentos" element={<LancamentosPage />} />
-          <Route path="conta" element={<AccountPage />} />
-          <Route path="ativo/:ticker" element={<AtivoDetailPage />} />
+          <Route path="patrimonio"                  element={<PatrimonioPage />} />
+          <Route path="proventos"                   element={<ProventosPage />} />
+          <Route path="rentabilidade"               element={<RentabilidadePage />} />
+          <Route path="score"                       element={<ScorePage />} />
+          <Route path="estrategias"                 element={<EstrategiasPage />} />
+          <Route path="alertas"                     element={<AlertsPage />} />
+          <Route path="lancamentos"                 element={<LancamentosPage />} />
+          <Route path="conta"                       element={<AccountPage />} />
+          <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
+
+          {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
+          <Route path="ativos"     element={<AtivosPage />} />
+          <Route path="desempenho" element={<DesempenhoPage />} />
+          <Route path="analise"    element={<AnalisePage />} />
         </Route>
       </Route>
     </Routes>

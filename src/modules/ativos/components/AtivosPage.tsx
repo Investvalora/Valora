@@ -215,7 +215,7 @@ export function AtivosPage() {
             )}
           </div>
 
-          <AtivosTable rows={rows} isLoading={isLoading} />
+          <AtivosTable rows={rows} totalBRL={derived.totalBRL} isLoading={isLoading} />
 
           {/* Rodapé */}
           {rows.length > 0 && (

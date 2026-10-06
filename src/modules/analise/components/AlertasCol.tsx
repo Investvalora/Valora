@@ -1,12 +1,19 @@
 /**
  * AlertasCol — coluna de Alertas da tela Análise.
+ * Mostra os 6 primeiros alertas por padrão com botão "Mostrar mais".
  */
-import { Bell, BellRing, Check, Clock, TrendingDown, TrendingUp, AlertTriangle, X } from 'lucide-react'
+import { useState } from 'react'
+import {
+  Bell, BellRing, Check, ChevronDown, ChevronUp,
+  Clock, TrendingDown, TrendingUp, AlertTriangle, X,
+} from 'lucide-react'
 import { useAlerts } from '../../alerts/hooks/useAlerts'
 import { useUpdateAlertStatus, useGenerateAlerts } from '../../alerts/hooks/useAlertMutations'
 import type { Alert, AlertType } from '../../alerts/types'
 
-// ── config visual igual à AlertsPage existente ────────────────────────────
+const INITIAL_LIMIT = 6
+
+// ── config visual ──────────────────────────────────────────────────────────
 type AlertConfig = {
   label: string
   color: string
@@ -27,6 +34,7 @@ function statusLabel(alert: Alert): string {
   return 'Ignorado'
 }
 
+// ── linha de alerta ────────────────────────────────────────────────────────
 function AlertRow({ alert }: { alert: Alert }) {
   const update = useUpdateAlertStatus()
   const cfg = ALERT_CONFIG[alert.type] ?? ALERT_CONFIG.position_no_transactions
@@ -47,7 +55,12 @@ function AlertRow({ alert }: { alert: Alert }) {
           style={{ background: `${cfg.color}22` }}
           aria-hidden="true"
         >
-          <Icon className="h-4 w-4" strokeWidth={1.8} style={{ color: cfg.color }} aria-hidden="true" />
+          <Icon
+            className="h-4 w-4"
+            strokeWidth={1.8}
+            style={{ color: cfg.color }}
+            aria-hidden="true"
+          />
         </span>
 
         {/* Texto */}
@@ -55,7 +68,9 @@ function AlertRow({ alert }: { alert: Alert }) {
           <div className="flex items-center justify-between gap-2">
             <div>
               <span className="text-[13px] font-semibold text-white">{alert.ticker}</span>
-              <span className="ml-2 text-[10.5px]" style={{ color: cfg.color }}>{cfg.label}</span>
+              <span className="ml-2 text-[10.5px]" style={{ color: cfg.color }}>
+                {cfg.label}
+              </span>
             </div>
             {/* Chip status */}
             {isNovo ? (
@@ -68,11 +83,13 @@ function AlertRow({ alert }: { alert: Alert }) {
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-[11px] text-[#8F8F8F] line-clamp-2">{alert.description}</p>
+          <p className="mt-0.5 text-[11px] text-[#8F8F8F] line-clamp-2">
+            {alert.description}
+          </p>
         </div>
       </div>
 
-      {/* Ações rápidas para alertas novos */}
+      {/* Ações rápidas — só para alertas novos */}
       {isNovo && (
         <div className="mt-2.5 flex gap-2 pl-[46px]">
           <button
@@ -99,11 +116,13 @@ function AlertRow({ alert }: { alert: Alert }) {
   )
 }
 
+// ── componente principal ───────────────────────────────────────────────────
 export function AlertasCol() {
   const { data: alerts = [], isLoading } = useAlerts()
   const generate = useGenerateAlerts()
+  const [showAll, setShowAll] = useState(false)
 
-  // Novos e lidos no topo, ignorados no fundo; dentro de cada grupo por data desc
+  // Novos no topo, lidos no meio, ignorados no fundo; dentro de cada grupo por data desc
   const sorted = [...alerts].sort((a, b) => {
     const order = { novo: 0, lido: 1, ignorado: 2 }
     const diff = order[a.status] - order[b.status]
@@ -112,10 +131,14 @@ export function AlertasCol() {
   })
 
   const novosCount = alerts.filter((a) => a.status === 'novo').length
+  const totalCount = sorted.length
+  const hasMore = totalCount > INITIAL_LIMIT
+  const visible = showAll ? sorted : sorted.slice(0, INITIAL_LIMIT)
+  const hiddenCount = totalCount - INITIAL_LIMIT
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#1B1B1B]">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between border-b border-white/[0.08] bg-white/[0.03] px-5 py-4">
         <div className="flex items-center gap-2">
           <h2 className="text-[14px] font-semibold text-white/85">Alertas</h2>
@@ -136,7 +159,7 @@ export function AlertasCol() {
         </button>
       </div>
 
-      {/* Lista */}
+      {/* ── Lista ── */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
           <div className="flex flex-col gap-2 p-5">
@@ -153,20 +176,49 @@ export function AlertasCol() {
           </div>
         )}
 
-        {!isLoading && sorted.map((alert) => (
+        {!isLoading && visible.map((alert) => (
           <AlertRow key={alert.id} alert={alert} />
         ))}
       </div>
 
-      {/* Link ver todos */}
-      {sorted.length > 0 && (
+      {/* ── Footer: mostrar mais / recolher + link ── */}
+      {!isLoading && sorted.length > 0 && (
         <div className="border-t border-white/[0.07] px-5 py-3">
-          <a
-            href="/alertas"
-            className="text-[12px] font-medium text-nf-blue hover:underline"
-          >
-            Ver todos os alertas →
-          </a>
+          <div className="flex items-center justify-between">
+            {/* Botão mostrar mais / recolher */}
+            {hasMore ? (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="flex items-center gap-1 text-[12px] font-medium text-[#8F8F8F] transition-colors hover:text-white"
+              >
+                {showAll ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+                    Recolher
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+                    Mostrar mais{' '}
+                    <span className="ml-0.5 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px]">
+                      +{hiddenCount}
+                    </span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <span /> /* placeholder para manter justify-between */
+            )}
+
+            {/* Link ver todos */}
+            <a
+              href="/alertas"
+              className="text-[12px] font-medium text-nf-blue hover:underline"
+            >
+              Ver todos →
+            </a>
+          </div>
         </div>
       )}
     </div>

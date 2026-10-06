@@ -89,7 +89,7 @@ export function InicioPage() {
                 <span className="text-[11px] text-[#8F8F8F]">Ganho</span>
               </div>
               <NavLink
-                to="/novo/desempenho"
+                to="/desempenho"
                 className="flex items-center gap-1 text-[12px] font-medium text-nf-blue hover:underline"
               >
                 Ver desempenho
@@ -107,21 +107,21 @@ export function InicioPage() {
       {/* ── Atalhos ── */}
       <div className="flex gap-4">
         <ShortcutCard
-          to="/novo/ativos"
+          to="/ativos"
           label="Ativos"
           sub="28 ativos em 5 classes"
           icon={Wallet}
           color="#F765A3"
         />
         <ShortcutCard
-          to="/novo/desempenho"
+          to="/desempenho"
           label="Desempenho"
           sub="Rentabilidade +5,54% · Proventos 12M R$ 851,40"
           icon={TrendingUp}
           color="#6FE0A0"
         />
         <ShortcutCard
-          to="/novo/analise"
+          to="/analise"
           label="Análise"
           sub="2 alertas novos · 2 scores criados"
           icon={BarChart2}

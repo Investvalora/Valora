@@ -8,8 +8,8 @@ export type NavItem = {
 }
 
 export const navItemsNovo: NavItem[] = [
-  { path: '/novo/inicio',      label: 'Início',     icon: Home       },
-  { path: '/novo/ativos',      label: 'Ativos',     icon: Wallet     },
-  { path: '/novo/desempenho',  label: 'Desempenho', icon: TrendingUp },
-  { path: '/novo/analise',     label: 'Análise',    icon: Target     },
+  { path: '/inicio',     label: 'Início',     icon: Home       },
+  { path: '/ativos',     label: 'Ativos',     icon: Wallet     },
+  { path: '/desempenho', label: 'Desempenho', icon: TrendingUp },
+  { path: '/analise',    label: 'Análise',    icon: Target     },
 ]

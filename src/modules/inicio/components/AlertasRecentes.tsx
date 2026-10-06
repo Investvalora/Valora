@@ -111,7 +111,7 @@ export function AlertasRecentes() {
       {/* Link rodapé */}
       <div className="mt-4 border-t border-white/[0.07] pt-4">
         <NavLink
-          to="/novo/analise"
+          to="/analise"
           className="flex items-center gap-1.5 text-[12px] font-medium text-nf-blue hover:underline"
         >
           Ver todos os alertas

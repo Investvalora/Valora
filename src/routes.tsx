@@ -1,5 +1,4 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
-import { Layout } from './shared/components/Layout'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
 import { LoginForm } from './modules/auth/components/LoginForm'
@@ -23,43 +22,41 @@ import { InicioPage } from './modules/inicio/components/InicioPage'
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public routes */}
+      {/* ── Rotas públicas ── */}
       <Route element={<PublicOnlyRoute />}>
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/cadastro" element={<SignupForm />} />
+        <Route path="/login"           element={<LoginForm />} />
+        <Route path="/cadastro"        element={<SignupForm />} />
         <Route path="/recuperar-senha" element={<PasswordRecoveryForm />} />
       </Route>
-      <Route path="/signup" element={<Navigate to="/cadastro" replace />} />
-      <Route path="/reset-password" element={<ResetPasswordForm />} />
+      <Route path="/signup"          element={<Navigate to="/cadastro" replace />} />
+      <Route path="/reset-password"  element={<ResetPasswordForm />} />
 
-      {/* ── Novo fluxo desktop ── */}
+      {/* ── App principal — novo fluxo ── */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/novo" element={<AppShellNovo />}>
-          <Route index element={<Navigate to="/novo/inicio" replace />} />
+        <Route path="/" element={<AppShellNovo />}>
+          {/* Redireciona raiz para Início */}
+          <Route index element={<Navigate to="/inicio" replace />} />
+
+          {/* Novo fluxo */}
           <Route path="inicio"     element={<InicioPage />} />
-          {/* Ativos, Desempenho e Análise serão adicionados nas próximas entregas */}
-          <Route path="ativos"     element={<PatrimonioPage />} />
+
+          {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
+          <Route path="carteira"                    element={<CarteiraPage />} />
+          <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
+          <Route path="patrimonio"                  element={<PatrimonioPage />} />
+          <Route path="proventos"                   element={<ProventosPage />} />
+          <Route path="rentabilidade"               element={<RentabilidadePage />} />
+          <Route path="score"                       element={<ScorePage />} />
+          <Route path="estrategias"                 element={<EstrategiasPage />} />
+          <Route path="alertas"                     element={<AlertsPage />} />
+          <Route path="lancamentos"                 element={<LancamentosPage />} />
+          <Route path="conta"                       element={<AccountPage />} />
+          <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
+
+          {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
+          <Route path="ativos"     element={<CarteiraPage />} />
           <Route path="desempenho" element={<RentabilidadePage />} />
           <Route path="analise"    element={<ScorePage />} />
-          <Route path="conta"      element={<AccountPage />} />
-        </Route>
-      </Route>
-
-      {/* ── Fluxo legado (mantido intacto) ── */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/carteira" replace />} />
-          <Route path="carteira" element={<CarteiraPage />} />
-          <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
-          <Route path="patrimonio" element={<PatrimonioPage />} />
-          <Route path="proventos" element={<ProventosPage />} />
-          <Route path="rentabilidade" element={<RentabilidadePage />} />
-          <Route path="score" element={<ScorePage />} />
-          <Route path="estrategias" element={<EstrategiasPage />} />
-          <Route path="alertas" element={<AlertsPage />} />
-          <Route path="lancamentos" element={<LancamentosPage />} />
-          <Route path="conta" element={<AccountPage />} />
-          <Route path="ativo/:ticker" element={<AtivoDetailPage />} />
         </Route>
       </Route>
     </Routes>

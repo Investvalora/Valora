@@ -47,14 +47,34 @@ export function SidebarNovo({
           ${compact ? 'justify-center' : ''}
         `}
       >
-        {/* Marca gradiente */}
+        {/* Logo do projeto */}
         <span
-          className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[8px]"
-          style={{ background: 'linear-gradient(135deg, #4FC35A 0%, #7987FF 100%)' }}
+          className="grid h-[32px] w-[32px] shrink-0 place-items-center overflow-hidden rounded-[8px]"
           aria-hidden="true"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <path d="M2 4l6 8 6-8" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 128 128"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="sb-v-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#5cc8ff" />
+                <stop offset="1" stopColor="#3f7dff" />
+              </linearGradient>
+            </defs>
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#101822" stroke="#2a3746" strokeWidth="2" />
+            <path
+              d="M32 76L52 52L70 68L96 36"
+              fill="none"
+              stroke="url(#sb-v-gradient)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="96" cy="36" r="6" fill="#5cc8ff" />
           </svg>
         </span>
 

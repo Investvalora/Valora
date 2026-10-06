@@ -5,10 +5,12 @@
  * useLatestQuotes, useDividendTotals, useBazin, useWallets) sem duplicar
  * lógica de derivação — apenas substitui o visual pelo novo design.
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { BarChart2, Coins, Filter, Plus, Wallet } from 'lucide-react'
 import { KpiCard } from '../../../shared/components/KpiCard'
 import { PanelCard } from '../../../shared/components/PanelCard'
+import { Modal } from '../../../shared/components/Modal'
+import { AddPositionForm } from '../../portfolio/components/AddPositionForm'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { usePositions } from '../../portfolio/hooks/usePositions'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
@@ -28,6 +30,10 @@ import { fmtMoney, fmtPct } from '../utils/fmt'
 export function AtivosPage() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
+
+  // ── modal adicionar ativo ─────────────────────────────────────────────────
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [addBusy, setAddBusy] = useState(false)
 
   // ── dados brutos ──────────────────────────────────────────────────────────
   const { data: positions = [], isLoading } = usePositions(walletId)
@@ -144,6 +150,7 @@ export function AtivosPage() {
           </button>
           <button
             type="button"
+            onClick={() => setAddModalOpen(true)}
             className="
               flex items-center gap-1.5 rounded-full
               border border-white/[0.1] bg-[#393939]
@@ -231,6 +238,20 @@ export function AtivosPage() {
           <AlocacaoDonut slices={composition.slices} />
         </PanelCard>
       </div>
+
+      {/* ── Modal adicionar ativo ── */}
+      <Modal
+        isOpen={addModalOpen}
+        title="Adicionar ativo"
+        onClose={() => { if (!addBusy) setAddModalOpen(false) }}
+        dismissible={!addBusy}
+      >
+        <AddPositionForm
+          onSuccess={() => setAddModalOpen(false)}
+          onCancel={() => setAddModalOpen(false)}
+          onBusyChange={setAddBusy}
+        />
+      </Modal>
     </div>
   )
 }

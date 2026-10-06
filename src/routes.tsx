@@ -18,6 +18,7 @@ import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
 import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
 import { AccountPage } from './modules/preferences/components/AccountPage'
 import { InicioPage } from './modules/inicio/components/InicioPage'
+import { AtivosPage } from './modules/ativos/components/AtivosPage'
 
 export function AppRoutes() {
   return (
@@ -54,7 +55,7 @@ export function AppRoutes() {
           <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
 
           {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
-          <Route path="ativos"     element={<CarteiraPage />} />
+          <Route path="ativos"     element={<AtivosPage />} />
           <Route path="desempenho" element={<RentabilidadePage />} />
           <Route path="analise"    element={<ScorePage />} />
         </Route>

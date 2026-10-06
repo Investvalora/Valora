@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { Layout } from './shared/components/Layout'
+import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
 import { LoginForm } from './modules/auth/components/LoginForm'
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
@@ -17,6 +18,7 @@ import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
 import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
 import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
 import { AccountPage } from './modules/preferences/components/AccountPage'
+import { InicioPage } from './modules/inicio/components/InicioPage'
 
 export function AppRoutes() {
   return (
@@ -30,7 +32,20 @@ export function AppRoutes() {
       <Route path="/signup" element={<Navigate to="/cadastro" replace />} />
       <Route path="/reset-password" element={<ResetPasswordForm />} />
 
-      {/* Protected routes */}
+      {/* ── Novo fluxo desktop ── */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/novo" element={<AppShellNovo />}>
+          <Route index element={<Navigate to="/novo/inicio" replace />} />
+          <Route path="inicio"     element={<InicioPage />} />
+          {/* Ativos, Desempenho e Análise serão adicionados nas próximas entregas */}
+          <Route path="ativos"     element={<PatrimonioPage />} />
+          <Route path="desempenho" element={<RentabilidadePage />} />
+          <Route path="analise"    element={<ScorePage />} />
+          <Route path="conta"      element={<AccountPage />} />
+        </Route>
+      </Route>
+
+      {/* ── Fluxo legado (mantido intacto) ── */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/carteira" replace />} />

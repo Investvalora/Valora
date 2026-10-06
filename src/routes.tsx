@@ -20,6 +20,7 @@ import { AccountPage } from './modules/preferences/components/AccountPage'
 import { InicioPage } from './modules/inicio/components/InicioPage'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
+import { AnalisePage } from './modules/analise/components/AnalisePage'
 
 export function AppRoutes() {
   return (
@@ -58,7 +59,7 @@ export function AppRoutes() {
           {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
           <Route path="ativos"     element={<AtivosPage />} />
           <Route path="desempenho" element={<DesempenhoPage />} />
-          <Route path="analise"    element={<ScorePage />} />
+          <Route path="analise"    element={<AnalisePage />} />
         </Route>
       </Route>
     </Routes>

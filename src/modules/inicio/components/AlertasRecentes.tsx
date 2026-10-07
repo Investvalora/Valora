@@ -1,119 +1,59 @@
 import { ArrowRight, Bell, TrendingUp } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { PanelCard } from '../../../shared/components/PanelCard'
-
-const ALERTAS = [
-  {
-    id: 1,
-    titulo: 'Sobrevalorizado: AAPL',
-    detalhe: '99,3% acima do preço-teto Bazin',
-    status: 'Novo',
-    icon: TrendingUp,
-    color: '#FF8FBE',
-  },
-  {
-    id: 2,
-    titulo: 'Sobrevalorizado: MXRF11',
-    detalhe: '66,8% acima do preço-teto Bazin',
-    status: 'Novo',
-    icon: TrendingUp,
-    color: '#FF8FBE',
-  },
-  {
-    id: 3,
-    titulo: 'Alerta de preço: MXRF11',
-    detalhe: 'Abaixo de R$ 9,04',
-    status: 'Ignorado',
-    icon: Bell,
-    color: '#7987FF',
-  },
-]
+import { useAlerts } from '../../alerts/hooks/useAlerts'
 
 export function AlertasRecentes() {
+  const { data: alerts = [], isLoading, isError, refetch } = useAlerts()
+  const recentAlerts = alerts.slice(0, 3)
+  const newCount = alerts.filter((alert) => alert.status === 'novo').length
+
   return (
     <PanelCard className="flex w-[420px] shrink-0 flex-col" padding="p-6">
-      {/* Cabeçalho */}
       <div className="mb-4 flex items-center gap-3">
-        <h2 className="flex-1 text-[15px] font-semibold text-white/80">
-          Alertas recentes
-        </h2>
-        <span
-          className="
-            rounded-full border border-nf-blue/60
-            bg-nf-blue/12 px-2.5 py-0.5
-            text-[11px] text-nf-blue
-          "
-        >
-          2 novos
-        </span>
+        <h2 className="flex-1 text-[15px] font-semibold text-white/80">Alertas recentes</h2>
+        {newCount > 0 && (
+          <span className="rounded-full border border-nf-blue/60 bg-nf-blue/12 px-2.5 py-0.5 text-[11px] text-nf-blue">
+            {newCount} {newCount === 1 ? 'novo' : 'novos'}
+          </span>
+        )}
       </div>
 
-      {/* Lista */}
       <div className="flex flex-1 flex-col">
-        {ALERTAS.map((al, i) => {
-          const Icon = al.icon
-          const isNovo = al.status === 'Novo'
+        {isLoading && <p className="py-5 text-sm text-[#8F8F8F]">Carregando alertas…</p>}
+        {isError && (
+          <button type="button" onClick={() => void refetch()} className="self-start py-5 text-sm text-red-300">
+            Não foi possível carregar os alertas. Tentar novamente
+          </button>
+        )}
+        {!isLoading && !isError && recentAlerts.length === 0 && (
+          <p className="py-5 text-sm text-[#8F8F8F]">Nenhum alerta recente.</p>
+        )}
+        {!isLoading && !isError && recentAlerts.map((alert, index) => {
+          const isNew = alert.status === 'novo'
+          const isValuation = alert.type === 'overvalued' || alert.type === 'opportunity'
+          const Icon = isValuation ? TrendingUp : Bell
+          const color = isValuation ? '#FF8FBE' : '#7987FF'
 
           return (
-            <div
-              key={al.id}
-              className={`
-                flex items-center gap-3 py-2.5
-                ${i > 0 ? 'border-t border-white/[0.07]' : ''}
-              `}
-            >
-              {/* Ícone */}
-              <span
-                className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg"
-                style={{ background: `${al.color}24` }}
-                aria-hidden="true"
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.8} style={{ color: al.color }} aria-hidden="true" />
+            <div key={alert.id} className={`flex items-center gap-3 py-2.5 ${index > 0 ? 'border-t border-white/[0.07]' : ''}`}>
+              <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg" style={{ background: `${color}24` }} aria-hidden="true">
+                <Icon className="h-4 w-4" strokeWidth={1.8} style={{ color }} />
               </span>
-
-              {/* Texto */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-white">
-                  {al.titulo}
-                </p>
-                <p className="truncate text-[11px] text-[#8F8F8F]">
-                  {al.detalhe}
-                </p>
+                <p className="truncate text-[13px] font-semibold text-white">{alert.title}</p>
+                <p className="truncate text-[11px] text-[#8F8F8F]">{alert.description}</p>
               </div>
-
-              {/* Chip status */}
-              {isNovo ? (
-                <span
-                  className="
-                    rounded-full border border-nf-blue/60
-                    bg-nf-blue/12 px-2.5 py-0.5
-                    text-[11px] text-nf-blue
-                  "
-                >
-                  {al.status}
-                </span>
-              ) : (
-                <span
-                  className="
-                    rounded-full border border-white/20
-                    px-2.5 py-0.5
-                    text-[11px] text-[#8F8F8F]
-                  "
-                >
-                  {al.status}
-                </span>
-              )}
+              <span className={`rounded-full border px-2.5 py-0.5 text-[11px] ${isNew ? 'border-nf-blue/60 bg-nf-blue/12 text-nf-blue' : 'border-white/20 text-[#8F8F8F]'}`}>
+                {isNew ? 'Novo' : alert.status === 'ignorado' ? 'Ignorado' : 'Lido'}
+              </span>
             </div>
           )
         })}
       </div>
 
-      {/* Link rodapé */}
       <div className="mt-4 border-t border-white/[0.07] pt-4">
-        <NavLink
-          to="/analise"
-          className="flex items-center gap-1.5 text-[12px] font-medium text-nf-blue hover:underline"
-        >
+        <NavLink to="/alertas" className="flex items-center gap-1.5 text-[12px] font-medium text-nf-blue hover:underline">
           Ver todos os alertas
           <ArrowRight className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
         </NavLink>

@@ -26,7 +26,7 @@ export function TopBar({
       : (user?.email?.[0]?.toUpperCase() ?? 'S')
 
   return (
-    <header className="relative z-40 flex h-[58px] shrink-0 items-center justify-between px-10">
+    <header className="relative z-40 hidden h-[58px] shrink-0 items-center justify-between px-10 md:flex">
       {/* ── Filtros globais ── */}
       <div className="flex items-center gap-3">
         {/* Seletor de carteira */}

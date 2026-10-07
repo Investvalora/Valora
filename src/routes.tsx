@@ -21,6 +21,19 @@ import { InicioPage } from './modules/inicio/components/InicioPage'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
+import { useIsMobile } from './shared/hooks/useIsMobile'
+
+function HomeRoute() {
+  const isMobile = useIsMobile()
+
+  return isMobile ? <Navigate to="/carteira" replace /> : <InicioPage />
+}
+
+function IndexRoute() {
+  const isMobile = useIsMobile()
+
+  return <Navigate to={isMobile ? '/carteira' : '/inicio'} replace />
+}
 
 export function AppRoutes() {
   return (
@@ -37,11 +50,10 @@ export function AppRoutes() {
       {/* ── App principal — novo fluxo ── */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AppShellNovo />}>
-          {/* Redireciona raiz para Início */}
-          <Route index element={<Navigate to="/inicio" replace />} />
+          <Route index element={<IndexRoute />} />
 
           {/* Novo fluxo */}
-          <Route path="inicio"     element={<InicioPage />} />
+          <Route path="inicio"     element={<HomeRoute />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
           <Route path="carteira"                    element={<CarteiraPage />} />

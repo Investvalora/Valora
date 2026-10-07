@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import {
   Bell, BellRing, Check, ChevronDown, ChevronUp,
-  Clock, TrendingDown, TrendingUp, AlertTriangle, X,
+  Clock, TrendingDown, TrendingUp, AlertTriangle, X, type LucideIcon,
 } from 'lucide-react'
 import { useAlerts } from '../../alerts/hooks/useAlerts'
 import { useUpdateAlertStatus, useGenerateAlerts } from '../../alerts/hooks/useAlertMutations'
@@ -17,7 +17,7 @@ const INITIAL_LIMIT = 6
 type AlertConfig = {
   label: string
   color: string
-  Icon: React.ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' | 'false' }>
+  Icon: LucideIcon
 }
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {

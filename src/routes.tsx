@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
@@ -23,6 +23,11 @@ import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
 import { useIsMobile } from './shared/hooks/useIsMobile'
+
+// ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
+const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
+const AtivosComposicao = lazy(() => import('./modules/ativos/components/AtivosComposicao').then((m) => ({ default: m.AtivosComposicao })))
+const AtivosLancamentos = lazy(() => import('./modules/ativos/components/AtivosLancamentos').then((m) => ({ default: m.AtivosLancamentos })))
 
 // ── Placeholder para sub-rotas ainda não implementadas ─────────────────────
 function Placeholder() {
@@ -89,9 +94,9 @@ export function AppRoutes() {
           {/* ── Ativos — sub-rotas ── */}
           <Route path="ativos" element={<AtivosPage />}>
             <Route index element={<Navigate to="posicoes" replace />} />
-            <Route path="posicoes"    element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
-            <Route path="composicao"  element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
-            <Route path="lancamentos" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="posicoes"    element={<Suspense fallback={<LoadingFallback />}><AtivosPosicoes /></Suspense>} />
+            <Route path="composicao"  element={<Suspense fallback={<LoadingFallback />}><AtivosComposicao /></Suspense>} />
+            <Route path="lancamentos" element={<Suspense fallback={<LoadingFallback />}><AtivosLancamentos /></Suspense>} />
           </Route>
 
           {/* ── Desempenho — sub-rotas ── */}

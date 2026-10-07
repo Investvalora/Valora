@@ -1,16 +1,15 @@
 /**
  * AtivosTable
  * Tabela de posições agrupada por classe de ativo.
- * Colunas: Ativo | Classe | Qtd | Preço médio | Posição | Lucro% | DY
- * Cada grupo tem um cabeçalho expansível com resumo (total, variação, % carteira).
+ * Grupos colapsáveis mostram resumo; ao expandir, exibem todas as colunas do Figma:
+ * Ticker | Nome | Quant. | Preço médio | Cotação | Saldo | % carteira | Variação |
+ * Proventos(12M) | Payout% | P/L | P/VP | DY%
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react'
+import { ChevronDown, Info, TrendingDown, TrendingUp } from 'lucide-react'
 import type { PositionRow, AssetCurrency } from '../../portfolio/types'
 import {
-  assetClassLabel,
-  assetClassColor,
   groupRowsByClass,
 } from '../../portfolio/composition'
 import { fmtMoney, fmtPct, fmtQty } from '../utils/fmt'
@@ -30,6 +29,14 @@ const signedPct = new Intl.NumberFormat('pt-BR', {
 function fmtSignedPct(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return '—'
   return signedPct.format(v) + '%'
+}
+
+function fmtOptional(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(v)
 }
 
 // ── célula de variação colorida ────────────────────────────────────────────
@@ -80,7 +87,7 @@ function Th({
 function SkeletonRow() {
   return (
     <tr className="border-t border-white/[0.04]">
-      {Array.from({ length: 7 }).map((_, i) => (
+      {Array.from({ length: 13 }).map((_, i) => (
         <td key={i} className="px-2 py-3">
           <div className="h-3.5 animate-pulse rounded bg-white/[0.06]" />
         </td>
@@ -115,10 +122,9 @@ function GroupHeader({
       onClick={onToggle}
       aria-expanded={expanded}
     >
-      {/* Classe + ícone chevron */}
-      <td className="py-2.5 pl-4 pr-2" colSpan={1}>
+      {/* Classe + ícone chevron — colSpan 2 (Ticker+Nome agrupados no header) */}
+      <td className="py-2.5 pl-4 pr-2" colSpan={2}>
         <div className="flex items-center gap-2">
-          {/* Ícone colorido da classe */}
           <span
             className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[7px] text-[12px] font-bold"
             style={{ background: `${color}22`, color }}
@@ -142,10 +148,10 @@ function GroupHeader({
         {count} {count === 1 ? 'ativo' : 'ativos'}
       </td>
 
-      {/* Qtd — vazio */}
+      {/* Preço médio — vazio */}
       <td className="px-2 py-2.5" />
 
-      {/* Preço médio — vazio */}
+      {/* Cotação — vazio */}
       <td className="px-2 py-2.5" />
 
       {/* Valor total */}
@@ -153,28 +159,29 @@ function GroupHeader({
         {fmtMoney(totalValueBRL)}
       </td>
 
+      {/* % carteira */}
+      <td className="px-2 py-2.5 text-right text-[12px] text-[#8F8F8F]">
+        {weightPercent !== null ? fmtSignedPct(weightPercent).replace('+', '') : '—'}
+      </td>
+
       {/* Variação média */}
       <td className="px-2 py-2.5 text-right text-[13px]">
         <ChangeCell value={avgChangePercent} />
       </td>
 
-      {/* % carteira */}
-      <td className="py-2.5 pl-2 pr-5 text-right text-[12px] text-[#8F8F8F]">
-        {weightPercent !== null ? fmtSignedPct(weightPercent).replace('+', '') : '—'}
-      </td>
+      {/* Proventos(12M), Payout%, P/L, P/VP, DY — vazios no header */}
+      <td className="px-2 py-2.5" />
+      <td className="px-2 py-2.5" />
+      <td className="px-2 py-2.5" />
+      <td className="px-2 py-2.5" />
+      <td className="py-2.5 pl-2 pr-5" />
     </tr>
   )
 }
 
-// ── linha de ativo ─────────────────────────────────────────────────────────
+// ── linha de ativo expandida ────────────────────────────────────────────────
 function AssetRow({ row, striped }: { row: PositionRow; striped: boolean }) {
   const currency: AssetCurrency = row.currency ?? 'BRL'
-  const dotColor =
-    row.changePercent !== null && row.changePercent >= 0
-      ? '#33AA3B'
-      : row.changePercent !== null
-        ? '#FF8FBE'
-        : '#8F8F8F'
 
   return (
     <tr
@@ -182,70 +189,93 @@ function AssetRow({ row, striped }: { row: PositionRow; striped: boolean }) {
         striped ? 'bg-white/[0.015]' : ''
       }`}
     >
-      {/* Ativo */}
+      {/* Ticker */}
       <td className="py-3 pl-4 pr-2">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ background: dotColor }}
-            aria-hidden="true"
-          />
-          <Link
-            to={`/ativo/${row.ticker.toLowerCase()}`}
-            className="group flex flex-col leading-tight"
-          >
-            <span className="text-[13px] font-medium text-white group-hover:underline">
-              {row.ticker}
-            </span>
-            {row.name && (
-              <span className="max-w-[140px] truncate text-[10.5px] text-[#8F8F8F]">
-                {row.name}
-              </span>
-            )}
-          </Link>
-        </div>
+        <Link
+          to={`/ativo/${row.ticker.toLowerCase()}`}
+          className="text-[13px] font-medium text-white hover:underline"
+        >
+          {row.ticker}
+        </Link>
       </td>
 
-      {/* Classe (badge pequeno dentro da linha) */}
+      {/* Nome */}
       <td className="px-2 py-3">
-        {row.type ? (
-          <span
-            className="rounded-md px-2 py-0.5 text-[11px] font-medium"
-            style={{
-              background: `${assetClassColor(row.type)}22`,
-              color: assetClassColor(row.type),
-            }}
-          >
-            {assetClassLabel(row.type)}
-          </span>
-        ) : (
-          <span className="text-[11px] text-[#8F8F8F]">—</span>
-        )}
+        <span className="max-w-[120px] truncate block text-[12px] text-[#8F8F8F]">
+          {row.name ?? '—'}
+        </span>
       </td>
 
-      {/* Qtd */}
-      <td className="px-2 py-3 text-right text-[13px] text-white">
+      {/* Quant. */}
+      <td className="px-2 py-3 text-right text-[13px] text-white tabular-nums">
         {fmtQty(row.quantity)}
       </td>
 
       {/* Preço médio */}
-      <td className="px-2 py-3 text-right text-[13px] text-white">
+      <td className="px-2 py-3 text-right text-[13px] text-white tabular-nums">
         {fmtMoney(row.averagePrice, currency)}
       </td>
 
-      {/* Posição */}
-      <td className="px-2 py-3 text-right text-[13px] font-medium text-white">
+      {/* Cotação — com ícone info quando stale */}
+      <td className="px-2 py-3 text-right">
+        <span className="inline-flex items-center gap-1 justify-end">
+          <span className="text-[13px] text-white tabular-nums">
+            {Number.isFinite(row.quotePrice) ? fmtMoney(row.quotePrice, currency) : '—'}
+          </span>
+          {row.isStaleQuote && (
+            <Info
+              className="h-[11px] w-[11px] shrink-0 text-[#8F8F8F]"
+              strokeWidth={2}
+              aria-label="Cotação desatualizada"
+            />
+          )}
+        </span>
+      </td>
+
+      {/* Saldo (valor de mercado em BRL) */}
+      <td className="px-2 py-3 text-right text-[13px] font-medium text-white tabular-nums">
         {fmtMoney(row.marketValueBRL)}
       </td>
 
-      {/* Lucro % */}
+      {/* % carteira */}
+      <td className="px-2 py-3 text-right text-[12px] text-[#8F8F8F] tabular-nums">
+        {row.weightPercent !== null ? fmtSignedPct(row.weightPercent).replace('+', '') : '—'}
+      </td>
+
+      {/* Variação */}
       <td className="px-2 py-3 text-right text-[13px]">
         <ChangeCell value={row.changePercent} />
       </td>
 
-      {/* DY */}
-      <td className="py-3 pl-2 pr-5 text-right text-[12px]">
-        {row.dy !== undefined && row.dy !== null ? (
+      {/* Proventos 12M */}
+      <td className="px-2 py-3 text-right text-[12px] tabular-nums">
+        {row.proventosRecebidosBRL !== null && row.proventosRecebidosBRL !== undefined ? (
+          <span className="text-nf-green">{fmtMoney(row.proventosRecebidosBRL)}</span>
+        ) : (
+          <span className="text-[#8F8F8F]">—</span>
+        )}
+      </td>
+
+      {/* Payout% */}
+      <td className="px-2 py-3 text-right text-[12px] text-white/70 tabular-nums">
+        {row.payoutPercent !== null && row.payoutPercent !== undefined
+          ? fmtOptional(row.payoutPercent) + '%'
+          : '—'}
+      </td>
+
+      {/* P/L */}
+      <td className="px-2 py-3 text-right text-[12px] text-white/70 tabular-nums">
+        {row.pl !== null && row.pl !== undefined ? fmtOptional(row.pl) : '—'}
+      </td>
+
+      {/* P/VP */}
+      <td className="px-2 py-3 text-right text-[12px] text-white/70 tabular-nums">
+        {row.pvp !== null && row.pvp !== undefined ? fmtOptional(row.pvp) : '—'}
+      </td>
+
+      {/* DY% */}
+      <td className="py-3 pl-2 pr-5 text-right text-[12px] tabular-nums">
+        {row.dy !== null && row.dy !== undefined ? (
           <span className="text-nf-yellow">{fmtPct(row.dy)}</span>
         ) : (
           <span className="text-[#8F8F8F]">—</span>
@@ -257,32 +287,38 @@ function AssetRow({ row, striped }: { row: PositionRow; striped: boolean }) {
 
 // ── componente principal ───────────────────────────────────────────────────
 export function AtivosTable({ rows, totalBRL, isLoading = false }: Props) {
-  // Todos os grupos começam expandidos
   const groups = groupRowsByClass(rows, totalBRL)
   const initialExpanded = Object.fromEntries(
     groups.map(({ summary }) => [summary.key, true])
   )
   const [expanded, setExpanded] = useState<Record<string, boolean>>(initialExpanded)
 
-  // Atualiza quando os grupos mudarem (ex: novos dados carregados)
-  // Mantém o estado do que o usuário tocou, expande novos grupos
   const toggleGroup = (key: string) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse">
+      <table className="w-full min-w-[1080px] border-collapse">
         <thead>
           <tr className="bg-white/[0.04]">
-            <Th className="pl-4">Ativo</Th>
-            <Th>Classe</Th>
-            <Th align="right">Qtd</Th>
+            <Th className="pl-4">Ticker</Th>
+            <Th>Nome</Th>
+            <Th align="right">Quant.</Th>
             <Th align="right">Preço médio</Th>
-            <Th align="right">Posição</Th>
-            <Th align="right">Lucro %</Th>
-            <Th align="right" className="pr-5">
-              D.Y.
+            <Th align="right">
+              <span className="inline-flex items-center gap-1 justify-end">
+                Cotação
+                <Info className="h-3 w-3 text-[#8F8F8F]" strokeWidth={1.8} aria-hidden="true" />
+              </span>
             </Th>
+            <Th align="right">Saldo</Th>
+            <Th align="right">% carteira</Th>
+            <Th align="right">Variação</Th>
+            <Th align="right">Proventos (12M)</Th>
+            <Th align="right">Payout%</Th>
+            <Th align="right">P/L</Th>
+            <Th align="right">P/VP</Th>
+            <Th align="right" className="pr-5">DY%</Th>
           </tr>
         </thead>
 
@@ -295,7 +331,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false }: Props) {
           {!isLoading && rows.length === 0 && (
             <tr>
               <td
-                colSpan={7}
+                colSpan={13}
                 className="py-10 text-center text-[13px] text-[#8F8F8F]"
               >
                 Nenhuma posição cadastrada.
@@ -306,7 +342,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false }: Props) {
           {/* ── Grupos ── */}
           {!isLoading &&
             groups.map(({ summary, rows: groupRows }) => {
-              const isExpanded = expanded[summary.key] !== false // default true
+              const isExpanded = expanded[summary.key] !== false
               return (
                 <>
                   <GroupHeader

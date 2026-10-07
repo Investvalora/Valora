@@ -2,6 +2,8 @@
  * KpiBarAtivos — barra horizontal com 4 KPIs e link "Resumo completo".
  * Usada na sub-tab Posições de AtivosPage.
  */
+import { type MutableRefObject } from 'react'
+
 type KpiBarAtivosProps = {
   patrimonio: string
   valorInvestido: string
@@ -9,6 +11,8 @@ type KpiBarAtivosProps = {
   ganhoCapitalPositive: boolean | null
   ativos: number
   onResumo: () => void
+  /** Ref opcional para o botão "Resumo completo" — usado pelo ResumoCarteiraPopover para posicionamento */
+  resumoBtnRef?: MutableRefObject<HTMLButtonElement | null>
 }
 
 export function KpiBarAtivos({
@@ -18,6 +22,7 @@ export function KpiBarAtivos({
   ganhoCapitalPositive,
   ativos,
   onResumo,
+  resumoBtnRef,
 }: KpiBarAtivosProps) {
   const ganhoColor =
     ganhoCapitalPositive === null
@@ -67,6 +72,7 @@ export function KpiBarAtivos({
 
       {/* Link Resumo completo */}
       <button
+        ref={resumoBtnRef}
         type="button"
         onClick={onResumo}
         className="ml-auto shrink-0 text-sm text-nf-blue hover:underline"

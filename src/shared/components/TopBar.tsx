@@ -1,15 +1,14 @@
-import { Bell, CalendarDays, ChevronDown, Plus, Wallet } from 'lucide-react'
+import { Bell, CalendarDays, ChevronDown, Plus } from 'lucide-react'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
+import { WalletMorphSelector } from './WalletMorphSelector'
 
 type TopBarProps = {
-  carteira?: string
   periodo?: string
   alertCount?: number
   onNovoLancamento?: () => void
 }
 
 export function TopBar({
-  carteira = 'Carteira 1',
   periodo = '1A',
   alertCount = 0,
   onNovoLancamento,
@@ -27,27 +26,11 @@ export function TopBar({
       : (user?.email?.[0]?.toUpperCase() ?? 'S')
 
   return (
-    <header className="flex h-[58px] shrink-0 items-center justify-between px-10">
+    <header className="relative z-40 flex h-[58px] shrink-0 items-center justify-between px-10">
       {/* ── Filtros globais ── */}
       <div className="flex items-center gap-3">
         {/* Seletor de carteira */}
-        <button
-          type="button"
-          className="
-            flex items-center gap-2 rounded-full
-            border border-white/[0.1] bg-[#393939]
-            px-4 py-2 text-[13px] font-medium text-white
-            transition-colors hover:bg-white/[0.12]
-          "
-        >
-          <span
-            className="h-2.5 w-2.5 rounded-full bg-[#D9B532]"
-            aria-hidden="true"
-          />
-          <Wallet className="h-3.5 w-3.5 text-white/70" strokeWidth={1.8} aria-hidden="true" />
-          {carteira}
-          <ChevronDown className="h-3 w-3 text-[#BBBBBB]" strokeWidth={2} aria-hidden="true" />
-        </button>
+        <WalletMorphSelector />
 
         {/* Seletor de período */}
         <button

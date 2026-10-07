@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, BellRing, TrendingDown, TrendingUp, AlertTriangle, Clock } from 'lucide-react'
+import { Bell, BellRing, TrendingDown, TrendingUp, AlertTriangle, Clock, Plus, RefreshCw, X } from 'lucide-react'
 import {
   useGenerateAlerts,
   useUpdateAlertStatus,
@@ -30,39 +30,37 @@ function formatCurrency(value: number) {
 type AlertConfig = {
   label: string
   tickerColor: string
-  borderColor: string
   Icon: React.ComponentType<{ className?: string }>
 }
+
+const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
+const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-[#393939] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#454545] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
+const inputStyle = 'min-h-11 w-full rounded-xl border border-white/[0.12] bg-[#131313] px-3.5 py-2.5 text-sm text-white placeholder:text-nf-muted focus:border-nf-purple focus:outline-none focus:ring-1 focus:ring-nf-purple'
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
   position_no_transactions: {
     label: 'Inconsistência',
     tickerColor: 'text-amber-300',
-    borderColor: 'border-dark-border',
     Icon: AlertTriangle,
   },
   stale_quote: {
     label: 'Cotação antiga',
     tickerColor: 'text-amber-300',
-    borderColor: 'border-dark-border',
     Icon: Clock,
   },
   opportunity: {
     label: 'Oportunidade',
     tickerColor: 'text-green-400',
-    borderColor: 'border-green-500/30',
     Icon: TrendingDown,
   },
   overvalued: {
     label: 'Sobrevalorizado',
     tickerColor: 'text-red-400',
-    borderColor: 'border-red-500/30',
     Icon: TrendingUp,
   },
   price_target: {
     label: 'Preço-alvo',
-    tickerColor: 'text-blue-400',
-    borderColor: 'border-blue-500/30',
+    tickerColor: 'text-nf-purple',
     Icon: BellRing,
   },
 }
@@ -80,25 +78,27 @@ function AlertCard({ alert }: { alert: Alert }) {
 
   return (
     <article
-      className={`rounded-lg border ${config.borderColor} bg-dark-surface p-5`}
+      className="rounded-[14px] border border-white/[0.08] bg-nf-surface p-4 sm:p-5"
       aria-label={alert.title}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Icon className={`h-4 w-4 ${config.tickerColor}`} aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.06]">
+              <Icon className={`h-4 w-4 ${config.tickerColor}`} aria-hidden="true" />
+            </span>
             <p className={`text-xs font-semibold uppercase tracking-wide ${config.tickerColor}`}>
               {alert.ticker}
             </p>
-            <span className="rounded-full border border-dark-border px-2 py-0.5 text-xs text-gray-400">
+            <span className="rounded-full border border-white/[0.1] px-2 py-0.5 text-xs text-nf-muted">
               {config.label}
             </span>
           </div>
-          <h2 className="text-lg font-semibold text-white">{alert.title}</h2>
+          <h2 className="text-base font-semibold text-white sm:text-lg">{alert.title}</h2>
 
           {/* Contexto extra para price_target */}
           {alert.type === 'price_target' && alert.target_price != null && alert.condition != null && (
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-nf-muted">
               Condição:{' '}
               <span className="font-medium text-white">
                 {alert.condition === 'below' ? 'Abaixo de' : 'Acima de'}{' '}
@@ -111,8 +111,8 @@ function AlertCard({ alert }: { alert: Alert }) {
         <span
           className={`rounded-full border px-2 py-1 text-xs ${
             alert.status === 'novo'
-              ? 'border-blue-500/50 text-blue-300'
-              : 'border-dark-border text-gray-300'
+              ? 'border-nf-purple/40 bg-nf-purple/10 text-nf-purple'
+              : 'border-white/[0.12] text-zinc-300'
           }`}
         >
           {alert.status === 'novo'
@@ -125,21 +125,21 @@ function AlertCard({ alert }: { alert: Alert }) {
         </span>
       </div>
 
-      <p className="mt-3 text-sm text-gray-300">{alert.description}</p>
-      <p className="mt-3 text-xs text-gray-400">Criado em {formatDate(alert.created_at)}</p>
+      <p className="mt-3 text-sm text-zinc-300">{alert.description}</p>
+      <p className="mt-3 text-xs text-nf-muted">Criado em {formatDate(alert.created_at)}</p>
 
       {/* Ações para alertas price_target disparados */}
       {isPriceTargetTriggered && (
-        <div className="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
-          <p className="text-sm font-medium text-blue-200">
+        <div className="mt-4 rounded-xl border border-nf-purple/20 bg-nf-purple/[0.06] p-4">
+          <p className="text-sm font-medium text-white">
             🎯 Preço-alvo atingido! Deseja manter o alerta ativo para monitorar novamente?
           </p>
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               disabled={updateStatus.isPending}
               onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })}
-              className="rounded-lg border border-blue-500 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className={primaryButton}
             >
               Manter ativo
             </button>
@@ -147,7 +147,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               type="button"
               disabled={updateStatus.isPending}
               onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })}
-              className="rounded-lg border border-gray-500 px-3 py-2 text-sm text-gray-200 hover:bg-gray-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className={secondaryButton}
             >
               Fechar alerta
             </button>
@@ -157,13 +157,13 @@ function AlertCard({ alert }: { alert: Alert }) {
 
       {/* Ações padrão para os outros tipos */}
       {!isIgnored && !isPriceTargetTriggered && (
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           {alert.status === 'novo' && (
             <button
               type="button"
               disabled={updateStatus.isPending}
               onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })}
-              className="rounded-lg border border-blue-500 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className={secondaryButton}
             >
               Marcar como lido
             </button>
@@ -172,7 +172,7 @@ function AlertCard({ alert }: { alert: Alert }) {
             type="button"
             disabled={updateStatus.isPending}
             onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })}
-            className="rounded-lg border border-gray-500 px-3 py-2 text-sm text-gray-200 hover:bg-gray-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className={secondaryButton}
           >
             Ignorar
           </button>
@@ -283,26 +283,26 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="form-title"
-      className="rounded-lg border border-dark-border bg-dark-surface p-6"
+      className="rounded-[14px] border border-white/[0.08] bg-nf-surface p-4 sm:p-6"
     >
-      <div className="flex items-center justify-between mb-4">
-        <h2 id="form-title" className="text-lg font-semibold text-white">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 id="form-title" className="text-lg font-semibold text-white sm:text-xl">
           Novo alerta de preço
         </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Fechar formulário"
-          className="text-gray-400 hover:text-white"
+          className="grid h-10 w-10 place-items-center rounded-xl text-nf-muted transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple"
         >
-          ✕
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* ── Ticker com autocomplete ──────────────────────────────────────── */}
         <div>
-          <label htmlFor="pt-ticker" className="block text-sm text-gray-300 mb-1">
+          <label htmlFor="pt-ticker" className="mb-2 block text-sm font-medium text-zinc-300">
             Ativo
           </label>
           <div className="relative">
@@ -333,7 +333,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
               onKeyDown={handleTickerKeyDown}
               placeholder="Ticker ou nome, ex.: MXRF11"
               required
-              className="w-full rounded-lg border border-dark-border bg-dark-bg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+              className={inputStyle}
             />
 
             {isSuggestionsOpen && (
@@ -341,7 +341,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
                 id="pt-suggestions"
                 role="listbox"
                 aria-label="Ativos do catálogo"
-                className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-dark-border bg-dark-bg shadow-xl"
+                className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/[0.12] bg-[#242424] p-1 shadow-xl"
               >
                 {suggestions.map((asset, index) => (
                   <li
@@ -352,16 +352,16 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     onClick={() => selectAsset(asset)}
-                    className={`flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 transition-colors ${
+                    className={`flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors ${
                       index === highlightedIndex
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-200 hover:bg-dark-border/30'
+                        ? 'bg-white/[0.12] text-white'
+                        : 'text-zinc-200 hover:bg-white/[0.06]'
                     }`}
                   >
                     <span className="font-semibold">{asset.ticker}</span>
                     <span
                       className={`truncate text-sm ${
-                        index === highlightedIndex ? 'text-white' : 'text-gray-400'
+                        index === highlightedIndex ? 'text-white' : 'text-nf-muted'
                       }`}
                     >
                       {asset.name}
@@ -375,38 +375,38 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
 
         {/* ── Condição ────────────────────────────────────────────────────── */}
         <div>
-          <span className="block text-sm text-gray-300 mb-1">Condição</span>
-          <div className="flex gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <span className="mb-2 block text-sm font-medium text-zinc-300">Condição</span>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/[0.1] bg-[#131313] px-3">
               <input
                 type="radio"
                 name="pt-condition"
                 value="below"
                 checked={condition === 'below'}
                 onChange={() => setCondition('below')}
-                className="accent-blue-500"
+                className="accent-nf-purple"
               />
               <TrendingDown className="h-4 w-4 text-green-400" aria-hidden="true" />
-              <span className="text-sm text-gray-200">Abaixo de</span>
+              <span className="text-sm text-zinc-200">Abaixo de</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/[0.1] bg-[#131313] px-3">
               <input
                 type="radio"
                 name="pt-condition"
                 value="above"
                 checked={condition === 'above'}
                 onChange={() => setCondition('above')}
-                className="accent-blue-500"
+                className="accent-nf-purple"
               />
               <TrendingUp className="h-4 w-4 text-red-400" aria-hidden="true" />
-              <span className="text-sm text-gray-200">Acima de</span>
+              <span className="text-sm text-zinc-200">Acima de</span>
             </label>
           </div>
         </div>
 
         {/* ── Preço-alvo ──────────────────────────────────────────────────── */}
         <div>
-          <label htmlFor="pt-price" className="block text-sm text-gray-300 mb-1">
+          <label htmlFor="pt-price" className="mb-2 block text-sm font-medium text-zinc-300">
             Preço-alvo (R$)
           </label>
           <input
@@ -418,10 +418,10 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
             min="0.01"
             step="0.01"
             required
-            className="w-full rounded-lg border border-dark-border bg-dark-bg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+            className={inputStyle}
           />
           {priceAutoFilled && latestPrice !== null && (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-nf-muted">
               Cotação atual de {ticker}: {formatCurrency(latestPrice)} — você pode ajustar o valor.
             </p>
           )}
@@ -436,18 +436,18 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        <div className="flex gap-3 pt-1">
+        <div className="flex flex-col gap-2 pt-1 sm:flex-row">
           <button
             type="submit"
             disabled={createAlert.isPending}
-            className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${primaryButton} sm:flex-1`}
           >
             {createAlert.isPending ? 'Criando...' : 'Criar alerta'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-dark-border px-4 py-2 text-sm text-gray-300 hover:bg-dark-border/20"
+            className={secondaryButton}
           >
             Cancelar
           </button>
@@ -468,24 +468,24 @@ export function AlertsPage() {
   const hasPriceTargets = alerts.some((a) => a.type === 'price_target' && a.status !== 'ignorado')
 
   return (
-    <div className="p-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {/* Cabeçalho */}
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <header className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Alertas</h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <h1 className="text-2xl font-semibold text-white sm:text-3xl">Alertas</h1>
+          <p className="mt-1 text-sm text-nf-muted">
             Inconsistências e preços-alvo monitorados na sua carteira.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {/* Botão verificar preços-alvo — só aparece se houver alertas price_target ativos */}
           {hasPriceTargets && (
             <button
               type="button"
               onClick={() => checkPriceTargets.mutate()}
               disabled={checkPriceTargets.isPending}
-              className="flex items-center gap-2 rounded-lg border border-blue-500/50 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className={secondaryButton}
             >
               <Bell className="h-4 w-4" aria-hidden="true" />
               {checkPriceTargets.isPending ? 'Verificando...' : 'Verificar preços-alvo'}
@@ -495,17 +495,19 @@ export function AlertsPage() {
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="rounded-lg border border-blue-500/50 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/10"
+            className={secondaryButton}
           >
-            {showForm ? 'Cancelar' : '+ Alerta de preço'}
+            {showForm ? <X className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+            {showForm ? 'Cancelar' : 'Alerta de preço'}
           </button>
 
           <button
             type="button"
             onClick={() => generateAlerts.mutate()}
             disabled={generateAlerts.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className={primaryButton}
           >
+            <RefreshCw className={`h-4 w-4 ${generateAlerts.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
             {generateAlerts.isPending ? 'Atualizando...' : 'Atualizar alertas'}
           </button>
         </div>
@@ -520,24 +522,24 @@ export function AlertsPage() {
 
       {/* Feedback de erros globais */}
       {checkPriceTargets.isError && (
-        <p className="mb-4 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
           Não foi possível verificar os preços-alvo. A lista atual continua disponível.
         </p>
       )}
       {checkPriceTargets.isSuccess && (
-        <p className="mb-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4 text-sm text-green-300" role="status">
+        <p className="mb-4 rounded-xl border border-green-500/30 bg-green-500/5 p-4 text-sm text-green-300" role="status">
           {checkPriceTargets.data.triggered > 0
             ? `${checkPriceTargets.data.triggered} alerta${checkPriceTargets.data.triggered > 1 ? 's' : ''} de preço-alvo disparado${checkPriceTargets.data.triggered > 1 ? 's' : ''}!`
             : 'Nenhum preço-alvo atingido no momento.'}
         </p>
       )}
       {generateAlerts.isError && (
-        <p className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
+        <p className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
           Não foi possível gerar alertas. A lista atual continua disponível.
         </p>
       )}
       {isError && (
-        <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
+        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300" role="alert">
           <p>Não foi possível carregar seus alertas.</p>
           <button type="button" onClick={() => refetch()} className="mt-2 underline">
             Tentar novamente
@@ -547,11 +549,12 @@ export function AlertsPage() {
 
       {/* Lista de alertas */}
       {isLoading ? (
-        <p className="text-sm text-gray-400">Carregando alertas...</p>
+        <p className="text-sm text-nf-muted">Carregando alertas...</p>
       ) : isError && alerts.length === 0 ? null : alerts.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-dark-border p-10 text-center">
-          <p className="font-medium text-gray-300">Nenhum alerta encontrado</p>
-          <p className="mt-1 text-sm text-gray-400">
+        <div className="rounded-[14px] border border-dashed border-white/[0.12] bg-nf-surface px-5 py-12 text-center">
+          <Bell className="mx-auto mb-3 h-6 w-6 text-nf-muted" aria-hidden="true" />
+          <p className="font-medium text-zinc-200">Nenhum alerta encontrado</p>
+          <p className="mt-1 text-sm text-nf-muted">
             Crie um alerta de preço ou atualize os alertas para verificar sua carteira.
           </p>
         </div>

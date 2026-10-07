@@ -1,4 +1,5 @@
 import { Bell, CalendarDays, ChevronDown, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
@@ -26,7 +27,11 @@ export function TopBar({
       : (user?.email?.[0]?.toUpperCase() ?? 'S')
 
   return (
-    <header className="relative z-40 hidden h-[58px] shrink-0 items-center justify-between px-10 md:flex">
+    <header className="relative z-40 hidden h-[58px] shrink-0 items-center justify-between bg-[#131313] px-10 md:flex">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-full h-7">
+        <div className="absolute inset-0 backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131313] via-[#131313]/60 to-transparent" />
+      </div>
       {/* ── Filtros globais ── */}
       <div className="flex items-center gap-3">
         {/* Seletor de carteira */}
@@ -51,33 +56,32 @@ export function TopBar({
       {/* ── Ações globais ── */}
       <div className="flex items-center gap-3">
         {/* Sino */}
-        <div className="relative">
-          <button
-            type="button"
-            aria-label={`${alertCount} alertas`}
-            className="
-              grid h-9 w-9 place-items-center rounded-full
+        <Link
+          to="/alertas"
+          aria-label={alertCount > 0 ? `Abrir alertas (${alertCount} novos)` : 'Abrir alertas'}
+          className="
+              relative grid h-9 w-9 place-items-center rounded-full
               bg-[#393939]
               transition-colors hover:bg-white/[0.12]
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple
             "
-          >
-            <Bell className="h-4 w-4 text-white" strokeWidth={1.8} aria-hidden="true" />
-          </button>
+        >
+          <Bell className="h-4 w-4 text-white" strokeWidth={1.8} aria-hidden="true" />
           {alertCount > 0 && (
             <span
               aria-hidden="true"
               className="
-                absolute -right-0.5 -top-0.5
-                flex h-4 w-4 items-center justify-center
-                rounded-full bg-[#F765A3]
-                text-[9px] font-semibold text-white
-                ring-[1.5px] ring-[#131313]
-              "
+                  absolute -right-0.5 -top-0.5
+                  flex h-4 w-4 items-center justify-center
+                  rounded-full bg-[#F765A3]
+                  text-[9px] font-semibold text-white
+                  ring-[1.5px] ring-[#131313]
+                "
             >
               {alertCount > 9 ? '9+' : alertCount}
             </span>
           )}
-        </div>
+        </Link>
 
         {/* Novo lançamento */}
         <button

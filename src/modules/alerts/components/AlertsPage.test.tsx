@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   isError: false,
   isLoading: false,
   generate: vi.fn(),
+  checkPrices: vi.fn(),
+  create: vi.fn(),
   update: vi.fn(),
 }))
 
@@ -17,7 +19,14 @@ vi.mock('../hooks/useAlerts', () => ({
 
 vi.mock('../hooks/useAlertMutations', () => ({
   useGenerateAlerts: () => ({ isError: false, isPending: false, mutate: mocks.generate }),
-  useUpdateAlertStatus: () => ({ mutate: mocks.update }),
+  useCheckPriceTargets: () => ({ isError: false, isSuccess: false, isPending: false, mutate: mocks.checkPrices }),
+  useCreatePriceTargetAlert: () => ({ isError: false, isPending: false, mutate: mocks.create }),
+  useUpdateAlertStatus: () => ({ isError: false, isPending: false, mutate: mocks.update }),
+}))
+
+vi.mock('../../portfolio/hooks/useAssetSearch', () => ({
+  useAssetSearch: () => ({ data: [] }),
+  useTickerLatestPrice: () => null,
 }))
 
 function renderPage() {
@@ -35,6 +44,8 @@ describe('AlertsPage', () => {
     mocks.isError = false
     mocks.isLoading = false
     mocks.generate.mockReset()
+    mocks.checkPrices.mockReset()
+    mocks.create.mockReset()
     mocks.update.mockReset()
   })
 
@@ -74,5 +85,15 @@ describe('AlertsPage', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível carregar seus alertas.')
     expect(screen.queryByText('Nenhum alerta encontrado')).not.toBeInTheDocument()
+  })
+
+  it('abre e fecha o formulário de preço-alvo', () => {
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alerta de preço' }))
+    expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar formulário' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

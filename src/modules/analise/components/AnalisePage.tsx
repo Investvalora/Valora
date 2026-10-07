@@ -1,25 +1,18 @@
 /**
- * AnalisePage — tela do novo fluxo desktop.
- * Layout 3 colunas: Score Fundamentalista | Alertas | Proventos
- * Reutiliza o Modal + ScoreRuleForm já existentes.
+ * AnalisePage — shell de layout para o novo fluxo desktop.
+ * Renderiza o cabeçalho, SubTabBar e <Outlet> para as sub-rotas.
+ * A lógica de dados (Modal/ScoreRuleForm) vai para AnaliseScore.
  */
-import { useState } from 'react'
-import { Modal } from '../../../shared/components/Modal'
-import { ScoreRuleForm } from '../../score/components/ScoreRuleForm'
-import type { ScoreRule } from '../../score/types'
-import { ScoreCol } from './ScoreCol'
-import { AlertasCol } from './AlertasCol'
-import { ProventosCol } from './ProventosCol'
+import { Outlet } from 'react-router-dom'
+import { SubTabBar } from '../../ativos/components/SubTabBar'
+
+const ANALISE_TABS = [
+  { label: 'Visão geral', to: '/analise/visao-geral' },
+  { label: 'Score', to: '/analise/score' },
+  { label: 'Alertas', to: '/analise/alertas' },
+]
 
 export function AnalisePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingRule, setEditingRule] = useState<ScoreRule | undefined>(undefined)
-  const [isSaving, setIsSaving] = useState(false)
-
-  const openCreate = () => { setEditingRule(undefined); setIsModalOpen(true) }
-  const openEdit = (rule: ScoreRule) => { setEditingRule(rule); setIsModalOpen(true) }
-  const closeModal = () => { if (isSaving) return; setIsModalOpen(false); setEditingRule(undefined) }
-
   return (
     <div className="flex flex-col gap-5 pt-2">
       {/* ── Cabeçalho ── */}
@@ -27,35 +20,11 @@ export function AnalisePage() {
         <h1 className="text-[22px] font-semibold text-white">Análise</h1>
       </div>
 
-      {/* ── 3 colunas ── */}
-      <div
-        className="grid gap-5"
-        style={{ gridTemplateColumns: '1fr 1fr 1fr', minHeight: '700px' }}
-      >
-        {/* Coluna 1 — Score */}
-        <ScoreCol onNewRule={openCreate} onEditRule={openEdit} />
+      {/* ── Sub-tabs ── */}
+      <SubTabBar tabs={ANALISE_TABS} />
 
-        {/* Coluna 2 — Alertas */}
-        <AlertasCol />
-
-        {/* Coluna 3 — Proventos */}
-        <ProventosCol />
-      </div>
-
-      {/* Modal reutilizado do ScorePage */}
-      <Modal
-        isOpen={isModalOpen}
-        title={editingRule ? 'Editar Regra' : 'Nova Regra de Score'}
-        onClose={closeModal}
-        dismissible={!isSaving}
-      >
-        <ScoreRuleForm
-          editingRule={editingRule}
-          onSuccess={closeModal}
-          onCancel={closeModal}
-          onBusyChange={setIsSaving}
-        />
-      </Modal>
+      {/* ── Conteúdo da sub-rota ── */}
+      <Outlet />
     </div>
   )
 }

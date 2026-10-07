@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
@@ -22,6 +23,23 @@ import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
 import { useIsMobile } from './shared/hooks/useIsMobile'
+
+// ── Placeholder para sub-rotas ainda não implementadas ─────────────────────
+function Placeholder() {
+  return <div className="p-8 text-white/40">Em breve…</div>
+}
+
+function LoadingFallback() {
+  return (
+    <div className="flex h-40 items-center justify-center">
+      <span className="text-sm text-white/40 animate-pulse">Carregando…</span>
+    </div>
+  )
+}
+
+// ── Lazy imports para componentes-folha futuros ────────────────────────────
+// Quando os componentes existirem, substituir Placeholder pelos lazy imports:
+// const AtivosPosicoes = lazy(() => import('./modules/ativos/components/AtivosPosicoes'))
 
 function HomeRoute() {
   const isMobile = useIsMobile()
@@ -53,7 +71,7 @@ export function AppRoutes() {
           <Route index element={<IndexRoute />} />
 
           {/* Novo fluxo */}
-          <Route path="inicio"     element={<HomeRoute />} />
+          <Route path="inicio" element={<HomeRoute />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
           <Route path="carteira"                    element={<CarteiraPage />} />
@@ -68,10 +86,29 @@ export function AppRoutes() {
           <Route path="conta"                       element={<AccountPage />} />
           <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
 
-          {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
-          <Route path="ativos"     element={<AtivosPage />} />
-          <Route path="desempenho" element={<DesempenhoPage />} />
-          <Route path="analise"    element={<AnalisePage />} />
+          {/* ── Ativos — sub-rotas ── */}
+          <Route path="ativos" element={<AtivosPage />}>
+            <Route index element={<Navigate to="posicoes" replace />} />
+            <Route path="posicoes"    element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="composicao"  element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="lancamentos" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+          </Route>
+
+          {/* ── Desempenho — sub-rotas ── */}
+          <Route path="desempenho" element={<DesempenhoPage />}>
+            <Route index element={<Navigate to="rentabilidade" replace />} />
+            <Route path="visao-geral"   element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="rentabilidade" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="proventos"     element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+          </Route>
+
+          {/* ── Análise — sub-rotas ── */}
+          <Route path="analise" element={<AnalisePage />}>
+            <Route index element={<Navigate to="score" replace />} />
+            <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+          </Route>
         </Route>
       </Route>
     </Routes>

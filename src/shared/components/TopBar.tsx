@@ -1,5 +1,5 @@
 import { Bell, CalendarDays, ChevronDown, Plus } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
@@ -15,6 +15,7 @@ export function TopBar({
   onNovoLancamento,
 }: TopBarProps) {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const fullName = user?.user_metadata?.full_name
   const initials =
@@ -35,7 +36,10 @@ export function TopBar({
       {/* ── Filtros globais ── */}
       <div className="flex items-center gap-3">
         {/* Seletor de carteira */}
-        <WalletMorphSelector />
+        <WalletMorphSelector
+          onNewWallet={() => navigate('/conta')}
+          onManageWallets={() => navigate('/conta')}
+        />
 
         {/* Seletor de período */}
         <button

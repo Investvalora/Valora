@@ -1,9 +1,11 @@
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { Plus, Search, Trash2 } from 'lucide-react'
 import { useAllTransactions, buildMonthlyAportes } from '../hooks/useTransactions'
 import { usePositions } from '../hooks/usePositions'
 import { useWallets } from '../hooks/useWallets'
 import { useDeleteTransaction } from '../hooks/useTransactions'
+import { useAuth } from '../../auth/hooks/useAuth'
 import { AddTransactionModal } from './AddTransactionModal'
 import {
   ASSET_CLASS_LABEL,
@@ -93,10 +95,9 @@ function AssetTypeBadge({ assetType }: { assetType: AssetType | null }) {
   const color = assetClassColor(assetType)
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium"
+      className="inline-flex rounded-md px-2 py-0.5 text-xs font-medium"
       style={{ background: `${color}22`, color }}
     >
-      <span className="inline-block w-2 h-2 rounded-sm" style={{ background: color }} aria-hidden="true" />
       {label}
     </span>
   )
@@ -145,7 +146,7 @@ function TxnRow({
 
   return (
     <>
-      <tr className="border-t border-dark-border hover:bg-dark-surface/40 transition-colors">
+      <tr className="border-t border-white/[0.09] transition-colors hover:bg-white/[0.025]">
         {/* Ativo */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
@@ -183,7 +184,7 @@ function TxnRow({
 
         {/* Fonte */}
         <td className={CELL}>
-          <span className="rounded border border-dark-border px-2 py-0.5 text-xs text-gray-400">Manual</span>
+          <span className="rounded border border-white/[0.14] px-2 py-0.5 text-xs text-gray-400">Manual</span>
         </td>
 
         {/* Opções */}
@@ -195,7 +196,7 @@ function TxnRow({
                 disabled={deleteTransaction.isPending}
                 className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">Sim</button>
               <button type="button" onClick={() => setConfirmDelete(false)}
-                className="text-xs px-2 py-1 rounded border border-dark-border text-gray-300 hover:text-white">Não</button>
+                className="text-xs px-2 py-1 rounded border border-white/[0.14] text-gray-300 hover:text-white">Não</button>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1">
@@ -226,6 +227,92 @@ function TxnRow({
   )
 }
 
+function MobileTxnCard({
+  txn,
+  assetType,
+  assetName,
+  currency,
+  onDelete,
+}: {
+  txn: Transaction
+  assetType: AssetType | null
+  assetName: string | null
+  currency: string
+  onDelete: (id: string) => void
+}) {
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const deleteTransaction = useDeleteTransaction(txn.ticker)
+  const total = Number(txn.quantity) * Number(txn.price)
+  const orderColor = txn.type === 'buy' ? 'text-[#63D16B]' : txn.type === 'sell' ? 'text-[#FF8FBE]' : 'text-[#7987FF]'
+  const iconColor = assetType ? assetClassColor(assetType) : '#7987FF'
+  const iconLetter = assetType ? (TYPE_BADGE_LABEL[assetType]?.[0] ?? '?') : '?'
+
+  return (
+    <article className="rounded-2xl border border-white/[0.22] bg-[#151515] p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-semibold"
+            style={{ backgroundColor: `${iconColor}33`, color: iconColor }}
+            aria-hidden="true"
+          >
+            {iconLetter}
+          </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p className="truncate text-xl font-semibold text-white">{txn.ticker}</p>
+            {assetType && (
+              <span
+                className="rounded-lg px-2 py-0.5 text-xs font-medium"
+                style={{ background: `${iconColor}2b`, color: iconColor }}
+              >
+                {TYPE_BADGE_LABEL[assetType]}
+              </span>
+            )}
+          </div>
+        </div>
+        <p className={`pt-1 text-lg font-medium ${orderColor}`}>{TYPE_LABEL[txn.type] ?? txn.type}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <div>
+          <p className="text-xs text-zinc-500">Quantidade</p>
+          <p className="mt-0.5 text-lg tabular-nums text-zinc-100">{fmtQty(txn.quantity)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500">Preço unitário</p>
+          <p className="mt-0.5 text-lg tabular-nums text-zinc-100">{fmtMoney(txn.price, currency)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-zinc-500">Total</p>
+          <p className="mt-0.5 text-lg tabular-nums text-zinc-100">{fmtMoney(total, currency)}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex min-h-9 items-center gap-3 border-t border-white/[0.12] pt-3">
+        <p className="text-sm text-zinc-500">{fmtDate(txn.transaction_date)}</p>
+        {confirmDelete ? (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-zinc-500">Excluir?</span>
+            <button type="button" onClick={() => { deleteTransaction.mutate(txn.id); setConfirmDelete(false); onDelete(txn.id) }} disabled={deleteTransaction.isPending} className="rounded-lg bg-[#FF8FBE] px-2.5 py-1.5 text-xs font-semibold text-[#24131c] disabled:opacity-50">Sim</button>
+            <button type="button" onClick={() => setConfirmDelete(false)} className="rounded-lg border border-white/[0.15] px-2.5 py-1.5 text-xs text-zinc-300">Não</button>
+          </div>
+        ) : (
+          <>
+            <span className="rounded-md border border-white/[0.18] px-2 py-0.5 text-xs text-zinc-500">Manual</span>
+            <button type="button" onClick={() => setShowAddModal(true)} className="ml-auto text-sm font-medium text-[#7987FF]">+ Lançamento</button>
+            <button type="button" onClick={() => setConfirmDelete(true)} className="grid h-8 w-8 place-items-center text-[#FF4FA0]" aria-label={`Excluir lançamento de ${txn.ticker}`}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </>
+        )}
+      </div>
+
+      <AddTransactionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} ticker={txn.ticker} assetType={assetType} assetName={assetName} />
+    </article>
+  )
+}
+
 // ─── Filtros de período ───────────────────────────────────────────────────────
 
 const PERIOD_OPTIONS = [
@@ -241,6 +328,7 @@ type PeriodOption = typeof PERIOD_OPTIONS[number]
 
 export function LancamentosPage() {
   const { selectedWallet } = useWallets()
+  const { user } = useAuth()
   const [period, setPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[1]) // 2 Anos
   const [assetTypeFilter, setAssetTypeFilter] = useState<AssetType | 'all'>('all')
   const [search, setSearch] = useState('')
@@ -326,39 +414,49 @@ export function LancamentosPage() {
   }
 
   const HEADER_CLASS = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400'
+  const fullName = user?.user_metadata?.full_name
+  const initials = typeof fullName === 'string' && fullName.trim()
+    ? fullName.split(' ').slice(0, 2).map((name: string) => name[0]?.toUpperCase() ?? '').join('')
+    : (user?.email?.[0]?.toUpperCase() ?? 'S')
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-8 px-7 pb-7 pt-5 md:space-y-6 md:p-8">
 
       {/* ── Cabeçalho ──────────────────────────────────────────────────────── */}
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Lançamentos</h1>
+      <header className="flex items-center justify-between md:hidden">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-[#A66AF4] text-lg font-medium text-white">{initials}</span>
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#393939] px-5 text-sm font-semibold text-white transition-colors hover:bg-white/[0.12]"
         >
-          + Adicionar Lançamento
+          <Plus className="h-4 w-4" aria-hidden="true" /> Lançamento
         </button>
       </header>
 
-      {/* ── Gráfico de consolidação ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-dark-border bg-dark-surface p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-sm font-semibold text-white">Consolidação de aportes</h2>
+      <header className="hidden md:block">
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Lançamentos</h1>
+      </header>
 
-          <div className="flex flex-wrap items-center gap-2">
+      <h1 className="text-[2rem] font-semibold leading-none tracking-tight text-white md:hidden">Lançamentos</h1>
+
+      {/* ── Gráfico de consolidação ─────────────────────────────────────────── */}
+      <div className="md:rounded-xl md:border md:border-white/[0.12] md:bg-[#1b1b1b] md:p-6">
+        <div className="mb-5 flex flex-col gap-4 md:mb-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
+          <h2 className="text-xl font-semibold text-zinc-300 md:text-sm md:text-white">Consolidação de aportes</h2>
+
+          <div className="flex flex-wrap items-center gap-2 md:w-auto">
             {/* Período */}
-            <div className="flex rounded-lg border border-dark-border overflow-hidden">
+            <div className="flex max-w-full overflow-x-auto rounded-full bg-[#363636] p-0.5 md:border md:border-white/[0.14]">
               {PERIOD_OPTIONS.map((opt) => (
                 <button
                   key={opt.label}
                   type="button"
                   onClick={() => setPeriod(opt)}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`whitespace-nowrap px-3.5 py-2 text-xs font-medium transition-colors md:px-3 md:py-1.5 ${
                     period.label === opt.label
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-dark-bg'
+                      ? 'rounded-full bg-[#646464] text-white'
+                      : 'rounded-full text-zinc-500 hover:bg-white/[0.05] hover:text-white md:text-gray-400'
                   }`}
                 >
                   {opt.label}
@@ -370,7 +468,7 @@ export function LancamentosPage() {
             <select
               value={assetTypeFilter}
               onChange={(e) => setAssetTypeFilter(e.target.value as AssetType | 'all')}
-              className="rounded-lg border border-dark-border bg-dark-surface px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-10 rounded-full border-0 bg-[#363636] px-4 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[#7987FF] md:min-h-9 md:border md:border-white/[0.14] md:bg-[#393939] md:px-4 md:text-xs md:focus:ring-white/30"
             >
               <option value="all">Todos os tipos</option>
               {ASSET_CLASS_ORDER.map((type) => (
@@ -381,12 +479,12 @@ export function LancamentosPage() {
         </div>
 
         {chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-[320px]">
+          <div className="flex h-[300px] items-center justify-center md:h-[320px]">
             <p className="text-sm text-gray-400">Sem lançamentos no período selecionado.</p>
           </div>
         ) : (
           <ChartErrorBoundary>
-            <Suspense fallback={<div className="flex items-center justify-center h-[320px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
+              <Suspense fallback={<div className="flex h-[300px] items-center justify-center md:h-[320px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
               <AportesBarChart data={chartData} />
             </Suspense>
           </ChartErrorBoundary>
@@ -394,26 +492,24 @@ export function LancamentosPage() {
       </div>
 
       {/* ── Tabela ──────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-dark-border bg-dark-surface">
+      <div className="md:rounded-xl md:border md:border-white/[0.12] md:bg-[#1b1b1b]">
         {/* Cabeçalho da seção */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-dark-border">
-          <h2 className="text-sm font-semibold text-white">
+        <div className="flex flex-wrap items-center justify-between gap-4 md:px-6 md:pb-3 md:pt-6">
+          <h2 className="text-xl font-semibold text-zinc-300 md:text-sm md:text-white">
             Renda variável
             <span className="ml-2 text-xs font-normal text-gray-400">({tableRows.length})</span>
           </h2>
 
           {/* Busca */}
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar ativo…"
-              className="rounded-lg border border-dark-border bg-dark-bg pl-3 pr-8 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
+              className="min-h-12 w-full rounded-xl border border-white/[0.28] bg-transparent pl-4 pr-10 text-base text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#7987FF] md:min-h-9 md:w-56 md:rounded-full md:border-white/[0.18] md:bg-transparent md:px-3 md:py-1.5 md:pr-8 md:text-xs md:focus:ring-white/30"
             />
-            <svg xmlns="http://www.w3.org/2000/svg" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500 md:right-2.5 md:h-3.5 md:w-3.5" aria-hidden="true" />
           </div>
         </div>
 
@@ -427,9 +523,16 @@ export function LancamentosPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="space-y-4 md:hidden">
+            {tableRows.map((txn) => {
+              const pos = positionMap.get(txn.ticker)
+              return <MobileTxnCard key={txn.id} txn={txn} assetType={pos?.assetType ?? null} assetName={pos?.assetName ?? null} currency={pos?.currency ?? 'BRL'} onDelete={() => {}} />
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block md:px-2">
             <table className="w-full border-collapse">
-              <thead className="bg-dark-bg">
+              <thead>
                 <tr>
                   <th className={HEADER_CLASS}>Ativo</th>
                   <th className={HEADER_CLASS}>Tipo de investimento</th>
@@ -461,6 +564,7 @@ export function LancamentosPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

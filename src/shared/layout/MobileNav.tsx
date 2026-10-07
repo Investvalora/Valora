@@ -12,22 +12,22 @@ export function MobileNav({ alertCount }: { alertCount: number }) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-zinc-700 bg-[#2b2b2b] pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-zinc-700 bg-[#2b2b2b] pb-[max(0.375rem,env(safe-area-inset-bottom))] md:hidden"
     >
       {items.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
           className={({ isActive }) =>
-            `flex min-h-16 flex-col items-center justify-center gap-1 text-xs ${
+            `flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 text-[11px] leading-none ${
               isActive ? 'text-white' : 'text-zinc-500'
             }`
           }
         >
           <span className="relative">
-            <item.icon className="h-6 w-6" aria-hidden="true" />
+            <item.icon className="h-5 w-5" aria-hidden="true" />
             {item.path === '/alertas' && alertCount > 0 && (
-              <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-purple-400" />
+              <span className="absolute -right-1.5 -top-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
             )}
           </span>
           <span>{item.label}</span>

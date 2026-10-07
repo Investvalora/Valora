@@ -36,7 +36,7 @@ export function AppShellNovo() {
           onNovoLancamento={() => setLancamentoOpen(true)}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:px-10 md:pb-10 md:pt-0">
+        <main className="min-w-0 flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:px-10 md:pb-10 md:pt-0">
           <Outlet />
         </main>
       </div>

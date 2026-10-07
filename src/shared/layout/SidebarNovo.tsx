@@ -24,11 +24,11 @@ export function SidebarNovo({
   return (
     <aside
       className={`
-        relative flex h-full shrink-0 flex-col
+        relative hidden h-full shrink-0 flex-col md:flex
         border-r border-white/[0.08]
         bg-[#1C1C1C]
         transition-[width] duration-200 ease-in-out
-        ${compact ? 'w-[56px]' : 'w-[240px]'}
+        ${compact ? 'w-[56px]' : 'w-[216px]'}
         overflow-visible
         py-7
         ${compact ? 'px-2' : 'px-4'}

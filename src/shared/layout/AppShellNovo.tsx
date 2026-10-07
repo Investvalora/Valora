@@ -5,6 +5,7 @@ import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { SidebarNovo } from './SidebarNovo'
 import { TopBar } from '../components/TopBar'
 import { QuickTransactionModal } from '../../modules/portfolio/components/QuickTransactionModal'
+import { MobileNav } from './MobileNav'
 
 export function AppShellNovo() {
   const { data: alertCount = 0 } = useNewAlertsCount()
@@ -35,10 +36,12 @@ export function AppShellNovo() {
           onNovoLancamento={() => setLancamentoOpen(true)}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-10 pb-10">
+        <main className="min-w-0 flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:px-10 md:pb-10 md:pt-0">
           <Outlet />
         </main>
       </div>
+
+      <MobileNav alertCount={alertCount} />
 
       {/* ── Modal de lançamento rápido (global, disponível em todas as rotas) ── */}
       <QuickTransactionModal

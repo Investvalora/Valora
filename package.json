@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev:pwa": "node scripts/start-pwa-dev.mjs",
+    "pwa:cert": "node scripts/create-pwa-dev-cert.mjs",
+    "build": "tsc -b && vite build && node scripts/build-pwa.mjs",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",

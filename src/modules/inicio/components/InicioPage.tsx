@@ -1,18 +1,35 @@
-import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet } from 'lucide-react'
+import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { KpiCard } from '../../../shared/components/KpiCard'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { EvolucaoChart } from './EvolucaoChart'
 import { AlertasRecentes } from './AlertasRecentes'
+import { useDashboard } from '../../dashboard/hooks/useDashboard'
+import { useWallets } from '../../portfolio/hooks/useWallets'
+
+const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const percent = new Intl.NumberFormat('pt-BR', {
+  style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero',
+})
+
+function money(value: number | null) {
+  return value === null ? '—' : currency.format(value)
+}
+
+function percentage(value: number | null) {
+  return value === null ? '—' : percent.format(value / 100)
+}
 
 export function InicioPage() {
   const { user } = useAuth()
+  const { selectedWallet } = useWallets()
+  const dashboard = useDashboard(selectedWallet?.id ?? '')
   const fullName = user?.user_metadata?.full_name
   const firstName =
     typeof fullName === 'string' && fullName.trim()
       ? fullName.split(' ')[0]
-      : 'Samuel'
+      : user?.email?.split('@')[0] ?? 'investidor'
 
   const hoje = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -29,7 +46,7 @@ export function InicioPage() {
             Olá, {firstName}
           </h1>
           <p className="mt-3 text-[13px] text-[#8F8F8F]">
-            {hoje} · Carteira 1
+            {hoje} · {selectedWallet?.name ?? 'Sua carteira'}
           </p>
         </div>
       </div>
@@ -38,38 +55,45 @@ export function InicioPage() {
       <div className="flex gap-4">
         <KpiCard
           label="Patrimônio total"
-          value="R$ 13.666,39"
+          value={money(dashboard.totalPatrimonioBRL)}
           icon={Wallet}
-          sub={[{ label: 'Valor investido', value: 'R$ 12.949,02' }]}
+          sub={[{ label: 'Valor investido', value: money(dashboard.valorInvestidoBRL) }]}
         />
         <KpiCard
           label="Lucro total"
-          value="R$ 1.568,77"
-          valueColor="text-nf-green"
+          value={money(dashboard.lucroTotalBRL)}
+          valueColor={dashboard.lucroTotalBRL !== null && dashboard.lucroTotalBRL < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={Coins}
           sub={[
-            { label: 'Ganho de capital', value: 'R$ 717,37' },
-            { label: 'Dividendos recebidos', value: 'R$ 851,40', valueColor: 'text-nf-green' },
+            { label: 'Ganho de capital', value: money(dashboard.ganhoCapitalBRL) },
+            { label: 'Dividendos recebidos', value: money(dashboard.proventos12mBRL), valueColor: 'text-nf-green' },
           ]}
         />
         <KpiCard
           label="Proventos recebidos (12M)"
-          value="R$ 851,40"
+          value={money(dashboard.proventos12mBRL)}
           icon={Coins}
-          sub={[{ label: 'Total', value: 'R$ 851,40' }]}
+          sub={[{ label: 'Total', value: money(dashboard.proventos12mBRL) }]}
         />
         <KpiCard
           label="Rentabilidade"
-          value="+5,54%"
-          valueColor="text-nf-green"
+          value={percentage(dashboard.rentabilidadeTotalPct)}
+          valueColor={dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={BarChart2}
-          arrowUp
+          arrowUp={dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct > 0}
           sub={[
-            { label: 'Últimos 12M', value: '—', valueColor: 'text-[#B8B8B8]' },
-            { label: 'Total', value: '+5,54%', valueColor: 'text-nf-green' },
+            { label: 'Últimos 12M', value: percentage(dashboard.variacaoPct), valueColor: 'text-[#B8B8B8]' },
+            { label: 'Total', value: percentage(dashboard.rentabilidadeTotalPct), valueColor: dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green' },
           ]}
         />
       </div>
+
+      {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
+      {dashboard.isError && (
+        <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">
+          Não foi possível atualizar os dados. Tentar novamente
+        </button>
+      )}
 
       {/* ── Gráfico + Alertas ── */}
       <div className="flex gap-5">
@@ -97,7 +121,7 @@ export function InicioPage() {
               </NavLink>
             </div>
           </div>
-          <EvolucaoChart />
+          <EvolucaoChart data={dashboard.monthlySeries} />
         </PanelCard>
 
         {/* Alertas recentes */}
@@ -109,21 +133,21 @@ export function InicioPage() {
         <ShortcutCard
           to="/ativos"
           label="Ativos"
-          sub="28 ativos em 5 classes"
+          sub="Ver ativos da carteira"
           icon={Wallet}
           color="#F765A3"
         />
         <ShortcutCard
           to="/desempenho"
           label="Desempenho"
-          sub="Rentabilidade +5,54% · Proventos 12M R$ 851,40"
+          sub={`Rentabilidade ${percentage(dashboard.rentabilidadeTotalPct)} · Proventos 12M ${money(dashboard.proventos12mBRL)}`}
           icon={TrendingUp}
           color="#6FE0A0"
         />
         <ShortcutCard
           to="/analise"
           label="Análise"
-          sub="2 alertas novos · 2 scores criados"
+          sub="Ver análises e alertas"
           icon={BarChart2}
           color="#FFD95A"
         />
@@ -137,7 +161,7 @@ type ShortcutProps = {
   to: string
   label: string
   sub: string
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: string }>
+  icon: LucideIcon
   color: string
 }
 

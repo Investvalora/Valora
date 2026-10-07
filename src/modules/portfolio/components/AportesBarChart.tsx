@@ -74,7 +74,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   const saldo      = comprasVal - vendasAbs
 
   return (
-    <div className="rounded-lg border border-dark-border bg-dark-surface px-4 py-3 shadow-xl text-xs leading-relaxed">
+    <div className="rounded-lg border border-white/[0.14] bg-[#292929] px-4 py-3 shadow-xl text-xs leading-relaxed">
       <p className="font-semibold text-white mb-1.5">{formatMonth(label ?? '')}</p>
       {comprasVal > 0 && (
         <p className="text-gray-300">
@@ -97,7 +97,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
         </p>
       )}
       {(comprasVal > 0 || vendasAbs > 0) && (
-        <p className="mt-1 pt-1 border-t border-dark-border font-semibold text-white">
+        <p className="mt-1 border-t border-white/[0.12] pt-1 font-semibold text-white">
           Saldo{' '}
           <span className={saldo >= 0 ? 'text-green-400' : 'text-red-400'}>
             {brlFull.format(saldo)}
@@ -112,7 +112,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 
 function CustomLegend() {
   return (
-    <div className="flex items-center justify-center gap-6 text-xs text-gray-400 mb-2">
+    <div className="mb-2 flex items-center justify-start gap-6 text-xs text-gray-400 md:justify-center">
       <span className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-[#16a34a]" />
         Compras
@@ -153,29 +153,29 @@ export default function AportesBarChart({ data }: AportesBarChartProps) {
           margin={{ top: 8, right: 8, left: 8, bottom: 4 }}
           barCategoryGap="30%"
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#363636" vertical={false} />
 
           <XAxis
             dataKey="month"
             tickFormatter={formatMonth}
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
+            tick={{ fill: '#9a9a9a', fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: '#334155' }}
+            axisLine={{ stroke: '#525252' }}
             interval="preserveStartEnd"
           />
 
           <YAxis
             tickFormatter={formatAxisY}
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
+            tick={{ fill: '#9a9a9a', fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             width={72}
           />
 
           {/* Linha de referência em zero — divide compras de vendas */}
-          <ReferenceLine y={0} stroke="#64748b" strokeWidth={1} />
+          <ReferenceLine y={0} stroke="#666666" strokeWidth={1} />
 
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b60' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff08' }} />
 
           {/* Oculta o Legend padrão — usamos o CustomLegend acima */}
           <Legend content={() => null} />

@@ -59,7 +59,7 @@ function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total:
 export function ProventosCol() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
-  const { data: divRows = [], isLoading: divLoading } = useDividends('1A')
+  const { rows: divRows, isLoading: divLoading } = useDividends('1A')
   const dashboard = useDashboard(walletId)
   const monthlyBars = useMemo(() => buildMonthlyBars(divRows), [divRows])
 

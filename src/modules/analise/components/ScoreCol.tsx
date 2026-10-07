@@ -3,7 +3,7 @@
  * Mostra os grupos de score (agrupados por name) com progress bar
  * e as regras individuais com check/x.
  */
-import { Check, Edit2, Target, Trash2, X } from 'lucide-react'
+import { Check, Edit2, Target, Trash2 } from 'lucide-react'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useScorePreferences, useUpsertScorePreferences } from '../../score/hooks/useScorePreferences'
 import { useDeleteScoreRule } from '../../score/hooks/useScoreRules'
@@ -11,7 +11,7 @@ import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { usePositions } from '../../portfolio/hooks/usePositions'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { METRIC_LABELS, OPERATOR_LABELS } from '../../score/types'
+import { METRIC_LABELS } from '../../score/types'
 import type { ScoreRule } from '../../score/types'
 import { useMemo } from 'react'
 

@@ -1,10 +1,10 @@
 /**
  * AnaliseAlertas — sub-rota /analise/alertas.
- * Lista de cards de alertas + form inline de alerta de preço.
+ * Lista de cards de alertas + form inline de alerta de preço + filtro por status.
  */
 import { useState } from 'react'
 import {
-  Bell, BellRing, Check, TrendingDown, TrendingUp, AlertTriangle, Clock, X,
+  Bell, BellRing, Check, TrendingDown, TrendingUp, AlertTriangle, Clock, X, RefreshCw,
   type LucideIcon,
 } from 'lucide-react'
 import { useAlerts } from '../../alerts/hooks/useAlerts'
@@ -252,9 +252,12 @@ function PriceAlertForm({ onClose }: { onClose: () => void }) {
   )
 }
 
+type FilterTab = 'todos' | 'novos' | 'ignorados'
+
 // ── Componente principal ───────────────────────────────────────────────────
 export function AnaliseAlertas() {
   const [showAlertForm, setShowAlertForm] = useState(false)
+  const [filterTab, setFilterTab] = useState<FilterTab>('todos')
 
   const { data: alerts = [], isLoading } = useAlerts()
   const generate = useGenerateAlerts()
@@ -268,6 +271,15 @@ export function AnaliseAlertas() {
   })
 
   const novosCount = alerts.filter((a) => a.status === 'novo').length
+  const ignoradosCount = alerts.filter((a) => a.status === 'ignorado').length
+
+  // Filtra pelo tab ativo
+  const filtered =
+    filterTab === 'novos'
+      ? sorted.filter((a) => a.status === 'novo')
+      : filterTab === 'ignorados'
+        ? sorted.filter((a) => a.status === 'ignorado')
+        : sorted
 
   return (
     <div className="flex flex-col gap-5">
@@ -289,21 +301,48 @@ export function AnaliseAlertas() {
           >
             + Alerta de preço
           </button>
+          {/* Botão refresh circular sem texto */}
           <button
             type="button"
             disabled={generate.isPending}
             onClick={() => generate.mutate()}
-            className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50"
+            aria-label="Atualizar alertas"
+            className="grid h-8 w-8 place-items-center rounded-full border border-white/[0.1] bg-[#393939] text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50"
           >
-            <Bell
-              className={`h-3.5 w-3.5 ${generate.isPending ? 'animate-pulse' : ''}`}
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${generate.isPending ? 'animate-spin' : ''}`}
               strokeWidth={1.8}
               aria-hidden="true"
             />
-            Atualizar alertas
           </button>
         </div>
       </div>
+
+      {/* ── Pill toggle de filtro ── */}
+      {!isLoading && alerts.length > 0 && (
+        <div className="flex items-center gap-1 self-start rounded-full border border-white/[0.08] bg-[#1B1B1B] p-1">
+          {(
+            [
+              { key: 'todos', label: `Todos (${alerts.length})` },
+              { key: 'novos', label: `Novos${novosCount > 0 ? ` (${novosCount})` : ''}` },
+              { key: 'ignorados', label: `Ignorados${ignoradosCount > 0 ? ` (${ignoradosCount})` : ''}` },
+            ] satisfies { key: FilterTab; label: string }[]
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilterTab(key)}
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                filterTab === key
+                  ? 'bg-white/[0.1] text-white'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Form inline ── */}
       {showAlertForm && (
@@ -317,22 +356,28 @@ export function AnaliseAlertas() {
             <div key={i} className="h-24 animate-pulse rounded-[14px] bg-white/[0.04]" />
           ))}
         </div>
-      ) : sorted.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Bell className="h-8 w-8 text-white/20" strokeWidth={1.5} aria-hidden="true" />
-          <p className="text-[13px] text-white/40">Nenhum alerta gerado.</p>
-          <button
-            type="button"
-            disabled={generate.isPending}
-            onClick={() => generate.mutate()}
-            className="text-[12px] font-medium text-nf-blue hover:underline disabled:opacity-50"
-          >
-            Gerar alertas agora →
-          </button>
+          <p className="text-[13px] text-white/40">
+            {alerts.length === 0
+              ? 'Nenhum alerta gerado.'
+              : 'Nenhum alerta nesta categoria.'}
+          </p>
+          {alerts.length === 0 && (
+            <button
+              type="button"
+              disabled={generate.isPending}
+              onClick={() => generate.mutate()}
+              className="text-[12px] font-medium text-nf-blue hover:underline disabled:opacity-50"
+            >
+              Gerar alertas agora →
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {sorted.map((alert) => (
+          {filtered.map((alert) => (
             <AlertCard key={alert.id} alert={alert} />
           ))}
         </div>

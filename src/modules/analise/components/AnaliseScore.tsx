@@ -1,14 +1,15 @@
 /**
  * AnaliseScore — sub-rota /analise/score.
- * Tabela flat de regras de score com ações Usar/Editar/Excluir e modal Nova regra.
+ * Regras agrupadas por nome de score em cards, com ações Usar/Editar/Excluir e modal Nova regra.
  */
 import { useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { Modal } from '../../../shared/components/Modal'
 import { ScoreRuleForm } from '../../score/components/ScoreRuleForm'
-import { PanelCard } from '../../../shared/components/PanelCard'
 import {
   useScoreRules,
   useDeleteScoreRule,
+  groupRulesByName,
 } from '../../score/hooks/useScoreRules'
 import { useScorePreferences, useUpsertScorePreferences } from '../../score/hooks/useScorePreferences'
 import { METRIC_LABELS, OPERATOR_LABELS } from '../../score/types'
@@ -22,6 +23,132 @@ function formatCondition(rule: ScoreRule): string {
   return `${opLabel[rule.operator] ?? OPERATOR_LABELS[rule.operator] ?? rule.operator} ${rule.threshold_min}`
 }
 
+// ── Card de um grupo de score ─────────────────────────────────────────────
+type ScoreGroupCardProps = {
+  name: string
+  groupRules: ScoreRule[]
+  isActive: boolean
+  onUseScore: () => void
+  onEdit: (rule: ScoreRule) => void
+  onDelete: (rule: ScoreRule) => void
+  upsertPending: boolean
+  deletePending: boolean
+}
+
+function ScoreGroupCard({
+  name,
+  groupRules,
+  isActive,
+  onUseScore,
+  onEdit,
+  onDelete,
+  upsertPending,
+  deletePending,
+}: ScoreGroupCardProps) {
+  const totalPoints = groupRules.reduce((sum, r) => sum + r.points, 0)
+
+  return (
+    <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] overflow-hidden">
+      {/* Header do card */}
+      <div className="flex items-center justify-between gap-3 px-5 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[14px] font-semibold text-white">{name}</span>
+              {isActive && (
+                <span className="rounded-full border border-nf-blue/40 bg-nf-blue/12 px-1.5 py-0.5 text-[9px] font-medium text-nf-blue">
+                  Ativo
+                </span>
+              )}
+            </div>
+            <span className="mt-0.5 text-[11px] text-white/40">
+              {groupRules.length} {groupRules.length === 1 ? 'regra' : 'regras'} ·{' '}
+              <span
+                className={
+                  totalPoints > 0
+                    ? 'text-nf-green'
+                    : totalPoints < 0
+                      ? 'text-nf-pink'
+                      : 'text-white/40'
+                }
+              >
+                {totalPoints > 0 ? `+${totalPoints}` : totalPoints} pontos
+              </span>
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={isActive || upsertPending}
+          onClick={onUseScore}
+          className="shrink-0 rounded-full border border-[rgba(121,135,255,0.5)] bg-[rgba(121,135,255,0.1)] px-3 py-1.5 text-[11px] font-medium text-nf-blue transition-colors hover:bg-[rgba(121,135,255,0.2)] disabled:cursor-default disabled:opacity-40"
+        >
+          {isActive ? 'Em uso' : 'Usar este score'}
+        </button>
+      </div>
+
+      {/* Linhas de regra */}
+      <div className="border-t border-white/[0.06]">
+        {groupRules.map((rule, i) => (
+          <div
+            key={rule.id}
+            className={`flex items-center gap-3 px-5 py-3 ${
+              i < groupRules.length - 1 ? 'border-b border-white/[0.04]' : ''
+            }`}
+          >
+            {/* Métrica + condição */}
+            <div className="min-w-0 flex-1">
+              <span className="text-[12px] text-white/80">
+                {METRIC_LABELS[rule.metric] ?? rule.metric}
+              </span>
+              <span className="mx-1.5 text-[11px] text-white/30">·</span>
+              <span className="text-[11px] text-white/50">{formatCondition(rule)}</span>
+            </div>
+
+            {/* Ações */}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Badge pontos */}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
+                  rule.points > 0
+                    ? 'bg-nf-green/12 text-nf-green'
+                    : rule.points < 0
+                      ? 'bg-nf-pink/12 text-nf-pink'
+                      : 'bg-white/[0.06] text-white/50'
+                }`}
+              >
+                {rule.points > 0 ? `+${rule.points}` : rule.points}
+              </span>
+
+              {/* Editar */}
+              <button
+                type="button"
+                onClick={() => onEdit(rule)}
+                aria-label={`Editar regra ${rule.name}`}
+                className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white"
+              >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+              </button>
+
+              {/* Excluir */}
+              <button
+                type="button"
+                disabled={deletePending}
+                onClick={() => onDelete(rule)}
+                aria-label={`Excluir regra ${rule.name}`}
+                className="grid h-7 w-7 place-items-center rounded-lg border border-nf-pink/20 bg-nf-pink/[0.04] text-nf-pink/70 transition-colors hover:bg-nf-pink/12 hover:text-nf-pink disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Componente principal ───────────────────────────────────────────────────
 export function AnaliseScore() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<ScoreRule | undefined>(undefined)
@@ -33,6 +160,9 @@ export function AnaliseScore() {
   const deleteRule = useDeleteScoreRule()
 
   const activeRuleId = preferences?.default_score_rule_id ?? null
+
+  // Agrupa regras por name
+  const groups = groupRulesByName(rules)
 
   function openNewRule() {
     setEditingRule(undefined)
@@ -64,127 +194,49 @@ export function AnaliseScore() {
         </button>
       </div>
 
-      {/* ── Tabela de regras ── */}
-      <PanelCard>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-white">
-            Regras de score
-            {!isLoading && (
-              <span className="ml-2 text-[12px] font-normal text-white/40">
-                ({rules.length})
-              </span>
-            )}
-          </h3>
+      {/* ── Grupos de score ── */}
+      {isLoading ? (
+        <div className="flex flex-col gap-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-[14px] bg-white/[0.04]" />
+          ))}
         </div>
-
-        {isLoading ? (
-          <div className="flex flex-col gap-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
-            ))}
-          </div>
-        ) : rules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <p className="text-[13px] text-white/40">Nenhuma regra criada ainda.</p>
-            <button
-              type="button"
-              onClick={openNewRule}
-              className="text-[12px] font-medium text-nf-blue hover:underline"
-            >
-              Criar primeira regra →
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-[12px]">
-              <thead>
-                <tr className="bg-white/[0.04]">
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Nome</th>
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Métrica</th>
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Condição</th>
-                  <th className="px-3 py-2.5 text-right font-medium text-white/50">Pontos</th>
-                  <th className="px-3 py-2.5 text-center font-medium text-white/50" colSpan={3}>
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((rule, i) => {
-                  const isActive = rule.id === activeRuleId
-                  return (
-                    <tr
-                      key={rule.id}
-                      className={`border-t border-white/[0.04] ${
-                        i % 2 === 1 ? 'bg-white/[0.02]' : ''
-                      } ${isActive ? 'bg-nf-blue/[0.04]' : ''}`}
-                    >
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">{rule.name}</span>
-                          {isActive && (
-                            <span className="rounded-full border border-nf-blue/40 bg-nf-blue/12 px-1.5 py-0.5 text-[9px] font-medium text-nf-blue">
-                              Ativo
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-white/70">
-                        {METRIC_LABELS[rule.metric] ?? rule.metric}
-                      </td>
-                      <td className="px-3 py-2.5 text-white/70">
-                        {formatCondition(rule)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">
-                        <span
-                          className={`font-semibold ${
-                            rule.points > 0 ? 'text-nf-green' : rule.points < 0 ? 'text-nf-pink' : 'text-white'
-                          }`}
-                        >
-                          {rule.points > 0 ? `+${rule.points}` : rule.points}
-                        </span>
-                      </td>
-                      {/* Usar este score */}
-                      <td className="px-2 py-2.5 text-center">
-                        <button
-                          type="button"
-                          disabled={isActive || upsertPrefs.isPending}
-                          onClick={() =>
-                            upsertPrefs.mutate({ default_score_rule_id: rule.id })
-                          }
-                          className="rounded-full border border-white/[0.15] px-2.5 py-1 text-[10px] font-medium text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-default disabled:opacity-40"
-                        >
-                          {isActive ? 'Em uso' : 'Usar este score'}
-                        </button>
-                      </td>
-                      {/* Editar */}
-                      <td className="px-2 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => openEditRule(rule)}
-                          className="text-[10px] font-medium text-white/60 transition-colors hover:text-white"
-                        >
-                          Editar
-                        </button>
-                      </td>
-                      {/* Excluir */}
-                      <td className="px-2 py-2.5 text-center">
-                        <button
-                          type="button"
-                          disabled={deleteRule.isPending}
-                          onClick={() => deleteRule.mutate(rule.id)}
-                          className="text-[10px] font-medium text-nf-pink transition-colors hover:text-nf-pink/70 disabled:opacity-50"
-                        >
-                          Excluir
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </PanelCard>
+      ) : rules.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <p className="text-[13px] text-white/40">Nenhuma regra criada ainda.</p>
+          <button
+            type="button"
+            onClick={openNewRule}
+            className="text-[12px] font-medium text-nf-blue hover:underline"
+          >
+            Criar primeira regra →
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {Array.from(groups.entries()).map(([name, groupRules]) => {
+            // O grupo está ativo se qualquer regra do grupo for a regra ativa
+            const isActive = groupRules.some((r) => r.id === activeRuleId)
+            // Para "Usar este score", usa a primeira regra do grupo como representante
+            const representativeId = groupRules[0]?.id ?? ''
+            return (
+              <ScoreGroupCard
+                key={name}
+                name={name}
+                groupRules={groupRules}
+                isActive={isActive}
+                onUseScore={() =>
+                  upsertPrefs.mutate({ default_score_rule_id: representativeId })
+                }
+                onEdit={openEditRule}
+                onDelete={(rule) => deleteRule.mutate(rule.id)}
+                upsertPending={upsertPrefs.isPending}
+                deletePending={deleteRule.isPending}
+              />
+            )
+          })}
+        </div>
+      )}
 
       {/* ── Modal Nova/Editar regra ── */}
       <Modal

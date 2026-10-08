@@ -5,6 +5,7 @@
 import { lazy, Suspense, useState, useMemo } from 'react'
 import { Download } from 'lucide-react'
 import { PanelCard } from '../../../shared/components/PanelCard'
+import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
 import { TabelaMensal } from './TabelaMensal'
 import { usePositions } from '../../portfolio/hooks/usePositions'
@@ -113,8 +114,6 @@ export function DesempenhoRentabilidade() {
   const rentPct = summary.portfolioReturnPct
   const rentFormatted = rentPct != null ? fmtPct(rentPct * 100) : '—'
   const rentPositive = rentPct != null ? rentPct >= 0 : null
-  const rentColor =
-    rentPositive === null ? 'text-white' : rentPositive ? 'text-nf-green' : 'text-nf-pink'
 
   // Exportar CSV da tabela por ativo
   function exportAssetCSV() {
@@ -153,44 +152,34 @@ export function DesempenhoRentabilidade() {
         </button>
       </div>
 
-      {/* ── KPI bar ── */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#1A1A1A] px-6 py-4 flex items-center gap-0">
-        <div className="flex flex-1 flex-col gap-0.5 pr-6">
-          <span className="text-[11px] text-white/50">Rentabilidade total</span>
-          <span className={`text-[18px] font-semibold leading-tight ${rentColor}`}>
-            {rentFormatted}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 px-6">
-          <span className="text-[11px] text-white/50">vs CDI (p.p.)</span>
-          <span
-            className={`text-[18px] font-semibold leading-tight ${
+      {/* ── KPI pills horizontais scrolláveis ── */}
+      <KpiPillBar
+        items={[
+          {
+            label: 'Rentabilidade total',
+            value: rentFormatted,
+            colorClass: rentPositive === null ? 'text-white' : rentPositive ? 'text-nf-green' : 'text-nf-pink',
+          },
+          {
+            label: 'vs CDI (p.p.)',
+            value: summary.vscdipPp != null ? fmtPct(summary.vscdipPp) : '—',
+            colorClass:
               summary.vscdipPp == null
                 ? 'text-white'
                 : summary.vscdipPp >= 0
                   ? 'text-nf-green'
-                  : 'text-nf-pink'
-            }`}
-          >
-            {summary.vscdipPp != null ? fmtPct(summary.vscdipPp) : '—'}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 px-6">
-          <span className="text-[11px] text-white/50">IBOV</span>
-          <span className="text-[18px] font-semibold text-white leading-tight">
-            {summary.ibovReturnPct != null ? fmtPct(summary.ibovReturnPct * 100) : '—'}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 pl-6">
-          <span className="text-[11px] text-white/50">CDI</span>
-          <span className="text-[18px] font-semibold text-white leading-tight">
-            {summary.cdiReturnPct != null ? fmtPct(summary.cdiReturnPct * 100) : '—'}
-          </span>
-        </div>
-      </div>
+                  : 'text-nf-pink',
+          },
+          {
+            label: 'IBOV',
+            value: summary.ibovReturnPct != null ? fmtPct(summary.ibovReturnPct * 100) : '—',
+          },
+          {
+            label: 'CDI',
+            value: summary.cdiReturnPct != null ? fmtPct(summary.cdiReturnPct * 100) : '—',
+          },
+        ]}
+      />
 
       {/* ── Gráfico ── */}
       <PanelCard>
@@ -300,12 +289,12 @@ export function DesempenhoRentabilidade() {
                 <tr className="bg-white/[0.04]">
                   <th className="px-3 py-2.5 text-left font-medium text-white/50">Ativo</th>
                   <th className="px-3 py-2.5 text-left font-medium text-white/50">Classe</th>
-                  <th className="px-3 py-2.5 text-right font-medium text-white/50">Valor atual</th>
+                  <th className="hidden md:table-cell px-3 py-2.5 text-right font-medium text-white/50">Valor atual</th>
                   <th className="px-3 py-2.5 text-right font-medium text-white/50">
                     Rentabilidade
                   </th>
                   <th className="px-3 py-2.5 text-right font-medium text-white/50">vs CDI</th>
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Desempenho</th>
+                  <th className="hidden md:table-cell px-3 py-2.5 text-left font-medium text-white/50">Desempenho</th>
                 </tr>
               </thead>
               <tbody>
@@ -387,7 +376,7 @@ export function DesempenhoRentabilidade() {
                         </span>
                       </td>
                       {/* Valor atual */}
-                      <td className="px-3 py-2.5 text-right tabular-nums text-white">
+                      <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-white">
                         {qty > 0 && avgPrice > 0
                           ? fmtBRL(qty * avgPrice)
                           : '—'}
@@ -409,7 +398,7 @@ export function DesempenhoRentabilidade() {
                         {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)}pp` : '—'}
                       </td>
                       {/* Barra de desempenho */}
-                      <td className="px-3 py-2.5 min-w-[100px]">
+                      <td className="hidden md:table-cell px-3 py-2.5 min-w-[100px]">
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
                           <div
                             className="h-full rounded-full transition-all duration-300"

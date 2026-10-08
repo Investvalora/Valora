@@ -1,5 +1,6 @@
 /**
- * TabelaMensal — tabela mês × ano de rentabilidade, estilo Investidor10.
+ * TabelaMensal — tabela mês × ano de rentabilidade, agrupada por ano em seções.
+ * Cada seção tem um header com o ano, "Anual" e "Acumulado".
  * Recebe MonthlyTableRow[] já calculado pelo usePerformance.
  */
 import type { MonthlyTableRow } from '../../performance/utils/performanceCalculations'
@@ -46,37 +47,49 @@ export function TabelaMensal({ rows }: Props) {
                 {m}
               </th>
             ))}
-            <th className="px-3 py-2 text-right font-medium text-[#8F8F8F]">Ano</th>
-            <th className="px-3 py-2 text-right font-medium text-[#8F8F8F]">Acum.</th>
+            <th className="px-3 py-2 text-right font-medium text-[#8F8F8F]">Anual</th>
+            <th className="px-3 py-2 text-right font-medium text-[#8F8F8F]">Acumulado</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr
-              key={row.year}
-              className={`border-t border-white/[0.04] ${
-                i % 2 === 1 ? 'bg-white/[0.02]' : ''
-              }`}
-            >
-              <td className="px-3 py-2 font-medium text-white">{row.year}</td>
-              {MONTH_KEYS.map((key) => {
-                const val = row.months.get(key)
-                return (
+            <>
+              {/* Separador de seção de ano — linha de destaque entre anos */}
+              {i > 0 && (
+                <tr key={`sep-${row.year}`} aria-hidden="true">
                   <td
-                    key={key}
-                    className={`px-1.5 py-2 text-center tabular-nums ${cellColor(val)}`}
-                  >
-                    {fmtPct(val)}
-                  </td>
-                )
-              })}
-              <td className={`px-3 py-2 text-right font-medium tabular-nums ${cellColor(row.annualReturn)}`}>
-                {fmtPct(row.annualReturn)}
-              </td>
-              <td className={`px-3 py-2 text-right font-medium tabular-nums ${cellColor(row.accumulatedReturn)}`}>
-                {fmtPct(row.accumulatedReturn)}
-              </td>
-            </tr>
+                    colSpan={MONTH_KEYS.length + 3}
+                    className="h-px bg-white/[0.06] p-0"
+                  />
+                </tr>
+              )}
+              <tr
+                key={row.year}
+                className={i % 2 === 1 ? 'bg-white/[0.02]' : ''}
+              >
+                {/* Ano — destacado com cor branca */}
+                <td className="px-3 py-2.5 font-semibold text-white">{row.year}</td>
+                {MONTH_KEYS.map((key) => {
+                  const val = row.months.get(key)
+                  return (
+                    <td
+                      key={key}
+                      className={`px-1.5 py-2.5 text-center tabular-nums ${cellColor(val)}`}
+                    >
+                      {fmtPct(val)}
+                    </td>
+                  )
+                })}
+                {/* Anual */}
+                <td className={`px-3 py-2.5 text-right font-medium tabular-nums ${cellColor(row.annualReturn)}`}>
+                  {fmtPct(row.annualReturn)}
+                </td>
+                {/* Acumulado */}
+                <td className={`px-3 py-2.5 text-right font-medium tabular-nums ${cellColor(row.accumulatedReturn)}`}>
+                  {fmtPct(row.accumulatedReturn)}
+                </td>
+              </tr>
+            </>
           ))}
         </tbody>
       </table>

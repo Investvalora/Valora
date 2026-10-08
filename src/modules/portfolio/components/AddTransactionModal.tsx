@@ -14,7 +14,7 @@ import type {
 } from '../types'
 import {
   FIXED_INCOME_TYPE_INDEXER,
-  FIXED_INCOME_TYPE_LABEL,
+  FIXED_INCOME_RATE_LABEL,
 } from '../types'
 
 // ─── UI-only category discriminator ──────────────────────────────────────────
@@ -67,19 +67,19 @@ type FormValues = z.infer<typeof schema>
 
 const rendaFixaSchema = z.object({
   emissor: z.string().min(1, 'Informe o emissor'),
-  tipo_titulo: z.enum(
-    ['cdb_cdi', 'cdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre'],
-    { required_error: 'Selecione o tipo' },
+  tipo_titulo: z.string().min(1, 'Selecione o tipo').refine(
+    (v) => ['cdb_cdi', 'cdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre'].includes(v),
+    { message: 'Selecione o tipo' },
   ),
   taxa: z
     .number({ invalid_type_error: 'Informe um número' })
     .min(0, 'Deve ser ≥ 0'),
-  forma: z.enum(['pos_fixado', 'pre_fixado', 'hibrido']).optional(),
   valor: z
-    .number({ invalid_type_error: 'Informe um número' })
-    .positive('Deve ser maior que zero')
-    .optional(),
-  liquidez_diaria: z.boolean().optional().default(false),
+    .number({
+      invalid_type_error: 'Informe um número',
+      required_error: 'Informe o valor aplicado',
+    })
+    .positive('Deve ser maior que zero'),
   transaction_date: z.string().min(1, 'Data obrigatória'),
   maturity_date: z.string().optional(),
 })
@@ -89,11 +89,15 @@ type RendaFixaValues = z.infer<typeof rendaFixaSchema>
 // ─── tesouro direto schema ────────────────────────────────────────────────────
 
 const tesouroDiretoSchema = z.object({
-  ativo: z.enum(
-    ['tesouro_selic', 'tesouro_ipca', 'tesouro_pre', 'tesouro_ipca_juros', 'tesouro_pre_juros'],
-    { required_error: 'Selecione o ativo' },
+  ativo: z.string().min(1, 'Selecione o ativo').refine(
+    (v) => ['tesouro_selic', 'tesouro_ipca', 'tesouro_pre', 'tesouro_ipca_juros', 'tesouro_pre_juros'].includes(v),
+    { message: 'Selecione o ativo' },
   ),
+  taxa: z
+    .number({ invalid_type_error: 'Informe um número', required_error: 'Informe a taxa' })
+    .min(0, 'Deve ser ≥ 0'),
   transaction_date: z.string().min(1, 'Data obrigatória'),
+  maturity_date: z.string().optional(),
   quantity: z
     .number({ invalid_type_error: 'Informe um número' })
     .min(0.01, 'Mínimo 0,01'),
@@ -108,6 +112,24 @@ const tesouroDiretoSchema = z.object({
 })
 
 type TesouroDiretoValues = z.infer<typeof tesouroDiretoSchema>
+
+/** Variantes de Tesouro Direto oferecidas no seletor. As variantes `_juros`
+ *  mapeiam para o tipo-base (a coluna `type` só aceita os três títulos-base),
+ *  mas o `name` carrega a distinção "com Juros Semestrais". */
+type TesouroDiretoAtivo =
+  | 'tesouro_selic'
+  | 'tesouro_ipca'
+  | 'tesouro_pre'
+  | 'tesouro_ipca_juros'
+  | 'tesouro_pre_juros'
+
+const TD_NAME: Record<TesouroDiretoAtivo, string> = {
+  tesouro_selic: 'Tesouro Selic',
+  tesouro_ipca: 'Tesouro IPCA+',
+  tesouro_pre: 'Tesouro Prefixado',
+  tesouro_ipca_juros: 'Tesouro IPCA+ com Juros Semestrais',
+  tesouro_pre_juros: 'Tesouro Prefixado com Juros Semestrais',
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -162,14 +184,14 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
       emissor: '',
       tipo_titulo: undefined,
       taxa: undefined,
-      forma: undefined,
       valor: undefined,
-      liquidez_diaria: false,
       transaction_date: new Date().toISOString().slice(0, 10),
       maturity_date: '',
     },
   })
 
+  // isSaving lido da prop addFI para que o componente pai (AddTransactionModal)
+  // controle corretamente o estado dismissible do Modal.
   const isSaving = addFI.isPending
 
   // Indexador derivado do tipo de título — exibido em modo somente leitura.
@@ -185,7 +207,7 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
       type: values.tipo_titulo as FixedIncomeType,
       indexer: FIXED_INCOME_TYPE_INDEXER[values.tipo_titulo as FixedIncomeType],
       rate: values.taxa,
-      principal: values.valor ?? 0,
+      principal: values.valor,
       application_date: values.transaction_date,
       maturity_date: values.maturity_date?.trim() || null,
     }
@@ -246,60 +268,40 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
           </div>
         </div>
         <div>
-          <label htmlFor="rf-taxa" className={LABEL_CLASS}>Taxa</label>
-          <div className="flex items-center gap-2">
-            <input
-              id="rf-taxa"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="110"
-              className={INPUT_CLASS}
-              aria-invalid={!!errors.taxa}
-              {...register('taxa', { valueAsNumber: true })}
-            />
-            <span className="text-xs text-gray-400 font-medium">%</span>
-          </div>
+          <label htmlFor="rf-taxa" className={LABEL_CLASS}>
+            {indexer ? FIXED_INCOME_RATE_LABEL[indexer] : 'Taxa'}
+          </label>
+          <input
+            id="rf-taxa"
+            type="number"
+            step="any"
+            min="0"
+            placeholder="110"
+            className={INPUT_CLASS}
+            aria-invalid={!!errors.taxa}
+            {...register('taxa', { valueAsNumber: true })}
+          />
           {errors.taxa && <p className={ERROR_CLASS} role="alert">{errors.taxa.message}</p>}
         </div>
       </div>
 
-      {/* Row 3: Forma + Valor */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="rf-forma" className={LABEL_CLASS}>
-            Forma <span className="text-gray-500">(Opcional)</span>
-          </label>
-          <select
-            id="rf-forma"
-            className={`${INPUT_CLASS} appearance-none`}
-            {...register('forma')}
-          >
-            <option value="">Selecione</option>
-            <option value="pos_fixado">Pós-fixado</option>
-            <option value="pre_fixado">Prefixado</option>
-            <option value="hibrido">Híbrido</option>
-          </select>
+      {/* Row 3: Valor */}
+      <div>
+        <label htmlFor="rf-valor" className={LABEL_CLASS}>Valor</label>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">R$</span>
+          <input
+            id="rf-valor"
+            type="number"
+            step="any"
+            min="0"
+            placeholder="0,00"
+            className={INPUT_CLASS}
+            aria-invalid={!!errors.valor}
+            {...register('valor', { valueAsNumber: true })}
+          />
         </div>
-        <div>
-          <label htmlFor="rf-valor" className={LABEL_CLASS}>
-            Valor <span className="text-gray-500">(Opcional)</span>
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-medium">R$</span>
-            <input
-              id="rf-valor"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="0,00"
-              className={INPUT_CLASS}
-              aria-invalid={!!errors.valor}
-              {...register('valor', { valueAsNumber: true })}
-            />
-          </div>
-          {errors.valor && <p className={ERROR_CLASS} role="alert">{errors.valor.message}</p>}
-        </div>
+        {errors.valor && <p className={ERROR_CLASS} role="alert">{errors.valor.message}</p>}
       </div>
 
       {/* Row 4: Data da transação + Data de vencimento */}
@@ -326,19 +328,6 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
             {...register('maturity_date')}
           />
         </div>
-      </div>
-
-      {/* Row 5: Liquidez diária (full width) */}
-      <div className="flex items-center gap-3">
-        <input
-          id="rf-liquidez"
-          type="checkbox"
-          className="accent-nf-blue w-4 h-4 rounded"
-          {...register('liquidez_diaria')}
-        />
-        <label htmlFor="rf-liquidez" className="text-sm text-gray-300 cursor-pointer">
-          Liquidez diária
-        </label>
       </div>
 
       {/* Erro global */}
@@ -388,17 +377,37 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
     resolver: zodResolver(tesouroDiretoSchema),
     defaultValues: {
       ativo: undefined,
+      taxa: undefined,
       transaction_date: new Date().toISOString().slice(0, 10),
+      maturity_date: '',
       quantity: undefined,
       price: undefined,
       outros_custos: 0,
     },
   })
 
+  // isSaving lido da prop addFI para que o componente pai (AddTransactionModal)
+  // controle corretamente o estado dismissible do Modal.
   const isSaving = addFI.isPending
+
+  // ativo → tipo-base (a coluna `type` só aceita os três títulos-base).
+  const dbTypeMap: Record<string, FixedIncomeType> = {
+    tesouro_selic: 'tesouro_selic',
+    tesouro_ipca: 'tesouro_ipca',
+    tesouro_pre: 'tesouro_pre',
+    tesouro_ipca_juros: 'tesouro_ipca',
+    tesouro_pre_juros: 'tesouro_pre',
+  }
+
+  const ativo = watch('ativo')
   const quantity = watch('quantity')
   const price = watch('price')
   const outrosCustos = watch('outros_custos') ?? 0
+
+  // Label/placeholder da taxa derivados do indexador do ativo (igual ao AddFixedIncomeForm).
+  const tdIndexer = ativo ? FIXED_INCOME_TYPE_INDEXER[dbTypeMap[ativo]] : null
+  const taxaLabel = tdIndexer ? FIXED_INCOME_RATE_LABEL[tdIndexer] : 'Taxa'
+  const taxaPlaceholder = tdIndexer === 'ipca' ? '6.5' : '13.5'
 
   const totalValue =
     Number.isFinite(quantity) && Number.isFinite(price) && quantity > 0 && price >= 0
@@ -412,25 +421,17 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
     maximumFractionDigits: 2,
   })
 
-  const dbTypeMap: Record<string, FixedIncomeType> = {
-    tesouro_selic: 'tesouro_selic',
-    tesouro_ipca: 'tesouro_ipca',
-    tesouro_pre: 'tesouro_pre',
-    tesouro_ipca_juros: 'tesouro_ipca',
-    tesouro_pre_juros: 'tesouro_pre',
-  }
-
   const onSubmit = handleSubmit(async (values) => {
     setGlobalError('')
     const dbType = dbTypeMap[values.ativo]
     const payload: NewFixedIncomePosition = {
-      name: FIXED_INCOME_TYPE_LABEL[dbType],
+      name: TD_NAME[values.ativo],
       type: dbType,
       indexer: FIXED_INCOME_TYPE_INDEXER[dbType],
-      rate: 0,
+      rate: values.taxa,
       principal: values.quantity * values.price + (values.outros_custos ?? 0),
       application_date: values.transaction_date,
-      maturity_date: null,
+      maturity_date: values.maturity_date?.trim() || null,
     }
     addFI.mutate(payload, {
       onSuccess: () => {
@@ -464,7 +465,37 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
         {errors.ativo && <p className={ERROR_CLASS} role="alert">{errors.ativo.message}</p>}
       </div>
 
-      {/* Row 2: Data + Quantidade */}
+      {/* Row 2: Taxa + Vencimento */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="td-taxa" className={LABEL_CLASS}>{taxaLabel}</label>
+          <input
+            id="td-taxa"
+            type="number"
+            step="any"
+            min="0"
+            placeholder={taxaPlaceholder}
+            className={INPUT_CLASS}
+            aria-invalid={!!errors.taxa}
+            disabled={!ativo}
+            {...register('taxa', { valueAsNumber: true })}
+          />
+          {errors.taxa && <p className={ERROR_CLASS} role="alert">{errors.taxa.message}</p>}
+        </div>
+        <div>
+          <label htmlFor="td-maturity" className={LABEL_CLASS}>
+            Vencimento <span className="text-gray-500">(Opcional)</span>
+          </label>
+          <input
+            id="td-maturity"
+            type="date"
+            className={INPUT_CLASS}
+            {...register('maturity_date')}
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Data + Quantidade */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="td-date" className={LABEL_CLASS}>Data da transação</label>
@@ -493,7 +524,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
         </div>
       </div>
 
-      {/* Row 3: Preço + Outros custos */}
+      {/* Row 4: Preço + Outros custos */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="td-price" className={LABEL_CLASS}>Preço</label>
@@ -531,7 +562,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
         </div>
       </div>
 
-      {/* Row 4: Valor total (read-only) */}
+      {/* Row 5: Valor total (read-only) */}
       <div className="flex items-center justify-between rounded-lg bg-dark-bg px-4 py-3 border border-dark-border">
         <span className="text-sm font-semibold text-gray-200">Valor total</span>
         <span className="text-sm font-bold text-white tabular-nums">
@@ -648,12 +679,10 @@ export function AddTransactionModal({
     }
   })
 
-  // Variable-income categories (show ticker/equity form)
-  const isVariableIncome = (cat: FormCategory | ''): boolean =>
-    cat !== '' && cat !== 'fixed_income' && cat !== 'tesouro_direto'
-
-  // When ticker is pre-filled, always use the equity form
-  const showEquityForm = ticker !== '' || (ticker === '' && isVariableIncome(selectedCategory))
+  // When ticker is pre-filled, always use the equity form. The empty-ticker
+  // selector only offers Renda Fixa and Tesouro Direto, so there is no
+  // variable-income branch here.
+  const showEquityForm = ticker !== ''
   const showRendaFixa = ticker === '' && selectedCategory === 'fixed_income'
   const showTesouroDireto = ticker === '' && selectedCategory === 'tesouro_direto'
 
@@ -675,13 +704,6 @@ export function AddTransactionModal({
             className={`${INPUT_CLASS} appearance-none`}
           >
             <option value="">Selecione</option>
-            <option value="stock_br">Ações BR</option>
-            <option value="fii">FIIs</option>
-            <option value="bdr">BDRs</option>
-            <option value="stock_us">Stocks US</option>
-            <option value="etf_us">ETFs</option>
-            <option value="reit">REITs</option>
-            <option value="crypto">Criptomoedas</option>
             <option value="fixed_income">Renda Fixa</option>
             <option value="tesouro_direto">Tesouro Direto</option>
           </select>

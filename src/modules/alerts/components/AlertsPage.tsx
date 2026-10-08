@@ -245,17 +245,24 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
     setTicker(asset.ticker)
     setShowSuggestions(false)
     setHighlightedIndex(-1)
+    // Permite que o auto-fill rode para o novo ativo selecionado
+    autoFilledForTicker.current = null
+    setPriceAutoFilled(false)
+    setPrice('')
     // Foca no campo de preço após selecionar o ativo
     setTimeout(() => document.getElementById('pt-price')?.focus(), 0)
   }
 
-  // Preenche o preço automaticamente quando a cotação chega após selecionar o ticker
+  // Preenche o preço automaticamente uma única vez por ticker selecionado.
+  // Usa ref para não reativar o effect quando o usuário edita o campo manualmente.
+  const autoFilledForTicker = useRef<string | null>(null)
   useEffect(() => {
-    if (latestPrice !== null && ticker && !priceAutoFilled) {
+    if (latestPrice !== null && ticker && autoFilledForTicker.current !== ticker) {
       setPrice(latestPrice.toFixed(2))
       setPriceAutoFilled(true)
+      autoFilledForTicker.current = ticker
     }
-  }, [latestPrice, ticker, priceAutoFilled])
+  }, [latestPrice, ticker])
   function handleTickerKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Escape' && isSuggestionsOpen) {
       e.stopPropagation()
@@ -342,7 +349,8 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
                 setTicker(e.target.value)
                 setShowSuggestions(true)
                 setHighlightedIndex(-1)
-                // Resetar preço pré-preenchido ao trocar o ticker manualmente
+                // Ao digitar manualmente, limpa o preço e libera o auto-fill para o novo ticker
+                autoFilledForTicker.current = null
                 setPriceAutoFilled(false)
                 setPrice('')
               }}

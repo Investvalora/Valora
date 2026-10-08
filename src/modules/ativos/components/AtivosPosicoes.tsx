@@ -15,12 +15,14 @@ import { useBazin } from '../../valuation/hooks/useBazin'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { derivePositionRows } from '../../portfolio/positionRows'
 import { enrichPositionRows } from '../../portfolio/enrichPositionRows'
+import { groupRowsByClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
 import { AtivosTable } from './AtivosTable'
+import { AssetGroupCard } from './AssetGroupCard'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { fmtMoney, fmtPct } from '../utils/fmt'
-import type { AssetCurrency } from '../../portfolio/types'
+import type { AssetCurrency, AssetClassKey } from '../../portfolio/types'
 import type { FundamentalsRow } from '../../score/types'
 
 export function AtivosPosicoes() {
@@ -122,6 +124,28 @@ export function AtivosPosicoes() {
   const [isResumoOpen, setIsResumoOpen] = useState(false)
   const resumoBtnRef = useRef<HTMLButtonElement | null>(null)
 
+  // ── Mobile: grupos colapsáveis ────────────────────────────────────────────
+  const groups = useMemo(
+    () => groupRowsByClass(enrichedRows, totalBRL),
+    [enrichedRows, totalBRL],
+  )
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<AssetClassKey>>(
+    () => new Set(groups.map((g) => g.summary.key)),
+  )
+
+  const toggleGroup = (key: AssetClassKey) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
   const isLoading = posLoading || quotesLoading
 
   return (
@@ -154,7 +178,7 @@ export function AtivosPosicoes() {
         )}
       </div>
 
-      {/* ── Tabela de posições ── */}
+      {/* ── Tabela de posições — desktop ── */}
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
@@ -193,11 +217,44 @@ export function AtivosPosicoes() {
           </div>
         </div>
 
-        <AtivosTable
-          rows={enrichedRows}
-          totalBRL={totalBRL}
-          isLoading={isLoading}
-        />
+        {/* Desktop: tabela completa */}
+        <div className="hidden md:block">
+          <AtivosTable
+            rows={enrichedRows}
+            totalBRL={totalBRL}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Mobile: lista de grupos colapsáveis */}
+        <div className="block md:hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <p className="text-[13px] text-white/40 animate-pulse">Carregando posições…</p>
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="flex items-center justify-center py-10">
+              <p className="text-[13px] text-white/40">Nenhuma posição cadastrada.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 p-3">
+              {groups.map(({ summary, rows: groupRows }) => (
+                <AssetGroupCard
+                  key={summary.key}
+                  type={summary.key}
+                  label={summary.label}
+                  color={summary.color}
+                  totalBRL={summary.totalValueBRL}
+                  variationPct={summary.avgChangePercent}
+                  portfolioPct={summary.weightPercent}
+                  rows={groupRows}
+                  isExpanded={expandedGroups.has(summary.key)}
+                  onToggle={() => toggleGroup(summary.key)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </PanelCard>
     </div>
   )

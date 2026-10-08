@@ -129,6 +129,130 @@ function ClassIcon({ assetType }: { assetType: AssetType | null }) {
   )
 }
 
+// ── TransactionCard — mobile ───────────────────────────────────────────────
+function TransactionCard({
+  txn,
+  assetType,
+  assetName,
+  currency,
+  quantityTotal: _quantityTotal,
+  onDelete,
+}: {
+  txn: Transaction
+  assetType: AssetType | null
+  assetName: string | null
+  currency: string
+  quantityTotal: number
+  onDelete: (id: string) => void
+}) {
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const deleteTransaction = useDeleteTransaction(txn.ticker)
+
+  const total = Number(txn.quantity) * Number(txn.price)
+  const typeColor =
+    txn.type === 'buy'
+      ? 'text-green-400'
+      : txn.type === 'sell'
+        ? 'text-red-400'
+        : 'text-blue-400'
+
+  return (
+    <>
+      <div className="rounded-xl border border-white/[0.08] bg-[#1B1B1B] p-3">
+        {/* Linha 1: ícone + ticker + badge classe + tipo de ordem */}
+        <div className="flex items-center gap-2">
+          <ClassIcon assetType={assetType} />
+          <span className="text-[13px] font-semibold text-white">{txn.ticker}</span>
+          <AssetTypeBadge assetType={assetType} />
+          <span className={`ml-auto text-[12px] font-medium ${typeColor}`}>
+            {TYPE_LABEL[txn.type] ?? txn.type}
+          </span>
+        </div>
+
+        {/* Linha 2: quantidade / preço unitário / total */}
+        <div className="mt-2 flex items-center gap-3 text-[12px] text-white/60 tabular-nums">
+          <span>
+            <span className="text-white/40">Qtd </span>
+            {fmtQty(txn.quantity)}
+          </span>
+          <span className="text-white/20">·</span>
+          <span>
+            <span className="text-white/40">P.U. </span>
+            {fmtMoney2(txn.price, currency)}
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="font-medium text-white">
+            {fmtMoney2(total, currency)}
+          </span>
+        </div>
+
+        {/* Linha 3: data + manual + ações */}
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-white/40">
+          <span className="tabular-nums">{fmtDate(txn.transaction_date)}</span>
+          <span className="rounded border border-white/[0.14] px-1.5 py-0.5">Manual</span>
+          <div className="ml-auto flex items-center gap-1">
+            {confirmDelete ? (
+              <>
+                <span className="text-[11px] text-white/40">Excluir?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteTransaction.mutate(txn.id)
+                    setConfirmDelete(false)
+                    onDelete(txn.id)
+                  }}
+                  disabled={deleteTransaction.isPending}
+                  className="rounded bg-red-600 px-2 py-0.5 text-[11px] text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded border border-white/[0.14] px-2 py-0.5 text-[11px] text-white/60 hover:text-white"
+                >
+                  Não
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(true)}
+                  className="rounded px-2 py-0.5 text-[11px] text-blue-400 hover:bg-blue-900/20"
+                >
+                  + Lançamento
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="rounded p-1 text-red-400 hover:bg-red-900/20"
+                  aria-label={`Excluir lançamento de ${txn.ticker}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <AddTransactionModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        ticker={txn.ticker}
+        assetType={assetType}
+        assetName={assetName}
+      />
+    </>
+  )
+}
+
 // ── Linha da tabela de lançamentos ─────────────────────────────────────────
 function TxnRow({
   txn,
@@ -541,40 +665,61 @@ export function AtivosLancamentos() {
             <p className="text-sm text-gray-400">Nenhum lançamento encontrado.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto px-2 pb-2">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className={HEADER_CLASS}>Ativo</th>
-                  <th className={HEADER_CLASS}>Tipo de investimento</th>
-                  <th className={HEADER_CLASS}>Tipo de ordem</th>
-                  <th className={`${HEADER_CLASS} text-right`}>Quantidade</th>
-                  <th className={`${HEADER_CLASS} text-right`}>Preço unitário</th>
-                  <th className={`${HEADER_CLASS} text-right`}>Total</th>
-                  <th className={`${HEADER_CLASS} text-right`}>Qtd. total</th>
-                  <th className={HEADER_CLASS}>Data</th>
-                  <th className={HEADER_CLASS}>Fonte</th>
-                  <th className={`${HEADER_CLASS} text-right`}>Opções</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableRows.map((txn) => {
-                  const pos = positionMap.get(txn.ticker)
-                  return (
-                    <TxnRow
-                      key={txn.id}
-                      txn={txn}
-                      assetType={pos?.assetType ?? null}
-                      assetName={pos?.assetName ?? null}
-                      currency={pos?.currency ?? 'BRL'}
-                      quantityTotal={pos?.quantity ?? 0}
-                      onDelete={() => {}}
-                    />
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Desktop: tabela */}
+            <div className="hidden md:block overflow-x-auto px-2 pb-2">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className={HEADER_CLASS}>Ativo</th>
+                    <th className={HEADER_CLASS}>Tipo de investimento</th>
+                    <th className={HEADER_CLASS}>Tipo de ordem</th>
+                    <th className={`${HEADER_CLASS} text-right`}>Quantidade</th>
+                    <th className={`${HEADER_CLASS} text-right`}>Preço unitário</th>
+                    <th className={`${HEADER_CLASS} text-right`}>Total</th>
+                    <th className={`${HEADER_CLASS} text-right`}>Qtd. total</th>
+                    <th className={HEADER_CLASS}>Data</th>
+                    <th className={HEADER_CLASS}>Fonte</th>
+                    <th className={`${HEADER_CLASS} text-right`}>Opções</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((txn) => {
+                    const pos = positionMap.get(txn.ticker)
+                    return (
+                      <TxnRow
+                        key={txn.id}
+                        txn={txn}
+                        assetType={pos?.assetType ?? null}
+                        assetName={pos?.assetName ?? null}
+                        currency={pos?.currency ?? 'BRL'}
+                        quantityTotal={pos?.quantity ?? 0}
+                        onDelete={() => {}}
+                      />
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: lista de cards */}
+            <div className="block md:hidden flex flex-col gap-2 p-3">
+              {tableRows.map((txn) => {
+                const pos = positionMap.get(txn.ticker)
+                return (
+                  <TransactionCard
+                    key={txn.id}
+                    txn={txn}
+                    assetType={pos?.assetType ?? null}
+                    assetName={pos?.assetName ?? null}
+                    currency={pos?.currency ?? 'BRL'}
+                    quantityTotal={pos?.quantity ?? 0}
+                    onDelete={() => {}}
+                  />
+                )
+              })}
+            </div>
+          </>
         )}
       </PanelCard>
 

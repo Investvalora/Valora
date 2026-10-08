@@ -46,12 +46,16 @@ function sectorPath(startDeg: number, endDeg: number): string {
   ].join(' ')
 }
 
+const LABEL_RADIUS = R_OUTER + 18 // raio do ponto médio do label externo
+
 function CompositionDonut({
   slices,
   totalBRL,
+  size = 200,
 }: {
   slices: AssetClassSlice[]
   totalBRL: number
+  size?: number
 }) {
   if (slices.length === 0) {
     return (
@@ -68,17 +72,28 @@ function CompositionDonut({
     const startDeg = angle + GAP_DEG / 2
     const sweep = (pct / 100) * 360
     const endDeg = angle + sweep - GAP_DEG / 2
+    const midDeg = angle + sweep / 2
     angle += sweep
-    return { slice: s, startDeg, endDeg: Math.max(startDeg + 0.1, endDeg) }
+    return {
+      slice: s,
+      startDeg,
+      endDeg: Math.max(startDeg + 0.1, endDeg),
+      midDeg,
+      pct,
+    }
   })
 
   const patrimonioFormatted = fmtMoney(totalBRL > 0 ? totalBRL : null)
 
+  // viewBox expandido para acomodar labels externos
+  const viewBoxSize = size === 180 ? 240 : 260
+  const vbOffset = (viewBoxSize - 200) / 2
+
   return (
     <svg
-      width="200"
-      height="200"
-      viewBox="0 0 200 200"
+      width={size}
+      height={size}
+      viewBox={`${-vbOffset} ${-vbOffset} ${viewBoxSize} ${viewBoxSize}`}
       aria-label="Gráfico de composição da carteira"
       role="img"
     >
@@ -101,6 +116,28 @@ function CompositionDonut({
           aria-label={`${slice.label}: ${fmtPct(slice.percent)}`}
         />
       ))}
+      {/* Labels externos de % — apenas fatias > 4% */}
+      {sectors
+        .filter(({ pct }) => pct > 4)
+        .map(({ slice, midDeg, pct }) => {
+          const pt = polar(CX, CY, LABEL_RADIUS, midDeg)
+          return (
+            <text
+              key={`lbl-${slice.type}`}
+              x={pt.x.toFixed(2)}
+              y={pt.y.toFixed(2)}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill={assetClassColor(slice.type)}
+              fontSize="9"
+              fontWeight="600"
+              fontFamily="inherit"
+              aria-hidden="true"
+            >
+              {Math.round(pct)}%
+            </text>
+          )
+        })}
       {/* Label central */}
       <text
         x={CX}
@@ -262,7 +299,7 @@ export function AtivosComposicao() {
   return (
     <div className="flex flex-col gap-5">
       {/* ── KPI bar ── */}
-      <div className="relative">
+      <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
           patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
@@ -348,9 +385,14 @@ export function AtivosComposicao() {
           </div>
         ) : (
           <div className="flex flex-col items-start gap-8 md:flex-row md:items-center">
-            {/* Donut */}
-            <div className="shrink-0">
-              <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} />
+            {/* Donut — 180px mobile, 200px desktop */}
+            <div className="shrink-0 self-center md:self-auto">
+              <div className="block md:hidden">
+                <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={180} />
+              </div>
+              <div className="hidden md:block">
+                <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={200} />
+              </div>
             </div>
 
             {/* Lista */}

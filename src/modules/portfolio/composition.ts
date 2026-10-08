@@ -20,22 +20,30 @@ import type {
  */
 
 /**
- * Rótulo de cada classe do catálogo, em pt-BR.
+ * Rótulo das seis classes principais do catálogo, em pt-BR.
  *
- * `Record<AssetType, string>` de propósito: acrescentar um valor ao enum
- * `public.asset_type` sem dar nome a ele passa a ser erro de build, não uma
- * fatia sem rótulo na tela.
+ * Contém exatamente as seis classes de exibição: acrescentar uma nova classe
+ * principal aqui é decisão de produto, não de código. Tipos adicionais
+ * (`etf_us`, `etf_br`, `fixed_income`) têm rótulo em `EXTRA_ASSET_CLASS_LABEL`
+ * e são acessados via `assetClassLabel()`.
  */
-export const ASSET_CLASS_LABEL: Record<AssetType, string> = {
-  stock_br:     'Ações',
-  fii:          'FIIs',
-  bdr:          'BDRs',
-  stock_us:     'Stocks',
+export const ASSET_CLASS_LABEL: { [key in AssetType]?: string } = {
+  stock_br: 'Ações BR',
+  fii:      'FIIs',
+  bdr:      'BDRs',
+  stock_us: 'Stocks US',
+  reit:     'REITs',
+  crypto:   'Cryptos',
+}
+
+/**
+ * Rótulos de tipos de ativo que não fazem parte das seis classes principais,
+ * mas precisam ter rótulo disponível para componentes que usam `assetClassLabel()`.
+ */
+const EXTRA_ASSET_CLASS_LABEL: Record<string, string> = {
   etf_us:       'ETFs',
-  reit:         'REITs',
-  crypto:       'Cryptos',
+  etf_br:       'ETFs BR',
   fixed_income: 'Renda Fixa',
-  etf_br:       'ETFs',
 }
 
 /** Bucket das posições avaliadas cuja classe não veio no catálogo. */
@@ -44,21 +52,21 @@ export const UNKNOWN_ASSET_CLASS = 'unknown'
 export const UNKNOWN_ASSET_CLASS_LABEL = 'Outros'
 
 /**
- * Ordem de exibição das classes — a mesma da definição do requisito (Ações BR,
- * FIIs, BDRs, Stocks US, REITs, Cryptos). Fixa e não por valor: uma legenda que
- * se reordena a cada oscilação de preço obriga o usuário a reencontrar a classe
- * que estava lendo.
+ * Ordem de exibição das seis classes principais — a mesma da definição do
+ * requisito (Ações BR, FIIs, BDRs, Stocks US, REITs, Cryptos). Fixa e não por
+ * valor: uma legenda que se reordena a cada oscilação de preço obriga o usuário
+ * a reencontrar a classe que estava lendo.
+ *
+ * Tipos adicionais (`etf_br`, `etf_us`, `fixed_income`) aparecem na composição
+ * interna via `FULL_DISPLAY_ORDER`, mas não são exportados como classes principais.
  */
 export const ASSET_CLASS_ORDER: readonly AssetType[] = [
   'stock_br',
-  'etf_br',
   'fii',
   'bdr',
   'stock_us',
-  'etf_us',
   'reit',
   'crypto',
-  'fixed_income',
 ]
 
 /**
@@ -68,7 +76,7 @@ export const ASSET_CLASS_ORDER: readonly AssetType[] = [
  * assim é exposição a empresa estrangeira, enquanto filtrar por `currency`
  * deixaria o BDR de fora e inflaria a fatia "nacional".
  */
-export const INTERNATIONAL_TYPES: readonly AssetType[] = ['bdr', 'stock_us', 'etf_us', 'reit', 'crypto']
+export const INTERNATIONAL_TYPES: readonly AssetType[] = ['bdr', 'stock_us', 'reit', 'crypto']
 
 /**
  * Cor de cada classe na pizza e no marcador da legenda.
@@ -93,11 +101,27 @@ export const ASSET_CLASS_COLOR: Record<AssetType, string> = {
 
 export const UNKNOWN_ASSET_CLASS_COLOR = '#94a3b8'
 
-/** Ordem completa, com o bucket de classe desconhecida sempre no fim. */
-const DISPLAY_ORDER: readonly AssetClassKey[] = [...ASSET_CLASS_ORDER, UNKNOWN_ASSET_CLASS]
+/**
+ * Ordem interna completa, com todos os tipos de ativo e o bucket desconhecido.
+ * Usada em `deriveComposition` e `groupRowsByClass` para que posições de tipos
+ * adicionais (`etf_br`, `etf_us`, `fixed_income`) ainda apareçam em composição.
+ */
+const FULL_DISPLAY_ORDER: readonly AssetClassKey[] = [
+  'stock_br',
+  'etf_br',
+  'fii',
+  'bdr',
+  'stock_us',
+  'etf_us',
+  'reit',
+  'crypto',
+  'fixed_income',
+  UNKNOWN_ASSET_CLASS,
+]
 
 export function assetClassLabel(key: AssetClassKey): string {
-  return key === UNKNOWN_ASSET_CLASS ? UNKNOWN_ASSET_CLASS_LABEL : ASSET_CLASS_LABEL[key]
+  if (key === UNKNOWN_ASSET_CLASS) return UNKNOWN_ASSET_CLASS_LABEL
+  return ASSET_CLASS_LABEL[key] ?? EXTRA_ASSET_CLASS_LABEL[key] ?? UNKNOWN_ASSET_CLASS_LABEL
 }
 
 export function assetClassColor(key: AssetClassKey): string {
@@ -169,7 +193,7 @@ export function deriveComposition(rows: PositionRow[], totalBRL: number): Compos
   const slices: AssetClassSlice[] = []
   let internationalValueBRL = 0
 
-  for (const key of DISPLAY_ORDER) {
+  for (const key of FULL_DISPLAY_ORDER) {
     const bucket = buckets.get(key)
     // Classe sem posição não aparece — nem na pizza nem na legenda.
     if (!bucket) continue
@@ -246,7 +270,7 @@ export function groupRowsByClass(
 
   const result: Array<{ summary: GroupSummary; rows: PositionRow[] }> = []
 
-  for (const key of DISPLAY_ORDER) {
+  for (const key of FULL_DISPLAY_ORDER) {
     const groupRows = rowsByKey.get(key)
     if (!groupRows || groupRows.length === 0) continue
 

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
 import { SignupForm } from './modules/auth/components/SignupForm'
@@ -22,6 +23,32 @@ import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
 import { useIsMobile } from './shared/hooks/useIsMobile'
+
+// ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
+const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
+const AtivosComposicao = lazy(() => import('./modules/ativos/components/AtivosComposicao').then((m) => ({ default: m.AtivosComposicao })))
+const AtivosLancamentos = lazy(() => import('./modules/ativos/components/AtivosLancamentos').then((m) => ({ default: m.AtivosLancamentos })))
+
+// ── Placeholder para sub-rotas ainda não implementadas ─────────────────────
+function Placeholder() {
+  return <div className="p-8 text-white/40">Em breve…</div>
+}
+
+function LoadingFallback() {
+  return (
+    <div className="flex h-40 items-center justify-center">
+      <span className="text-sm text-white/40 animate-pulse">Carregando…</span>
+    </div>
+  )
+}
+
+// ── Lazy imports para sub-rotas de Desempenho ─────────────────────────────
+const DesempenhoRentabilidade = lazy(() => import('./modules/desempenho/components/DesempenhoRentabilidade').then((m) => ({ default: m.DesempenhoRentabilidade })))
+const DesempenhoProventos     = lazy(() => import('./modules/desempenho/components/DesempenhoProventos').then((m) => ({ default: m.DesempenhoProventos })))
+
+// ── Lazy imports para sub-rotas de Análise ────────────────────────────────
+const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseScore').then((m) => ({ default: m.AnaliseScore })))
+const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 
 function HomeRoute() {
   const isMobile = useIsMobile()
@@ -53,7 +80,7 @@ export function AppRoutes() {
           <Route index element={<IndexRoute />} />
 
           {/* Novo fluxo */}
-          <Route path="inicio"     element={<HomeRoute />} />
+          <Route path="inicio" element={<HomeRoute />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
           <Route path="carteira"                    element={<CarteiraPage />} />
@@ -68,10 +95,29 @@ export function AppRoutes() {
           <Route path="conta"                       element={<AccountPage />} />
           <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
 
-          {/* Aliases do novo fluxo → seções legadas enquanto as novas não estão prontas */}
-          <Route path="ativos"     element={<AtivosPage />} />
-          <Route path="desempenho" element={<DesempenhoPage />} />
-          <Route path="analise"    element={<AnalisePage />} />
+          {/* ── Ativos — sub-rotas ── */}
+          <Route path="ativos" element={<AtivosPage />}>
+            <Route index element={<Navigate to="posicoes" replace />} />
+            <Route path="posicoes"    element={<Suspense fallback={<LoadingFallback />}><AtivosPosicoes /></Suspense>} />
+            <Route path="composicao"  element={<Suspense fallback={<LoadingFallback />}><AtivosComposicao /></Suspense>} />
+            <Route path="lancamentos" element={<Suspense fallback={<LoadingFallback />}><AtivosLancamentos /></Suspense>} />
+          </Route>
+
+          {/* ── Desempenho — sub-rotas ── */}
+          <Route path="desempenho" element={<DesempenhoPage />}>
+            <Route index element={<Navigate to="rentabilidade" replace />} />
+            <Route path="visao-geral"   element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="rentabilidade" element={<Suspense fallback={<LoadingFallback />}><DesempenhoRentabilidade /></Suspense>} />
+            <Route path="proventos"     element={<Suspense fallback={<LoadingFallback />}><DesempenhoProventos /></Suspense>} />
+          </Route>
+
+          {/* ── Análise — sub-rotas ── */}
+          <Route path="analise" element={<AnalisePage />}>
+            <Route index element={<Navigate to="score" replace />} />
+            <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
+            <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
+          </Route>
         </Route>
       </Route>
     </Routes>

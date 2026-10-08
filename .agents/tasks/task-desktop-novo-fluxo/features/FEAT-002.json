@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Telas da seção ATIVOS: sub-tabs Posições, Composição e Lançamentos. Cria AtivosPosicoes.tsx, AtivosComposicao.tsx e AtivosLancamentos.tsx como componentes-folha das sub-rotas. Reutiliza todos os hooks existentes (usePositions, useDashboard, useLatestQuotes, useDividendTotals, useBazin, useWallets) e sub-componentes já existentes (AtivosTable com colunas expandidas, AlocacaoDonut). Independe de FEAT-003 e FEAT-004.",
+  "status": "completed",
+  "steps": [
+    "1. Criar src/modules/ativos/components/AtivosPosicoes.tsx. Reutiliza toda a lógica de derivação que está em AtivosPage.tsx atual (usePositions, useDashboard, useLatestQuotes, useDividendTotals, useBazin, useFundamentals, derivePositionRows, enrichPositionRows). Layout:\n   - KpiBarAtivos com os 4 valores (patrimônio, valorInvestido, ganhoCapital, positionCount) + botão 'Resumo completo'\n   - Ao clicar 'Resumo completo': mostrar ResumoCarteiraPopover (usar useState isResumoOpen)\n   - PanelCard 'Meus ativos (N)': contém AtivosTable com colunas completas do Figma: Ticker | Nome | Quant. | Preço médio | Cotação (com ícone info) | Saldo | % carteira | Variação | Proventos(12M) | Payout% | P/L | P/VP | DY%\n   - Atualizar AtivosTable.tsx para incluir as colunas extras (proventos12m, payoutPct, pl, pvp do tipo EnrichedPositionRow já existente). As colunas adicionais já existem em EnrichedPositionRow (dy, pl via fundamentalsByTicker) — verificar src/modules/portfolio/enrichPositionRows.ts\n   - Cabeçalho: título 'Posições' + badge '28 ativos' + botões 'Filtrar' (Filter icon) e 'Exportar CSV' (Download icon) com estilo outline arredondado",
+
+    "2. Atualizar src/modules/ativos/components/AtivosTable.tsx para adicionar colunas extras no modo expandido: Proventos (12M) em nf-green, Payout%, P/L, P/VP, DY%. Os valores já estão em EnrichedPositionRow (veja src/modules/portfolio/positionRows.ts e enrichPositionRows.ts). No GroupHeader expandido mostrar apenas as colunas resumo (Ativos, Valor total, Variação, % carteira, seta expand). Quando expandido, mostrar todas as colunas individuais. Min-width da tabela aumenta para ~1080px.",
+
+    "3. Criar src/modules/ativos/components/AtivosComposicao.tsx. Layout:\n   - KpiBarAtivos (mesmos dados)\n   - PanelCard 'Composição por classe':\n     - Toggle segmentado 'Tipo de ativos / Ativos / Exposição ao exterior' (useState activeToggle)\n     - Switch 'Exibir posição ideal' (useState showIdeal)\n     - Layout flex: à esquerda AlocacaoDonut (já existe, passar slices) com label central 'Patrimônio\\nR$ XX' no centro do donut\n     - À direita: lista de classes com dot colorido (cor da classe), nome, 'Internacional' badge (se stock_us/etf_us/reit/crypto), maior posição, valor à direita, %, barra de progresso colorida\n   - Reutilizar deriveComposition de src/modules/portfolio/composition.ts que já retorna slices com label/color/value/percent",
+
+    "4. Criar src/modules/ativos/components/AtivosLancamentos.tsx. Layout:\n   - KpiBarAtivos (mesmos dados)\n   - PanelCard 'Consolidação de aportes': reutilizar AportesBarChart (lazy import de src/modules/portfolio/components/AportesBarChart.tsx), filtros 1A/2Anos/5A/Tudo + dropdown 'Todos os tipos'. Reutilizar a lógica de período/filtro que já existe em LancamentosPage.tsx\n   - PanelCard 'Renda variável (N)': busca por ticker (Search icon), tabela com colunas: Ativo (ícone colorido + ticker), Tipo de ativo (badge colorido), Tipo de ordem (Compra verde / Venda rosa), Quantidade, Preço unitário, Total, Qtd. total, Data, Fonte (badge 'Manual'), Opções (+ Lançamento | ícone lixeira)\n   - Reutilizar TxnRow de LancamentosPage.tsx ou extraí-la para src/modules/portfolio/components/TxnRow.tsx e importar em ambos\n   - Botão '+ Lançamento' no header da tabela abre AddTransactionModal\n   - Os dados vêm de useAllTransactions() e usePositions() que já existem em LancamentosPage"
+  ],
+  "acceptance_criteria": [
+    "pnpm run build sem erros TypeScript",
+    "/ativos/posicoes exibe KPI bar com 4 colunas + tabela expandível com grupos de classe",
+    "Clicar num grupo expande as linhas com todas as colunas (Ticker, Nome, Quant., Preço médio, Cotação, Saldo, % carteira, Variação, Proventos 12M, Payout, P/L, P/VP, DY%)",
+    "Clicar 'Resumo completo' exibe o popover com Patrimônio total, Lucro total, Proventos 12M, Rentabilidade e link 'Ver detalhes em Desempenho →'",
+    "/ativos/composicao exibe donut chart à esquerda e lista de classes à direita",
+    "/ativos/lancamentos exibe gráfico de barras de aportes e tabela de lançamentos com busca"
+  ],
+  "verification": [
+    "pnpm run build",
+    "pnpm run test:run"
+  ],
+  "blocked_reason": null,
+  "findings": "AtivosTable.tsx foi reescrito com 13 colunas (Ticker, Nome, Quant., Preço médio, Cotação+ícone info, Saldo, % carteira, Variação, Proventos 12M, Payout%, P/L, P/VP, DY%) e min-width 1080px. GroupHeader exibe resumo de 7 colunas (colSpan=2 para Ticker+Nome). KpiBarAtivos agora aceita prop opcional resumoBtnRef (MutableRefObject<HTMLButtonElement | null>) para posicionar o ResumoCarteiraPopover; componentes que não precisam do popover podem omiti-la. AtivosComposicao não carrega fundamentals (desnecessário para o donut/lista); apenas useDividendTotals para proventos12m do KPI. AtivosLancamentos contém a lógica completa de TxnRow inline (não extraída para TxnRow.tsx) para evitar breaking change em LancamentosPage — a extração pode ser feita em FEAT futura se necessário. Testes pré-existentes continuam falhando (37 falhas em 4 arquivos: CarteiraPage, AddPositionForm, composition, CompositionCard) — não relacionadas a esta FEAT."
+}

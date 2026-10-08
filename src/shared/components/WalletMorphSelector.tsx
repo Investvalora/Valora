@@ -1,33 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Plus, Settings } from 'lucide-react'
 import { useWallets } from '../../modules/portfolio/hooks/useWallets'
 import { walletPalette } from '../../modules/portfolio/walletPalette'
 
-/** Animated wallet stack. Positions are data-driven so new wallets need no CSS rules. */
-export function WalletMorphSelector() {
+interface WalletMorphSelectorProps {
+  /** Patrimônio total da carteira selecionada, em BRL. Passado pelo pai se disponível. */
+  selectedWalletPatrimonio?: number | null
+  /** Callback ao clicar em '+ Nova carteira'. */
+  onNewWallet?: () => void
+  /** Callback ao clicar em 'Gerenciar carteiras'. */
+  onManageWallets?: () => void
+}
+
+/** Dropdown de seleção de carteiras na TopBar. */
+export function WalletMorphSelector({
+  selectedWalletPatrimonio,
+  onNewWallet,
+  onManageWallets,
+}: WalletMorphSelectorProps = {}) {
   const { wallets, selectedWallet, selectWallet, isLoading, isError } = useWallets()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
+  // Fechar ao clicar fora
   useEffect(() => {
     if (!open) return
 
-    function closeOnOutsideClick(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+    function handleMouseDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false)
-        rootRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus()
       }
     }
 
-    document.addEventListener('pointerdown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.removeEventListener('pointerdown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [open])
 
@@ -39,91 +52,134 @@ export function WalletMorphSelector() {
         : 'Nenhuma carteira'
 
     return (
-      <span className="inline-flex h-[38px] w-[200px] items-center gap-2 rounded-full border border-white/10 bg-[#2b2b32] px-4 text-[13px] text-white/70" role="status">
+      <span
+        className="inline-flex h-[38px] w-[200px] items-center gap-2 rounded-full border border-white/10 bg-[#2b2b32] px-4 text-[13px] text-white/70"
+        role="status"
+      >
         <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-white/30" aria-hidden="true" />
         {label}
       </span>
     )
   }
 
-  const orderedWallets = [
-    selectedWallet,
-    ...wallets.filter((wallet) => wallet.id !== selectedWallet.id),
-  ]
+  const patrimonioFormatted =
+    selectedWalletPatrimonio != null && Number.isFinite(selectedWalletPatrimonio)
+      ? selectedWalletPatrimonio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : null
 
   return (
-    <div
-      ref={rootRef}
-      role="group"
-      aria-label="Selecionar carteira"
-      className="relative isolate h-[38px] w-[200px] shrink-0"
-    >
-      {orderedWallets.map((wallet, index) => {
-        const selected = wallet.id === selectedWallet.id
-        const y = open ? index * 45 : index === 0 ? 0 : 1
-        const scale = open || index === 0 ? 1 : 0.995
+    <div ref={rootRef} className="relative" role="group" aria-label="Selecionar carteira">
+      {/* Botão trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Carteira atual: ${selectedWallet.name}. ${open ? 'Fechar' : 'Abrir'} lista de carteiras`}
+        className="flex h-[38px] items-center gap-2.5 rounded-full border border-white/[0.10] bg-[#393939] px-4 text-[13px] font-medium text-white transition-colors hover:bg-white/[0.12] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFD95A]"
+      >
+        <span
+          className="h-[9px] w-[9px] shrink-0 rounded-full"
+          style={{ backgroundColor: walletPalette[selectedWallet.color].color }}
+          aria-hidden="true"
+        />
+        <span className="max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">
+          {selectedWallet.name}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-white/60 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          strokeWidth={2}
+          aria-hidden="true"
+        />
+      </button>
 
-        return (
+      {/* Dropdown */}
+      {open && (
+        <div
+          aria-label="Carteiras"
+          className="absolute left-0 top-full z-50 mt-2 min-w-[240px] rounded-2xl border border-white/[0.1] bg-[#1C1C1C] py-2 shadow-2xl"
+        >
+          {/* Header */}
+          <p className="px-4 py-1 text-xs uppercase tracking-wide text-white/40">Carteiras</p>
+
+          {/* Lista de carteiras */}
+          {wallets.map((wallet) => {
+            const isSelected = wallet.id === selectedWallet.id
+            const dot = walletPalette[wallet.color]?.color ?? '#888'
+
+            return (
+              <button
+                key={wallet.id}
+                type="button"
+                aria-selected={isSelected}
+                aria-label={
+                  isSelected
+                    ? `Carteira atual: ${wallet.name}`
+                    : `Selecionar carteira ${wallet.name}`
+                }
+                onClick={() => {
+                  selectWallet(wallet.id)
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-colors hover:bg-white/[0.05]"
+              >
+                {/* Dot colorido */}
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: dot }}
+                  aria-hidden="true"
+                />
+
+                {/* Nome + patrimônio */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white">{wallet.name}</p>
+                  <p className="text-xs text-white/50">
+                    {isSelected && patrimonioFormatted !== null ? patrimonioFormatted : '—'}
+                  </p>
+                </div>
+
+                {/* Checkmark na selecionada */}
+                {isSelected && (
+                  <Check
+                    className="h-3.5 w-3.5 shrink-0 text-nf-blue"
+                    strokeWidth={2.5}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            )
+          })}
+
+          {/* Divider */}
+          <div className="mx-2 my-1 border-t border-white/[0.08]" />
+
+          {/* Nova carteira */}
           <button
-            key={wallet.id}
             type="button"
-            title={wallet.name}
-            aria-label={selected
-              ? `Carteira atual: ${wallet.name}. ${open ? 'Fechar' : 'Abrir'} lista de carteiras`
-              : `Selecionar carteira ${wallet.name}`}
-            aria-expanded={selected ? open : undefined}
-            aria-hidden={!selected && !open ? true : undefined}
-            tabIndex={selected || open ? 0 : -1}
             onClick={() => {
-              if (selected) setOpen((value) => !value)
-              else {
-                selectWallet(wallet.id)
-                setOpen(false)
-              }
+              setOpen(false)
+              onNewWallet?.()
             }}
-                                                                                                                                                                                                              //velocidade com que a pill abre
-            className={`group absolute inset-x-0 top-0 flex h-[38px] items-center gap-2.5 rounded-full border px-4 text-left text-[13px] font-medium transition-[transform,background-color,border-color,color] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFD95A] ${
-              selected
-                ? 'border-white/[0.10] bg-[#393939] text-white'
-                : 'border-white/[0.08] bg-[#2f2f2f] text-white/80 hover:border-white/[0.12] hover:bg-[#454545]'
-            }`}
-            style={{
-            zIndex: selected ? 30 : Math.max(1, 20 - index),
-            transform: `translateY(${y}px) scale(${scale})`,
-            transitionDelay: open && !selected ? `${Math.min(index, 4) * 45}ms` : '0ms', //intervalo entre as pills 
-            pointerEvents: selected || open ? 'auto' : 'none',
-
-            ...(!selected && {
-              backgroundColor:
-                index % 2 === 0
-                  ? '#343434'
-                  : '#2f2f2f',
-            }),
-          }}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm text-nf-blue transition-colors hover:bg-white/[0.05]"
           >
-            <span
-              className="relative h-[9px] w-[9px] shrink-0 rounded-full"
-              style={{
-                backgroundColor: walletPalette[wallet.color].color,
-                boxShadow: `0 0 0 4px ${walletPalette[wallet.color].color}18, 0 0 12px ${walletPalette[wallet.color].color}59`,
-              }}
-              aria-hidden="true"
-            />
-            <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap">
-              <span className={`inline-block whitespace-nowrap ${wallet.name.length > 24 ? 'transition-transform duration-[3000ms] delay-[600ms] ease-linear group-hover:-translate-x-[35%] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0' : ''}`}>
-                {wallet.name}
-              </span>
-            </span>
-            {selected && (
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 text-white/60 transition-transform duration-500 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
-                strokeWidth={2}
-                aria-hidden="true"
-              />
-            )}
+            <Plus className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+            + Nova carteira
           </button>
-        )
-      })}
+
+          {/* Gerenciar carteiras */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              onManageWallets?.()
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm text-nf-blue transition-colors hover:bg-white/[0.05]"
+          >
+            <Settings className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+            Gerenciar carteiras
+          </button>
+        </div>
+      )}
     </div>
   )
 }

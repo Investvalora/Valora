@@ -55,6 +55,7 @@ export const COLUMN_META: ColumnMeta[] = [
 /** Colunas visíveis por padrão (igual ao layout do Investidor10). */
 const DEFAULT_VISIBLE: ReadonlySet<ColumnId> = new Set<ColumnId>([
   'saldo',
+  'peso',
   'proventos',
   'payout',
   'pl',
@@ -63,6 +64,7 @@ const DEFAULT_VISIBLE: ReadonlySet<ColumnId> = new Set<ColumnId>([
   'yieldOnCost',
   'graham',
   'bazin',
+  'aquisicao',
 ])
 
 const STORAGE_KEY = 'valora:column-visibility'

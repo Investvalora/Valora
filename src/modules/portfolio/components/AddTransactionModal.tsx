@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
-import { ASSET_CLASS_LABEL } from '../composition'
 import type { AssetType } from '../types'
 
 // ─── schema ──────────────────────────────────────────────────────────────────
@@ -37,8 +36,6 @@ const LABEL_CLASS = 'block text-xs font-medium text-gray-400 mb-1'
 const ERROR_CLASS = 'text-red-400 text-xs mt-1'
 
 const ASSET_TYPE_LABELS: Record<AssetType, string> = {
-  ...ASSET_CLASS_LABEL,
-  // nomes mais amigáveis para o modal
   stock_br: 'Ações BR',
   fii: 'FIIs',
   bdr: 'BDRs',
@@ -47,6 +44,7 @@ const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   reit: 'REITs',
   crypto: 'Criptomoedas',
   etf_br: 'ETF BR',
+  fixed_income: 'Renda Fixa',
 }
 
 // ─── componente ──────────────────────────────────────────────────────────────

@@ -125,6 +125,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     watch,
     setValue,
     setFocus,
+    setError,
     clearErrors,
     formState: { errors },
   } = useForm<PositionSchema>({
@@ -281,6 +282,8 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
       if (externalLookup.status === 'idle') {
         lookupExternal(payload.ticker)
       }
+      // Exibe erro no campo para que o texto 'Ativo não encontrado' apareça.
+      setError('ticker', { message: 'Ativo não encontrado' })
       return
     }
 

@@ -27,7 +27,7 @@ import type {
  * fatia sem rótulo na tela.
  */
 export const ASSET_CLASS_LABEL: Record<AssetType, string> = {
-  stock_br:     'Ações',
+  stock_br:     'Ações BR',
   fii:          'FIIs',
   bdr:          'BDRs',
   stock_us:     'Stocks',

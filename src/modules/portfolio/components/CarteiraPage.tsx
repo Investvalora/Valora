@@ -21,6 +21,7 @@ import { AddPositionForm } from './AddPositionForm'
 import { AddFixedIncomeForm } from './AddFixedIncomeForm'
 import { GroupedPositionsTable, FixedIncomeGroup } from './GroupedPositionsTable'
 import { ColumnEditorPanel } from './ColumnEditorPanel'
+import { CompositionCard } from './CompositionCard'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
@@ -32,11 +33,8 @@ import { useWallets } from '../hooks/useWallets'
 import { MobileCarteiraHome } from './MobileCarteiraHome'
 import { QuickTransactionModal } from './QuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
-import { assetClassColor, assetClassLabel } from '../composition'
-import type { AssetClassSlice } from '../types'
 
 const WealthBarChart = lazy(() => import('../../dashboard/components/WealthBarChart'))
-const CompositionPieChart = lazy(() => import('./CompositionPieChart'))
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
 
@@ -51,11 +49,6 @@ const pctSignFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
   signDisplay: 'exceptZero',
-})
-
-const pctPlainFormatter = new Intl.NumberFormat('pt-BR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
 })
 
 const usdRateFormatter = new Intl.NumberFormat('pt-BR', {
@@ -84,15 +77,16 @@ const USD_SOURCE_LABEL: Record<USDRateSource, string> = {
 
 function KpiCard({
   icon, title, main, mainColor = 'text-white', badge,
-  sub1Label, sub1Value, sub2Label, sub2Value,
+  sub1Label, sub1Value, sub2Label, sub2Value, warning,
 }: {
   icon: string; title: string; main: string; mainColor?: string
   badge?: { label: string; up: boolean } | null
   sub1Label?: string; sub1Value?: string
   sub2Label?: string; sub2Value?: string
+  warning?: string
 }) {
   return (
-    <div className="rounded-xl border border-dark-border bg-dark-surface p-5 flex flex-col gap-2 min-w-0">
+    <section aria-label={title} className="rounded-xl border border-dark-border bg-dark-surface p-5 flex flex-col gap-2 min-w-0">
       <div className="flex items-center gap-2">
         <span className="text-base" aria-hidden="true">{icon}</span>
         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{title}</p>
@@ -121,34 +115,14 @@ function KpiCard({
           )}
         </div>
       )}
-    </div>
+      {warning && (
+        <p className="text-xs text-amber-300">{warning}</p>
+      )}
+    </section>
   )
 }
 
 // ─── Legenda da pizza ─────────────────────────────────────────────────────────
-
-function PieLegend({ slices }: { slices: AssetClassSlice[] }) {
-  if (slices.length === 0) return null
-  return (
-    <ul className="space-y-1.5 text-sm mt-3">
-      {slices.map((slice) => (
-        <li key={slice.type} className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 min-w-0">
-            <span
-              className="inline-block h-3 w-3 flex-shrink-0 rounded-sm"
-              style={{ background: assetClassColor(slice.type) }}
-              aria-hidden="true"
-            />
-            <span className="text-gray-300 truncate">{assetClassLabel(slice.type)}</span>
-          </span>
-          <span className="font-medium text-white tabular-nums flex-shrink-0">
-            {pctPlainFormatter.format(slice.percent)}%
-          </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 // ─── Error Boundary para gráficos ─────────────────────────────────────────────
 
@@ -184,7 +158,6 @@ export function CarteiraPage() {
   const [activeScoreName, setActiveScoreName] = useState<string | null>(null)
   const [showColumnEditor, setShowColumnEditor] = useState(false)
   const [wealthChartCollapsed, setWealthChartCollapsed] = useState(true)
-  const [compositionChartCollapsed, setCompositionChartCollapsed] = useState(true)
 
   // ── Visibilidade de colunas ────────────────────────────────────────────────
   const columnVisibility = useColumnVisibility()
@@ -397,10 +370,17 @@ export function CarteiraPage() {
         <KpiCard
           icon="🔄"
           title="Patrimônio total"
-          main={fmtBRL(dashboard.totalPatrimonioBRL)}
+          main={derived.totalBRL > 0 ? fmtBRL(derived.totalBRL) : fmtBRL(dashboard.totalPatrimonioBRL)}
           badge={variacaoBadge}
           sub1Label="Valor investido"
           sub1Value={fmtBRL(dashboard.valorInvestidoBRL)}
+          sub2Label={hasUSDPosition && usdRate ? 'Dólar usado na conversão' : undefined}
+          sub2Value={hasUSDPosition && usdRate ? `R$ ${usdRateFormatter.format(usdRate.rate)}` : undefined}
+          warning={
+            derived.missingValueCount > 0 && !quotesQuery.isLoading
+              ? `${derived.missingValueCount} ${derived.missingValueCount === 1 ? 'posição sem cotação disponível não entra no total.' : 'posições sem cotação disponível não entram no total.'}`
+              : undefined
+          }
         />
         <KpiCard
           icon="💡"
@@ -503,51 +483,13 @@ export function CarteiraPage() {
             )}
           </div>
 
-          {/* Ativos na carteira — pizza + legenda */}
-          <div className="overflow-hidden rounded-xl border border-dark-border bg-dark-surface flex flex-col">
-            <button
-              type="button"
-              onClick={() => setCompositionChartCollapsed((v) => !v)}
-              className="w-full px-5 py-4 flex items-center gap-x-4 hover:bg-dark-bg/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              aria-expanded={!compositionChartCollapsed}
-              aria-controls="composition-chart-body"
-              aria-label={`Ativos na Carteira — ${compositionChartCollapsed ? 'expandir' : 'recolher'}`}
-            >
-              <h2 className="text-sm font-semibold text-white flex-1 text-left">Ativos na Carteira</h2>
-              <span
-                className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${
-                  compositionChartCollapsed ? '-rotate-90' : 'rotate-0'
-                }`}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
-            </button>
-            {!compositionChartCollapsed && (
-              <div id="composition-chart-body" className="px-5 pb-5 border-t border-dark-border pt-2 flex flex-col flex-1">
-                {dashboard.compositionSlices.length === 0 ? (
-                  <div className="flex items-center justify-center flex-1 min-h-[100px]">
-                    <p className="text-sm text-gray-400">Sem posições avaliadas.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div aria-hidden="true">
-                      <ChartErrorBoundary>
-                        <Suspense fallback={<div className="h-[220px]" />}>
-                          <CompositionPieChart
-                            slices={dashboard.compositionSlices}
-                            formatBRL={fmtBRL}
-                            formatPercent={(v) => `${pctPlainFormatter.format(v)}%`}
-                          />
-                        </Suspense>
-                      </ChartErrorBoundary>
-                    </div>
-                    <PieLegend slices={dashboard.compositionSlices} />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Composição por classe */}
+          <CompositionCard
+            rows={derived.rows}
+            totalBRL={derived.totalBRL}
+            isQuotesLoading={quotesQuery.isLoading}
+            missingValueCount={derived.missingValueCount}
+          />
         </div>
       )}
 
@@ -651,7 +593,6 @@ export function CarteiraPage() {
           scoreByTicker={activeScoreName ? scoreByTicker : undefined}
           fundamentalsUpdatedAt={fundamentalsUpdatedAt}
           visibleColumns={columnVisibility.visible}
-          defaultCollapsed
         />
       ) : null}
 

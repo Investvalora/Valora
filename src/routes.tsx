@@ -42,10 +42,12 @@ function LoadingFallback() {
 }
 
 // ── Lazy imports para sub-rotas de Desempenho ─────────────────────────────
+const DesempenhoVisaoGeral    = lazy(() => import('./modules/desempenho/components/DesempenhoVisaoGeral').then((m) => ({ default: m.DesempenhoVisaoGeral })))
 const DesempenhoRentabilidade = lazy(() => import('./modules/desempenho/components/DesempenhoRentabilidade').then((m) => ({ default: m.DesempenhoRentabilidade })))
 const DesempenhoProventos     = lazy(() => import('./modules/desempenho/components/DesempenhoProventos').then((m) => ({ default: m.DesempenhoProventos })))
 
 // ── Lazy imports para sub-rotas de Análise ────────────────────────────────
+const AnaliseVisaoGeral = lazy(() => import('./modules/analise/components/AnaliseVisaoGeral').then((m) => ({ default: m.AnaliseVisaoGeral })))
 const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseScore').then((m) => ({ default: m.AnaliseScore })))
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 
@@ -103,7 +105,7 @@ export function AppRoutes() {
           {/* ── Desempenho — sub-rotas ── */}
           <Route path="desempenho" element={<DesempenhoPage />}>
             <Route index element={<Navigate to="rentabilidade" replace />} />
-            <Route path="visao-geral"   element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="visao-geral"   element={<Suspense fallback={<LoadingFallback />}><DesempenhoVisaoGeral /></Suspense>} />
             <Route path="rentabilidade" element={<Suspense fallback={<LoadingFallback />}><DesempenhoRentabilidade /></Suspense>} />
             <Route path="proventos"     element={<Suspense fallback={<LoadingFallback />}><DesempenhoProventos /></Suspense>} />
           </Route>
@@ -111,7 +113,7 @@ export function AppRoutes() {
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
             <Route index element={<Navigate to="score" replace />} />
-            <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><Placeholder /></Suspense>} />
+            <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>

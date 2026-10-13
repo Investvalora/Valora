@@ -6,10 +6,15 @@ dist-ssr/
 *.local
 .vite/
 
+# AI agent artifacts & local IDE configs
+.agents/
+.claude/
+.idea/
+.kiro/settings/
+
 # Editor
 .vscode/*
 !.vscode/extensions.json
-.idea/
 .DS_Store
 *.suo
 *.ntvs*

@@ -16,7 +16,10 @@ type SubTabBarProps = {
 
 export function SubTabBar({ tabs }: SubTabBarProps) {
   return (
-    <div className="flex gap-6 border-b border-white/[0.08]" role="tablist">
+    <div
+      className="flex gap-6 overflow-x-auto border-b border-white/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      role="tablist"
+    >
       {tabs.map(({ label, to }) => (
         <NavLink
           key={to}

@@ -41,7 +41,7 @@ export function AppShellNovo() {
         </main>
       </div>
 
-      <MobileNav alertCount={alertCount} />
+      <MobileNav alertCount={alertCount} onNovoLancamento={() => setLancamentoOpen(true)} />
 
       {/* ── Modal de lançamento rápido (global, disponível em todas as rotas) ── */}
       <QuickTransactionModal

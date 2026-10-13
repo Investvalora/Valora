@@ -186,7 +186,8 @@ export function DesempenhoProventos() {
       </div>
 
       {/* ── KPI bar ── */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#1A1A1A] px-6 py-4 flex items-center gap-0">
+      <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#1A1A1A] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max items-center gap-0 px-6 py-4">
         <div className="flex flex-1 flex-col gap-0.5 pr-6">
           <span className="text-[11px] text-white/50">Proventos recebidos</span>
           <span className="text-[18px] font-semibold text-nf-green leading-tight">
@@ -223,6 +224,7 @@ export function DesempenhoProventos() {
               </option>
             ))}
           </select>
+        </div>
         </div>
       </div>
 

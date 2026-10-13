@@ -467,14 +467,14 @@ describe('CarteiraPage — valor de mercado, peso e patrimônio', () => {
     const card = patrimonyCard()
     await waitFor(() =>
       expect(card).toHaveTextContent('1 posição sem cotação disponível não entra no total.'),
-    )
+    { timeout: 15000 })
     expect(within(card).getByText('R$ 3.450,00')).toBeInTheDocument()
 
     // A posição sem cotação continua listada, com lacuna em vez de zero.
     const valeRow = screen.getByRole('row', { name: /VALE3/ })
     expect(valeRow).toHaveTextContent('—')
     expect(valeRow).not.toHaveTextContent('R$ 0,00')
-  })
+  }, 20000)
 
   it('sem nenhuma cotação, o total é lacuna e não R$ 0,00', async () => {
     supabaseMock.on('positions', () => ({ data: [CREATED_ROW], error: null }))

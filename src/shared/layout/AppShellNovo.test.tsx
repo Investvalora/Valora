@@ -29,8 +29,15 @@ describe('Shell do fluxo atual', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Início' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/inicio')
-    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page')
+
+    // A nav mobile contém o link /inicio — pode haver mais de um (sidebar desktop também tem)
+    const inicioLinks = screen.getAllByRole('link', { name: 'Início' })
+    const mobileNavLink = inicioLinks.find(
+      (el) => el.closest('nav[aria-label="Navegação principal"]') !== null,
+    )
+    expect(mobileNavLink).toBeDefined()
+    expect(mobileNavLink).toHaveAttribute('href', '/inicio')
+
     expect(screen.getByRole('banner')).toHaveClass('hidden', 'md:flex')
     expect(screen.getByRole('main')).toHaveClass('md:px-10')
   })

@@ -151,7 +151,7 @@ export function AtivosPosicoes() {
   return (
     <div className="flex flex-col gap-5">
       {/* ── KPI bar com botão de resumo ── */}
-      <div className="relative">
+      <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
           patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}

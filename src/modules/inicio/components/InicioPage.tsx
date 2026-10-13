@@ -38,11 +38,13 @@ export function InicioPage() {
   })
 
   return (
-    <div className="flex flex-col gap-5 pt-2">
+    <div className="flex flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
       {/* ── Saudação ── */}
-      <div className="relative flex items-end overflow-hidden rounded-[22px] bg-[#131313] py-8 pl-2">
+      <div className="flex items-end py-6 md:py-8">
         <div>
-          <h1 className="text-[32px] font-medium leading-none text-white">
+          {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
+              maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
+          <h1 className="text-[26px] font-medium leading-none text-white md:text-[32px]">
             Olá, {firstName}
           </h1>
           <p className="mt-3 text-[13px] text-[#8F8F8F]">
@@ -52,7 +54,7 @@ export function InicioPage() {
       </div>
 
       {/* ── 4 KPIs ── */}
-      <div className="flex gap-4">
+      <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
         <KpiCard
           label="Patrimônio total"
           value={money(dashboard.totalPatrimonioBRL)}
@@ -96,14 +98,14 @@ export function InicioPage() {
       )}
 
       {/* ── Gráfico + Alertas ── */}
-      <div className="flex gap-5">
+      <div className="flex flex-col gap-5 md:flex-row">
         {/* Evolução do patrimônio */}
-        <PanelCard className="flex-1" padding="p-6">
-          <div className="mb-4 flex items-center justify-between">
+        <PanelCard className="flex-1" padding="p-5 md:p-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-[15px] font-semibold text-white/80">
               Evolução do patrimônio
             </h2>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-sm bg-[#33AA3B]/85" aria-hidden="true" />
                 <span className="text-[11px] text-[#8F8F8F]">Aplicado</span>
@@ -129,7 +131,7 @@ export function InicioPage() {
       </div>
 
       {/* ── Atalhos ── */}
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-3 md:flex-row md:gap-4">
         <ShortcutCard
           to="/ativos"
           label="Ativos"

@@ -17,20 +17,20 @@ vi.mock('../../modules/portfolio/components/QuickTransactionModal', () => ({
 }))
 
 describe('Shell do fluxo atual', () => {
-  it('mantém a carteira mobile acessível sem a barra desktop', () => {
+  it('mantém a nav mobile acessível sem a barra desktop', () => {
     render(
-      <MemoryRouter initialEntries={['/carteira']}>
+      <MemoryRouter initialEntries={['/inicio']}>
         <Routes>
           <Route path="/" element={<AppShellNovo />}>
-            <Route path="carteira" element={<h1>Carteira mobile</h1>} />
+            <Route path="inicio" element={<h1>Início</h1>} />
           </Route>
         </Routes>
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: 'Carteira mobile' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Carteira' })).toHaveAttribute('href', '/carteira')
-    expect(screen.getByRole('link', { name: 'Carteira' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Início' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/inicio')
+    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('banner')).toHaveClass('hidden', 'md:flex')
     expect(screen.getByRole('main')).toHaveClass('md:px-10')
   })

@@ -14,7 +14,7 @@ const DESEMPENHO_TABS = [
 
 export function DesempenhoPage() {
   return (
-    <div className="flex flex-col gap-5 pt-2">
+    <div className="flex flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
       {/* ── Cabeçalho ── */}
       <div className="flex items-center gap-3">
         <h1 className="text-[22px] font-semibold text-white">Desempenho</h1>

@@ -518,7 +518,7 @@ export function AtivosLancamentos() {
   return (
     <div className="flex flex-col gap-5">
       {/* ── KPI bar ── */}
-      <div className="relative">
+      <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
           patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
@@ -703,7 +703,7 @@ export function AtivosLancamentos() {
             </div>
 
             {/* Mobile: lista de cards */}
-            <div className="block md:hidden flex flex-col gap-2 p-3">
+            <div className="flex flex-col gap-2 p-3 md:hidden">
               {tableRows.map((txn) => {
                 const pos = positionMap.get(txn.ticker)
                 return (

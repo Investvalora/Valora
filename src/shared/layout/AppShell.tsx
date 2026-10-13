@@ -32,7 +32,7 @@ export function AppShell() {
         </main>
       </div>
 
-      <MobileNav alertCount={alertCount} />
+      <MobileNav alertCount={alertCount} onNovoLancamento={() => {}} />
     </div>
   )
 }

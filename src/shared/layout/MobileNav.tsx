@@ -1,38 +1,120 @@
-import { Bell, ChartColumn, FileText, Wallet } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { Home, Wallet, TrendingUp, Target } from 'lucide-react'
 
-const items = [
-  { path: '/carteira', label: 'Carteira', icon: Wallet },
-  { path: '/patrimonio', label: 'Patrimônio', icon: ChartColumn },
-  { path: '/lancamentos', label: 'Lançamentos', icon: FileText },
-  { path: '/alertas', label: 'Alertas', icon: Bell },
-]
+// ── Ícones ────────────────────────────────────────────────────────────────────
+// Inicio e Ativos usam Lucide igual ao Figma; Desempenho e Análise idem.
 
-export function MobileNav({ alertCount }: { alertCount: number }) {
+const NAV_ITEMS = [
+  { path: '/inicio',     label: 'Início',      Icon: Home,      side: 'left'  },
+  { path: '/ativos',     label: 'Ativos',      Icon: Wallet,    side: 'left'  },
+  { path: '/desempenho', label: 'Desempenho',  Icon: TrendingUp, side: 'right' },
+  { path: '/analise',    label: 'Análise',     Icon: Target,    side: 'right' },
+] as const
+
+interface MobileNavProps {
+  alertCount: number
+  onNovoLancamento: () => void
+}
+
+export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-zinc-700 bg-[#2b2b2b] pb-[max(0.375rem,env(safe-area-inset-bottom))] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 md:hidden"
     >
-      {items.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          className={({ isActive }) =>
-            `flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 text-[11px] leading-none ${
-              isActive ? 'text-white' : 'text-zinc-500'
-            }`
-          }
-        >
-          <span className="relative">
-            <item.icon className="h-5 w-5" aria-hidden="true" />
-            {item.path === '/alertas' && alertCount > 0 && (
-              <span className="absolute -right-1.5 -top-1 h-1.5 w-1.5 rounded-full bg-purple-400" />
-            )}
-          </span>
-          <span>{item.label}</span>
-        </NavLink>
-      ))}
+      {/* ── Barra ── */}
+      <div className="flex h-14 items-center bg-[#1e1e1e]">
+        {/* Lado esquerdo */}
+        <div className="flex flex-1 items-center justify-around">
+          {NAV_ITEMS.filter((i) => i.side === 'left').map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex min-w-0 flex-col items-center justify-center gap-[3px] pb-2 pt-1 text-[10px] font-normal leading-none transition-colors ${
+                  isActive ? 'text-white' : 'text-[#666]'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <item.Icon
+                    className="h-[22px] w-[22px]"
+                    strokeWidth={isActive ? 2 : 1.6}
+                    aria-hidden="true"
+                  />
+                  <span>{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Botão + central — placeholder de largura para centralizar */}
+        <div className="w-[72px] shrink-0" aria-hidden="true" />
+
+        {/* Lado direito */}
+        <div className="flex flex-1 items-center justify-around">
+          {NAV_ITEMS.filter((i) => i.side === 'right').map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `relative flex min-w-0 flex-col items-center justify-center gap-[3px] pb-2 pt-1 text-[10px] font-normal leading-none transition-colors ${
+                  isActive ? 'text-white' : 'text-[#666]'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <item.Icon
+                    className="h-[22px] w-[22px]"
+                    strokeWidth={isActive ? 2 : 1.6}
+                    aria-hidden="true"
+                  />
+                  <span>{item.label}</span>
+                  {/* badge de alertas */}
+                  {item.path === '/analise' && alertCount > 0 && (
+                    <span
+                      className="absolute right-1 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#7987FF] px-0.5 text-[9px] font-bold text-white"
+                      aria-label={`${alertCount} alertas`}
+                    >
+                      {alertCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Área de safe-area: estende o fundo da barra sem comprimir os ícones ── */}
+      <div
+        aria-hidden="true"
+        className="bg-[#1e1e1e]"
+        style={{ height: 'env(safe-area-inset-bottom)' }}
+      />
+
+      {/* ── Botão + flutuante ── */}
+      <button
+        type="button"
+        onClick={onNovoLancamento}
+        aria-label="Novo lançamento"
+        className="
+          absolute bottom-[calc(env(safe-area-inset-bottom)+0.125rem)]
+          left-1/2 -translate-x-1/2
+          flex h-[52px] w-[52px] items-center justify-center
+          rounded-full bg-[#3273B1]
+          shadow-[0_4px_20px_rgba(50,115,177,0.5)]
+          transition-all active:scale-95
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40
+        "
+      >
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M11 4V18M4 11H18" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </button>
     </nav>
   )
 }

@@ -22,7 +22,6 @@ import { InicioPage } from './modules/inicio/components/InicioPage'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
-import { useIsMobile } from './shared/hooks/useIsMobile'
 
 // ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
 const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
@@ -51,15 +50,13 @@ const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseSc
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 
 function HomeRoute() {
-  const isMobile = useIsMobile()
-
-  return isMobile ? <Navigate to="/carteira" replace /> : <InicioPage />
+  // No mobile o novo fluxo tem a InicioPage normalmente na nav
+  return <InicioPage />
 }
 
 function IndexRoute() {
-  const isMobile = useIsMobile()
-
-  return <Navigate to={isMobile ? '/carteira' : '/inicio'} replace />
+  // Todos os contextos vão para /inicio (novo fluxo unificado)
+  return <Navigate to="/inicio" replace />
 }
 
 export function AppRoutes() {

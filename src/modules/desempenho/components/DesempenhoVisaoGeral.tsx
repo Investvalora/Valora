@@ -84,7 +84,7 @@ export function DesempenhoVisaoGeral() {
       <KpiPillBar
         items={[
           {
-            label: 'Rentabilidade total',
+            label: 'Rentabilidade (12M)',
             value: rentFormatted,
             colorClass:
               rentPositive === null

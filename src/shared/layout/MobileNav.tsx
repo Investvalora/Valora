@@ -21,10 +21,9 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
     <nav
       aria-label="Navegação principal"
       className="fixed inset-x-0 bottom-0 z-30 md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* ── Barra ── */}
-      <div className="flex h-14 items-center bg-[#1e1e1e]">
+      <div className="flex h-14 items-center bg-[#1e1e1e]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Lado esquerdo */}
         <div className="flex flex-1 items-center justify-around">
           {NAV_ITEMS.filter((i) => i.side === 'left').map((item) => (
@@ -96,7 +95,7 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
         onClick={onNovoLancamento}
         aria-label="Novo lançamento"
         className="
-          absolute bottom-[calc(env(safe-area-inset-bottom)+0.125rem)]
+          absolute bottom-[0.125rem]
           left-1/2 -translate-x-1/2
           flex h-[52px] w-[52px] items-center justify-center
           rounded-full bg-[#3273B1]

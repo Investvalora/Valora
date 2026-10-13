@@ -104,7 +104,7 @@ export function AppRoutes() {
 
           {/* ── Desempenho — sub-rotas ── */}
           <Route path="desempenho" element={<DesempenhoPage />}>
-            <Route index element={<Navigate to="rentabilidade" replace />} />
+            <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral"   element={<Suspense fallback={<LoadingFallback />}><DesempenhoVisaoGeral /></Suspense>} />
             <Route path="rentabilidade" element={<Suspense fallback={<LoadingFallback />}><DesempenhoRentabilidade /></Suspense>} />
             <Route path="proventos"     element={<Suspense fallback={<LoadingFallback />}><DesempenhoProventos /></Suspense>} />
@@ -112,7 +112,7 @@ export function AppRoutes() {
 
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
-            <Route index element={<Navigate to="score" replace />} />
+            <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />

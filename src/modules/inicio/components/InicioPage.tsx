@@ -42,6 +42,8 @@ export function InicioPage() {
       {/* ── Saudação ── */}
       <div className="flex items-end py-6 md:py-8">
         <div>
+          {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
+              maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
           <h1 className="text-[26px] font-medium leading-none text-white md:text-[32px]">
             Olá, {firstName}
           </h1>

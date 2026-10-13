@@ -23,7 +23,7 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
       className="fixed inset-x-0 bottom-0 z-30 md:hidden"
     >
       {/* ── Barra ── */}
-      <div className="flex h-14 items-center bg-[#1e1e1e]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="flex h-14 items-center bg-[#1e1e1e]">
         {/* Lado esquerdo */}
         <div className="flex flex-1 items-center justify-around">
           {NAV_ITEMS.filter((i) => i.side === 'left').map((item) => (
@@ -89,13 +89,20 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
         </div>
       </div>
 
+      {/* ── Área de safe-area: estende o fundo da barra sem comprimir os ícones ── */}
+      <div
+        aria-hidden="true"
+        className="bg-[#1e1e1e]"
+        style={{ height: 'env(safe-area-inset-bottom)' }}
+      />
+
       {/* ── Botão + flutuante ── */}
       <button
         type="button"
         onClick={onNovoLancamento}
         aria-label="Novo lançamento"
         className="
-          absolute bottom-[0.125rem]
+          absolute bottom-[calc(env(safe-area-inset-bottom)+0.125rem)]
           left-1/2 -translate-x-1/2
           flex h-[52px] w-[52px] items-center justify-center
           rounded-full bg-[#3273B1]

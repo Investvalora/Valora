@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Atualizar AnaliseScore, AnaliseAlertas, DesempenhoProventos e DesempenhoRentabilidade para alinhar com o design Figma do novo fluxo. Estas 4 telas são independentes entre si e do FEAT-002/003.",
+  "status": "completed",
+  "steps": [
+    "1. AnaliseScore (src/modules/analise/components/AnaliseScore.tsx): Criar componente interno ScoreGroupCard que agrupa regras pelo campo `name`. Cada card tem: header com nome do score, 'N regras · M pontos', botão 'Usar este score' (bg-[rgba(121,135,255,0.1)] border border-[rgba(121,135,255,0.5)]). Linhas de regra abaixo: métrica à esquerda (nome + condição), badge de pontos (+N verde ou -N rosa) + botão editar (lápis) + botão excluir (lixeira) à direita. Derivar grupos do array `rules` agrupando por `rule.name`. Manter a lógica de `useScoreRules`, `useDeleteScoreRule`, `useScorePreferences`, `useUpsertScorePreferences` e o Modal de edição existentes. Remover a tabela HTML atual.",
+    "2. AnaliseAlertas (src/modules/analise/components/AnaliseAlertas.tsx): Adicionar estado `filterTab: 'todos' | 'novos' | 'ignorados'` com contagens. Renderizar pill toggle 'Todos (N) | Novos | Ignorados' antes da lista. Filtrar `sorted` pelo tab ativo. O botão de refresh circular já existe como `generate.mutate()` — atualizar apenas o estilo para rounded border (ícone RefreshCw, sem texto). Manter lógica de AlertCard, PriceAlertForm e ordenação.",
+    "3. DesempenhoProventos (src/modules/desempenho/components/DesempenhoProventos.tsx): Adicionar `DividendCard` mobile inline: each card mostra ticker (bold) + badge tipo + total em verde à direita; linha 2: 'Data com', 'Valor/cota', 'Quantidade' em 3 colunas. Adicionar paginação simples com `visibleCount` state (inicial 6, botão 'Mostrando X de Y · Ver mais'). Desktop mantém tabela atual (`hidden md:block` / `block md:hidden`). Manter gráfico ProventosChart e KPI bar existentes — apenas adicionando os 3 KPIs (Proventos recebidos, Média mensal, Maior mês) que já estão calculados na implementação atual.",
+    "4. DesempenhoRentabilidade (src/modules/desempenho/components/DesempenhoRentabilidade.tsx): Substituir KPI bar vertical por pills horizontais scrolláveis ('Rentabilidade total' em nf-green, 'Últimos 12M' neutro, 'Lucro total' em nf-green). Importar ou criar `KpiPillBar` em src/shared/components/KpiPillBar.tsx com props `items: {label, value, colorClass?}[]`. Melhorar TabelaMensal (src/modules/desempenho/components/TabelaMensal.tsx) para separar anos em seções com header mostrando 'Anual' e 'Acumulado' — os dados já são passados, apenas reestruturar o render por ano. No mobile ocultar colunas 'Valor atual' e barra de desempenho da tabela por ativo (md:table-cell nas cols)."
+  ],
+  "acceptance_criteria": [
+    "AnaliseScore exibe regras agrupadas por nome de score em cards, mantendo funcionalidade de 'Usar este score', editar e excluir.",
+    "AnaliseAlertas tem toggle 'Todos / Novos / Ignorados' com contagens corretas, filtrando a lista.",
+    "DesempenhoProventos mostra cards no mobile e tabela no desktop (>= md). Paginação 'Mostrando X de Y' funciona.",
+    "DesempenhoRentabilidade tem pills de KPI horizontais scrolláveis no topo. TabelaMensal agrupa por ano com Anual/Acumulado.",
+    "npm run build passa sem erros TypeScript.",
+    "npm run test:run — testes existentes não regridem."
+  ],
+  "verification": [
+    "npm run build — deve completar sem erros",
+    "npm run test:run — todos os testes passam"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementação concluída. (1) AnaliseScore: tabela flat substituída por ScoreGroupCard que agrupa regras pelo campo `name` — usa groupRulesByName já existente no hook. Botão 'Usar este score' com estilo rgba(121,135,255) conforme Figma; ícones lápis/lixeira do lucide-react para editar/excluir. (2) AnaliseAlertas: adicionado estado filterTab ('todos'|'novos'|'ignorados') com pill toggle mostrando contagens; botão refresh substituído por ícone circular sem texto (RefreshCw). (3) DesempenhoProventos: adicionado DividendCard para mobile com layout 2 linhas (ticker+badge+total / Data com + Valor/cota + Qtd); paginação via visibleCount (inicial 6, botão 'Mostrando X de Y · Ver mais'); desktop mantém tabela existente com hidden md:block / block md:hidden. (4) DesempenhoRentabilidade: KPI bar vertical substituída por KpiPillBar horizontal scrollável (novo componente em src/shared/components/KpiPillBar.tsx); TabelaMensal reestruturada para separar anos com hr entre seções e colunas renomeadas para 'Anual'/'Acumulado'; colunas 'Valor atual' e 'Desempenho' da tabela por ativo ocultadas no mobile com hidden md:table-cell. Build: 0 erros TS. Testes: 519/519 passados."
+}

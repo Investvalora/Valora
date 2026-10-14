@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Infraestrutura de sub-roteamento e componentes compartilhados das tabs. Adiciona rotas aninhadas para /ativos/*, /desempenho/* e /analise/* em routes.tsx, cria o componente SubTabBar reutilizável e a KpiBarAtivos (barra de KPI com 4 colunas + 'Resumo completo'). Também cria o componente ResumoCarteira (popover lateral) reutilizado nas 3 sub-tabs de Ativos.",
+  "status": "completed",
+  "steps": [
+    "1. Criar src/modules/ativos/components/SubTabBar.tsx: componente que recebe array de { label, to } e renderiza tabs com underline azul no ativo, texto branco; inativos texto white/50. Usar NavLink do react-router-dom com end prop. Estilo: flex gap-6 border-b border-white/[0.08] pb-0 mb-0; cada tab px-0 pb-2.5 text-sm font-medium.",
+    "2. Criar src/modules/ativos/components/KpiBarAtivos.tsx: barra horizontal com 4 KPIs divididos por separadores verticais (border-r border-white/[0.08]): Patrimônio total | Valor investido | Ganho de capital (verde/rosa) | Ativos (número). À direita link 'Resumo completo >' (text-nf-blue text-sm). Props: patrimonio, valorInvestido, ganhoCapital, ativos, onResumo. Fundo: rounded-xl border border-white/[0.08] bg-[#1A1A1A] px-6 py-4 flex items-center gap-0.",
+    "3. Criar src/modules/ativos/components/ResumoCarteiraPopover.tsx: popover lateral (absolute right-0 top-[calc(100%+8px)] z-50 w-[340px]) com fundo bg-[#1C1C1C] border border-white/[0.1] rounded-2xl shadow-2xl p-5. Conteúdo: título 'Resumo da carteira' + subtítulo 'Carteira 1 · desde o início'. Linhas: Patrimônio total (valor direita), Lucro total (verde, subtexto 'Ganho de capital R$ X · Dividendos R$ X'), Proventos recebidos (12M), Rentabilidade (+5,54% verde). Link 'Ver detalhes em Desempenho →' (text-nf-blue). Props: patrimonio, valorInvestido, ganhoCapital, proventos12m, dividendos, rentabilidade, onClose. Usa createPortal para ficar fora do fluxo.",
+    "4. Atualizar src/routes.tsx: substituir <Route path='ativos' element={<AtivosPage />} /> por rota pai com sub-rotas. Adicionar import Navigate. Estrutura:\n   <Route path='ativos' element={<AtivosPage />}>\n     <Route index element={<Navigate to='posicoes' replace />} />\n     <Route path='posicoes' element={<AtivosPosicoes />} />\n     <Route path='composicao' element={<AtivosComposicao />} />\n     <Route path='lancamentos' element={<AtivosLancamentos />} />\n   </Route>\n   Mesma estrutura para desempenho (visao-geral, rentabilidade, proventos) e analise (visao-geral, score, alertas). Os componentes-folha serão criados nas FEAT seguintes — por ora importar placeholders que apenas renderizam <Outlet /> ou os componentes actuais. Usar React.lazy para todos os sub-componentes de página.",
+    "5. Atualizar src/modules/ativos/components/AtivosPage.tsx: transformá-lo em layout shell. Remover o JSX atual de KPIs e tabela, que passam para AtivosPosicoes. Manter no AtivosPage: cabeçalho com título dinâmico (useMatch para saber qual sub-rota está ativa e mostrar 'Posições'/'Composição'/'Lançamentos'), breadcrumb '< Ativos', SubTabBar com as 4 tabs (Visão geral | Posições | Composição | Lançamentos), e <Outlet />. Para 'Visão geral' redirecionar para /ativos/posicoes.",
+    "6. Mesma lógica para src/modules/desempenho/components/DesempenhoPage.tsx (shell com tabs Visão geral | Rentabilidade | Proventos, breadcrumb '< Desempenho') e src/modules/analise/components/AnalisePage.tsx (shell com tabs Visão geral | Score | Alertas, breadcrumb '< Análise')."
+  ],
+  "acceptance_criteria": [
+    "pnpm run build completa sem erros TypeScript",
+    "Navegar para /ativos redireciona para /ativos/posicoes",
+    "Navegar para /desempenho redireciona para /desempenho/rentabilidade",
+    "Navegar para /analise redireciona para /analise/score",
+    "SubTabBar exibe underline azul na tab ativa",
+    "KpiBarAtivos renderiza as 4 colunas com separadores e link 'Resumo completo'"
+  ],
+  "verification": [
+    "pnpm run build",
+    "pnpm run test:run"
+  ],
+  "blocked_reason": null,
+  "findings": "SubTabBar está em src/modules/ativos/components/ e é importado por DesempenhoPage e AnalisePage com caminho relativo cross-module (../../ativos/components/SubTabBar). Para FEAT-002+, mover SubTabBar para src/shared/components/ ou criar re-export em cada módulo. Placeholders em routes.tsx usam componente local Placeholder — substituir por lazy imports quando os componentes-folha forem criados (AtivosPosicoes, AtivosComposicao, AtivosLancamentos, DesempenhoRentabilidade, DesempenhoProventos, AnaliseScore, AnaliseAlertas). KpiBarAtivos e ResumoCarteiraPopover criados mas não usados ainda — serão consumidos por AtivosPosicoes na FEAT seguinte. Testes pré-existentes falhando (CarteiraPage, AddPositionForm, composition, CompositionCard) — 37 falhas em 4 arquivos de teste, não relacionadas a esta FEAT."
+}

@@ -1,0 +1,13 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    "Renda Fixa fields collected but not persisted — `forma` and `liquidez_diaria` are in the schema and UI but absent from the submit payload, and `fixed_income_positions` has no columns for them, so they're silently dropped. Remove them from the form or extend the type/payload and table to persist them.",
+    "Tesouro Direto stores rate 0 and no maturity — the TD payload hardcodes `rate: 0` and `maturity_date: null`; `rate` is carried on `FixedIncomeRow`, so TD rows show 0% with no maturity. Add rate and maturity inputs, or confirm `calc-fixed-income` reconstructs them from market data and that the table tolerates a 0/null display.",
+    "Tesouro Direto `_juros` variants become indistinguishable — `tesouro_ipca_juros` and `tesouro_pre_juros` map to the same `type` and `name` as their base titles, so two different bonds store identical rows. Carry the variant in `name` (e.g. \"...com Juros Semestrais\") or add a distinguishing column.",
+    "Renda Fixa allows a zero-principal position — `valor` is optional and `principal: values.valor ?? 0`; the calc guards division-by-zero, but the saved row is a 0-value position with no return. Make `valor` required for a meaningful fixed-income record.",
+    "No tests for the new forms — the category switching, both payload shapes, the TD type map, indexador derivation, validation errors, and the `isSaving` lock have no coverage; the 519 passing tests are the pre-existing suite. Add component tests for the new paths.",
+    "Taxa label ignores per-indexador semantics — the Renda Fixa \"Taxa\" label is static (\"Taxa\" + \"%\") though a rate means different things per indexador (% do CDI, % a.a., spread IPCA); the module already defines `FIXED_INCOME_RATE_LABEL` for this and doesn't use it. Drive the label from the selected indexador.",
+    "Variable-income selector options hit a no-ticker dead end — in the empty-ticker path the selector offers Ações BR, FIIs, etc., which render the equity form that has no ticker input and would submit `ticker: ''`. Hide the variable-income options in this selector or add a ticker entry to that branch."
+  ],
+  "reviewDoc": "c:/Users/Samuel Leite/wkspaces/Valora/.agents/tasks/fi-td-review.md"
+}

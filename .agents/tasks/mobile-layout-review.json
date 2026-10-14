@@ -1,0 +1,18 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": "home-route-mobile-redirect",
+      "severity": "warning",
+      "title": "HomeRoute redireciona mobile para /carteira (fluxo legado)",
+      "description": "Em mobile, isMobile redireciona /inicio para /carteira (CarteiraPage, sem MobileNav). InicioPage e a nova navbar ficam inacessíveis via /inicio em dispositivos móveis. Remover o redirect ou apontar para InicioPage em mobile."
+    },
+    {
+      "id": "main-padding-bottom-excess",
+      "severity": "info",
+      "title": "pb-[calc(5rem+...)] reserva 24px extras acima da navbar",
+      "description": "O padding-bottom do <main> é 80px fixo contra os 56px da navbar, deixando 24px de espaço visível abaixo do conteúdo. Não bloqueia; pode ser reduzido para pb-[calc(3.5rem+env(safe-area-inset-bottom))] se o espaço extra incomodar."
+    }
+  ],
+  "reviewDoc": "c:\\Users\\Samuel Leite\\wkspaces\\Valora\\.agents\\tasks\\mobile-layout-review.md"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Atualizar AtivosPosicoes, AtivosComposicao e AtivosLancamentos para alinhar com o design Figma mobile do novo fluxo. Independente do FEAT-001 e FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "1. Criar AssetGroupCard (src/modules/ativos/components/AssetGroupCard.tsx): card colapsável de grupo de ativos. Props: `type: AssetType, label: string, color: string, totalBRL: number, variationPct: number | null, portfolioPct: number, rows: EnrichedPositionRow[], isExpanded: boolean, onToggle: () => void`. Header: ícone-letra colorido (mesma lógica que ClassIcon em AtivosLancamentos), nome da classe, valor total, variação colorida (nf-green/nf-pink), % da carteira, chevron. Corpo expandido: lista de linhas com ticker (bold), nome abreviado, valor atual e variação %.",
+    "2. AtivosPosicoes (src/modules/ativos/components/AtivosPosicoes.tsx): Desktop mantém AtivosTable existente (`hidden md:block`). Mobile (`block md:hidden`): renderizar grupos como lista de AssetGroupCard. Agrupar `enrichedRows` por tipo de ativo usando `assetClassColor` e `assetClassLabel` de portfolio/composition. Calcular `totalBRL` e `variationPct` por grupo. Gerenciar estado `expandedGroups: Set<string>` com useState. Manter KpiBarAtivos e ResumoCarteiraPopover no topo.",
+    "3. AtivosComposicao (src/modules/ativos/components/AtivosComposicao.tsx): Adicionar labels de percentual nas fatias do donut SVG (texto externo posicionado radialmente usando `polar()` já existente para achar ponto médio da fatia). Exibir apenas fatias com percent > 4% para evitar sobreposição de labels. KPI bar mobile: mostrar 3 KPIs (Patrimônio, Valor investido, Ganho de capital) com scroll horizontal em telas pequenas (`overflow-x-auto`). Donut em mobile usa 180px de largura.",
+    "4. AtivosLancamentos (src/modules/ativos/components/AtivosLancamentos.tsx): Criar TransactionCard inline: mesmo design que visto no Figma 221:2077 — ícone-letra colorido + ticker + badge classe + tipo de ordem colorido em linha 1; quantidade / preço unitário / total em linha 2; data + 'Manual' + botões em linha 3. Desktop mantém tabela com `hidden md:block`. Mobile exibe lista de TransactionCards (`block md:hidden`). Preservar toda a lógica de filtros, busca, período e modal de adição existentes."
+  ],
+  "acceptance_criteria": [
+    "AtivosPosicoes no mobile (<768px) exibe cards de grupo colapsáveis por classe de ativo.",
+    "AtivosComposicao no mobile tem labels de % nas fatias do donut para fatias > 4%.",
+    "AtivosLancamentos no mobile exibe cards de transação em vez de tabela.",
+    "Desktop (>= 768px) mantém o comportamento atual em todas as 3 telas.",
+    "npm run build passa sem erros TypeScript.",
+    "npm run test:run — testes existentes não regridem."
+  ],
+  "verification": [
+    "npm run build — deve completar sem erros",
+    "npm run test:run — todos os testes passam"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado com sucesso. AssetGroupCard criado como componente próprio. AtivosPosicoes usa groupRowsByClass existente para mobile. AtivosComposicao: labels % externos no SVG via LABEL_RADIUS = R_OUTER + 18, viewBox expandido para acomodar labels. AtivosLancamentos: TransactionCard inline com 3 linhas. Build: 0 erros TypeScript. Tests: 519/519 passando."
+}

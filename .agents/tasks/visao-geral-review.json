@@ -1,0 +1,18 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": "rentabilidade-label-misleading",
+      "severity": "non-blocking",
+      "summary": "\"Rentabilidade total\" KPI label is misleading — value is 1-year return, sibling tab defaults to \"Tudo\"",
+      "action": "Add \"(12M)\" to the pill label, or change usePerformance period to 'Tudo' to align with DesempenhoRentabilidade."
+    },
+    {
+      "id": "duplicate-derivation-analise-visao-geral",
+      "severity": "non-blocking",
+      "summary": "AnaliseVisaoGeral duplicates usePositions + useFundamentals + useCalculateScore calls already made by ScoreCol",
+      "action": "Pass scoreByTicker as a prop to ScoreCol, or expose it via a callback, to eliminate the double useMemo overhead."
+    }
+  ],
+  "reviewDoc": "c:\\Users\\Samuel Leite\\wkspaces\\Valora\\.agents\\tasks\\visao-geral-review.md"
+}

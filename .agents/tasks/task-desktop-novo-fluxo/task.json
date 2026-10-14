@@ -1,0 +1,7 @@
+{
+  "task_id": "task-desktop-novo-fluxo",
+  "task_description": "Implementar as telas Desktop do novo fluxo do app Valora conforme designs Figma (página 'novo fluxo'). Substitui o visual de AtivosPage, DesempenhoPage e AnalisePage por layouts com sub-tabs, KPI bar, tabelas expandíveis, gráficos e popovers. Atualiza QuickTransactionModal e dropdown de carteiras na TopBar.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

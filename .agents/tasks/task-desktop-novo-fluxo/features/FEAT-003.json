@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Telas da seção DESEMPENHO (Rentabilidade e Proventos) e ANÁLISE (Score e Alertas). Cria DesempenhoRentabilidade.tsx, DesempenhoProventos.tsx, AnaliseScore.tsx e AnaliseAlertas.tsx como componentes-folha. Reutiliza hooks existentes de performance, dividends, score e alerts. Independe de FEAT-002.",
+  "status": "completed",
+  "steps": [
+    "1. Criar src/modules/desempenho/components/DesempenhoRentabilidade.tsx. Layout:\n   - Cabeçalho: título 'Rentabilidade' + botão 'Exportar CSV' (ícone Download, outline)\n   - KPI bar (estilo KpiBarAtivos mas para Desempenho): Rentabilidade total (+5,54% verde) | Últimos 12M (—) | Lucro total (R$ X verde) | link 'Resumo completo >'\n   - PanelCard 'Rentabilidade comparada com índices':\n     - Título + legenda de séries (Rentabilidade azul, CDI amarelo, IBOV cinza, etc.)\n     - Dropdowns: 'Desde o início' (período) + 'Todos os tipos' (filtro de classe)\n     - PerformanceLineChart lazy (já existe em src/modules/performance/components/PerformanceLineChart.tsx)\n     - Reutilizar usePerformance(period) de src/modules/performance/hooks/usePerformance.ts\n   - PanelCard 'Rentabilidade' (tabela mensal):\n     - Colunas: Ano | Jan | Fev | Mar | Abr | Mai | Jun | Jul | Ago | Set | Out | Nov | Dez | Retorno anual | Acumulado\n     - Positivos: text-nf-green; negativos: text-nf-pink; dash para meses sem dado\n     - Reutilizar TabelaMensal.tsx já existente em src/modules/desempenho/components/TabelaMensal.tsx\n   - PanelCard 'Rentabilidade por ativo':\n     - Botão 'Exportar CSV' no header (ícone Download)\n     - Tabela: avatar circular com inicial (bg colorido por classe), Ativo, Classe (badge colorido), Valor atual, Rentabilidade (+XX% verde ou -XX% rosa), vs CDI (p.p.), Desempenho (barra colorida: verde se positivo, rosa se negativo)\n     - Dados de usePerformance().assetReturns (verificar tipo PerformanceSeries/AssetReturn em src/modules/performance/types.ts e hook usePerformance)",
+
+    "2. Criar src/modules/desempenho/components/DesempenhoProventos.tsx. Layout:\n   - Cabeçalho: título 'Proventos' + botão 'Atualizar proventos' (ícone RefreshCw) + botão 'Exportar CSV'\n   - KPI bar: Proventos recebidos (12M) | Média mensal | Maior mês (valor · mês/ano) | 'Resumo completo >'\n   - PanelCard 'Proventos por mês': ProventosChart lazy (já existe em src/modules/desempenho/components/ProventosChart.tsx), barras verdes. Dados: useDividends(period) + buildMonthlyBars já importados em DesempenhoPage.tsx\n   - PanelCard 'Proventos recebidos (N)':\n     - Busca por ticker (input Search) + dropdown 'Todos os tipos'\n     - Tabela: Ticker | Tipo (badge DIVIDEND em azul) | Data com | Data pagamento | Valor/cota | Quantidade | Valor total (verde)\n     - Dados de useDividends() de src/modules/dividends/hooks/useDividends.ts\n   - KPIs de média mensal e maior mês: calcular de buildMonthlyBars",
+
+    "3. Criar src/modules/analise/components/AnaliseScore.tsx. Layout (substitui a coluna ScoreCol da AnalisePage com layout de página inteira):\n   - Cabeçalho: breadcrumb '< Análise' (link para /analise), título 'Score Fundamentalista' + botão '+ Nova regra'\n   - PanelCard 'Regras de score (N)':\n     - Tabela com colunas: Nome | Métrica | Condição | Pontos (+N verde) | botão 'Usar este score' (outline arredondado) | 'Editar' (text) | 'Excluir' (text-nf-pink)\n     - Dados de useScoreRules() de src/modules/score/hooks/useScoreRules.ts\n     - Clicar '+ Nova regra' abre Modal existente (src/shared/components/Modal.tsx) com ScoreRuleForm\n     - Reutilizar ScoreRuleForm de src/modules/score/components/ScoreRuleForm.tsx\n     - useDeleteScoreRule e useScorePreferences para as ações",
+
+    "4. Criar src/modules/analise/components/AnaliseAlertas.tsx. Layout (substitui coluna AlertasCol com layout de página inteira):\n   - Cabeçalho: breadcrumb '< Análise', título 'Alertas' + botões '+ Alerta de preço' e 'Atualizar alertas'\n   - Clicar '+ Alerta de preço': exibir form inline (não modal) logo abaixo do header:\n     - Campo 'Ativo' (input texto, ticker)\n     - Radio: 'Abaixo de' / 'Acima de'\n     - Input 'Preço-alvo' (number)\n     - Botões 'Criar alerta' (bg-blue-600 rounded-full) + 'Cancelar' (outline)\n     - useState showAlertForm\n   - Lista de cards de alertas (um por linha, largura total):\n     - Card: ticker + ícone tipo (BellRing rosa / TrendingUp rosa) + badge tipo ('Preço-alvo' / 'Sobrevalorizado') + título bold + descrição + data criação + badge 'Novo' (azul borda) ou 'Ignorado' (cinza)\n     - Cards 'Novo': botões 'Marcar como lido' (borda verde) + 'Ignorar' (borda branca)\n     - Dados de useAlerts() de src/modules/alerts/hooks/useAlerts.ts\n     - Mutações de useUpdateAlertStatus, useGenerateAlerts de src/modules/alerts/hooks/useAlertMutations.ts\n   - Para criar alerta de preço: verificar se existe mutation em useAlertMutations.ts; se não existir, criar src/modules/alerts/hooks/useCreatePriceAlert.ts usando alertsService.ts"
+  ],
+  "acceptance_criteria": [
+    "pnpm run build sem erros TypeScript",
+    "/desempenho/rentabilidade exibe gráfico de linha comparativo + tabela mensal + tabela por ativo",
+    "/desempenho/proventos exibe gráfico de barras mensais + tabela de proventos recebidos com busca",
+    "/analise/score exibe tabela de regras com ações Usar/Editar/Excluir e modal '+ Nova regra'",
+    "/analise/alertas exibe lista de cards de alertas; 'Novo' mostra botões Marcar como lido e Ignorar; form inline ao clicar '+ Alerta de preço'"
+  ],
+  "verification": [
+    "pnpm run build",
+    "pnpm run test:run"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -28,10 +28,6 @@ const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPo
 const AtivosComposicao = lazy(() => import('./modules/ativos/components/AtivosComposicao').then((m) => ({ default: m.AtivosComposicao })))
 const AtivosLancamentos = lazy(() => import('./modules/ativos/components/AtivosLancamentos').then((m) => ({ default: m.AtivosLancamentos })))
 
-// ── Placeholder para sub-rotas ainda não implementadas ─────────────────────
-function Placeholder() {
-  return <div className="p-8 text-white/40">Em breve…</div>
-}
 
 function LoadingFallback() {
   return (

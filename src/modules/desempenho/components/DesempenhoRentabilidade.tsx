@@ -183,13 +183,14 @@ export function DesempenhoRentabilidade() {
 
       {/* ── Gráfico ── */}
       <PanelCard>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-[14px] font-semibold text-white">
-            Rentabilidade comparada com índices
-          </h3>
-          <div className="flex items-center gap-2">
-            {/* Legenda inline */}
-            <div className="flex items-center gap-3 mr-2">
+        <div className="mb-4">
+          {/* Título + legenda */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-[14px] font-semibold text-white">
+              Rentabilidade comparada com índices
+            </h3>
+            {/* Legenda inline — visível apenas em md+ */}
+            <div className="hidden md:flex items-center gap-3 mr-2">
               <span className="flex items-center gap-1.5 text-[11px] text-white/60">
                 <span className="inline-block h-2 w-6 rounded-sm bg-[#3b82f6]" />
                 Carteira
@@ -204,11 +205,14 @@ export function DesempenhoRentabilidade() {
                 </span>
               ))}
             </div>
+          </div>
+          {/* Selects de período e tipo — abaixo do título no mobile */}
+          <div className="flex flex-wrap gap-2 mt-2">
             {/* Dropdown período */}
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PerformancePeriod)}
-              className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
+              className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
             >
               {PERIOD_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -220,7 +224,7 @@ export function DesempenhoRentabilidade() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
+              className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
             >
               {availableTypes.map((t) => (
                 <option key={t} value={t}>
@@ -283,8 +287,72 @@ export function DesempenhoRentabilidade() {
             Nenhum ativo encontrado para o período e filtro selecionados.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-[12px]">
+          <>
+            {/* ── Cards mobile (< md) ── */}
+            <div className="block md:hidden flex flex-col gap-3">
+              {filteredAssetRows.map((row) => {
+                const assetType = tickerTypeMap.get(row.ticker)
+                const classeLabel = assetType ? (ASSET_CLASS_LABELS[assetType] ?? assetType) : '—'
+                const classeColor = assetType ? (CLASS_COLORS[assetType] ?? '#6b7280') : '#6b7280'
+                const vscdipp =
+                  row.totalReturnPct != null && summary.cdiReturnPct != null
+                    ? row.totalReturnPct - summary.cdiReturnPct * 100
+                    : null
+                const rentPositiveAsset = row.totalReturnPct != null ? row.totalReturnPct >= 0 : null
+                const rentClsAsset =
+                  rentPositiveAsset === null ? 'text-white' : rentPositiveAsset ? 'text-nf-green' : 'text-nf-pink'
+                return (
+                  <div
+                    key={row.ticker}
+                    className="rounded-[14px] border border-white/[0.06] bg-[#1B1B1B] p-3"
+                  >
+                    {/* Linha 1: avatar + ticker/nome + badge classe + rentabilidade */}
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                        style={{ backgroundColor: `${classeColor}33` }}
+                        aria-hidden="true"
+                      >
+                        {getInitial(row.name, row.ticker)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13px] font-semibold text-white">{row.ticker}</span>
+                          <span
+                            className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                            style={{ backgroundColor: `${classeColor}22`, color: classeColor }}
+                          >
+                            {classeLabel}
+                          </span>
+                        </div>
+                        {row.name && (
+                          <p className="text-[10px] text-white/40 truncate">{row.name}</p>
+                        )}
+                      </div>
+                      <span className={`shrink-0 text-[14px] font-semibold tabular-nums ${rentClsAsset}`}>
+                        {row.totalReturnPct != null ? fmtPct(row.totalReturnPct) : '—'}
+                      </span>
+                    </div>
+                    {/* Linha 2: vs CDI */}
+                    <div className="mt-1 text-right">
+                      <span
+                        className={`text-[11px] tabular-nums ${
+                          vscdipp == null ? 'text-white/40' : vscdipp >= 0 ? 'text-nf-green' : 'text-nf-pink'
+                        }`}
+                      >
+                        {vscdipp != null
+                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)} pp`
+                          : 'vs CDI: —'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── Tabela desktop (>= md) ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[640px] border-collapse text-[12px]">
               <thead>
                 <tr className="bg-white/[0.04]">
                   <th className="px-3 py-2.5 text-left font-medium text-white/50">Ativo</th>
@@ -411,7 +479,8 @@ export function DesempenhoRentabilidade() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </PanelCard>
     </div>

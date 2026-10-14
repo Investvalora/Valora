@@ -425,7 +425,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
     setGlobalError('')
     const dbType = dbTypeMap[values.ativo]
     const payload: NewFixedIncomePosition = {
-      name: TD_NAME[values.ativo],
+      name: TD_NAME[values.ativo as TesouroDiretoAtivo],
       type: dbType,
       indexer: FIXED_INCOME_TYPE_INDEXER[dbType],
       rate: values.taxa,

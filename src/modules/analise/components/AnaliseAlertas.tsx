@@ -161,9 +161,9 @@ function PriceAlertForm({ onClose }: { onClose: () => void }) {
   return (
     <div className="rounded-[14px] border border-nf-blue/20 bg-[#1B1B1B] p-5">
       <h3 className="mb-4 text-[14px] font-semibold text-white">Novo alerta de preço</h3>
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3" noValidate>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end" noValidate>
         {/* Ativo */}
-        <div className="flex flex-col gap-1 min-w-[140px]">
+        <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
           <label htmlFor="alert-ticker" className="text-[11px] text-white/50">
             Ativo (ticker)
           </label>
@@ -179,7 +179,7 @@ function PriceAlertForm({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Condição */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
           <span className="text-[11px] text-white/50">Condição</span>
           <div className="flex gap-3">
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -208,7 +208,7 @@ function PriceAlertForm({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Preço-alvo */}
-        <div className="flex flex-col gap-1 min-w-[140px]">
+        <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
           <label htmlFor="alert-price" className="text-[11px] text-white/50">
             Preço-alvo (R$)
           </label>
@@ -225,7 +225,7 @@ function PriceAlertForm({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Botões */}
-        <div className="flex items-end gap-2 pb-0">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <button
             type="submit"
             disabled={createAlert.isPending}

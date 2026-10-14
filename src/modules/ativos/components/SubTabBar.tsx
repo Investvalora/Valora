@@ -28,7 +28,7 @@ export function SubTabBar({ tabs }: SubTabBarProps) {
           role="tab"
           className={({ isActive }) =>
             [
-              'pb-2.5 px-0 text-sm font-medium transition-colors border-b-2 -mb-px',
+              'pb-2.5 px-0 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap',
               isActive
                 ? 'border-nf-blue text-white'
                 : 'border-transparent text-white/50 hover:text-white/80',

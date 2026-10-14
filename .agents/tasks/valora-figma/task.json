@@ -1,0 +1,7 @@
+{
+  "task_id": "task-valora-figma",
+  "task_description": "Implementar as telas do novo fluxo Figma no projeto Valora: atualizar Ativos Posições (cards mobile colapsáveis), Composição (labels donut), Lançamentos (cards mobile), Detalhe do Ativo (nova página com sub-tabs), Desempenho Rentabilidade (pills KPI + tabela mensal melhorada), Desempenho Proventos (cards mobile), Análise Score (grupos de score), Análise Alertas (toggle filtro).",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

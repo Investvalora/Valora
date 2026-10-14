@@ -186,7 +186,47 @@ export function DesempenhoProventos() {
       </div>
 
       {/* ── KPI bar ── */}
-      <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#1A1A1A] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Mobile KPI cards (< md) */}
+      <div className="block md:hidden flex flex-col gap-3">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
+            <span className="text-[10px] text-white/40">Proventos</span>
+            <span className="text-[15px] font-semibold text-nf-green leading-tight">
+              {isLoading ? '—' : fmtBRL(total12m)}
+            </span>
+          </div>
+          <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
+            <span className="text-[10px] text-white/40">Média</span>
+            <span className="text-[15px] font-semibold text-white leading-tight">
+              {isLoading ? '—' : fmtBRL(mediaMensal)}
+            </span>
+          </div>
+          <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
+            <span className="text-[10px] text-white/40">Maior mês</span>
+            <span className="text-[15px] font-semibold text-white leading-tight">
+              {isLoading || !maiorMes ? '—' : fmtBRL(maiorMes.total)}
+            </span>
+          </div>
+        </div>
+        {/* Seletor de período */}
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-white/50">Período</span>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as DividendPeriod)}
+            className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-2 py-1 text-[12px] text-white focus:outline-none"
+          >
+            {PERIOD_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Desktop KPI bar (>= md) */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-white/[0.08] bg-[#1A1A1A] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-0 px-6 py-4">
         <div className="flex flex-1 flex-col gap-0.5 pr-6">
           <span className="text-[11px] text-white/50">Proventos recebidos</span>
@@ -251,7 +291,7 @@ export function DesempenhoProventos() {
               </span>
             )}
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 md:flex-row">
             {/* Busca por ticker */}
             <div className="relative">
               <Search
@@ -267,7 +307,7 @@ export function DesempenhoProventos() {
                   setTickerFilter(e.target.value)
                   setVisibleCount(INITIAL_VISIBLE)
                 }}
-                className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] pl-8 pr-3 py-1.5 text-[12px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 w-[150px]"
+                className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] pl-8 pr-3 py-1.5 text-[12px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 w-full md:w-[150px]"
               />
             </div>
             {/* Dropdown tipo */}
@@ -277,7 +317,7 @@ export function DesempenhoProventos() {
                 setTypeFilter(e.target.value)
                 setVisibleCount(INITIAL_VISIBLE)
               }}
-              className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
+              className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none w-full md:w-auto"
             >
               <option value="">Todos os tipos</option>
               {availableTypes.map((t) => (

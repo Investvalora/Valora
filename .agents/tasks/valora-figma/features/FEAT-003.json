@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Refatorar AtivoDetailPage (src/modules/assets/components/AtivoDetailPage.tsx) para o novo design Figma com sub-tabs internas, hero atualizado, grid de KPIs, gráfico duplo (cotação + preço médio), resultado da posição, previews de lançamentos e proventos, e bloco de score+alertas. Depende que FEAT-001 e FEAT-002 estejam completos (usa hooks e componentes já consolidados).",
+  "status": "completed",
+  "steps": [
+    "1. Criar AssetDetailHero (interno em AtivoDetailPage.tsx): div com avatar quadrado 52×52 (letra inicial, cor da classe do ativo — usar assetClassColor do portfolio/composition), ticker em text-[32px] font-medium, badge de tipo (ex: 'FII' com background da cor da classe a 16% opacity), nome do ativo em text-[13px] text-[#8f8f8f], cotação em text-[26px], variação diária % colorida (nf-green/nf-pink). Botões à direita: '+ Lançamento do ativo' e 'Criar alerta' (rounded-[20px] bg-[#393939]). Incluir breadcrumb '< Ativos > Posições'.",
+    "2. Criar AssetKpiGrid (interno): grid 2 colunas de 3 linhas (grid-cols-2 gap-[10px]) com cards border border-[rgba(144,144,144,0.55)] rounded-[10px] px-[14px] py-[12px]. KPIs: Quantidade, Preço médio, Saldo (qty × cotação atual), % da carteira (saldo / totalBRL × 100), Variação (vs preço médio %), Dividend Yield (do fundamentals). Layout desktop: grid-cols-6 em linha única.",
+    "3. Criar seção 'Cotação e preço médio': reutilizar PriceLineChart existente. Adicionar dataset secundário de linha tracejada com o valor fixo do preço médio da posição (linha horizontal amarela, strokeDasharray). Legenda inline: 'Cotação' (azul) + 'Preço médio' (amarelo). PeriodSelector existente para mudar período.",
+    "4. Criar AssetPositionResult (interno): card PanelCard com título 'Resultado da posição' e linhas: Valor investido | +Ganho de capital (nf-green) | Proventos recebidos (12M, nf-green) | Rentabilidade total (+%) | vs CDI (p.p., colorido). Calcular: valorInvestido = qty × avgPrice, ganhoCapital = cotaçãoAtual × qty - valorInvestido, proventos12m = dividendTotalsByTicker.get(ticker) ?? 0, rentTotal = ganhoCapital / valorInvestido × 100, vscdipp = rentTotal - cdiReturnPct × 100. Usar usePerformance para cdi e useDividendTotals para proventos.",
+    "5. Criar AssetTransactionPreview (interno): buscar as 3 transações mais recentes do ativo usando useAllTransactions() e filtrar por ticker. Cada linha: data (formatada), tipo (badge Compra verde / Venda rosa), totalFormatado (qty × price). Link 'Ver todos >' navega para /ativos/lancamentos.",
+    "6. Criar AssetDividendPreview (interno): últimos 4 proventos de useAssetDividends(ticker). Cada linha: data de pagamento + 'R$ X,XX × qty = R$ total' (nf-green). Link 'Ver todos >' navega para /desempenho/proventos.",
+    "7. Criar AssetScoreAlerts (interno): Barra de progresso Bazin com '3/4 regras' (calcular quantas regras Bazin o ativo satisfaz com base em bazinByTicker.get(ticker)). Lista dos 2 alertas recentes filtrados pelo ticker usando useAlerts(). Cada alerta: ícone, título reduzido, badge Novo/Ignorado. Link 'Ver análise >' navega para /analise/alertas.",
+    "8. Montar sub-tabs internas com useState<AtivoTab> onde AtivoTab = 'visao-geral' | 'lancamentos' | 'proventos' | 'rentabilidade' | 'score' | 'alertas'. Usar SubTabBar com tabs passadas como props, mas sem react-router (onClick em vez de NavLink). Visão geral: composição dos steps 2-7. Lançamentos: tabela/cards de transações do ativo (versão simplificada de AtivosLancamentos filtrada por ticker). Proventos: tabela/cards de dividendos do ativo (useAssetDividends). Rentabilidade: gráfico de preços + dados de performance do ativo. Score: regras aplicadas ao ativo com pontuação. Alertas: AlertCard filtrado por ticker.",
+    "9. Layout responsivo: Mobile — coluna única, hero em stack vertical, KpiGrid 2 cols, gráfico full-width, Resultado da posição full-width abaixo. Desktop (lg:) — hero horizontal, KpiGrid em linha de 6 colunas, gráfico e Resultado da posição em 2 colunas (2fr 1fr), bottom section em 3 colunas iguais (Lançamentos | Proventos | Score e alertas).",
+    "10. Remover o código legado do AtivoDetailPage (SectionCard, FundamentalsRow como seções fixas) e substituir pelo novo layout com sub-tabs. Manter os imports existentes de hooks que continuam sendo usados."
+  ],
+  "acceptance_criteria": [
+    "AtivoDetailPage em /ativo/MXRF11 exibe hero com avatar 'M' rosa, ticker, badge FII, cotação, variação diária.",
+    "Grid de 6 KPIs visível (Quantidade, Preço médio, Saldo, % carteira, Variação, DY).",
+    "Gráfico de linha mostra cotação (azul) e preço médio (amarelo tracejado).",
+    "Bloco 'Resultado da posição' exibe valor investido, ganho de capital, proventos 12M, rentabilidade total e vs CDI.",
+    "Sub-tabs Visão geral, Lançam., Proventos, Rentab., Score, Alertas funcionam e trocam conteúdo.",
+    "Desktop usa layout 2 colunas no bloco gráfico/resultado e 3 colunas no bottom.",
+    "npm run build passa sem erros TypeScript.",
+    "npm run test:run — testes existentes não regridem."
+  ],
+  "verification": [
+    "npm run build — deve completar sem erros",
+    "npm run test:run — todos os testes passam"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado sem a lazy/Suspense para PriceLineChart (gráfico dual definido inline com Recharts para suporte à linha tracejada de preço médio). Variação diária usa changeVsAvg (cotação atual vs preço médio) como proxy, pois LatestQuote não expõe open_price. useDividendTotals usado para proventos12m. usePerformance('1A') usado para CDI. fundLoading removido pois não havia estado de loading para fundamentals no novo layout. TabScore não precisa do ticker pois os dados já chegam via props. Build: zero erros TypeScript. Testes: 519/519 passam."
+}

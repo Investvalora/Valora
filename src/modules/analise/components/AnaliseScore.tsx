@@ -184,7 +184,7 @@ export function AnaliseScore() {
     <div className="flex flex-col gap-5">
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
-        <h2 className="text-[18px] font-semibold text-white">Score Fundamentalista</h2>
+        <h2 className="text-[16px] md:text-[18px] font-semibold text-white">Score Fundamentalista</h2>
         <button
           type="button"
           onClick={openNewRule}

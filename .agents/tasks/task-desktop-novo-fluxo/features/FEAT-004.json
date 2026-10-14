@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Componentes transversais: atualizar QuickTransactionModal (modal de lançamento global) e o dropdown de seletor de carteiras na TopBar. Também atualiza o WalletMorphSelector. Independe de FEAT-002 e FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "1. Atualizar src/modules/portfolio/components/QuickTransactionModal.tsx com o novo design do Figma:\n   - Title: 'Adicionar Lançamento'\n   - Toggle pill Compra/Venda: duas células side-by-side com bg-[#2A2A2A] para inativo e bg-[#3A3A3A] border-white/[0.15] para ativo. Ativo 'Compra' borda branca; ativo 'Venda' sem mudança de cor.\n   - Grid 2 colunas: linha 1: 'Tipo de ativo' (select com ASSET_CLASS_LABEL) + 'Ativo' (input texto ticker com select do tipo de ativo, ativar campo ativo só após selecionar tipo)\n   - Linha 2: 'Data da transação' (input date) + 'Quantidade' (input number)\n   - Linha 3: 'Preço' (input number) + 'Outros custos OPCIONAL' (input number)\n   - Linha 4 full width: 'Valor total' alinhado direita 'R$ 0,00' em fonte maior (text-xl font-semibold text-white)\n   - Footer: botão 'Cancelar' (text-white/60 hover:text-white) + botão 'Salvar' (bg-blue-600 rounded-full px-6 py-2 text-white)\n   - Manter toda a lógica de submit existente de useAddTransaction. Adicionar campo tipo de ativo ao estado local (não envia para o backend se já está em positionService.findAssetByTicker)\n   - Estilo dos inputs: rounded-xl border border-white/[0.12] bg-[#2A2A2A] px-3 py-2.5 text-white text-sm\n   - Estilo do container: Modal existente (src/shared/components/Modal.tsx) com max-w-lg já existente",
+
+    "2. Atualizar src/shared/components/WalletMorphSelector.tsx (ou criar se não existir como componente separado) e src/shared/components/TopBar.tsx para que o clique no seletor de carteiras abra um dropdown inline (não modal):\n   - Dropdown (absolute z-50 abaixo do botão) com bg-[#1C1C1C] border border-white/[0.12] rounded-2xl shadow-2xl p-2 min-w-[240px]\n   - Header: texto 'Carteiras' em text-xs text-white/50 px-3 pt-2 pb-1\n   - Lista de carteiras: cada item flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.05] cursor-pointer:\n     - dot colorido (8px, cor do walletPalette[wallet.color].color)\n     - div flex-1: nome (text-sm font-medium text-white) + patrimônio formatado (text-xs text-white/50)\n     - checkmark (Check icon 14px text-nf-blue) apenas na carteira selecionada\n   - Divider: border-t border-white/[0.08] my-1\n   - '+ Nova carteira' (Plus icon + texto text-sm text-nf-blue px-3 py-2.5 hover:bg-white/[0.05] rounded-xl)\n   - '⚙ Gerenciar carteiras' (Settings icon + texto text-sm text-nf-blue px-3 py-2.5 hover:bg-white/[0.05] rounded-xl)\n   - Fechar ao clicar fora (useEffect com document.addEventListener click)\n   - Patrimônio por carteira: usar useWalletTotals de src/modules/portfolio/hooks/useWalletTotals.ts se existir; caso contrário, calcular sum de derivePositionRows por carteira ou mostrar patrimônio do useDashboard apenas para a selecionada (para as outras mostrar R$ 0,00 ou '—')\n   - Verificar src/shared/components/WalletMorphSelector.tsx — se já existe, substituir o dropdown visual mantendo a lógica de seleção (selectWallet de useWallets)"
+  ],
+  "acceptance_criteria": [
+    "pnpm run build sem erros TypeScript",
+    "Clicar '+ Lançamento' na TopBar abre modal com novo design (toggle Compra/Venda, grid 2 colunas, valor total no rodapé, botões Cancelar/Salvar)",
+    "Clicar no seletor de carteiras na TopBar abre dropdown com lista de carteiras, dot colorido, patrimônio, checkmark na selecionada, '+ Nova carteira' e 'Gerenciar carteiras'",
+    "Selecionar outra carteira no dropdown fecha o dropdown e atualiza a carteira selecionada"
+  ],
+  "verification": [
+    "pnpm run build",
+    "pnpm run test:run"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

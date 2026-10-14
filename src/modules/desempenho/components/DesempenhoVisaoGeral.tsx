@@ -75,38 +75,105 @@ export function DesempenhoVisaoGeral() {
   const rentFormatted = rentPct != null ? fmtPct(rentPct * 100) : '—'
   const rentPositive = rentPct != null ? rentPct >= 0 : null
 
+  // KPI mobile: último mês disponível
+  const lastMonthRow = useMemo(() => {
+    if (monthlyTableData.length === 0) return null
+    // rows são ordenadas por ano decrescente; pegar o primeiro ano e o último mês disponível
+    const firstRow = monthlyTableData[0]
+    const sortedMonths = [...firstRow.months.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+    const last = sortedMonths[sortedMonths.length - 1]
+    return last ? { val: last[1] } : null
+  }, [monthlyTableData])
+  const lastMonthFormatted = lastMonthRow ? fmtPct(lastMonthRow.val * 100) : '—'
+  const lastMonthIsPositive = lastMonthRow ? lastMonthRow.val >= 0 : false
+
+  // KPI mobile: vs CDI
+  const cdiIsAbove =
+    summary.portfolioReturnPct != null &&
+    summary.cdiReturnPct != null &&
+    summary.portfolioReturnPct > summary.cdiReturnPct
+  const cdiLabel = summary.portfolioReturnPct == null || summary.cdiReturnPct == null
+    ? '—'
+    : cdiIsAbove ? 'Acima' : 'Abaixo'
+
   return (
     <div className="flex flex-col gap-5">
       {/* ── Cabeçalho ── */}
       <h2 className="text-[18px] font-semibold text-white">Visão Geral</h2>
 
       {/* ── KPI pills ── */}
-      <KpiPillBar
-        items={[
+      {/* Mobile KPI grid */}
+      <div className="grid grid-cols-2 gap-3 md:hidden">
+        {[
           {
-            label: 'Rentabilidade (12M)',
+            label: 'Rent. total',
             value: rentFormatted,
-            colorClass:
-              rentPositive === null
-                ? 'text-white'
-                : rentPositive
-                  ? 'text-nf-green'
-                  : 'text-nf-pink',
+            green: rentPositive === true,
+            pink: rentPositive === false,
           },
           {
-            label: 'Lucro',
-            value: fmtBRL(dashboard.lucroTotalBRL),
+            label: 'Último mês',
+            value: lastMonthFormatted,
+            green: lastMonthIsPositive,
+            pink: !lastMonthIsPositive && lastMonthRow != null,
           },
           {
             label: 'Proventos 12M',
             value: fmtBRL(dashboard.proventos12mBRL),
+            green: false,
+            pink: false,
           },
           {
-            label: 'Patrimônio atual',
-            value: fmtBRL(dashboard.totalPatrimonioBRL),
+            label: 'vs CDI',
+            value: cdiLabel,
+            green: cdiIsAbove,
+            pink: !cdiIsAbove && cdiLabel !== '—',
           },
-        ]}
-      />
+        ].map((kpi) => (
+          <div
+            key={kpi.label}
+            className="rounded-[10px] border border-white/[0.08] bg-[#1b1b1b] px-3 py-2.5"
+          >
+            <p className="text-[10px] text-[#8f8f8f]">{kpi.label}</p>
+            <p
+              className={`text-[16px] font-medium ${
+                kpi.green ? 'text-nf-green' : kpi.pink ? 'text-nf-pink' : 'text-white'
+              }`}
+            >
+              {kpi.value}
+            </p>
+          </div>
+        ))}
+      </div>
+      {/* Desktop KpiPillBar */}
+      <div className="hidden md:block">
+        <KpiPillBar
+          items={[
+            {
+              label: 'Rentabilidade (12M)',
+              value: rentFormatted,
+              colorClass:
+                rentPositive === null
+                  ? 'text-white'
+                  : rentPositive
+                    ? 'text-nf-green'
+                    : 'text-nf-pink',
+            },
+            {
+              label: 'Lucro',
+              value: fmtBRL(dashboard.lucroTotalBRL),
+            },
+            {
+              label: 'Proventos 12M',
+              value: fmtBRL(dashboard.proventos12mBRL),
+            },
+            {
+              label: 'Patrimônio atual',
+              value: fmtBRL(dashboard.totalPatrimonioBRL),
+            },
+          ]}
+        />
+      </div>
 
       {/* ── Grid principal ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

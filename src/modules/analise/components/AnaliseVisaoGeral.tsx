@@ -87,11 +87,18 @@ export function AnaliseVisaoGeral() {
       <h2 className="text-[18px] font-semibold text-white">Visão Geral</h2>
 
       {/* ── KPI pills ── */}
-      <KpiPillBar
-        items={[
+      {/* Mobile KPI grid */}
+      <div className="grid grid-cols-2 gap-3 md:hidden">
+        {[
           {
             label: 'Scores criados',
             value: String(groups.size),
+            colorClass: 'text-white',
+          },
+          {
+            label: 'Alertas novos',
+            value: String(novosCount),
+            colorClass: novosCount > 0 ? 'text-nf-pink' : 'text-white',
           },
           {
             label: 'Sobrevalorizados',
@@ -103,13 +110,42 @@ export function AnaliseVisaoGeral() {
             value: String(opportunityCount),
             colorClass: opportunityCount > 0 ? 'text-nf-green' : 'text-white',
           },
-          {
-            label: 'Alertas novos',
-            value: String(novosCount),
-            colorClass: novosCount > 0 ? 'text-nf-blue' : 'text-white',
-          },
-        ]}
-      />
+        ].map((kpi) => (
+          <div
+            key={kpi.label}
+            className="rounded-[10px] border border-white/[0.08] bg-[#1b1b1b] px-3 py-2.5"
+          >
+            <p className="text-[10px] text-[#8f8f8f]">{kpi.label}</p>
+            <p className={`text-[16px] font-medium ${kpi.colorClass}`}>{kpi.value}</p>
+          </div>
+        ))}
+      </div>
+      {/* Desktop KpiPillBar */}
+      <div className="hidden md:block">
+        <KpiPillBar
+          items={[
+            {
+              label: 'Scores criados',
+              value: String(groups.size),
+            },
+            {
+              label: 'Sobrevalorizados',
+              value: String(overvaluedCount),
+              colorClass: overvaluedCount > 0 ? 'text-nf-pink' : 'text-white',
+            },
+            {
+              label: 'Oportunidades',
+              value: String(opportunityCount),
+              colorClass: opportunityCount > 0 ? 'text-nf-green' : 'text-white',
+            },
+            {
+              label: 'Alertas novos',
+              value: String(novosCount),
+              colorClass: novosCount > 0 ? 'text-nf-blue' : 'text-white',
+            },
+          ]}
+        />
+      </div>
 
       {/* ── Grid de 3 colunas ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

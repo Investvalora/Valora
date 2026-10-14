@@ -15,8 +15,13 @@ const ANALISE_TABS = [
 export function AnalisePage() {
   return (
     <div className="flex flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
-      {/* ── Cabeçalho ── */}
-      <div className="flex items-center gap-3">
+      {/* ── Cabeçalho mobile ── */}
+      <div className="md:hidden flex items-center px-0 h-14 -my-2">
+        <h1 className="font-['Poppins'] font-semibold text-[20px] text-white">Análise</h1>
+      </div>
+
+      {/* ── Cabeçalho desktop ── */}
+      <div className="hidden md:flex items-center gap-3">
         <h1 className="text-[22px] font-semibold text-white">Análise</h1>
       </div>
 

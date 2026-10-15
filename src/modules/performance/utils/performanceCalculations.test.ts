@@ -394,10 +394,10 @@ describe('computeAssetRows', () => {
     expect(row.totalReturnPct).toBeCloseTo(12.5)
   })
 
-  it('com filtro de período — retorna posições adquiridas antes ou durante o período', () => {
+  it('com ou sem filtro de período — retorna todas as posições (acquisition_date não é mais usado como filtro)', () => {
     const positions = [
-      { ...makePos('PETR4', 20, 100), acquisition_date: '2026-01-15' }, // dentro do período
-      { ...makePos('VALE3', 80, 50), acquisition_date: '2025-12-01' },  // antes do período — deve aparecer
+      { ...makePos('PETR4', 20, 100), acquisition_date: '2026-01-15' },
+      { ...makePos('VALE3', 80, 50), acquisition_date: '2025-12-01' },
     ]
     const lastPricesMap = new Map([
       ['PETR4', 22],
@@ -405,10 +405,9 @@ describe('computeAssetRows', () => {
     ])
     const dividendRows: DividendRow[] = []
 
-    // Período: jan/2026
     const rows = computeAssetRows(positions, lastPricesMap, dividendRows, '2026-01-01', '2026-01-31')
 
-    // Ambas aparecem: PETR4 comprada dentro e VALE3 comprada antes do período
+    // Ambas sempre aparecem — acquisition_date não filtra mais
     expect(rows).toHaveLength(2)
     const tickers = rows.map((r) => r.ticker)
     expect(tickers).toContain('PETR4')
@@ -578,10 +577,10 @@ describe('computeAssetRows', () => {
     expect(row.totalReturnPct).toBeCloseTo(25)
   })
 
-  it('com filtro de período — retorna posições adquiridas antes ou durante o período', () => {
+  it('com ou sem filtro de período — retorna todas as posições (acquisition_date não é mais usado como filtro)', () => {
     const positions = [
-      { ...makePosition('PETR4', 30, 100), acquisition_date: '2026-03-15' }, // dentro
-      { ...makePosition('VALE3', 50, 10), acquisition_date: '2025-06-01' },  // antes — deve aparecer
+      { ...makePosition('PETR4', 30, 100), acquisition_date: '2026-03-15' },
+      { ...makePosition('VALE3', 50, 10), acquisition_date: '2025-06-01' },
     ]
     const lastPricesMap = new Map([
       ['PETR4', 36],
@@ -591,7 +590,7 @@ describe('computeAssetRows', () => {
 
     const rows = computeAssetRows(positions, lastPricesMap, dividendRows, '2026-01-01', '2026-06-30')
 
-    // Ambas aparecem: PETR4 comprada dentro e VALE3 comprada antes do período
+    // Ambas sempre aparecem
     expect(rows).toHaveLength(2)
     const tickers = rows.map((r) => r.ticker)
     expect(tickers).toContain('PETR4')

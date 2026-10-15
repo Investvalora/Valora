@@ -13,7 +13,7 @@ export function PublicOnlyRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/carteira" replace />
+    return <Navigate to="/inicio" replace />
   }
 
   return <Outlet />

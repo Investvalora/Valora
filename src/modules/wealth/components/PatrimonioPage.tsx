@@ -236,8 +236,8 @@ export function PatrimonioPage() {
         <div className="rounded-lg border border-dark-border bg-dark-surface p-8 text-center">
           <p className="text-gray-400">
             Cadastre posições na{' '}
-            <a href="/carteira" className="text-blue-400 underline hover:text-blue-300">
-              Carteira
+            <a href="/ativos" className="text-blue-400 underline hover:text-blue-300">
+              Ativos
             </a>{' '}
             para visualizar a evolução do patrimônio.
           </p>

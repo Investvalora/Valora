@@ -57,7 +57,7 @@ export function DesempenhoVisaoGeral() {
   const walletId = selectedWallet?.id ?? ''
 
   const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading } =
-    usePerformance('1A')
+    usePerformance('1A', walletId)
 
   const dashboard = useDashboard(walletId)
 

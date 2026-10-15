@@ -9,6 +9,7 @@ import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
 import { TabelaMensal } from './TabelaMensal'
 import { usePositions } from '../../portfolio/hooks/usePositions'
+import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { PerformancePeriod } from '../../performance/types'
 
 const PerformanceLineChart = lazy(
@@ -75,11 +76,14 @@ function getInitial(name: string | null, ticker: string): string {
 }
 
 export function DesempenhoRentabilidade() {
+  const { selectedWallet } = useWallets()
+  const walletId = selectedWallet?.id ?? ''
+
   const [period, setPeriod] = useState<PerformancePeriod>('Tudo')
   const [typeFilter, setTypeFilter] = useState('Todos os tipos')
 
   const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading } =
-    usePerformance(period)
+    usePerformance(period, walletId)
 
   // Positions para obter o type do ativo (classe)
   const { data: positions = [] } = usePositions()

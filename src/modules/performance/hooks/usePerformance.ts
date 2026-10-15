@@ -86,12 +86,12 @@ export interface UsePerformanceResult {
  * Isso torna benchmarks e carteira independentes de datas exatas,
  * eliminando problemas de lag D+1 e fins de semana.
  */
-export function usePerformance(period: PerformancePeriod): UsePerformanceResult {
+export function usePerformance(period: PerformancePeriod, walletId?: string): UsePerformanceResult {
   const { user } = useAuth()
   const userId = user?.id
 
   // 1. Série de patrimônio diário + posições snapshot + USD rate
-  const wealth = useWealthHistory(period as WealthPeriod)
+  const wealth = useWealthHistory(period as WealthPeriod, walletId)
 
   // Piso do período selecionado
   const periodFloor = useMemo(
@@ -109,8 +109,8 @@ export function usePerformance(period: PerformancePeriod): UsePerformanceResult 
 
   // 2. Posições completas (com average_price para computeAssetRows)
   const positionsQuery = useQuery<PositionWithAsset[]>({
-    queryKey: ['portfolio', 'positions', userId],
-    queryFn: () => positionService.listPositions(userId as string),
+    queryKey: ['portfolio', 'positions', userId, walletId],
+    queryFn: () => positionService.listPositions(userId as string, walletId),
     enabled: Boolean(userId),
     staleTime: STALE_TIME_MS,
   })

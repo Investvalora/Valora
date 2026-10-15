@@ -90,8 +90,12 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
   const { user } = useAuth()
   const userId = user?.id
 
+  // Só passa walletId para useWealthHistory quando tiver um ID real.
+  // Se for '' (carteira ainda carregando), passa undefined para não bloquear a query.
+  const effectiveWalletId = walletId || undefined
+
   // 1. Série de patrimônio diário + posições snapshot + USD rate
-  const wealth = useWealthHistory(period as WealthPeriod, walletId)
+  const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId)
 
   // Piso do período selecionado
   const periodFloor = useMemo(
@@ -109,8 +113,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
 
   // 2. Posições completas (com average_price para computeAssetRows)
   const positionsQuery = useQuery<PositionWithAsset[]>({
-    queryKey: ['portfolio', 'positions', userId, walletId],
-    queryFn: () => positionService.listPositions(userId as string, walletId),
+    queryKey: ['portfolio', 'positions', userId, effectiveWalletId],
+    queryFn: () => positionService.listPositions(userId as string, effectiveWalletId),
     enabled: Boolean(userId),
     staleTime: STALE_TIME_MS,
   })

@@ -178,7 +178,7 @@ export function computeAssetRows(
   positions: PositionWithAsset[],
   lastPricesMap: Map<string, number>,
   dividendRows: DividendRow[],
-  periodStart?: string,
+  _periodStart?: string,
   periodEnd?: string,
 ): AssetReturnRow[] {
   // Pré-computa proventos por ticker para O(n) em vez de O(n²)
@@ -188,12 +188,11 @@ export function computeAssetRows(
     dividendsByTicker.set(row.ticker, prev + row.total_value)
   }
 
-  // Filtra posições pelo período, se especificado
-  const filteredPositions = periodStart && periodEnd
-    ? positions.filter((p) => {
-        const acquisitionDate = p.acquisition_date
-        return acquisitionDate >= periodStart && acquisitionDate <= periodEnd
-      })
+  // Filtra posições que existiam durante o período:
+  // inclui qualquer posição adquirida antes ou até o fim do período.
+  // Posições compradas depois do período (acquisition_date > periodEnd) são excluídas.
+  const filteredPositions = periodEnd
+    ? positions.filter((p) => p.acquisition_date <= periodEnd)
     : positions
 
   const rows: AssetReturnRow[] = filteredPositions.map((p) => {

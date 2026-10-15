@@ -7,8 +7,6 @@ import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
-import { CarteiraPage } from './modules/portfolio/components/CarteiraPage'
-import { TransactionImportPage } from './modules/portfolio/components/TransactionImportPage'
 import { AlertsPage } from './modules/alerts/components/AlertsPage'
 import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
 import { ProventosPage } from './modules/dividends/components/ProventosPage'
@@ -78,8 +76,6 @@ export function AppRoutes() {
           <Route path="inicio" element={<HomeRoute />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
-          <Route path="carteira"                    element={<CarteiraPage />} />
-          <Route path="carteira/importar-transacoes" element={<TransactionImportPage />} />
           <Route path="patrimonio"                  element={<PatrimonioPage />} />
           <Route path="proventos"                   element={<ProventosPage />} />
           <Route path="rentabilidade"               element={<RentabilidadePage />} />

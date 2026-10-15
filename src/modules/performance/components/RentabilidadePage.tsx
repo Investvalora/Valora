@@ -257,8 +257,8 @@ export function RentabilidadePage() {
           <p className="text-gray-400 text-lg">Nenhuma posição cadastrada</p>
           <p className="text-gray-500 text-sm mt-2">
             Adicione ativos na{' '}
-            <a href="/carteira" className="text-blue-400 underline hover:text-blue-300">
-              Carteira
+            <a href="/ativos" className="text-blue-400 underline hover:text-blue-300">
+              Ativos
             </a>{' '}
             para visualizar a rentabilidade.
           </p>

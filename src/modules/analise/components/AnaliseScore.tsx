@@ -1,11 +1,9 @@
 /**
  * AnaliseScore — sub-rota /analise/score.
- * Regras agrupadas por nome de score em cards, com ações Usar/Editar/Excluir e modal Nova regra.
+ * Regras agrupadas por nome de score em cards, com ações Usar/Editar/Excluir.
  */
-import { useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
-import { Modal } from '../../../shared/components/Modal'
-import { ScoreRuleForm } from '../../score/components/ScoreRuleForm'
+import { useNavigate } from 'react-router-dom'
 import {
   useScoreRules,
   useDeleteScoreRule,
@@ -150,9 +148,7 @@ function ScoreGroupCard({
 
 // ── Componente principal ───────────────────────────────────────────────────
 export function AnaliseScore() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingRule, setEditingRule] = useState<ScoreRule | undefined>(undefined)
-  const [modalBusy, setModalBusy] = useState(false)
+  const navigate = useNavigate()
 
   const { data: rules = [], isLoading } = useScoreRules()
   const { data: preferences } = useScorePreferences()
@@ -164,22 +160,6 @@ export function AnaliseScore() {
   // Agrupa regras por name
   const groups = groupRulesByName(rules)
 
-  function openNewRule() {
-    setEditingRule(undefined)
-    setIsModalOpen(true)
-  }
-
-  function openEditRule(rule: ScoreRule) {
-    setEditingRule(rule)
-    setIsModalOpen(true)
-  }
-
-  function closeModal() {
-    if (modalBusy) return
-    setIsModalOpen(false)
-    setEditingRule(undefined)
-  }
-
   return (
     <div className="flex flex-col gap-5">
       {/* ── Cabeçalho ── */}
@@ -187,7 +167,7 @@ export function AnaliseScore() {
         <h2 className="text-[16px] md:text-[18px] font-semibold text-white">Score Fundamentalista</h2>
         <button
           type="button"
-          onClick={openNewRule}
+          onClick={() => navigate('/analise/score/nova')}
           className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12]"
         >
           + Nova regra
@@ -206,7 +186,7 @@ export function AnaliseScore() {
           <p className="text-[13px] text-white/40">Nenhuma regra criada ainda.</p>
           <button
             type="button"
-            onClick={openNewRule}
+            onClick={() => navigate('/analise/score/nova')}
             className="text-[12px] font-medium text-nf-blue hover:underline"
           >
             Criar primeira regra →
@@ -228,7 +208,7 @@ export function AnaliseScore() {
                 onUseScore={() =>
                   upsertPrefs.mutate({ default_score_rule_id: representativeId })
                 }
-                onEdit={openEditRule}
+                onEdit={(rule) => navigate(`/analise/score/${rule.id}/editar`)}
                 onDelete={(rule) => deleteRule.mutate(rule.id)}
                 upsertPending={upsertPrefs.isPending}
                 deletePending={deleteRule.isPending}
@@ -237,21 +217,6 @@ export function AnaliseScore() {
           })}
         </div>
       )}
-
-      {/* ── Modal Nova/Editar regra ── */}
-      <Modal
-        isOpen={isModalOpen}
-        title={editingRule ? 'Editar regra' : 'Nova regra de score'}
-        onClose={closeModal}
-        dismissible={!modalBusy}
-      >
-        <ScoreRuleForm
-          editingRule={editingRule}
-          onSuccess={closeModal}
-          onCancel={closeModal}
-          onBusyChange={setModalBusy}
-        />
-      </Modal>
     </div>
   )
 }

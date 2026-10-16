@@ -3,7 +3,7 @@
   "short_name": "Valora",
   "description": "Acompanhe suas carteiras de investimentos.",
   "lang": "pt-BR",
-  "start_url": "/carteira",
+  "start_url": "/inicio",
   "scope": "/",
   "display": "standalone",
   "background_color": "#121212",

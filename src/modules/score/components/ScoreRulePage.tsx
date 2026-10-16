@@ -126,6 +126,7 @@ export function ScoreRulePage() {
       }
       await createRule.mutateAsync(payload)
       reset({ operator: 'gte', metric: 'dy', name: '' })
+      setScoreMode('existing')
       setGlobalError('')
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
@@ -189,7 +190,10 @@ export function ScoreRulePage() {
               <div className="bg-[#393939] border border-[#7A7A7A]/50 rounded-[20px] p-[3px] flex mb-3">
                 <button
                   type="button"
-                  onClick={() => setScoreMode('existing')}
+                  onClick={() => {
+                    setScoreMode('existing')
+                    setValue('name', '', { shouldValidate: false })
+                  }}
                   className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${
                     scoreMode === 'existing'
                       ? 'bg-white/[0.16] text-white'
@@ -200,7 +204,10 @@ export function ScoreRulePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setScoreMode('new')}
+                  onClick={() => {
+                    setScoreMode('new')
+                    setValue('name', '', { shouldValidate: false })
+                  }}
                   className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${
                     scoreMode === 'new'
                       ? 'bg-white/[0.16] text-white'

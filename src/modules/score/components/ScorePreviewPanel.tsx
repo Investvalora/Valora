@@ -124,7 +124,7 @@ export function ScorePreviewPanel({
   const newPoints = existingPoints + (points ?? 0)
 
   return (
-    <div className="bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] p-6 w-[420px] flex-shrink-0">
+    <div className="bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] p-6 w-full md:w-[420px] md:flex-shrink-0">
       {/* Card da regra */}
       <div className="bg-[rgba(121,135,255,0.08)] border border-[rgba(121,135,255,0.5)] rounded-[12px] px-[18px] py-[16px] mb-5">
         <p className="text-[#B8C0FF] text-[12px] mb-1 truncate">

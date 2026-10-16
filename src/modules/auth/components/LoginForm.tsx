@@ -26,7 +26,7 @@ export function LoginForm() {
     onSuccess: (data) => {
       setUser(data.user)
       setSession(data.session)
-      navigate('/carteira')
+      navigate('/inicio')
     },
     onError: (error: Error) => {
       console.error('Login error:', error)

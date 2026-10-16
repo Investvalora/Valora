@@ -44,6 +44,7 @@ const DesempenhoProventos     = lazy(() => import('./modules/desempenho/componen
 const AnaliseVisaoGeral = lazy(() => import('./modules/analise/components/AnaliseVisaoGeral').then((m) => ({ default: m.AnaliseVisaoGeral })))
 const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseScore').then((m) => ({ default: m.AnaliseScore })))
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
+const ScoreRulePage  = lazy(() => import('./modules/score/components/ScoreRulePage').then((m) => ({ default: m.ScoreRulePage })))
 
 function HomeRoute() {
   // No mobile o novo fluxo tem a InicioPage normalmente na nav
@@ -109,6 +110,16 @@ export function AppRoutes() {
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>
+
+          {/* ── Score rule pages — irmãs de analise para não herdar tabs ── */}
+          <Route
+            path="analise/score/nova"
+            element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>}
+          />
+          <Route
+            path="analise/score/:id/editar"
+            element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>}
+          />
         </Route>
       </Route>
     </Routes>

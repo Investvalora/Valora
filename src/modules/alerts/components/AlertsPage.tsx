@@ -38,7 +38,7 @@ type AlertConfig = {
 
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-[#393939] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#454545] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
-const inputStyle = 'min-h-12 w-full rounded-xl border border-white/25 bg-[#57575D] px-3.5 py-2.5 text-base text-white placeholder:text-[#A0A0A5] focus:border-nf-blue focus:outline-none focus:ring-1 focus:ring-nf-blue md:min-h-11 md:border-white/[0.12] md:bg-[#131313] md:text-sm md:placeholder:text-nf-muted md:focus:border-nf-purple md:focus:ring-nf-purple'
+const inputStyle = 'min-h-12 w-full rounded-xl border border-white/20 bg-[#57575D] px-3.5 py-2.5 text-base text-white placeholder:text-[#A0A0A5] focus:border-nf-blue focus:outline-none focus:ring-0 md:min-h-11 md:border-white/[0.12] md:bg-[#131313] md:text-sm md:placeholder:text-nf-muted md:focus:border-nf-purple'
 const readButton = 'inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-nf-blue/70 bg-nf-blue/10 px-2 py-2.5 text-center text-sm font-medium text-nf-blue transition-colors hover:bg-nf-blue/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue disabled:cursor-not-allowed disabled:opacity-50 md:border-white/[0.12] md:bg-white/[0.04] md:text-white md:hover:bg-white/[0.09] md:focus-visible:ring-nf-purple'
 
 function triggerHapticFeedback() {
@@ -306,13 +306,18 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="form-title"
-      className="alert-price-sheet min-h-[72dvh] max-h-[100dvh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-[#45454B] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.25)] md:min-h-0 md:max-h-none md:rounded-[14px] md:border md:border-white/[0.08] md:bg-nf-surface md:p-6 md:shadow-none"
+      className="alert-price-sheet min-h-[72dvh] max-h-[100dvh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-[#45454B] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.25)] md:h-[100dvh] md:min-h-0 md:max-h-[100dvh] md:w-[min(100vw,440px)] md:rounded-none md:border-l md:border-white/[0.08] md:bg-nf-surface md:p-8 md:shadow-[-20px_0_60px_rgba(0,0,0,0.3)]"
     >
       <span aria-hidden="true" className="mx-auto mb-5 block h-1 w-9 rounded-full bg-white/35 md:hidden" />
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 id="form-title" className="text-xl font-semibold text-white md:text-xl">
-          Novo alerta de preço
-        </h2>
+      <div className="mb-5 flex items-start justify-between gap-3 md:mb-8">
+        <div>
+          <h2 id="form-title" className="text-xl font-semibold text-white md:text-2xl">
+            Novo alerta de preço
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-300 md:text-nf-muted">
+            Escolha um ativo e o preço que deseja acompanhar.
+          </p>
+        </div>
         <button
           type="button"
           onClick={onClose}
@@ -465,7 +470,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
           <button
             type="submit"
             disabled={createAlert.isPending}
-            className="inline-flex min-h-12 flex-[2] items-center justify-center rounded-xl bg-[#3273B1] px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3D82C3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 md:min-h-11 md:rounded-xl md:border md:border-white/[0.1] md:bg-[#393939] md:hover:bg-[#454545]"
+            className="inline-flex min-h-12 flex-[2] items-center justify-center rounded-xl bg-[#3273B1] px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3D82C3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50 md:min-h-11 md:bg-nf-purple md:text-[#131313] md:hover:bg-[#D2A8FF] md:focus-visible:ring-nf-purple"
           >
             {createAlert.isPending ? 'Criando...' : 'Criar alerta'}
           </button>
@@ -617,7 +622,7 @@ export function AlertsPage() {
       {/* Formulário de criação */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 flex min-h-[100svh] min-h-[100dvh] items-end bg-black/70 md:static md:z-auto md:mb-6 md:block md:min-h-0 md:bg-transparent"
+          className="fixed inset-0 z-50 flex min-h-[100svh] min-h-[100dvh] items-end bg-black/70 md:items-stretch md:justify-end md:bg-black/55"
           onClick={(event) => {
             if (event.target === event.currentTarget) setShowForm(false)
           }}

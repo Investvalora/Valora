@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -88,6 +88,29 @@ describe('AlertsPage', () => {
     expect(mocks.update).toHaveBeenCalledWith({ alertId: 'alert-1', status: 'lido' })
     fireEvent.click(screen.getByRole('button', { name: 'Ignorar' }))
     expect(mocks.update).toHaveBeenCalledWith({ alertId: 'alert-1', status: 'ignorado' })
+  })
+
+  it('distingue alertas novos, monitorados, lidos e ignorados sem apagar os ativos', () => {
+    mocks.alerts = [
+      { id: 'new', type: 'stale_quote', ticker: 'PETR4', status: 'novo', title: 'Cotação nova', description: 'Nova', created_at: '2026-09-20T10:00:00Z' },
+      { id: 'monitoring', type: 'price_target', ticker: 'VALE3', status: 'lido', title: 'Preço monitorado', description: 'Ativo', created_at: '2026-09-19T10:00:00Z' },
+      { id: 'read', type: 'opportunity', ticker: 'ITUB4', status: 'lido', title: 'Oportunidade lida', description: 'Lida', created_at: '2026-09-18T10:00:00Z' },
+      { id: 'ignored', type: 'overvalued', ticker: 'BBDC4', status: 'ignorado', title: 'Alerta ignorado', description: 'Arquivado', created_at: '2026-09-17T10:00:00Z' },
+    ]
+
+    renderPage()
+    const fresh = screen.getByRole('article', { name: 'Cotação nova' })
+    const monitoring = screen.getByRole('article', { name: 'Preço monitorado' })
+    const read = screen.getByRole('article', { name: 'Oportunidade lida' })
+    const ignored = screen.getByRole('article', { name: 'Alerta ignorado' })
+
+    expect(within(fresh).getByText('Novo')).toHaveClass('text-nf-blue')
+    expect(within(monitoring).getByText('Monitorando')).toHaveClass('text-nf-green')
+    expect(monitoring).not.toHaveClass('opacity-75', 'opacity-60')
+    expect(within(read).getByText('Lido')).toHaveClass('text-zinc-300')
+    expect(read).toHaveClass('opacity-75')
+    expect(within(ignored).getByText('Ignorado')).toHaveClass('text-nf-pink')
+    expect(ignored).toHaveClass('opacity-60')
   })
 
   it('mantém a lista tratável quando a consulta falha', () => {

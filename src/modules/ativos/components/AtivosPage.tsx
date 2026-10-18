@@ -37,7 +37,7 @@ export function AtivosPage() {
       </div>
 
       {/* ── Sub-tabs ── */}
-      <SubTabBar tabs={ATIVOS_TABS} />
+      <SubTabBar tabs={ATIVOS_TABS} mobileVariant="segmented" />
 
       {/* ── Conteúdo da sub-rota ── */}
       <Outlet />

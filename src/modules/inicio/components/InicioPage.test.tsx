@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import { InicioPage } from './InicioPage'
 
 let walletId = 'wallet-a'
+let isMobile = false
 const dashboardByWallet: Record<string, DashboardData> = {
   'wallet-a': {
     totalPatrimonioBRL: 4872,
@@ -45,10 +47,25 @@ vi.mock('../../portfolio/hooks/useWallets', () => ({
 vi.mock('../../dashboard/hooks/useDashboard', () => ({
   useDashboard: (id: string) => dashboardByWallet[id],
 }))
+vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => isMobile }))
+vi.mock('../../portfolio/components/MobileCarteiraHome', () => ({
+  MobileCarteiraHome: ({ dashboard, onAddTransaction, children }: { dashboard: DashboardData; onAddTransaction: () => void; children: ReactNode }) => (
+    <section>
+      <h1>Carteiras mobile</h1>
+      <p>Patrimônio mobile: {dashboard.totalPatrimonioBRL}</p>
+      <button type="button" onClick={onAddTransaction}>+ Lançamento</button>
+      {children}
+    </section>
+  ),
+}))
+vi.mock('../../portfolio/components/QuickTransactionModal', () => ({
+  QuickTransactionModal: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div role="dialog" aria-label="Novo lançamento">Novo lançamento</div> : null,
+}))
 vi.mock('./AlertasRecentes', () => ({ AlertasRecentes: () => <div>Alertas recentes</div> }))
 
 describe('Início', () => {
   it('usa os valores da carteira selecionada em vez dos exemplos antigos', () => {
+    isMobile = false
     walletId = 'wallet-a'
     const { rerender } = render(<MemoryRouter><InicioPage /></MemoryRouter>)
 
@@ -63,5 +80,25 @@ describe('Início', () => {
     expect(screen.getByText('R$ 1.000,00')).toBeInTheDocument()
     expect(screen.getByText(/Reserva/)).toBeInTheDocument()
     expect(screen.queryByText('R$ 4.872,00')).not.toBeInTheDocument()
+  })
+
+  it('restaura a tela de carteiras no início mobile e atualiza os dados ao trocar de carteira', () => {
+    isMobile = true
+    walletId = 'wallet-a'
+    const { rerender } = render(<MemoryRouter><InicioPage /></MemoryRouter>)
+
+    expect(screen.getByRole('heading', { name: 'Carteiras mobile' })).toBeInTheDocument()
+    expect(screen.getByText('Patrimônio mobile: 4872')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).parentElement?.parentElement).toHaveClass('pb-20')
+    expect(screen.getByRole('link', { name: /Ativos Ver ativos da carteira/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Desempenho Rentabilidade/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Análise Ver análises/ })).toBeInTheDocument()
+
+    walletId = 'wallet-b'
+    rerender(<MemoryRouter><InicioPage /></MemoryRouter>)
+    expect(screen.getByText('Patrimônio mobile: 1000')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Lançamento' }))
+    expect(screen.getByRole('dialog', { name: 'Novo lançamento' })).toBeInTheDocument()
   })
 })

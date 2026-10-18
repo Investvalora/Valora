@@ -13,6 +13,9 @@ interface ModalProps {
    * apareceria no próximo carregamento.
    */
   dismissible?: boolean
+  variant?: 'default' | 'wallet' | 'score'
+  closing?: boolean
+  initialFocusSelector?: string
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -32,9 +35,12 @@ const FOCUSABLE_SELECTOR = [
  * Não usa `<dialog>` nativo porque o suporte a estilização do backdrop ainda
  * é irregular e o fechamento nativo por Escape escapa ao controle do React.
  */
-export function Modal({ isOpen, title, onClose, children, dismissible = true }: ModalProps) {
+export function Modal({ isOpen, title, onClose, children, dismissible = true, variant = 'default', closing = false, initialFocusSelector }: ModalProps) {
+  const isSheet = variant === 'wallet' || variant === 'score'
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const initialFocusRef = useRef(initialFocusSelector)
+  initialFocusRef.current = initialFocusSelector
   const titleId = useId()
 
   const getFocusable = useCallback((): HTMLElement[] => {
@@ -56,13 +62,22 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null
 
     const focusable = getFocusable()
-    const target = focusable.length > 0 ? focusable[0] : dialogRef.current
+    const preferred = initialFocusRef.current
+      ? dialogRef.current?.querySelector<HTMLElement>(initialFocusRef.current)
+      : null
+    const target = preferred ?? (focusable.length > 0 ? focusable[0] : dialogRef.current)
     target?.focus()
 
     return () => {
       previouslyFocusedRef.current?.focus()
     }
   }, [isOpen, getFocusable])
+
+  useEffect(() => {
+    if (isOpen && !closing && initialFocusSelector) {
+      dialogRef.current?.querySelector<HTMLElement>(initialFocusSelector)?.focus()
+    }
+  }, [isOpen, closing, initialFocusSelector])
 
   // Impede a página de fundo de rolar sob o modal.
   useEffect(() => {
@@ -128,7 +143,10 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center"
+      className={isSheet
+        ? 'wallet-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/70 md:items-stretch md:justify-end'
+        : 'fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center'}
+      data-closing={isSheet ? closing : undefined}
       // `mousedown` no overlay, e não `click`, para que arrastar de dentro do
       // diálogo e soltar no overlay não feche o modal.
       onMouseDown={(event) => {
@@ -142,7 +160,9 @@ export function Modal({ isOpen, title, onClose, children, dismissible = true }: 
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#121212] shadow-xl focus:outline-none"
+        className={isSheet
+          ? `wallet-modal-panel max-h-[calc(100dvh-env(safe-area-inset-top))] w-full overflow-x-hidden overflow-y-auto rounded-t-3xl border border-zinc-800 bg-[#121212] pb-[env(safe-area-inset-bottom)] shadow-xl focus:outline-none md:max-h-none md:h-dvh md:rounded-none md:border-y-0 md:border-r-0 md:bg-[#1c1c1c]/95 md:backdrop-blur-md md:pb-0 ${variant === 'score' ? 'md:w-[min(100vw,520px)]' : 'md:w-[min(100vw,400px)]'}`
+          : 'max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#121212] shadow-xl focus:outline-none'}
       >
         <div className="flex items-start justify-between gap-4 border-b border-zinc-800 p-6">
           <h2 id={titleId} className="text-xl font-bold text-white">

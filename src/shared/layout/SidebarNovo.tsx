@@ -104,8 +104,8 @@ export function SidebarNovo({
             className={({ isActive }) => `
               group/item relative flex items-center rounded-xl py-2.5
               text-[14px] font-medium
-              transition-all duration-150
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30
+              outline-none ring-0 transition-colors duration-150
+              focus:outline-none focus:ring-0 focus-visible:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-0
               ${compact ? 'justify-center px-0' : 'gap-3.5 px-3'}
               ${
                 isActive

@@ -93,6 +93,7 @@ function CompositionDonut({
     <svg
       width={size}
       height={size}
+      className="max-w-full h-auto"
       viewBox={`${-vbOffset} ${-vbOffset} ${viewBoxSize} ${viewBoxSize}`}
       aria-label="Gráfico de composição da carteira"
       role="img"
@@ -175,8 +176,21 @@ function ClassList({ slices }: { slices: AssetClassSlice[] }) {
 
         return (
           <div key={s.type} className="flex flex-col gap-1.5">
+            <div className="space-y-1.5 md:hidden">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-white/80">{s.label}</span>
+                <span className="shrink-0 text-[12px] text-white/60 tabular-nums">{fmtPct(s.percent).replace('+', '')}</span>
+              </div>
+              <div className="flex min-w-0 items-center justify-between gap-2 pl-[18px]">
+                <span className="min-w-0 truncate text-[11px] text-white/40">
+                  {s.topTicker}{isIntl ? ' · Internacional' : ''}
+                </span>
+                <span className="shrink-0 text-[12px] font-medium text-white tabular-nums">{fmtMoney(s.valueBRL)}</span>
+              </div>
+            </div>
             {/* Linha principal */}
-            <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 md:flex">
               {/* Dot colorido */}
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -327,16 +341,27 @@ export function AtivosComposicao() {
       </div>
 
       {/* ── Card de composição ── */}
-      <PanelCard>
+      <PanelCard padding="p-4 md:p-6">
         {/* Cabeçalho */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <h2 className="text-[14px] font-semibold text-white">
             Composição por classe
           </h2>
 
           {/* Toggle segmentado */}
-          <div className="flex items-center gap-4">
-            <div className="flex rounded-full border border-white/[0.12] bg-white/[0.04] p-0.5">
+          <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4">
+            <div className="md:hidden">
+              <label htmlFor="composition-view" className="mb-1.5 block text-xs text-white/50">Visualizar por</label>
+              <select
+                id="composition-view"
+                value={activeToggle}
+                onChange={(event) => setActiveToggle(event.target.value as ToggleOption)}
+                className="min-h-11 w-full rounded-xl border border-white/[0.12] bg-[#262626] px-3 text-sm text-white focus:border-nf-blue focus:outline-none"
+              >
+                {TOGGLE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+            <div className="hidden rounded-full border border-white/[0.12] bg-white/[0.04] p-0.5 md:flex">
               {TOGGLE_OPTIONS.map((opt) => (
                 <button
                   key={opt}
@@ -354,24 +379,25 @@ export function AtivosComposicao() {
             </div>
 
             {/* Switch posição ideal */}
-            <label className="flex cursor-pointer items-center gap-2">
-              <span className="text-[12px] text-white/50">Exibir posição ideal</span>
+            <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 md:min-h-0 md:justify-start md:rounded-none md:border-0 md:bg-transparent md:px-0">
+              <span id="ideal-position-label" className="min-w-0 text-[12px] text-white/60 md:text-white/50">Exibir posição ideal</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={showIdeal}
+                aria-labelledby="ideal-position-label"
                 onClick={() => setShowIdeal((v) => !v)}
-                className={`relative h-5 w-9 rounded-full transition-colors ${
+                className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue ${
                   showIdeal ? 'bg-nf-blue' : 'bg-white/[0.12]'
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    showIdeal ? 'translate-x-4' : 'translate-x-0.5'
+                  className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                    showIdeal ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />
               </button>
-            </label>
+            </div>
           </div>
         </div>
 
@@ -396,7 +422,7 @@ export function AtivosComposicao() {
             </div>
 
             {/* Lista */}
-            <div className="flex-1 min-w-0">
+            <div className="w-full min-w-0 flex-1">
               <ClassList slices={visibleSlices} />
             </div>
           </div>

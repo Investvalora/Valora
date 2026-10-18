@@ -78,15 +78,39 @@ const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
 function AlertCard({ alert }: { alert: Alert }) {
   const updateStatus = useUpdateAlertStatus()
   const isIgnored = alert.status === 'ignorado'
+  const isMonitoring = alert.status === 'lido' && alert.type === 'price_target'
+  const isRead = alert.status === 'lido' && !isMonitoring
   const config = ALERT_CONFIG[alert.type] ?? ALERT_CONFIG.position_no_transactions
   const { Icon } = config
+  const statusLabel = alert.status === 'novo'
+    ? 'Novo'
+    : isMonitoring
+      ? 'Monitorando'
+      : isRead
+        ? 'Lido'
+        : 'Ignorado'
+  const statusStyle = alert.status === 'novo'
+    ? 'border-nf-blue/50 bg-nf-blue/15 text-nf-blue'
+    : isMonitoring
+      ? 'border-nf-green/50 bg-nf-green/10 text-nf-green'
+      : isRead
+        ? 'border-zinc-400/35 bg-zinc-400/10 text-zinc-300'
+        : 'border-nf-pink/35 bg-nf-pink/10 text-nf-pink'
 
   // Alerta price_target disparado (novo) → mostra pergunta de confirmação
   const isPriceTargetTriggered = alert.type === 'price_target' && alert.status === 'novo'
 
   return (
     <article
-      className="rounded-xl border border-white/[0.18] bg-[#131313] p-4 md:rounded-[14px] md:border-white/[0.08] md:bg-nf-surface md:p-5"
+      className={`rounded-xl border bg-[#131313] p-4 transition-opacity duration-200 md:rounded-[14px] md:bg-nf-surface md:p-5 ${
+        isIgnored
+          ? 'border-white/[0.08] opacity-60 hover:opacity-100 focus-within:opacity-100'
+          : isRead
+            ? 'border-white/[0.1] opacity-75 hover:opacity-100 focus-within:opacity-100'
+            : isMonitoring
+              ? 'border-nf-green/25'
+              : 'border-nf-blue/25'
+      }`}
       aria-label={alert.title}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -117,19 +141,9 @@ function AlertCard({ alert }: { alert: Alert }) {
         </div>
 
         <span
-          className={`rounded-full border px-2 py-1 text-xs ${
-            alert.status === 'novo'
-              ? 'border-nf-blue/60 bg-nf-blue/10 text-nf-blue'
-              : 'border-white/[0.12] text-zinc-300'
-          }`}
+          className={`rounded-full border px-2 py-1 text-xs font-medium ${statusStyle}`}
         >
-          {alert.status === 'novo'
-            ? 'Novo'
-            : alert.status === 'lido'
-              ? alert.type === 'price_target'
-                ? 'Monitorando'
-                : 'Lido'
-              : 'Ignorado'}
+          {statusLabel}
         </span>
       </div>
 

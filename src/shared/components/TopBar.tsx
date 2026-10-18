@@ -1,6 +1,5 @@
 import { Bell, CalendarDays, ChevronDown, Plus } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../modules/auth/hooks/useAuth'
+import { Link } from 'react-router-dom'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
 type TopBarProps = {
@@ -14,19 +13,6 @@ export function TopBar({
   alertCount = 0,
   onNovoLancamento,
 }: TopBarProps) {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-
-  const fullName = user?.user_metadata?.full_name
-  const initials =
-    typeof fullName === 'string' && fullName.trim()
-      ? fullName
-          .split(' ')
-          .slice(0, 2)
-          .map((w: string) => w[0]?.toUpperCase() ?? '')
-          .join('')
-      : (user?.email?.[0]?.toUpperCase() ?? 'S')
-
   return (
     <header className="relative z-40 hidden h-[58px] shrink-0 items-center justify-between bg-[#131313] px-10 md:flex">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-full h-7">
@@ -36,10 +22,7 @@ export function TopBar({
       {/* ── Filtros globais ── */}
       <div className="flex items-center gap-3">
         {/* Seletor de carteira */}
-        <WalletMorphSelector
-          onNewWallet={() => navigate('/conta')}
-          onManageWallets={() => navigate('/conta')}
-        />
+        <WalletMorphSelector />
 
         {/* Seletor de período */}
         <button
@@ -102,19 +85,6 @@ export function TopBar({
           Lançamento
         </button>
 
-        {/* Avatar */}
-        <button
-          type="button"
-          aria-label="Perfil"
-          className="
-            grid h-8 w-8 place-items-center rounded-full
-            bg-[#A66AF4]
-            text-[13px] font-medium text-white
-            transition-opacity hover:opacity-80
-          "
-        >
-          {initials}
-        </button>
       </div>
     </header>
   )

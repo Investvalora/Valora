@@ -1,8 +1,8 @@
 /**
- * ScoreRulePage — página dedicada de criação e edição de regra de score.
+ * ScoreRulePage — editor modal de criação e edição de regra de score.
  * Rota: /analise/score/nova  e  /analise/score/:id/editar
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,10 +16,12 @@ import {
 import { METRIC_LABELS, OPERATOR_LABELS } from '../types'
 import type { ScoreMetric, ScoreOperator, ScoreRule } from '../types'
 import { ScorePreviewPanel } from './ScorePreviewPanel'
+import { Modal } from '../../../shared/components/Modal'
+import { AnaliseScore } from '../../analise/components/AnaliseScore'
 
 // ── Classe CSS compartilhadas ──────────────────────────────────────────────
 const INPUT_CLASS =
-  'bg-[#585960] border border-[#7B7C83] rounded-[9px] h-[42px] px-3 text-white text-[14px] w-full focus:outline-none focus:ring-1 focus:ring-[rgba(121,135,255,0.5)]'
+  'h-11 w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 text-sm text-white focus:border-nf-blue/60 focus:outline-none focus:ring-1 focus:ring-nf-blue/30'
 
 const LABEL_CLASS = 'text-white/60 text-[12px] mb-1.5 block'
 
@@ -30,6 +32,18 @@ export function ScoreRulePage() {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
   const isEditing = Boolean(id)
+  const [isOpen, setIsOpen] = useState(true)
+  const navigationTimer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current)
+  }, [])
+
+  function finishAndReturn() {
+    if (navigationTimer.current !== null) return
+    setIsOpen(false)
+    navigationTimer.current = window.setTimeout(() => navigate('/analise/score'), 300)
+  }
 
   const { data: rules = [], isLoading: rulesLoading } = useScoreRules()
   const createRule = useCreateScoreRule()
@@ -46,6 +60,10 @@ export function ScoreRulePage() {
   // Nomes de scores existentes para o select
   const scoreGroups = groupRulesByName(rules)
   const scoreNames = Array.from(scoreGroups.keys())
+
+  useEffect(() => {
+    if (!rulesLoading && !isEditing && scoreNames.length === 0) setScoreMode('new')
+  }, [rulesLoading, isEditing, scoreNames.length])
 
   const [globalError, setGlobalError] = useState('')
   const isSaving = createRule.isPending || updateRule.isPending
@@ -98,6 +116,7 @@ export function ScoreRulePage() {
     : []
 
   const onSubmit = handleSubmit(async (values) => {
+    if (!isOpen) return
     setGlobalError('')
     try {
       const payload = {
@@ -110,7 +129,7 @@ export function ScoreRulePage() {
       } else {
         await createRule.mutateAsync(payload)
       }
-      navigate('/analise/score')
+      finishAndReturn()
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
       console.error(err)
@@ -118,6 +137,7 @@ export function ScoreRulePage() {
   })
 
   const onSubmitAndAddAnother = handleSubmit(async (values) => {
+    if (!isOpen) return
     setGlobalError('')
     try {
       const payload = {
@@ -137,64 +157,47 @@ export function ScoreRulePage() {
   // Estado de carregamento na edição (regra ainda não chegou)
   if (isEditing && rulesLoading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <span className="text-sm text-white/40 animate-pulse">Carregando…</span>
-      </div>
+      <><AnaliseScore /><Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}><p className="py-8 text-center text-sm text-white/50">Carregando regra…</p></Modal></>
     )
   }
 
   if (isEditing && !rulesLoading && !editingRule) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <p className="text-white/50 text-[14px]">Regra não encontrada.</p>
-        <button
-          type="button"
-          onClick={() => navigate('/analise/score')}
-          className="text-[13px] font-medium text-[#2B6DB0] hover:underline"
-        >
-          ← Voltar para Score
-        </button>
-      </div>
+      <><AnaliseScore /><Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}><p className="py-8 text-center text-sm text-white/50">Regra não encontrada.</p></Modal></>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6 px-1 pb-10">
-      {/* ── Cabeçalho ── */}
-      <div>
-        <button
-          type="button"
-          onClick={() => navigate('/analise/score')}
-          className="flex items-center gap-1.5 text-[#8F8F8F] text-[13px] mb-4 hover:text-white transition-colors"
-        >
-          ← Análise › Score Fundamentalista
-        </button>
-        <h1 className="text-white text-[32px] font-bold leading-tight">
-          {isEditing ? 'Editar regra de score' : 'Nova regra de score'}
-        </h1>
-        <p className="text-white/50 text-[14px] mt-1">
+    <>
+      <AnaliseScore />
+      <Modal
+        isOpen
+        title={isEditing ? 'Editar regra de score' : 'Nova regra de score'}
+        onClose={finishAndReturn}
+        dismissible={!isSaving && isOpen}
+        variant="score"
+        closing={!isOpen}
+        initialFocusSelector={scoreMode === 'new' ? '#score-name' : '#score-name-select'}
+      >
+        <p className="mb-6 text-sm text-white/50">
           Defina as condições e pontuação para avaliar seus ativos.
         </p>
-      </div>
-
-      {/* ── Layout principal ── */}
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        {/* ── Painel esquerdo — form ── */}
-        <div className="flex-1 min-w-0 bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] p-7">
-          <h2 className="text-white font-semibold text-[16px] mb-5">Dados da regra</h2>
+      <div className="flex flex-col gap-6">
+        <div className="min-w-0">
+          <h2 className="mb-5 text-base font-semibold text-white">Dados da regra</h2>
 
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             {/* ── Toggle: score existente / novo ── */}
             <div>
               <label className={LABEL_CLASS}>Em qual score esta regra entra?</label>
-              <div className="bg-[#393939] border border-[#7A7A7A]/50 rounded-[20px] p-[3px] flex mb-3">
+              <div className="mb-3 flex rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
                 <button
                   type="button"
                   onClick={() => {
                     setScoreMode('existing')
                     setValue('name', '', { shouldValidate: false })
                   }}
-                  className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${
+                  className={`flex-1 rounded-lg px-2 py-2 text-center text-xs font-medium transition-colors ${
                     scoreMode === 'existing'
                       ? 'bg-white/[0.16] text-white'
                       : 'text-[#8F8F8F]'
@@ -208,7 +211,7 @@ export function ScoreRulePage() {
                     setScoreMode('new')
                     setValue('name', '', { shouldValidate: false })
                   }}
-                  className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${
+                  className={`flex-1 rounded-lg px-2 py-2 text-center text-xs font-medium transition-colors ${
                     scoreMode === 'new'
                       ? 'bg-white/[0.16] text-white'
                       : 'text-[#8F8F8F]'
@@ -264,7 +267,7 @@ export function ScoreRulePage() {
             </div>
 
             {/* ── Métrica + Operador ── */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
               <div>
                 <label htmlFor="score-metric" className={LABEL_CLASS}>
                   Métrica
@@ -313,7 +316,7 @@ export function ScoreRulePage() {
             </div>
 
             {/* ── Threshold min + Pontos ── */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
               <div>
                 <label htmlFor="score-threshold-min" className={LABEL_CLASS}>
                   {isBetween ? 'Valor mínimo' : 'Valor de referência'}
@@ -397,12 +400,12 @@ export function ScoreRulePage() {
             <hr className="border-none bg-white/[0.08] h-px w-full my-1" />
 
             {/* ── Botões ── */}
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
               <button
                 type="submit"
                 disabled={isSaving}
                 aria-busy={isSaving}
-                className="bg-[#2B6DB0] h-[46px] px-[18px] rounded-[8px] text-white font-semibold text-[15px] hover:bg-[#2460A0] transition-colors disabled:opacity-50"
+                className="min-h-11 flex-1 rounded-xl bg-nf-blue px-4 text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:opacity-50"
               >
                 {isSaving
                   ? 'Salvando…'
@@ -417,7 +420,7 @@ export function ScoreRulePage() {
                   disabled={isSaving}
                   aria-busy={isSaving}
                   onClick={onSubmitAndAddAnother}
-                  className="border border-white/25 h-[46px] px-[18px] rounded-[8px] text-white font-medium text-[14px] hover:bg-white/[0.05] transition-colors disabled:opacity-50"
+                  className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-medium text-white transition-colors hover:bg-white/[0.06] disabled:opacity-50"
                 >
                   Criar e adicionar outra
                 </button>
@@ -425,8 +428,9 @@ export function ScoreRulePage() {
 
               <button
                 type="button"
-                onClick={() => navigate('/analise/score')}
-                className="border border-white/25 h-[46px] px-[18px] rounded-[8px] text-white font-medium text-[15px] hover:bg-white/[0.05] transition-colors"
+                onClick={finishAndReturn}
+                disabled={isSaving}
+                className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -434,8 +438,8 @@ export function ScoreRulePage() {
           </form>
         </div>
 
-        {/* ── Painel direito — preview ── */}
-        <div className="w-full md:w-auto">
+        <section aria-label="Prévia da regra" className="border-t border-white/[0.08] pt-5">
+          <h2 className="mb-3 text-sm font-semibold text-white">Prévia da regra</h2>
           <ScorePreviewPanel
             scoreName={watchedName}
             metric={watchedMetric as ScoreMetric | ''}
@@ -459,8 +463,9 @@ export function ScoreRulePage() {
             }
             existingRulesInScore={existingRulesInScore}
           />
-        </div>
+        </section>
       </div>
-    </div>
+      </Modal>
+    </>
   )
 }

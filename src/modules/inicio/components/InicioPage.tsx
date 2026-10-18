@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { KpiCard } from '../../../shared/components/KpiCard'
@@ -7,6 +8,9 @@ import { EvolucaoChart } from './EvolucaoChart'
 import { AlertasRecentes } from './AlertasRecentes'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
+import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHome'
+import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -22,6 +26,8 @@ function percentage(value: number | null) {
 }
 
 export function InicioPage() {
+  const isMobile = useIsMobile()
+  const [isQuickTransactionOpen, setIsQuickTransactionOpen] = useState(false)
   const { user } = useAuth()
   const { selectedWallet } = useWallets()
   const dashboard = useDashboard(selectedWallet?.id ?? '')
@@ -37,10 +43,10 @@ export function InicioPage() {
     month: 'long',
   })
 
-  return (
-    <div className="flex flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
+  const content = (
+    <div className="flex flex-col gap-5 px-4 md:px-0 md:pt-2">
       {/* ── Saudação ── */}
-      <div className="flex items-end py-6 md:py-8">
+      <div className="flex items-end pb-20 pt-5 md:py-8">
         <div>
           {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
               maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
@@ -155,6 +161,23 @@ export function InicioPage() {
         />
       </div>
     </div>
+  )
+
+  if (!isMobile) return content
+
+  return (
+    <>
+      <MobileCarteiraHome
+        dashboard={dashboard}
+        onAddTransaction={() => setIsQuickTransactionOpen(true)}
+      >
+        {content}
+      </MobileCarteiraHome>
+      <QuickTransactionModal
+        isOpen={isQuickTransactionOpen}
+        onClose={() => setIsQuickTransactionOpen(false)}
+      />
+    </>
   )
 }
 

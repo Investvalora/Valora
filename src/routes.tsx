@@ -20,6 +20,7 @@ import { InicioPage } from './modules/inicio/components/InicioPage'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
+import { WalletsPage } from './modules/portfolio/components/WalletsPage'
 
 // ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
 const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
@@ -75,6 +76,7 @@ export function AppRoutes() {
 
           {/* Novo fluxo */}
           <Route path="inicio" element={<HomeRoute />} />
+          <Route path="carteiras" element={<WalletsPage />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
           <Route path="patrimonio"                  element={<PatrimonioPage />} />
@@ -108,18 +110,10 @@ export function AppRoutes() {
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
+            <Route path="score/nova" element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
+            <Route path="score/:id/editar" element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>
-
-          {/* ── Score rule pages — irmãs de analise para não herdar tabs ── */}
-          <Route
-            path="analise/score/nova"
-            element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>}
-          />
-          <Route
-            path="analise/score/:id/editar"
-            element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>}
-          />
         </Route>
       </Route>
     </Routes>

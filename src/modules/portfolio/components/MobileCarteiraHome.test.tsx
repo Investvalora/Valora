@@ -127,6 +127,33 @@ describe('Carteira inicial no celular', () => {
     expect(screen.getByRole('heading', { name: 'Olá, Samuel' })).toBeInTheDocument()
   })
 
+  it('mantém o conteúdo atual do início enquanto reconecta o seletor lateral', () => {
+    currentWallets = [wallet, secondWallet]
+    render(
+      <MemoryRouter>
+        <MobileCarteiraHome dashboard={dashboard} onAddTransaction={vi.fn()}>
+          <div><h1>Início atual</h1><a href="/ativos">Ativos</a></div>
+        </MobileCarteiraHome>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Início atual' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ativos' })).toBeInTheDocument()
+    const avatar = screen.getByRole('link', { name: 'Abrir minha conta' })
+    expect(avatar.closest('[data-testid="wallet-slide-track"]')).toBeNull()
+    expect(screen.getAllByTestId('wallet-card')).toHaveLength(2)
+
+    const page = screen.getByRole('heading', { name: 'Início atual' }).closest('section')!
+    fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
+    fireEvent.touchEnd(page, { changedTouches: [{ clientX: 100, clientY: 160 }] })
+
+    expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abrir minha conta' })).toBe(avatar)
+    fireEvent.click(screen.getByRole('button', { name: 'Selecionar Reserva' }))
+    expect(selectWallet).toHaveBeenCalledWith('wallet-2')
+    expect(screen.getByRole('heading', { name: 'Início atual' })).toBeInTheDocument()
+  })
+
   it('mostra uma faixa por carteira real, começando pela principal', () => {
     currentWallets = [secondWallet, wallet]
     renderHome()
@@ -146,6 +173,27 @@ describe('Carteira inicial no celular', () => {
     expect(cards[1].style.top).toBe('340px')
   })
 
+  it('mostra no máximo três carteiras na pilha inicial e mantém todas na tela lateral', () => {
+    currentWallets = [wallet, secondWallet, ...Array.from({ length: 4 }, (_, index) => ({
+      ...secondWallet,
+      id: `wallet-${index + 3}`,
+      name: `Carteira ${index + 3}`,
+      created_at: `2026-0${index + 3}-01T00:00:00Z`,
+    }))]
+    renderHome()
+
+    const cards = screen.getAllByTestId('wallet-card')
+    expect(cards).toHaveLength(6)
+    expect(cards.slice(0, 3).every((card) => card.style.opacity === '1')).toBe(true)
+    expect(cards.slice(3).every((card) => card.style.opacity === '0')).toBe(true)
+    expect(cards[3].style.pointerEvents).toBe('none')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver e selecionar carteiras: 6' }))
+    expect(cards.every((card) => card.style.opacity === '1')).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Selecionar Carteira 6' }))
+    expect(selectWallet).toHaveBeenCalledWith('wallet-6')
+  })
+
   it('não desenha faixas quando não há carteiras carregadas', () => {
     currentWallets = []
     renderHome()
@@ -160,6 +208,8 @@ describe('Carteira inicial no celular', () => {
     fireEvent.click(screen.getByRole('button', { name: '+ Carteira' }))
 
     expect(await screen.findByRole('dialog', { name: 'Nova carteira' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Nova carteira' })).toHaveClass('wallet-modal-panel')
+    expect(screen.getByLabelText('Nome da carteira')).toHaveFocus()
     expect(screen.getAllByRole('radio')).toHaveLength(8)
 
     fireEvent.change(screen.getByLabelText('Nome da carteira'), {
@@ -169,7 +219,7 @@ describe('Carteira inicial no celular', () => {
 
     const previewName = screen.getByLabelText('Nome da carteira')
     expect(previewName).toHaveValue('Reserva')
-    expect(previewName.parentElement).toHaveStyle({ backgroundColor: '#ea72aa' })
+    expect(previewName.parentElement?.style.backgroundColor).toContain('rgba(234, 114, 170,')
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }))
     await waitFor(() => {

@@ -185,3 +185,44 @@ body {
     height: 0;
   }
 }
+
+@keyframes wallet-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wallet-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes wallet-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes wallet-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes wallet-drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes wallet-drawer-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+.wallet-modal-overlay { animation: wallet-overlay-in 300ms ease-out both; }
+.wallet-modal-overlay[data-closing='true'] { animation: wallet-overlay-out 300ms ease-in both; }
+
+@media (max-width: 767px) {
+  .wallet-modal-panel { animation: wallet-sheet-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .wallet-modal-overlay[data-closing='true'] .wallet-modal-panel { animation: wallet-sheet-out 300ms ease-in both; }
+}
+
+@media (min-width: 768px) {
+  .wallet-modal-panel { animation: wallet-drawer-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .wallet-modal-overlay[data-closing='true'] .wallet-modal-panel { animation: wallet-drawer-out 300ms ease-in both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-modal-overlay,
+  .wallet-modal-panel,
+  .wallet-modal-overlay[data-closing='true'],
+  .wallet-modal-overlay[data-closing='true'] .wallet-modal-panel { animation: none; }
+}
+
+.wallet-selector-scroll {
+  scrollbar-width: none;
+}
+
+.wallet-selector-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+.wallet-selector-fade {
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
+}

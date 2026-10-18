@@ -1,21 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Settings } from 'lucide-react'
-import { Modal } from '../../../shared/components/Modal'
+import { Settings } from 'lucide-react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import { assetClassColor } from '../composition'
 import { useWalletTotals } from '../hooks/useWalletTotals'
-import { useCreateWallet, useUpdateWallet, useWallets } from '../hooks/useWallets'
-import type { Wallet, WalletColor } from '../services/walletService'
+import { useWallets } from '../hooks/useWallets'
+import type { Wallet } from '../services/walletService'
 import { walletPalette } from '../walletPalette'
+import { WalletEditorDialog } from './WalletEditorDialog'
 
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
 })
-
-const walletColorOptions = Object.keys(walletPalette) as WalletColor[]
 
 interface SwipeGesture {
   startX: number
@@ -123,165 +121,14 @@ function CompositionDonut({ slices }: { slices: DashboardData['compositionSlices
   )
 }
 
-interface WalletFormProps {
-  wallet: Wallet | null
-  onClose: () => void
-  onBusyChange: (busy: boolean) => void
-}
-
-function WalletForm({ wallet, onClose, onBusyChange }: WalletFormProps) {
-  const [name, setName] = useState(wallet?.name ?? '')
-  const [color, setColor] = useState<WalletColor>(wallet?.color ?? 'gold')
-  const [error, setError] = useState('')
-
-  const createWallet = useCreateWallet()
-  const updateWallet = useUpdateWallet()
-
-  const isPending = createWallet.isPending || updateWallet.isPending
-  const selectedPalette = walletPalette[color]
-
-  async function save(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const trimmedName = name.trim()
-
-    if (!trimmedName) {
-      setError('Informe um nome para a carteira.')
-      return
-    }
-
-    onBusyChange(true)
-
-    try {
-      if (wallet) {
-        await updateWallet.mutateAsync({
-          walletId: wallet.id,
-          name: trimmedName,
-          color,
-        })
-      } else {
-        await createWallet.mutateAsync({
-          name: trimmedName,
-          color,
-        })
-      }
-
-      onClose()
-    } catch {
-      setError('Não foi possível salvar a carteira. Tente novamente.')
-    } finally {
-      onBusyChange(false)
-    }
-  }
-
-  return (
-  <form onSubmit={save} className="space-y-5">
-    <div
-      className="flex min-h-32 flex-col justify-between rounded-2xl px-5 py-4 transition-[background-color,box-shadow] duration-200"
-      style={{
-        backgroundColor: selectedPalette.color,
-        color: selectedPalette.textColor,
-        boxShadow: `0 0 16px ${selectedPalette.color}33`,
-      }}
-      aria-label="Prévia da carteira"
-    >
-      <div className="text-xs font-medium opacity-80">
-        Patrimônio total
-        <span className="mt-0.5 block text-base font-semibold">R$ 0,00</span>
-      </div>
-
-      <input
-        id="wallet-name"
-        value={name}
-        maxLength={60}
-        autoFocus
-        onChange={(event) => {
-          setName(event.target.value)
-          if (error) setError('')
-        }}
-        placeholder="Nome da carteira"
-        aria-label="Nome da carteira"
-        className="w-full border-none bg-transparent p-0 text-lg font-semibold text-inherit outline-none placeholder:text-inherit placeholder:opacity-50 focus:outline-none focus:ring-0"
-      />
-    </div>
-
-    <fieldset>
-      <legend className="mb-3 text-sm font-medium text-zinc-300">Cor</legend>
-
-      <div
-        className="-mx-1 max-w-[calc(100%+0.5rem)] snap-x snap-proximity overflow-x-scroll overscroll-x-contain px-1 pb-2 scrollbar-none"
-        style={{ touchAction: 'pan-x' }}
-      >
-  <div className="flex w-max items-center gap-3">
-    {walletColorOptions.map((option) => {
-      const selected = color === option
-
-      return (
-        <label key={option} className="flex shrink-0 snap-center cursor-pointer items-center justify-center">
-          <input
-            type="radio"
-            name="wallet-color"
-            value={option}
-            checked={selected}
-            onChange={() => setColor(option)}
-            className="sr-only peer"
-            aria-label={walletPalette[option].label}
-          />
-
-          <span
-            className={`grid h-10 w-10 place-items-center rounded-full border-2 transition-colors duration-200 ${
-              selected
-                ? 'border-white'
-                : 'border-transparent active:opacity-80'
-            }`}
-            style={{
-              backgroundColor: walletPalette[option].color,
-              color: walletPalette[option].textColor,
-            }}
-          >
-            {selected && <Check className="h-4 w-4" strokeWidth={3} />}
-          </span>
-        </label>
-      )
-    })}
-  </div>
-      </div>
-    </fieldset>
-
-    {error && (
-      <p role="alert" className="text-sm text-red-400">
-        {error}
-      </p>
-    )}
-
-    <div className="grid grid-cols-2 gap-3 pt-1">
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={isPending}
-        className="min-h-12 rounded-2xl bg-white/[0.06] px-4 font-medium text-zinc-300 transition active:scale-[0.98] disabled:opacity-50"
-      >
-        Cancelar
-      </button>
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="min-h-12 rounded-2xl bg-white px-4 font-semibold text-zinc-950 transition active:scale-[0.98] disabled:opacity-50"
-      >
-        {isPending ? 'Salvando…' : wallet ? 'Salvar' : 'Criar'}
-      </button>
-    </div>
-  </form>
-)
-}
-
 export function MobileCarteiraHome({
   dashboard,
   onAddTransaction,
+  children,
 }: {
   dashboard: DashboardData
   onAddTransaction: () => void
+  children?: ReactNode
 }) {
   const { user } = useAuth()
   const { wallets, selectedWallet, selectWallet, isLoading, isError, refetch } = useWallets()
@@ -289,7 +136,6 @@ export function MobileCarteiraHome({
   const [showWallets, setShowWallets] = useState(false)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [showWalletForm, setShowWalletForm] = useState(false)
-  const [isWalletSaving, setIsWalletSaving] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [actionAnimationId, setActionAnimationId] = useState(0)
@@ -328,6 +174,7 @@ export function MobileCarteiraHome({
     }
     return first.created_at.localeCompare(second.created_at)
   })
+  const closedStackCount = Math.min(3, orderedWallets.length)
 
   const fullName = user?.user_metadata?.full_name
   const firstName = typeof fullName === 'string' && fullName.trim()
@@ -401,7 +248,6 @@ export function MobileCarteiraHome({
 
   function openWalletForm(wallet: Wallet | null) {
     setEditingWallet(wallet)
-    setIsWalletSaving(false)
     setShowWalletForm(true)
   }
 
@@ -437,7 +283,7 @@ export function MobileCarteiraHome({
           : undefined,
       }}
     >
-      <div className="relative z-20 mx-auto max-w-md px-8 pt-6">
+      <div className="relative z-20 mx-auto max-w-md px-4 pt-6">
         <header className="flex items-center justify-between">
           <Link
             to="/conta"
@@ -446,14 +292,14 @@ export function MobileCarteiraHome({
           >
             {initial}
           </Link>
-            <button
+          {(!children || showWallets) && <button
               key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
               type="button"
               onClick={handleHeaderAction}
               className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
             >
               {showWallets ? '+ Carteira' : '+ Lançamento'}
-            </button>
+            </button>}
         </header>
       </div>
 
@@ -471,7 +317,7 @@ export function MobileCarteiraHome({
             if (node) node.inert = showWallets
           }}
         >
-          <div className="relative mx-auto max-w-md px-8 pt-9">
+          {children ?? <div className="relative mx-auto max-w-md px-8 pt-9">
             <h1 className="text-2xl font-medium">Olá, {firstName}</h1>
             <p className="mt-1 text-xs text-zinc-500">{selectedWallet?.name ?? 'Sua carteira'}</p>
 
@@ -520,7 +366,7 @@ export function MobileCarteiraHome({
                 </section>
               </>
             )}
-          </div>
+          </div>}
         </div>
 
         <div
@@ -552,7 +398,8 @@ export function MobileCarteiraHome({
       </div>
 
       {orderedWallets.map((wallet, index) => {
-        const closedLeft = viewportSize.width - (orderedWallets.length - index) * 9 - 7
+        const closedSlot = Math.min(index, closedStackCount - 1)
+        const closedLeft = viewportSize.width - (closedStackCount - closedSlot) * 9 - 7
         const openTop = 160 + index * 180
         const left = closedLeft + (openCardLeft - closedLeft) * revealProgress
         const top = 90 + (openTop - 90) * revealProgress
@@ -562,16 +409,18 @@ export function MobileCarteiraHome({
           <div
             key={wallet.id}
             data-testid="wallet-card"
-            className="absolute h-36 rounded-2xl border-l border-white/20 p-5 transition-[left,top,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+            className="absolute h-36 rounded-2xl border-l border-white/20 p-5 transition-[left,top,box-shadow,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
             style={{
               left: `${left}px`,
               top: `${top}px`,
+              opacity: index < closedStackCount ? 1 : revealProgress,
               width: `${cardWidth}px`,
               backgroundColor: color,
               color: walletPalette[wallet.color].textColor,
               zIndex: index + 10,
               filter: `drop-shadow(-4px 0 9px ${color}55)`,
               boxShadow: `0 0 ${Math.round(revealProgress * 16)}px ${color}55`,
+              pointerEvents: index >= closedStackCount && !showWallets ? 'none' : 'auto',
               transitionDuration: isDragging ? '0ms' : undefined,
             }}
             aria-hidden={!showWallets && index > 0}
@@ -626,23 +475,11 @@ export function MobileCarteiraHome({
         )
       })}
 
-      <Modal
+      <WalletEditorDialog
         isOpen={showWalletForm}
-        title={editingWallet ? 'Editar carteira' : 'Nova carteira'}
-        onClose={() => {
-          if (!isWalletSaving) setShowWalletForm(false)
-        }}
-        dismissible={!isWalletSaving}
-      >
-        {showWalletForm && (
-          <WalletForm
-            key={editingWallet?.id ?? 'new'}
-            wallet={editingWallet}
-            onClose={() => setShowWalletForm(false)}
-            onBusyChange={setIsWalletSaving}
-          />
-        )}
-      </Modal>
+        wallet={editingWallet}
+        onClose={() => setShowWalletForm(false)}
+      />
     </section>
   )
 }

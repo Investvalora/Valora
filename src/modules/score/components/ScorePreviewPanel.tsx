@@ -17,6 +17,8 @@ export interface ScorePreviewPanelProps {
   thresholdMax: number | null
   points: number | null
   existingRulesInScore: ScoreRule[]
+  /** No mobile o card de pré-visualização já é renderizado inline — oculta o card interno */
+  hideTitleCard?: boolean
 }
 
 function formatCondition(
@@ -56,6 +58,7 @@ export function ScorePreviewPanel({
   thresholdMax,
   points,
   existingRulesInScore,
+  hideTitleCard = false,
 }: ScorePreviewPanelProps) {
   const { selectedWallet } = useWallets()
   const { data: positions = [], isLoading: positionsLoading } = usePositions(selectedWallet?.id)
@@ -126,6 +129,7 @@ export function ScorePreviewPanel({
   return (
     <div className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
       {/* Card da regra */}
+      {!hideTitleCard && (
       <div className="bg-[rgba(121,135,255,0.08)] border border-[rgba(121,135,255,0.5)] rounded-[12px] px-[18px] py-[16px] mb-5">
         <p className="text-[#B8C0FF] text-[12px] mb-1 truncate">
           {scoreName || 'Novo score'}
@@ -139,6 +143,7 @@ export function ScorePreviewPanel({
             : '? pts'}
         </span>
       </div>
+      )}
 
       {/* Lista de ativos */}
       {isLoading ? (

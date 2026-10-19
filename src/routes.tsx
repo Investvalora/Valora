@@ -110,10 +110,12 @@ export function AppRoutes() {
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
-            <Route path="score/nova" element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
-            <Route path="score/:id/editar" element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>
+
+          {/* Rotas de score sem tabs de Análise */}
+          <Route path="analise/score/nova"          element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
+          <Route path="analise/score/:id/editar"    element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
         </Route>
       </Route>
     </Routes>

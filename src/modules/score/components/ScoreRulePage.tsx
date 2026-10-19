@@ -1,6 +1,7 @@
 /**
- * ScoreRulePage — editor modal de criação e edição de regra de score.
- * Rota: /analise/score/nova  e  /analise/score/:id/editar
+ * ScoreRulePage
+ * - Criação (/analise/score/nova): página dedicada com layout desktop dois painéis + mobile scroll
+ * - Edição (/analise/score/:id/editar): modal sobre AnaliseScore (comportamento original mantido)
  */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -19,45 +20,24 @@ import { ScorePreviewPanel } from './ScorePreviewPanel'
 import { Modal } from '../../../shared/components/Modal'
 import { AnaliseScore } from '../../analise/components/AnaliseScore'
 
-// ── Classe CSS compartilhadas ──────────────────────────────────────────────
+// ── Tokens de estilo ──────────────────────────────────────────────────────
 const INPUT_CLASS =
-  'h-11 w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 text-sm text-white focus:border-nf-blue/60 focus:outline-none focus:ring-1 focus:ring-nf-blue/30'
-
-const LABEL_CLASS = 'text-white/60 text-[12px] mb-1.5 block'
-
+  'bg-[#585960] border border-[#7B7C83] rounded-[9px] h-[42px] px-3 text-white text-[14px] w-full focus:outline-none focus:ring-1 focus:ring-[rgba(121,135,255,0.5)]'
+const LABEL_CLASS = 'text-white text-[12px] font-medium mb-1.5 block'
 const ERROR_CLASS = 'text-red-400 text-[11px] mt-1'
 
-// ── Componente principal ───────────────────────────────────────────────────
-export function ScoreRulePage() {
-  const { id } = useParams<{ id?: string }>()
+// ── Hook compartilhado de lógica de formulário ────────────────────────────
+function useScoreRuleForm(id?: string) {
   const navigate = useNavigate()
   const isEditing = Boolean(id)
-  const [isOpen, setIsOpen] = useState(true)
-  const navigationTimer = useRef<number | null>(null)
-
-  useEffect(() => () => {
-    if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current)
-  }, [])
-
-  function finishAndReturn() {
-    if (navigationTimer.current !== null) return
-    setIsOpen(false)
-    navigationTimer.current = window.setTimeout(() => navigate('/analise/score'), 300)
-  }
 
   const { data: rules = [], isLoading: rulesLoading } = useScoreRules()
   const createRule = useCreateScoreRule()
   const updateRule = useUpdateScoreRule()
 
-  // Regra sendo editada (undefined em criação, ScoreRule em edição)
-  const editingRule: ScoreRule | undefined = id
-    ? rules.find((r) => r.id === id)
-    : undefined
+  const editingRule: ScoreRule | undefined = id ? rules.find((r) => r.id === id) : undefined
 
-  // Toggle: score existente ou novo
   const [scoreMode, setScoreMode] = useState<'existing' | 'new'>('existing')
-
-  // Nomes de scores existentes para o select
   const scoreGroups = groupRulesByName(rules)
   const scoreNames = Array.from(scoreGroups.keys())
 
@@ -68,23 +48,13 @@ export function ScoreRulePage() {
   const [globalError, setGlobalError] = useState('')
   const isSaving = createRule.isPending || updateRule.isPending
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<ScoreRuleFormValues>({
+  const form = useForm<ScoreRuleFormValues>({
     resolver: zodResolver(scoreRuleSchema),
-    defaultValues: {
-      operator: 'gte',
-      metric: 'dy',
-      name: '',
-    },
+    defaultValues: { operator: 'gte', metric: 'dy', name: '' },
   })
 
-  // Reset quando a regra de edição carrega
+  const { reset, setValue, watch } = form
+
   useEffect(() => {
     if (editingRule) {
       reset({
@@ -95,58 +65,48 @@ export function ScoreRulePage() {
         threshold_max: editingRule.threshold_max ?? undefined,
         points: editingRule.points,
       })
-      // Se o nome da regra existe nos grupos, usar modo 'existing'
       setScoreMode(scoreNames.includes(editingRule.name) ? 'existing' : 'new')
     }
   }, [editingRule]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Observar todos os campos para o preview em tempo real
-  const watchedName = watch('name') ?? ''
-  const watchedMetric = watch('metric') ?? ''
+  const watchedName     = watch('name') ?? ''
+  const watchedMetric   = watch('metric') ?? ''
   const watchedOperator = watch('operator') ?? ''
-  const watchedThresholdMin = watch('threshold_min')
-  const watchedThresholdMax = watch('threshold_max')
-  const watchedPoints = watch('points')
+  const watchedMin      = watch('threshold_min')
+  const watchedMax      = watch('threshold_max')
+  const watchedPoints   = watch('points')
+  const isBetween       = watchedOperator === 'between'
 
-  const isBetween = watchedOperator === 'between'
-
-  // Regras existentes no mesmo score (excluindo a que está sendo editada)
   const existingRulesInScore: ScoreRule[] = watchedName
     ? (scoreGroups.get(watchedName) ?? []).filter((r) => r.id !== id)
     : []
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!isOpen) return
+  const buildPayload = (values: ScoreRuleFormValues) => ({
+    ...values,
+    threshold_max: isBetween ? (values.threshold_max ?? null) : null,
+  })
+
+  const onSubmit = form.handleSubmit(async (values) => {
     setGlobalError('')
     try {
-      const payload = {
-        ...values,
-        threshold_max: isBetween ? (values.threshold_max ?? null) : null,
-      }
-
       if (isEditing && id) {
-        await updateRule.mutateAsync({ id, payload })
+        await updateRule.mutateAsync({ id, payload: buildPayload(values) })
       } else {
-        await createRule.mutateAsync(payload)
+        await createRule.mutateAsync(buildPayload(values))
       }
-      finishAndReturn()
+      navigate('/analise/score')
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
       console.error(err)
     }
   })
 
-  const onSubmitAndAddAnother = handleSubmit(async (values) => {
-    if (!isOpen) return
+  const onSubmitAndAddAnother = form.handleSubmit(async (values) => {
     setGlobalError('')
     try {
-      const payload = {
-        ...values,
-        threshold_max: isBetween ? (values.threshold_max ?? null) : null,
-      }
-      await createRule.mutateAsync(payload)
+      await createRule.mutateAsync(buildPayload(values))
       reset({ operator: 'gte', metric: 'dy', name: '' })
-      setScoreMode('existing')
+      setScoreMode(scoreNames.length > 0 ? 'existing' : 'new')
       setGlobalError('')
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
@@ -154,16 +114,351 @@ export function ScoreRulePage() {
     }
   })
 
-  // Estado de carregamento na edição (regra ainda não chegou)
-  if (isEditing && rulesLoading) {
+  return {
+    form, isEditing, rulesLoading, editingRule,
+    scoreMode, setScoreMode, scoreNames, scoreGroups,
+    globalError, isSaving,
+    watchedName, watchedMetric, watchedOperator, watchedMin, watchedMax, watchedPoints,
+    isBetween, existingRulesInScore,
+    onSubmit, onSubmitAndAddAnother,
+    navigate, setValue,
+  }
+}
+
+// ── Campos do formulário (reutilizados em criação e edição) ───────────────
+function ScoreRuleFields({
+  form, scoreMode, setScoreMode, scoreNames,
+  isBetween, globalError, isSaving, isEditing,
+  onSubmit, onSubmitAndAddAnother, onCancel,
+  setValue, watchedName,
+  showCreateAndAddAnother = true,
+}: {
+  form: ReturnType<typeof useScoreRuleForm>['form']
+  scoreMode: 'existing' | 'new'
+  setScoreMode: (m: 'existing' | 'new') => void
+  scoreNames: string[]
+  isBetween: boolean
+  globalError: string
+  isSaving: boolean
+  isEditing: boolean
+  onSubmit: (e?: React.BaseSyntheticEvent) => void
+  onSubmitAndAddAnother: (e?: React.BaseSyntheticEvent) => void
+  onCancel: () => void
+  setValue: ReturnType<typeof useScoreRuleForm>['setValue']
+  watchedName: string
+  showCreateAndAddAnother?: boolean
+}) {
+  const { register, formState: { errors } } = form
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      {/* Toggle score existente / novo */}
+      <div>
+        <label className={LABEL_CLASS}>Em qual score esta regra entra?</label>
+        <div className="bg-[#393939] border border-[#7A7A7A]/50 rounded-[20px] p-[3px] flex mb-3">
+          <button
+            type="button"
+            onClick={() => { setScoreMode('existing'); setValue('name', '', { shouldValidate: false }) }}
+            className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${scoreMode === 'existing' ? 'bg-white/[0.16] text-white' : 'text-[#8F8F8F]'}`}
+          >
+            Score existente
+          </button>
+          <button
+            type="button"
+            onClick={() => { setScoreMode('new'); setValue('name', '', { shouldValidate: false }) }}
+            className={`flex-1 text-[12px] font-medium py-[7px] text-center rounded-[17px] transition-colors ${scoreMode === 'new' ? 'bg-white/[0.16] text-white' : 'text-[#8F8F8F]'}`}
+          >
+            Criar novo
+          </button>
+        </div>
+
+        {/* Campo nome */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor={scoreMode === 'existing' ? 'score-name-select' : 'score-name'} className={LABEL_CLASS}>Score</label>
+          {scoreMode === 'existing' ? (
+            <>
+              <select
+                id="score-name-select"
+                className={INPUT_CLASS}
+                aria-label="Score existente"
+                value={watchedName}
+                onChange={(e) => setValue('name', e.target.value, { shouldValidate: true })}
+              >
+                <option value="">Selecione um score…</option>
+                {scoreNames.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              {scoreNames.length === 0 && (
+                <p className="text-white/40 text-[12px]">Nenhum score ainda. Use "Criar novo".</p>
+              )}
+            </>
+          ) : (
+            <input
+              id="score-name"
+              type="text"
+              placeholder="Ex: Dividendos Conservador"
+              className={INPUT_CLASS}
+              aria-invalid={!!errors.name}
+              {...register('name')}
+            />
+          )}
+          {errors.name && <p className={ERROR_CLASS} role="alert">{errors.name.message}</p>}
+        </div>
+      </div>
+
+      {/* Métrica */}
+      <div>
+        <label htmlFor="score-metric" className={LABEL_CLASS}>Métrica</label>
+        <select id="score-metric" className={INPUT_CLASS} {...register('metric')}>
+          {Object.entries(METRIC_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        {errors.metric && <p className={ERROR_CLASS} role="alert">{errors.metric.message}</p>}
+      </div>
+
+      {/* Operador */}
+      <div>
+        <label htmlFor="score-operator" className={LABEL_CLASS}>Operador</label>
+        <select id="score-operator" className={INPUT_CLASS} {...register('operator')}>
+          {Object.entries(OPERATOR_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        {errors.operator && <p className={ERROR_CLASS} role="alert">{errors.operator.message}</p>}
+      </div>
+
+      {/* Valor + Pontos */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="score-threshold-min" className={LABEL_CLASS}>
+            {isBetween ? 'Valor mínimo' : 'Valor de referência'}
+          </label>
+          <input id="score-threshold-min" type="number" step="any" className={INPUT_CLASS}
+            {...register('threshold_min', { valueAsNumber: true })} />
+          {errors.threshold_min && <p className={ERROR_CLASS} role="alert">{errors.threshold_min.message}</p>}
+        </div>
+        <div>
+          <label htmlFor="score-points" className={LABEL_CLASS}>Pontos</label>
+          <input id="score-points" type="number" step="1" className={INPUT_CLASS}
+            {...register('points', { valueAsNumber: true })} />
+          {errors.points && <p className={ERROR_CLASS} role="alert">{errors.points.message}</p>}
+        </div>
+      </div>
+
+      {/* Threshold max (between) */}
+      {isBetween && (
+        <div>
+          <label htmlFor="score-threshold-max" className={LABEL_CLASS}>Valor máximo</label>
+          <input id="score-threshold-max" type="number" step="any" className={INPUT_CLASS}
+            {...register('threshold_max', { valueAsNumber: true })} />
+          {errors.threshold_max && <p className={ERROR_CLASS} role="alert">{errors.threshold_max.message}</p>}
+        </div>
+      )}
+
+      {/* Dica */}
+      <p className="text-[#8F8F8F] text-[11px] leading-relaxed">
+        ⓘ Para "entre", informe mínimo e máximo. Os pontos são somados quando a condição é atendida.
+      </p>
+
+      {globalError && <p className="text-red-400 text-[13px]" role="alert">{globalError}</p>}
+
+      <hr className="border-none bg-white/[0.08] h-px w-full" />
+
+      {/* Botões desktop */}
+      <div className="hidden md:flex gap-3 flex-wrap">
+        <button type="submit" disabled={isSaving}
+          className="bg-[#2B6DB0] h-[46px] px-[18px] rounded-[8px] text-white font-semibold text-[15px] hover:bg-[#2460A0] transition-colors disabled:opacity-50">
+          {isSaving ? 'Salvando…' : isEditing ? 'Salvar alterações' : 'Criar regra'}
+        </button>
+        {!isEditing && showCreateAndAddAnother && (
+          <button type="button" disabled={isSaving} onClick={onSubmitAndAddAnother}
+            className="border border-white/25 h-[46px] px-[18px] rounded-[8px] text-white font-medium text-[14px] hover:bg-white/[0.05] transition-colors disabled:opacity-50">
+            Criar e adicionar outra
+          </button>
+        )}
+        <button type="button" onClick={onCancel}
+          className="border border-white/25 h-[46px] px-[18px] rounded-[8px] text-white font-medium text-[15px] hover:bg-white/[0.05] transition-colors">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
+
+// ── Tela de CRIAÇÃO — página dedicada ─────────────────────────────────────
+function ScoreRuleCreatePage() {
+  const state = useScoreRuleForm()
+  const { navigate } = state
+
+  return (
+    <div className="flex flex-col gap-5 pb-32 md:pb-10">
+      {/* Header */}
+      <div>
+        {/* Mobile: botão voltar + título compacto */}
+        <div className="flex items-center gap-3 mb-1 md:hidden">
+          <button
+            type="button"
+            onClick={() => navigate('/analise/score')}
+            className="bg-[#393939] rounded-[16px] size-[32px] flex items-center justify-center shrink-0"
+            aria-label="Voltar"
+          >
+            <span className="text-white text-[14px]">←</span>
+          </button>
+          <div>
+            <p className="text-[#8F8F8F] text-[11px]">Análise › Score</p>
+            <p className="text-white text-[20px] font-semibold leading-tight">Nova regra de score</p>
+          </div>
+        </div>
+
+        {/* Desktop: breadcrumb + título grande */}
+        <div className="hidden md:block">
+          <button
+            type="button"
+            onClick={() => navigate('/analise/score')}
+            className="flex items-center gap-1.5 text-[#8F8F8F] text-[13px] mb-4 hover:text-white transition-colors"
+          >
+            ← Análise › Score Fundamentalista
+          </button>
+          <h1 className="text-white text-[32px] font-medium leading-tight">Nova regra de score</h1>
+          <p className="text-[#8F8F8F] text-[14px] mt-1">
+            Defina uma condição sobre um indicador fundamentalista e quantos pontos ela vale no score.
+          </p>
+        </div>
+
+        {/* Mobile: subtítulo */}
+        <p className="text-[#8F8F8F] text-[12px] mt-2 md:hidden">
+          Defina uma condição sobre um indicador e quantos pontos ela vale no score.
+        </p>
+      </div>
+
+      {/* Layout desktop: form + preview lado a lado */}
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* Painel form */}
+        <div className="flex-1 min-w-0 bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] px-[28px] pt-[26px] pb-[28px]">
+          <h2 className="text-white font-semibold text-[16px] mb-5">Dados da regra</h2>
+          <ScoreRuleFields
+            form={state.form}
+            scoreMode={state.scoreMode}
+            setScoreMode={state.setScoreMode}
+            scoreNames={state.scoreNames}
+            isBetween={state.isBetween}
+            globalError={state.globalError}
+            isSaving={state.isSaving}
+            isEditing={false}
+            onSubmit={state.onSubmit}
+            onSubmitAndAddAnother={state.onSubmitAndAddAnother}
+            onCancel={() => navigate('/analise/score')}
+            setValue={state.setValue}
+            watchedName={state.watchedName}
+          />
+        </div>
+
+        {/* Painel preview — desktop only */}
+        <div className="hidden md:block w-[420px] flex-shrink-0">
+          <div className="bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] p-6">
+            <p className="text-white/80 font-semibold text-[15px] mb-4">Pré-visualização</p>
+            <ScorePreviewPanel
+              scoreName={state.watchedName}
+              metric={state.watchedMetric as ScoreMetric | ''}
+              operator={state.watchedOperator as ScoreOperator | ''}
+              thresholdMin={Number.isFinite(state.watchedMin) ? (state.watchedMin ?? null) : null}
+              thresholdMax={Number.isFinite(state.watchedMax) ? (state.watchedMax ?? null) : null}
+              points={Number.isFinite(state.watchedPoints) ? (state.watchedPoints ?? null) : null}
+              existingRulesInScore={state.existingRulesInScore}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Preview mobile — inline, abaixo do form */}
+      <div className="md:hidden">
+        <div className="bg-[rgba(121,135,255,0.08)] border border-[rgba(121,135,255,0.5)] rounded-[10px] px-[16px] py-[14px] mb-3">
+          <p className="text-[#B8C0FF] text-[11px] mb-1">
+            Pré-visualização · {state.watchedName || 'Novo score'}
+          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-white text-[18px] font-semibold">
+              {state.watchedMetric && state.watchedOperator && Number.isFinite(state.watchedMin)
+                ? `${METRIC_LABELS[state.watchedMetric as ScoreMetric] ?? state.watchedMetric} ${
+                    { lt: '<', lte: '≤', gt: '>', gte: '≥', between: 'entre' }[state.watchedOperator] ?? state.watchedOperator
+                  } ${state.watchedMin}`
+                : '—'}
+            </p>
+            {Number.isFinite(state.watchedPoints) && state.watchedPoints !== undefined && (
+              <span className="bg-[rgba(51,170,59,0.18)] text-[#63D16B] px-[10px] py-[3px] rounded-[8px] text-[12px] font-semibold">
+                {(state.watchedPoints ?? 0) > 0 ? '+' : ''}{state.watchedPoints} pontos
+              </span>
+            )}
+          </div>
+        </div>
+
+        <ScorePreviewPanel
+          scoreName={state.watchedName}
+          metric={state.watchedMetric as ScoreMetric | ''}
+          operator={state.watchedOperator as ScoreOperator | ''}
+          thresholdMin={Number.isFinite(state.watchedMin) ? (state.watchedMin ?? null) : null}
+          thresholdMax={Number.isFinite(state.watchedMax) ? (state.watchedMax ?? null) : null}
+          points={Number.isFinite(state.watchedPoints) ? (state.watchedPoints ?? null) : null}
+          existingRulesInScore={state.existingRulesInScore}
+          hideTitleCard
+        />
+      </div>
+
+      {/* Barra de ações mobile — fixa na base */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#1C1C1C] border-t border-white/[0.08] flex gap-3 px-[26px] pt-[14px] pb-[24px] md:hidden z-10">
+        <button
+          type="button"
+          disabled={state.isSaving}
+          onClick={state.onSubmit}
+          className="bg-[#2B6DB0] flex-1 h-[48px] rounded-[8px] text-white font-semibold text-[15px] disabled:opacity-50"
+        >
+          {state.isSaving ? 'Salvando…' : 'Criar regra'}
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/analise/score')}
+          className="border border-white/25 h-[48px] w-[110px] rounded-[8px] text-white font-medium text-[15px]"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Tela de EDIÇÃO — modal sobre AnaliseScore (comportamento original) ────
+function ScoreRuleEditModal({ id }: { id: string }) {
+  const state = useScoreRuleForm(id)
+  const [isOpen, setIsOpen] = useState(true)
+  const navigationTimer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current)
+  }, [])
+
+  function finishAndReturn() {
+    if (navigationTimer.current !== null) return
+    setIsOpen(false)
+    navigationTimer.current = window.setTimeout(() => state.navigate('/analise/score'), 300)
+  }
+
+  if (state.rulesLoading) {
     return (
-      <><AnaliseScore /><Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}><p className="py-8 text-center text-sm text-white/50">Carregando regra…</p></Modal></>
+      <>
+        <AnaliseScore />
+        <Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}>
+          <p className="py-8 text-center text-sm text-white/50">Carregando regra…</p>
+        </Modal>
+      </>
     )
   }
 
-  if (isEditing && !rulesLoading && !editingRule) {
+  if (!state.editingRule) {
     return (
-      <><AnaliseScore /><Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}><p className="py-8 text-center text-sm text-white/50">Regra não encontrada.</p></Modal></>
+      <>
+        <AnaliseScore />
+        <Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}>
+          <p className="py-8 text-center text-sm text-white/50">Regra não encontrada.</p>
+        </Modal>
+      </>
     )
   }
 
@@ -172,300 +467,52 @@ export function ScoreRulePage() {
       <AnaliseScore />
       <Modal
         isOpen
-        title={isEditing ? 'Editar regra de score' : 'Nova regra de score'}
+        title="Editar regra de score"
         onClose={finishAndReturn}
-        dismissible={!isSaving && isOpen}
+        dismissible={!state.isSaving && isOpen}
         variant="score"
         closing={!isOpen}
-        initialFocusSelector={scoreMode === 'new' ? '#score-name' : '#score-name-select'}
+        initialFocusSelector={state.scoreMode === 'new' ? '#score-name' : '#score-name-select'}
       >
         <p className="mb-6 text-sm text-white/50">
           Defina as condições e pontuação para avaliar seus ativos.
         </p>
-      <div className="flex flex-col gap-6">
-        <div className="min-w-0">
-          <h2 className="mb-5 text-base font-semibold text-white">Dados da regra</h2>
-
-          <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-            {/* ── Toggle: score existente / novo ── */}
-            <div>
-              <label className={LABEL_CLASS}>Em qual score esta regra entra?</label>
-              <div className="mb-3 flex rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScoreMode('existing')
-                    setValue('name', '', { shouldValidate: false })
-                  }}
-                  className={`flex-1 rounded-lg px-2 py-2 text-center text-xs font-medium transition-colors ${
-                    scoreMode === 'existing'
-                      ? 'bg-white/[0.16] text-white'
-                      : 'text-[#8F8F8F]'
-                  }`}
-                >
-                  Score existente
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScoreMode('new')
-                    setValue('name', '', { shouldValidate: false })
-                  }}
-                  className={`flex-1 rounded-lg px-2 py-2 text-center text-xs font-medium transition-colors ${
-                    scoreMode === 'new'
-                      ? 'bg-white/[0.16] text-white'
-                      : 'text-[#8F8F8F]'
-                  }`}
-                >
-                  Criar novo score
-                </button>
-              </div>
-
-              {/* Score existente — select */}
-              {scoreMode === 'existing' ? (
-                <div>
-                  <select
-                    id="score-name-select"
-                    className={INPUT_CLASS}
-                    aria-label="Score existente"
-                    value={watchedName}
-                    onChange={(e) => setValue('name', e.target.value, { shouldValidate: true })}
-                  >
-                    <option value="">Selecione um score…</option>
-                    {scoreNames.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  {scoreNames.length === 0 && (
-                    <p className="text-white/40 text-[12px] mt-1.5">
-                      Nenhum score criado ainda. Use "Criar novo score".
-                    </p>
-                  )}
-                </div>
-              ) : (
-                /* Novo score — input de texto */
-                <div>
-                  <input
-                    id="score-name"
-                    type="text"
-                    placeholder="Ex: Dividendos Conservador"
-                    className={INPUT_CLASS}
-                    aria-invalid={!!errors.name}
-                    aria-describedby={errors.name ? 'score-name-error' : undefined}
-                    {...register('name')}
-                  />
-                </div>
-              )}
-
-              {errors.name && (
-                <p id="score-name-error" className={ERROR_CLASS} role="alert">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            {/* ── Métrica + Operador ── */}
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-              <div>
-                <label htmlFor="score-metric" className={LABEL_CLASS}>
-                  Métrica
-                </label>
-                <select
-                  id="score-metric"
-                  className={INPUT_CLASS}
-                  aria-invalid={!!errors.metric}
-                  {...register('metric')}
-                >
-                  {Object.entries(METRIC_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                {errors.metric && (
-                  <p className={ERROR_CLASS} role="alert">
-                    {errors.metric.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="score-operator" className={LABEL_CLASS}>
-                  Operador
-                </label>
-                <select
-                  id="score-operator"
-                  className={INPUT_CLASS}
-                  aria-invalid={!!errors.operator}
-                  {...register('operator')}
-                >
-                  {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                {errors.operator && (
-                  <p className={ERROR_CLASS} role="alert">
-                    {errors.operator.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* ── Threshold min + Pontos ── */}
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-              <div>
-                <label htmlFor="score-threshold-min" className={LABEL_CLASS}>
-                  {isBetween ? 'Valor mínimo' : 'Valor de referência'}
-                </label>
-                <input
-                  id="score-threshold-min"
-                  type="number"
-                  step="any"
-                  className={INPUT_CLASS}
-                  aria-invalid={!!errors.threshold_min}
-                  aria-describedby={
-                    errors.threshold_min ? 'score-threshold-min-error' : undefined
-                  }
-                  {...register('threshold_min', { valueAsNumber: true })}
-                />
-                {errors.threshold_min && (
-                  <p id="score-threshold-min-error" className={ERROR_CLASS} role="alert">
-                    {errors.threshold_min.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="score-points" className={LABEL_CLASS}>
-                  Pontos
-                </label>
-                <input
-                  id="score-points"
-                  type="number"
-                  step="1"
-                  placeholder="Ex: 10"
-                  className={INPUT_CLASS}
-                  aria-invalid={!!errors.points}
-                  aria-describedby={errors.points ? 'score-points-error' : undefined}
-                  {...register('points', { valueAsNumber: true })}
-                />
-                {errors.points && (
-                  <p id="score-points-error" className={ERROR_CLASS} role="alert">
-                    {errors.points.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* ── Threshold max (somente 'between') ── */}
-            {isBetween && (
-              <div>
-                <label htmlFor="score-threshold-max" className={LABEL_CLASS}>
-                  Valor máximo
-                </label>
-                <input
-                  id="score-threshold-max"
-                  type="number"
-                  step="any"
-                  className={INPUT_CLASS}
-                  aria-invalid={!!errors.threshold_max}
-                  aria-describedby={
-                    errors.threshold_max ? 'score-threshold-max-error' : undefined
-                  }
-                  {...register('threshold_max', { valueAsNumber: true })}
-                />
-                {errors.threshold_max && (
-                  <p id="score-threshold-max-error" className={ERROR_CLASS} role="alert">
-                    {errors.threshold_max.message}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <p className="text-white/40 text-[12px]">
-              Os pontos são somados ao score do ativo quando a condição for satisfeita.
-            </p>
-
-            {/* Erro global */}
-            {globalError && (
-              <p className="text-red-400 text-[13px]" role="alert">
-                {globalError}
-              </p>
-            )}
-
-            <hr className="border-none bg-white/[0.08] h-px w-full my-1" />
-
-            {/* ── Botões ── */}
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
-              <button
-                type="submit"
-                disabled={isSaving}
-                aria-busy={isSaving}
-                className="min-h-11 flex-1 rounded-xl bg-nf-blue px-4 text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:opacity-50"
-              >
-                {isSaving
-                  ? 'Salvando…'
-                  : isEditing
-                    ? 'Salvar alterações'
-                    : 'Criar regra'}
-              </button>
-
-              {!isEditing && (
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  aria-busy={isSaving}
-                  onClick={onSubmitAndAddAnother}
-                  className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-medium text-white transition-colors hover:bg-white/[0.06] disabled:opacity-50"
-                >
-                  Criar e adicionar outra
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={finishAndReturn}
-                disabled={isSaving}
-                className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.06] disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <section aria-label="Prévia da regra" className="border-t border-white/[0.08] pt-5">
+        <ScoreRuleFields
+          form={state.form}
+          scoreMode={state.scoreMode}
+          setScoreMode={state.setScoreMode}
+          scoreNames={state.scoreNames}
+          isBetween={state.isBetween}
+          globalError={state.globalError}
+          isSaving={state.isSaving}
+          isEditing={true}
+          onSubmit={state.onSubmit}
+          onSubmitAndAddAnother={state.onSubmitAndAddAnother}
+          onCancel={finishAndReturn}
+          setValue={state.setValue}
+          watchedName={state.watchedName}
+          showCreateAndAddAnother={false}
+        />
+        <section aria-label="Prévia da regra" className="border-t border-white/[0.08] pt-5 mt-2">
           <h2 className="mb-3 text-sm font-semibold text-white">Prévia da regra</h2>
           <ScorePreviewPanel
-            scoreName={watchedName}
-            metric={watchedMetric as ScoreMetric | ''}
-            operator={watchedOperator as ScoreOperator | ''}
-            thresholdMin={
-              watchedThresholdMin !== undefined && Number.isFinite(watchedThresholdMin)
-                ? watchedThresholdMin
-                : null
-            }
-            thresholdMax={
-              watchedThresholdMax !== undefined &&
-              watchedThresholdMax !== null &&
-              Number.isFinite(watchedThresholdMax)
-                ? watchedThresholdMax
-                : null
-            }
-            points={
-              watchedPoints !== undefined && Number.isFinite(watchedPoints)
-                ? watchedPoints
-                : null
-            }
-            existingRulesInScore={existingRulesInScore}
+            scoreName={state.watchedName}
+            metric={state.watchedMetric as ScoreMetric | ''}
+            operator={state.watchedOperator as ScoreOperator | ''}
+            thresholdMin={Number.isFinite(state.watchedMin) ? (state.watchedMin ?? null) : null}
+            thresholdMax={Number.isFinite(state.watchedMax) ? (state.watchedMax ?? null) : null}
+            points={Number.isFinite(state.watchedPoints) ? (state.watchedPoints ?? null) : null}
+            existingRulesInScore={state.existingRulesInScore}
           />
         </section>
-      </div>
       </Modal>
     </>
   )
+}
+
+// ── Entry point — router despacha para criação ou edição ──────────────────
+export function ScoreRulePage() {
+  const { id } = useParams<{ id?: string }>()
+  if (id) return <ScoreRuleEditModal id={id} />
+  return <ScoreRuleCreatePage />
 }

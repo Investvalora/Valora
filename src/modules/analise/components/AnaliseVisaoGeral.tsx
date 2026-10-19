@@ -3,7 +3,7 @@
  * Combina Score, Alertas e Proventos em três colunas, com tabela de pontuação por ativo.
  */
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Modal } from '../../../shared/components/Modal'
 import { ScoreRuleForm } from '../../score/components/ScoreRuleForm'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
@@ -23,6 +23,7 @@ import type { ScoreRule } from '../../score/types'
 import type { Alert } from '../../alerts/types'
 
 export function AnaliseVisaoGeral() {
+  const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<ScoreRule | undefined>(undefined)
   const [modalBusy, setModalBusy] = useState(false)
@@ -79,8 +80,7 @@ export function AnaliseVisaoGeral() {
   )
 
   function openNewRule() {
-    setEditingRule(undefined)
-    setIsModalOpen(true)
+    navigate('/analise/score/nova')
   }
 
   function openEditRule(rule: ScoreRule) {

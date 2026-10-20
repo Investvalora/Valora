@@ -302,6 +302,21 @@ describe('computeMonthlyPortfolioReturns', () => {
 
     expect(result.get('2026-09')).toBeCloseTo(0)
   })
+
+  it('não calcula o mês corrente enquanto ele ainda está aberto', () => {
+    const result = computeMonthlyPortfolioReturns(
+      makeWealth([
+        ['2026-09-30', 1000],
+        ['2026-10-20', 1100],
+      ]),
+      [],
+      [],
+      1,
+      new Date('2026-10-20T12:00:00Z'),
+    )
+
+    expect(result.has('2026-10')).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------

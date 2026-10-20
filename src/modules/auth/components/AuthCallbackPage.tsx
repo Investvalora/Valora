@@ -57,7 +57,7 @@ export function AuthCallbackPage() {
           <h1 className="mb-3 text-2xl font-bold text-white">Confirmação de email</h1>
           <p className="mb-6 text-sm text-red-400">{errorMessage}</p>
           <Link to="/cadastro" className="font-medium text-blue-400 hover:text-blue-300">
-            Voltar para o cadastro e reenviar
+            Voltar para o cadastro
           </Link>
         </div>
       </div>

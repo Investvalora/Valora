@@ -12,11 +12,9 @@ export function SignupForm() {
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [confirmationMessage, setConfirmationMessage] = useState<string>('')
 
   const {
     register,
-    getValues,
     handleSubmit,
     formState: { errors },
   } = useForm<SignupSchema>({
@@ -44,21 +42,8 @@ export function SignupForm() {
     },
   })
 
-  const resendConfirmationMutation = useMutation({
-    mutationFn: authService.resendSignupConfirmation,
-    onSuccess: () => {
-      setErrorMessage('')
-      setConfirmationMessage('Enviamos um novo link de confirmação. Verifique sua caixa de entrada e a pasta de spam.')
-    },
-    onError: (error: Error) => {
-      setConfirmationMessage('')
-      setErrorMessage(error.message || 'Não foi possível reenviar o email de confirmação.')
-    },
-  })
-
   const onSubmit = (data: SignupSchema) => {
     setErrorMessage('')
-    setConfirmationMessage('')
     signupMutation.mutate(data)
   }
 
@@ -144,22 +129,6 @@ export function SignupForm() {
             {errorMessage && (
               <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
                 <p className="text-sm text-red-400">{errorMessage}</p>
-                {errorMessage.includes('confirme seu email') && (
-                  <button
-                    type="button"
-                    onClick={() => resendConfirmationMutation.mutate(getValues('email'))}
-                    disabled={resendConfirmationMutation.isPending || !getValues('email')}
-                    className="mt-3 text-sm font-medium text-blue-400 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {resendConfirmationMutation.isPending ? 'Reenviando...' : 'Reenviar email de confirmação'}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {confirmationMessage && (
-              <div className="p-4 bg-green-500/10 border border-green-500/50 rounded-lg">
-                <p className="text-sm text-green-400">{confirmationMessage}</p>
               </div>
             )}
 
@@ -172,14 +141,6 @@ export function SignupForm() {
               {signupMutation.isPending ? 'Criando conta...' : 'Criar Conta'}
             </button>
 
-            <button
-              type="button"
-              onClick={() => resendConfirmationMutation.mutate(getValues('email'))}
-              disabled={resendConfirmationMutation.isPending || !getValues('email')}
-              className="w-full text-sm font-medium text-blue-400 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {resendConfirmationMutation.isPending ? 'Reenviando...' : 'Reenviar confirmação por email'}
-            </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-400">

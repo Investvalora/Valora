@@ -3,6 +3,8 @@
  * Recebe MonthlyBar[] já calculado por buildMonthlyBars.
  */
 import type { MonthlyBar } from '../../dividends/types'
+import { assetClassColor, assetClassLabel } from '../../portfolio/composition'
+import type { AssetType } from '../../portfolio/types'
 
 type Props = {
   bars: MonthlyBar[]
@@ -38,6 +40,7 @@ export function ProventosChart({ bars, maxBars = 8 }: Props) {
 
   const visible = bars.slice(-maxBars)
   const maxVal = Math.max(...visible.map((b) => b.total), 1)
+  const assetTypes = [...new Set(visible.flatMap((bar) => Object.keys(bar.byAssetType ?? {})))].sort()
 
   const W = 752
   const H = 140
@@ -46,9 +49,12 @@ export function ProventosChart({ bars, maxBars = 8 }: Props) {
   const n = visible.length
   const colW = (W - PAD_L) / n
   const BAR_W = Math.min(36, colW * 0.55)
-  const BLUE = '#7987FF'
+  const COLORS = assetTypes.map((type) =>
+    type === 'unknown' ? '#94a3b8' : assetClassColor(type as AssetType),
+  )
 
   return (
+    <div>
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="w-full"
@@ -59,20 +65,31 @@ export function ProventosChart({ bars, maxBars = 8 }: Props) {
         const bh = Math.max(2, ((bar.total / maxVal) * (H - PAD_B - 8)))
         const cx = PAD_L + i * colW + colW / 2
         const isLast = i === n - 1
+        let stackBottom = H - PAD_B
         return (
           <g
             key={bar.month}
             aria-label={`${fmtMonth(bar.month)}: ${fmtBRL(bar.total)}`}
           >
-            <rect
-              x={cx - BAR_W / 2}
-              y={H - PAD_B - bh}
-              width={BAR_W}
-              height={bh}
-              rx={4}
-              fill={BLUE}
-              fillOpacity={isLast ? 1 : 0.55}
-            />
+            <title>{`${fmtMonth(bar.month)}: ${assetTypes.map((type) => `${type === 'unknown' ? 'Outros' : assetClassLabel(type as AssetType)} ${fmtBRL(bar.byAssetType?.[type] ?? 0)}`).join(', ')}`}</title>
+            {assetTypes.map((type, typeIndex) => {
+              const value = bar.byAssetType?.[type] ?? 0
+              const segmentHeight = maxVal > 0 ? (value / maxVal) * (H - PAD_B - 8) : 0
+              const y = stackBottom - segmentHeight
+              stackBottom = y
+              return (
+                <rect
+                  key={type}
+                  x={cx - BAR_W / 2}
+                  y={y}
+                  width={BAR_W}
+                  height={segmentHeight}
+                  rx={typeIndex === assetTypes.length - 1 ? 3 : 0}
+                  fill={COLORS[typeIndex]}
+                  fillOpacity={isLast ? 1 : 0.65}
+                />
+              )
+            })}
             {/* Label valor da última barra */}
             {isLast && (
               <text
@@ -80,7 +97,7 @@ export function ProventosChart({ bars, maxBars = 8 }: Props) {
                 y={H - PAD_B - bh - 5}
                 textAnchor="middle"
                 fontSize={9.5}
-                fill={BLUE}
+                fill="#d1d5db"
                 fontWeight={500}
               >
                 {fmtBRL(bar.total)}
@@ -100,5 +117,14 @@ export function ProventosChart({ bars, maxBars = 8 }: Props) {
         )
       })}
     </svg>
+    <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[9px] text-white/50">
+      {assetTypes.map((type, index) => (
+        <span key={type} className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: COLORS[index] }} />
+          {type === 'unknown' ? 'Outros' : assetClassLabel(type as AssetType)}
+        </span>
+      ))}
+    </div>
+    </div>
   )
 }

@@ -23,12 +23,12 @@ export const dividendService = {
   },
 
   /**
-   * Proventos dos tickers fornecidos no intervalo `[since, hoje]`.
+  * Proventos pagos dos tickers fornecidos no intervalo `[since, hoje]`.
    *
    * Filtros aplicados no banco:
    * - `ticker IN tickers` — só proventos da carteira do usuário
-   * - `ex_date >= since` — dentro do período selecionado
-   * - `ex_date <= hoje` — exclui proventos futuros
+  * - `payment_date` dentro do período selecionado; `ex_date` é fallback quando nula
+  * - exclui pagamentos futuros (e datas COM futuras no fallback)
    * - `value_per_share > 0` — exclui registros zerados
    *
    * RLS de `dividends` libera SELECT apenas para `authenticated`; sem sessão
@@ -43,10 +43,9 @@ export const dividendService = {
       .from('dividends')
       .select(DIVIDEND_COLUMNS)
       .in('ticker', tickers)
-      .gte('ex_date', since)
-      .lte('ex_date', today)
+      .or(`and(payment_date.gte.${since},payment_date.lte.${today}),and(payment_date.is.null,ex_date.gte.${since},ex_date.lte.${today})`)
       .gt('value_per_share', 0)
-      .order('ex_date', { ascending: false })
+      .order('payment_date', { ascending: false, nullsFirst: false })
       .limit(DIVIDENDS_LIMIT)
 
     if (error) throw error

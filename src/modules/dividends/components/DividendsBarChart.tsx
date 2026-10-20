@@ -6,8 +6,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   type TooltipProps,
 } from 'recharts'
+import { assetClassColor, assetClassLabel } from '../../portfolio/composition'
+import type { AssetType } from '../../portfolio/types'
 import type { MonthlyBar } from '../types'
 
 interface DividendsBarChartProps {
@@ -34,15 +37,21 @@ function formatMonth(month: string): string {
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null
 
-  const value = payload[0]?.value ?? 0
-
   return (
     <div
       role="tooltip"
       className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm shadow-lg"
     >
       <p className="text-gray-400 mb-1">{formatMonth(String(label))}</p>
-      <p className="text-white font-semibold">{brlFormatter.format(Number(value))}</p>
+      {payload.map((entry) => (
+        <p key={entry.dataKey} className="flex items-center justify-between gap-4 text-gray-300">
+          <span>{entry.name}</span>
+          <span className="font-semibold text-white">{brlFormatter.format(Number(entry.value))}</span>
+        </p>
+      ))}
+      <p className="mt-1 border-t border-dark-border pt-1 font-semibold text-white">
+        Total: {brlFormatter.format(payload.reduce((sum, entry) => sum + Number(entry.value ?? 0), 0))}
+      </p>
     </div>
   )
 }
@@ -65,9 +74,12 @@ export default function DividendsBarChart({ data }: DividendsBarChartProps) {
     )
   }
 
+  const assetTypes = [...new Set(data.flatMap((bar) => Object.keys(bar.byAssetType ?? {})))].sort()
+  const chartData = data.map((bar) => ({ ...bar, ...(bar.byAssetType ?? {}) }))
+
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+      <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" vertical={false} />
         <XAxis
           dataKey="month"
@@ -91,7 +103,25 @@ export default function DividendsBarChart({ data }: DividendsBarChartProps) {
           width={72}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59,130,246,0.08)' }} />
-        <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Legend
+          formatter={(type) => (
+            <span style={{ color: '#d1d5db' }}>
+              {type === 'unknown' ? 'Outros' : assetClassLabel(type as AssetType)}
+            </span>
+          )}
+          wrapperStyle={{ fontSize: '11px' }}
+        />
+        {assetTypes.map((type, index) => (
+          <Bar
+            key={type}
+            dataKey={type}
+            name={type === 'unknown' ? 'Outros' : assetClassLabel(type as AssetType)}
+            stackId="assets"
+            fill={type === 'unknown' ? '#94a3b8' : assetClassColor(type as AssetType)}
+            radius={index === assetTypes.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+            isAnimationActive={false}
+          />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   )

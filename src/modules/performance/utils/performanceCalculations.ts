@@ -378,7 +378,12 @@ export function buildMonthlyAccumulatedSeries(
   const months = [...monthlyReturns.keys()].sort()
   if (months.length === 0) return { label, color, points: [] }
 
-  const points: NormalizedPoint[] = []
+  const firstMonth = months[0]
+  const [year, month] = firstMonth.split('-').map(Number)
+  const previousMonth = month === 1
+    ? `${year - 1}-12`
+    : `${year}-${String(month - 1).padStart(2, '0')}`
+  const points: NormalizedPoint[] = [{ date: `${previousMonth}-01`, normalized: 100 }]
   let acum = 100
 
   for (const month of months) {

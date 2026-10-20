@@ -4,6 +4,7 @@ import {
   computePortfolioReturn,
   computeMonthlyPortfolioReturns,
   buildBenchmarkSeries,
+  buildMonthlyAccumulatedSeries,
   extractReturnPct,
   computeAssetRows,
 } from './performanceCalculations'
@@ -270,6 +271,21 @@ describe('computeMonthlyPortfolioReturns', () => {
 
     expect(result.get('2026-09')).toBeCloseTo(0.1)
     expect(result.has('2026-10')).toBe(false)
+  })
+})
+
+describe('buildMonthlyAccumulatedSeries', () => {
+  it('cria uma âncora no mês anterior para exibir uma linha com um único mês fechado', () => {
+    const result = buildMonthlyAccumulatedSeries(
+      new Map([['2026-09', 0.1]]),
+      'Carteira',
+      '#3b82f6',
+    )
+
+    expect(result.points).toHaveLength(2)
+    expect(result.points[0]).toEqual({ date: '2026-08-01', normalized: 100 })
+    expect(result.points[1].date).toBe('2026-09-01')
+    expect(result.points[1].normalized).toBeCloseTo(110)
   })
 })
 

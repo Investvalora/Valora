@@ -1,27 +1,34 @@
 import type { DividendRow, DividendSort, MonthlyBar } from '../types'
 
 /**
- * Agrupa as linhas por mês (`YYYY-MM`) e soma `total_value` por grupo.
+ * Agrupa pelo mês de pagamento (`YYYY-MM`) e soma `total_value` por grupo,
+ * mantendo também os subtotais por classe do ativo.
  *
  * O resultado é ordenado cronologicamente (mais antigo primeiro), o que é a
  * ordem natural para um gráfico de barras de esquerda para direita.
  *
- * Linhas com `ex_date` inválida ou mal formada são ignoradas com segurança.
+ * Usa `ex_date` como fallback quando não há `payment_date`. Datas inválidas
+ * são ignoradas com segurança.
  */
 export function buildMonthlyBars(rows: DividendRow[]): MonthlyBar[] {
   const totals = new Map<string, number>()
+  const assetTotals = new Map<string, Record<string, number>>()
 
   for (const row of rows) {
-    // ex_date tem formato YYYY-MM-DD; os primeiros 7 chars são o mês
-    const month = typeof row.ex_date === 'string' ? row.ex_date.slice(0, 7) : ''
+    const date = row.payment_date || row.ex_date
+    const month = typeof date === 'string' ? date.slice(0, 7) : ''
     if (!month || !/^\d{4}-\d{2}$/.test(month)) continue
 
     totals.set(month, (totals.get(month) ?? 0) + row.total_value)
+    const assetType = row.asset_type ?? 'unknown'
+    const typeTotals = assetTotals.get(month) ?? {}
+    typeTotals[assetType] = (typeTotals[assetType] ?? 0) + row.total_value
+    assetTotals.set(month, typeTotals)
   }
 
   return [...totals.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, total]) => ({ month, total }))
+    .map(([month, total]) => ({ month, total, byAssetType: assetTotals.get(month) ?? {} }))
 }
 
 /**

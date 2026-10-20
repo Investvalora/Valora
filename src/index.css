@@ -27,6 +27,30 @@ body {
   min-height: 100dvh;
 }
 
+.login-page__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 78%, rgba(22, 126, 53, 0.52), transparent 30%),
+    radial-gradient(circle at 34% 32%, rgba(40, 70, 120, 0.36), transparent 32%),
+    linear-gradient(115deg, rgba(4, 44, 24, 0.42), transparent 52%);
+}
+
+.login-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  background: #5d5e65;
+  padding: 0.65rem 0.75rem;
+  color: white;
+  font-size: 0.7rem;
+  outline: none;
+}
+
+.login-input::placeholder { color: #a7a8ae; }
+.login-input:focus { border-color: #4a9bdb; box-shadow: 0 0 0 2px rgba(74, 155, 219, 0.2); }
+
 /* Liquid Glass */
 .wallet-action-button {
   position: relative;

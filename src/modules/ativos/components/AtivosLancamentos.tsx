@@ -135,12 +135,14 @@ function TransactionCard({
   assetType,
   assetName,
   currency,
+  quantityTotal: _quantityTotal,
   onDelete,
 }: {
   txn: Transaction
   assetType: AssetType | null
   assetName: string | null
   currency: string
+  quantityTotal: number
   onDelete: (id: string) => void
 }) {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -711,6 +713,7 @@ export function AtivosLancamentos() {
                     assetType={pos?.assetType ?? null}
                     assetName={pos?.assetName ?? null}
                     currency={pos?.currency ?? 'BRL'}
+                    quantityTotal={pos?.quantity ?? 0}
                     onDelete={() => {}}
                   />
                 )

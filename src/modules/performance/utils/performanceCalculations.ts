@@ -181,10 +181,6 @@ export function computeAssetRows(
   _periodStart?: string,
   _periodEnd?: string,
 ): AssetReturnRow[] {
-  // Mantém os argumentos de período por compatibilidade com chamadas antigas.
-  void _periodStart
-  void _periodEnd
-
   // Pré-computa proventos por ticker para O(n) em vez de O(n²)
   const dividendsByTicker = new Map<string, number>()
   for (const row of dividendRows) {

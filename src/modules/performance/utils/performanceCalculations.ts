@@ -292,6 +292,7 @@ function lastPointPerMonth<T extends { date: string }>(
  */
 export function computeMonthlyPortfolioReturns(
   wealthSeries: WealthPoint[],
+  referenceDate = new Date(),
 ): Map<string, number> {
   // Filtra pontos com valor válido antes de agrupar
   const validPoints = wealthSeries.filter(
@@ -299,14 +300,19 @@ export function computeMonthlyPortfolioReturns(
   ) as Array<{ date: string; value: number }>
 
   const byMonth = lastPointPerMonth(validPoints)
-  const months = [...byMonth.keys()].sort()
+  const currentMonth = `${referenceDate.getFullYear()}-${String(referenceDate.getMonth() + 1).padStart(2, '0')}`
+  const months = [...byMonth.keys()].filter((month) => month < currentMonth).sort()
 
   const returns = new Map<string, number>()
-  for (let i = 1; i < months.length; i++) {
-    const prev = byMonth.get(months[i - 1])!.value
-    const curr = byMonth.get(months[i])!.value
+  for (let i = 0; i < months.length; i++) {
+    const month = months[i]
+    const curr = byMonth.get(month)!.value
+    const previous = i > 0 ? byMonth.get(months[i - 1])?.value : undefined
+    const firstPoint = validPoints.find((point) => point.date.slice(0, 7) === month)
+    const prev = previous ?? firstPoint?.value
+    if (prev === undefined) continue
     if (prev > 0) {
-      returns.set(months[i], curr / prev - 1)
+      returns.set(month, curr / prev - 1)
     }
   }
   return returns

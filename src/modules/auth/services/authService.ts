@@ -28,6 +28,19 @@ export const authService = {
     return authData
   },
 
+  async resendSignupConfirmation(email: string) {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) throw error
+    return data
+  },
+
   async login(data: LoginFormData) {
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: data.email,

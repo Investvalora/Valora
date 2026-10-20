@@ -86,7 +86,7 @@ export function DesempenhoRentabilidade() {
     usePerformance(period, walletId)
 
   // Positions para obter o type do ativo (classe)
-  const { data: positions = [] } = usePositions()
+  const { data: positions = [] } = usePositions(walletId)
   const tickerTypeMap = useMemo(() => {
     const m = new Map<string, string>()
     for (const p of positions) {

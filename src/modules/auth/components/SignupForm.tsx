@@ -6,12 +6,17 @@ import { signupSchema, SignupSchema } from '../schemas/signupSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { useState } from 'react'
+import { Check } from 'lucide-react'
+import { AuthLayout } from './AuthLayout'
+import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
 export function SignupForm() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const [existingEmail, setExistingEmail] = useState(false)
+  const [confirmationEmail, setConfirmationEmail] = useState<string>('')
 
   const {
     register,
@@ -23,7 +28,12 @@ export function SignupForm() {
 
   const signupMutation = useMutation({
     mutationFn: authService.signup,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (!data.session) {
+        setConfirmationEmail(variables.email)
+        return
+      }
+
       setUser(data.user)
       setSession(data.session)
       navigate('/carteira')
@@ -31,10 +41,12 @@ export function SignupForm() {
     onError: (error: Error) => {
       console.error('Signup error:', error)
 
-      // Handle specific Supabase errors
-      if (error.message?.includes('already registered')) {
-        setErrorMessage('Este email já está cadastrado')
-      } else if (error.message?.includes('invalid email')) {
+      const message = error.message?.toLowerCase() ?? ''
+
+      if (message.includes('already registered') || message.includes('já está cadastrado')) {
+        setExistingEmail(true)
+        setErrorMessage('Este email já está cadastrado.')
+      } else if (message.includes('invalid email')) {
         setErrorMessage('Email inválido')
       } else {
         setErrorMessage(error.message || 'Erro ao criar conta. Tente novamente.')
@@ -44,112 +56,76 @@ export function SignupForm() {
 
   const onSubmit = (data: SignupSchema) => {
     setErrorMessage('')
+    setExistingEmail(false)
+    setConfirmationEmail('')
     signupMutation.mutate(data)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-bg px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-dark-surface rounded-lg shadow-xl p-8 border border-dark-border">
-          <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
-          <p className="text-gray-400 mb-8">
-            Comece a gerenciar seus investimentos
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                {...register('email')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="seu@email.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Senha
-              </label>
-              <input
-                id="password"
-                type="password"
-                {...register('password')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Mínimo 8 caracteres"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
-              )}
-            </div>
-
-            {/* Full Name */}
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
-                Nome Completo
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                {...register('fullName')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Seu nome completo"
-              />
-              {errors.fullName && (
-                <p className="mt-1 text-sm text-red-400">{errors.fullName.message}</p>
-              )}
-            </div>
-
-            {/* Phone (optional) */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
-                Telefone <span className="text-gray-500">(opcional)</span>
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                {...register('phone')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="(00) 00000-0000"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-400">{errors.phone.message}</p>
-              )}
-            </div>
-
-            {/* Error Message */}
-            {errorMessage && (
-              <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-                <p className="text-sm text-red-400">{errorMessage}</p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={signupMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              {signupMutation.isPending ? 'Criando conta...' : 'Criar Conta'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-gray-400">
-            Já tem uma conta?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-              Faça login
-            </Link>
-          </p>
+    <AuthLayout
+      prioritizeFormOnMobile
+      hideHeader={!!confirmationEmail}
+      title="Criar conta"
+      description="Comece a gerenciar seus investimentos."
+      footer={confirmationEmail
+        ? <Link to="/login" className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/20 px-5 font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a9bdb]">Voltar para login</Link>
+        : <>Já tem uma conta? <Link to="/login" className={authLink}>Faça login</Link></>}
+    >
+      {confirmationEmail ? (
+        <div>
+          <div role="status" className="flex min-h-[174px] flex-col items-center justify-center text-center">
+            <Check className="auth-success-check h-12 w-12 text-[#7ee39a]" strokeWidth={2.5} aria-hidden="true" />
+            <h2 className="mt-4 text-lg font-semibold">Confirme seu email</h2>
+            <p className="mt-2 max-w-[320px] text-sm leading-relaxed text-[#a8adb1]">
+              Verifique a caixa de entrada de <span className="font-medium text-white">{confirmationEmail}</span> e confirme seu endereço para continuar.
+            </p>
+          </div>
+          <button type="button" disabled className={`${authButton} mt-5`}>Criar conta</button>
         </div>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <div>
+            <label htmlFor="fullName" className={authLabel}>Nome completo</label>
+            <input id="fullName" type="text" autoComplete="name" {...register('fullName')} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'signup-name-error' : undefined} className={authInput} placeholder="Seu nome completo" />
+            {errors.fullName && <p id="signup-name-error" className={authFieldError}>{errors.fullName.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="email" className={authLabel}>Email</label>
+            <input id="email" type="email" autoComplete="email" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'signup-email-error' : undefined} className={authInput} placeholder="seu@email.com" />
+            {errors.email && <p id="signup-email-error" className={authFieldError}>{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="phone" className={authLabel}>Telefone <span className="font-normal text-white/35">(opcional)</span></label>
+            <input id="phone" type="tel" autoComplete="tel" {...register('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'signup-phone-error' : undefined} className={authInput} placeholder="(00) 00000-0000" />
+            {errors.phone && <p id="signup-phone-error" className={authFieldError}>{errors.phone.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="password" className={authLabel}>Senha</label>
+            <input id="password" type="password" autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={authInput} placeholder="Mínimo 8 caracteres" />
+            {errors.password && <p id="signup-password-error" className={authFieldError}>{errors.password.message}</p>}
+          </div>
+
+          {errorMessage && (
+            <div role="alert" className={authErrorBox}>
+              <p>{errorMessage}</p>
+              {existingEmail && (
+                <p className="mt-2">
+                  <Link to="/login" className={authLink}>Faça login</Link>
+                  {' ou '}
+                  <Link to="/recuperar-senha" className={authLink}>recupere sua senha</Link>.
+                </p>
+              )}
+            </div>
+          )}
+
+          <button type="submit" disabled={signupMutation.isPending} className={authButton}>
+            {signupMutation.isPending ? 'Criando conta...' : 'Criar conta'}
+          </button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

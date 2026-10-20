@@ -3,8 +3,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { PasswordRecoverySchema, passwordRecoverySchema } from '../schemas/passwordRecoverySchema'
 import { authService } from '../services/authService'
+import { AuthLayout } from './AuthLayout'
+import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
 export function PasswordRecoveryForm() {
   const [successMessage, setSuccessMessage] = useState<string>('')
@@ -22,7 +25,7 @@ export function PasswordRecoveryForm() {
     mutationFn: authService.requestPasswordRecovery,
     onSuccess: () => {
       setErrorMessage('')
-      setSuccessMessage('Email enviado com instruções para redefinir sua senha.')
+      setSuccessMessage('Enviamos um link para redefinir sua senha.')
     },
     onError: (error: Error) => {
       console.error('Password recovery error:', error)
@@ -45,61 +48,39 @@ export function PasswordRecoveryForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-bg px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-dark-surface rounded-lg shadow-xl p-8 border border-dark-border">
-          <h1 className="text-3xl font-bold text-white mb-2">Recuperar Senha</h1>
-          <p className="text-gray-400 mb-8">
-            Informe seu email para receber as instruções de redefinição.
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="seu@email.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
-              )}
-            </div>
-
-            {successMessage && (
-              <div className="p-4 bg-green-500/10 border border-green-500/50 rounded-lg">
-                <p className="text-sm text-green-400">{successMessage}</p>
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-                <p className="text-sm text-red-400">{errorMessage}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={recoveryMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              {recoveryMutation.isPending ? 'Enviando...' : 'Enviar instruções'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-gray-400">
-            Lembrou sua senha?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-              Voltar para login
-            </Link>
-          </p>
+    <AuthLayout
+      prioritizeFormOnMobile
+      hideHeader={!!successMessage}
+      title="Recuperar senha"
+      description="Informe seu email para receber as instruções de redefinição."
+      footer={successMessage
+        ? <Link to="/login" className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/20 px-5 font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a9bdb]">Voltar</Link>
+        : <>Lembrou sua senha? <Link to="/login" className={authLink}>Voltar para login</Link></>}
+    >
+      {successMessage ? (
+        <div>
+          <div role="status" className="flex min-h-[174px] flex-col items-center justify-center text-center">
+            <Check className="auth-success-check h-12 w-12 text-[#7ee39a]" strokeWidth={2.5} aria-hidden="true" />
+            <h2 className="mt-4 text-lg font-semibold">Email enviado</h2>
+            <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-[#a8adb1]">{successMessage} Confira sua caixa de entrada.</p>
+          </div>
+          <button type="button" disabled className={`${authButton} mt-5`}>Enviar instruções</button>
         </div>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <div>
+            <label htmlFor="email" className={authLabel}>Email</label>
+            <input id="email" type="email" autoComplete="email" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'recovery-email-error' : undefined} className={authInput} placeholder="seu@email.com" />
+            {errors.email && <p id="recovery-email-error" className={authFieldError}>{errors.email.message}</p>}
+          </div>
+
+          {errorMessage && <p role="alert" className={authErrorBox}>{errorMessage}</p>}
+
+          <button type="submit" disabled={recoveryMutation.isPending} className={authButton}>
+            {recoveryMutation.isPending ? 'Enviando...' : 'Enviar instruções'}
+          </button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

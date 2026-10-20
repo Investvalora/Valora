@@ -9,6 +9,7 @@ export const authService = {
       email: data.email,
       password: data.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           full_name: data.fullName,
           phone: data.phone || null,
@@ -18,10 +19,10 @@ export const authService = {
 
     if (authError) throw authError
     if (!authData.user) throw new Error('Failed to create user')
-
-    // Check if email confirmation is required
-    if (!authData.session) {
-      throw new Error('Por favor, confirme seu email para continuar. Verifique sua caixa de entrada.')
+    // With email confirmation enabled, Supabase can return an obfuscated user
+    // instead of an error when a confirmed email is already registered.
+    if (authData.user.identities?.length === 0) {
+      throw new Error('Email already registered')
     }
 
     return authData

@@ -3,15 +3,19 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { loginSchema, LoginSchema } from '../schemas/loginSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
+import { AuthLayout } from './AuthLayout'
+import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
 export function LoginForm() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -52,77 +56,44 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-bg px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-dark-surface rounded-lg shadow-xl p-8 border border-dark-border">
-          <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>
-          <p className="text-gray-400 mb-8">
-            Acesse sua carteira de investimentos
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="seu@email.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Senha
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...register('password')}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Sua senha"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
-              )}
-              <div className="mt-2 text-right">
-                <Link to="/recuperar-senha" className="text-sm text-blue-400 hover:text-blue-300 font-medium">
-                  Esqueci minha senha
-                </Link>
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-                <p className="text-sm text-red-400">{errorMessage}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loginMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-gray-400">
-            Ainda não tem uma conta?{' '}
-            <Link to="/cadastro" className="text-blue-400 hover:text-blue-300 font-medium">
-              Criar conta
-            </Link>
-          </p>
+    <AuthLayout
+      prioritizeFormOnMobile
+      title="Entrar no Valora"
+      description="Acesse sua carteira e suas análises."
+      footer={<>
+        <p>Ainda não tem uma conta? <Link to="/cadastro" className={authLink}>Criar conta</Link></p>
+        <p className="mt-3 text-[10px] leading-relaxed text-[#777a80]">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</p>
+      </>}
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div>
+          <label htmlFor="email" className={authLabel}>Email</label>
+          <input id="email" type="email" autoComplete="email" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'login-email-error' : undefined} className={authInput} placeholder="voce@email.com" />
+          {errors.email && <p id="login-email-error" className={authFieldError}>{errors.email.message}</p>}
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label htmlFor="password" className={authLabel}>Senha</label>
+          <div className="relative">
+            <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'login-password-error' : undefined} className={`${authInput} pr-10`} placeholder="••••••••" />
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9b9ca1] hover:text-white">
+              {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+            </button>
+          </div>
+          {errors.password && <p id="login-password-error" className={authFieldError}>{errors.password.message}</p>}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#a0a2a6]">
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-3.5 w-3.5 accent-[#347cbc]" /> Manter conectado</label>
+          <Link to="/recuperar-senha" className={authLink}>Esqueci minha senha</Link>
+        </div>
+
+        {errorMessage && <p role="alert" className={authErrorBox}>{errorMessage}</p>}
+
+        <button type="submit" disabled={loginMutation.isPending} className={authButton}>
+          {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
+    </AuthLayout>
   )
 }

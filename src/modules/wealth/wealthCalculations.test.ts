@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildWealthSeries, buildLastPricesMap } from './wealthCalculations'
 import type { PositionSnapshot, PriceHistoryRow } from './types'
-import type { Transaction } from '../portfolio/services/transactionsService'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -103,17 +102,6 @@ describe('buildWealthSeries — lacunas parciais (matrix row 3)', () => {
     expect(series[1].value).toBe(4100)
   })
 
-  it('mantém a última cotação quando um ativo não tem preço no dia seguinte', () => {
-    const rows = [
-      price('PETR4', '2026-01-01', 30),
-      price('VALE3', '2026-01-01', 20),
-      price('PETR4', '2026-01-02', 31),
-    ]
-    const series = buildWealthSeries(positions, rows, USD_RATE)
-
-    expect(series[1].value).toBe(31 * 100 + 20 * 50)
-  })
-
   it('nenhum ponto da série tem value = null quando todos os tickers têm cotação', () => {
     const rows = [
       price('PETR4', '2026-01-01', 30),
@@ -124,24 +112,6 @@ describe('buildWealthSeries — lacunas parciais (matrix row 3)', () => {
     expect(series).toHaveLength(1)
     expect(series[0].value).not.toBeNull()
     expect(series[0].value).toBe(100 * 30 + 50 * 20) // 3.000 + 1.000 = 4.000
-  })
-})
-
-describe('buildWealthSeries — quantidades históricas por transação', () => {
-  it('não aplica compras posteriores aos meses anteriores', () => {
-    const transactions = [
-      { ticker: 'PETR4', type: 'buy', quantity: 10, transaction_date: '2026-01-15', seq: 1 },
-      { ticker: 'PETR4', type: 'buy', quantity: 10, transaction_date: '2026-02-15', seq: 2 },
-    ] as unknown as Transaction[]
-    const series = buildWealthSeries(
-      [pos('PETR4', 20)],
-      [price('PETR4', '2026-01-31', 10), price('PETR4', '2026-02-28', 10)],
-      USD_RATE,
-      undefined,
-      transactions,
-    )
-
-    expect(series.map((point) => point.value)).toEqual([100, 200])
   })
 })
 

@@ -61,7 +61,7 @@ export function DesempenhoVisaoGeral() {
 
   const dashboard = useDashboard(walletId)
 
-  const { rows: divRows, isLoading: divLoading } = useDividends('1A', walletId)
+  const { rows: divRows, isLoading: divLoading } = useDividends('1A')
 
   const monthlyBars = useMemo(() => buildMonthlyBars(divRows), [divRows])
 

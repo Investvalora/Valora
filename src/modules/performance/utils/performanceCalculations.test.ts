@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   normalizeToBase100,
   computePortfolioReturn,
-  computeMonthlyPortfolioReturns,
   buildBenchmarkSeries,
   extractReturnPct,
   computeAssetRows,
@@ -11,7 +10,6 @@ import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
 import type { PositionWithAsset } from '../../portfolio/types'
 import type { BenchmarkRow } from '../types'
-import type { Transaction } from '../../portfolio/services/transactionsService'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,24 +17,6 @@ import type { Transaction } from '../../portfolio/services/transactionsService'
 
 function makeWealth(entries: Array<[string, number | null]>): WealthPoint[] {
   return entries.map(([date, value]) => ({ date, value }))
-}
-
-function makeTransaction(overrides: Partial<Transaction>): Transaction {
-  return {
-    id: 'transaction-1',
-    seq: 1,
-    user_id: 'user-1',
-    wallet_id: 'wallet-1',
-    ticker: 'BTC',
-    type: 'buy',
-    quantity: 1,
-    price: 100,
-    brokerage_fee: 0,
-    tax: 0,
-    transaction_date: '2026-09-15',
-    created_at: '2026-09-15T00:00:00Z',
-    ...overrides,
-  }
 }
 
 function makeDividend(total_value: number): DividendRow {
@@ -273,66 +253,6 @@ describe('computePortfolioReturn', () => {
     // primeiro não-nulo = 1000, último não-nulo = 1200 → retorno = 20%
     const result = computePortfolioReturn(series, [], [])
     expect(result).toBeCloseTo(0.2)
-  })
-})
-
-describe('computeMonthlyPortfolioReturns', () => {
-  it('ignora transações de ativos excluídos da carteira', () => {
-    const result = computeMonthlyPortfolioReturns(
-      makeWealth([
-        ['2026-08-31', 1000],
-        ['2026-09-30', 1100],
-      ]),
-      [makeTransaction({ ticker: 'BTC', price: 5000 })],
-      [],
-    )
-
-    expect(result.get('2026-09')).toBeCloseTo(0.1)
-  })
-
-  it('considera vendas de ativos que continuam na carteira', () => {
-    const result = computeMonthlyPortfolioReturns(
-      makeWealth([
-        ['2026-08-31', 1000],
-        ['2026-09-30', 900],
-      ]),
-      [makeTransaction({ ticker: 'PETR4', type: 'sell', price: 100 })],
-      [{ ticker: 'PETR4', asset: { currency: 'BRL' } } as PositionWithAsset],
-    )
-
-    expect(result.get('2026-09')).toBeCloseTo(0)
-  })
-
-  it('não calcula o mês corrente enquanto ele ainda está aberto', () => {
-    const result = computeMonthlyPortfolioReturns(
-      makeWealth([
-        ['2026-09-30', 1000],
-        ['2026-10-20', 1100],
-      ]),
-      [],
-      [],
-      1,
-      new Date('2026-10-20T12:00:00Z'),
-    )
-
-    expect(result.has('2026-10')).toBe(false)
-  })
-
-  it('calcula o primeiro mês fechado usando o primeiro ponto como base', () => {
-    const result = computeMonthlyPortfolioReturns(
-      makeWealth([
-        ['2026-09-15', 1000],
-        ['2026-09-30', 1100],
-        ['2026-10-20', 1200],
-      ]),
-      [],
-      [],
-      1,
-      new Date('2026-10-20T12:00:00Z'),
-    )
-
-    expect(result.get('2026-09')).toBeCloseTo(0.1)
-    expect(result.has('2026-10')).toBe(false)
   })
 })
 

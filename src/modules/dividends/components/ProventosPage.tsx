@@ -9,7 +9,6 @@ import { buildMonthlyBars, filterAndSort, sumTotalValue } from '../utils/dividen
 import { downloadDividendsCsv } from '../export/dividendsCsv'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
-import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { DividendPeriod, DividendRow, DividendSort, DividendSortColumn } from '../types'
 import type { WealthPeriod } from '../../wealth/types'
 
@@ -118,10 +117,8 @@ export function ProventosPage() {
 
   const isMobile = useIsMobile()
   const { user } = useAuth()
-  const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
   const { hasPositions, isLoading: isPositionsLoading } = useHasPositions()
-  const { rows, isLoading, isError, error, refetch, availableTypes } = useDividends(period, walletId)
+  const { rows, isLoading, isError, error, refetch, availableTypes } = useDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])

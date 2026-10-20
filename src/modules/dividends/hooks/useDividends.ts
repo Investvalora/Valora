@@ -106,15 +106,14 @@ export interface UseDividendsResult {
  *
  * O enriquecimento (quantity + total_value) é client-side em `useMemo`.
  */
-export function useDividends(period: DividendPeriod, walletId?: string): UseDividendsResult {
+export function useDividends(period: DividendPeriod): UseDividendsResult {
   const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
-  const effectiveWalletId = walletId || undefined
 
   // --- Query 1: posições ---
   const positionsQuery = useQuery<PositionWithAsset[]>({
-    queryKey: ['portfolio', 'positions', userId, effectiveWalletId],
-    queryFn: () => positionService.listPositions(userId as string, effectiveWalletId),
+    queryKey: ['portfolio', 'positions', userId],
+    queryFn: () => positionService.listPositions(userId as string),
     enabled: Boolean(userId),
     staleTime: STALE_TIME_MS,
   })

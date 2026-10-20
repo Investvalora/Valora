@@ -10,7 +10,6 @@ import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
 import { filterAndSort } from '../../dividends/utils/dividendCalculations'
 import type { DividendPeriod } from '../../dividends/types'
 import type { DividendRow } from '../../dividends/types'
-import { useWallets } from '../../portfolio/hooks/useWallets'
 
 const ProventosChart = lazy(() =>
   import('./ProventosChart').then((m) => ({ default: m.ProventosChart })),
@@ -90,14 +89,12 @@ function DividendCard({ row }: { row: DividendRow }) {
 }
 
 export function DesempenhoProventos() {
-  const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
   const [period, setPeriod] = useState<DividendPeriod>('1A')
   const [tickerFilter, setTickerFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
 
-  const { rows, isLoading, availableTypes } = useDividends(period, walletId)
+  const { rows, isLoading, availableTypes } = useDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])

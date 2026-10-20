@@ -73,30 +73,17 @@ export const wealthService = {
   async listPriceHistory(tickers: string[], since: string): Promise<PriceHistoryRow[]> {
     if (tickers.length === 0) return []
 
-    // O Supabase limita respostas PostgREST a 1.000 linhas por página,
-    // independentemente de um `.limit()` maior. Sem paginação, carteiras
-    // maiores perdem justamente os meses mais recentes do histórico.
-    const pageSize = 1000
-    const maxRows = tickers.length * 365
-    const rows: PriceHistoryRow[] = []
+    const { data, error } = await supabase
+      .from('price_history')
+      .select(PRICE_HISTORY_COLUMNS)
+      .in('ticker', tickers)
+      .gte('date', since)
+      .order('date', { ascending: true })
+      .limit(tickers.length * 365)
 
-    for (let offset = 0; offset < maxRows; offset += pageSize) {
-      const { data, error } = await supabase
-        .from('price_history')
-        .select(PRICE_HISTORY_COLUMNS)
-        .in('ticker', tickers)
-        .gte('date', since)
-        .order('date', { ascending: true })
-        .range(offset, Math.min(offset + pageSize, maxRows) - 1)
+    if (error) throw error
 
-      if (error) throw error
-
-      const page = (data ?? []) as unknown as PriceHistoryRow[]
-      rows.push(...page)
-      if (page.length < pageSize) break
-    }
-
-    return rows
+    return (data ?? []) as unknown as PriceHistoryRow[]
   },
 
   /**

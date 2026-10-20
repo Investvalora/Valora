@@ -1,7 +1,6 @@
 import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
 import type { PositionWithAsset } from '../../portfolio/types'
-import type { Transaction } from '../../portfolio/services/transactionsService'
 import type { BenchmarkRow, NormalizedPoint, PerformanceSeries, AssetReturnRow } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -293,10 +292,6 @@ function lastPointPerMonth<T extends { date: string }>(
  */
 export function computeMonthlyPortfolioReturns(
   wealthSeries: WealthPoint[],
-  transactions: Transaction[] = [],
-  positions: PositionWithAsset[] = [],
-  usdRate = 1,
-  referenceDate = new Date(),
 ): Map<string, number> {
   // Filtra pontos com valor válido antes de agrupar
   const validPoints = wealthSeries.filter(
@@ -304,31 +299,14 @@ export function computeMonthlyPortfolioReturns(
   ) as Array<{ date: string; value: number }>
 
   const byMonth = lastPointPerMonth(validPoints)
-  const currentMonth = `${referenceDate.getFullYear()}-${String(referenceDate.getMonth() + 1).padStart(2, '0')}`
-  const months = [...byMonth.keys()].filter((month) => month < currentMonth).sort()
+  const months = [...byMonth.keys()].sort()
 
   const returns = new Map<string, number>()
-  for (let i = 0; i < months.length; i++) {
-    const month = months[i]
-    const curr = byMonth.get(month)!.value
-    const previousMonth = i > 0 ? byMonth.get(months[i - 1]) : undefined
-    const firstPoint = validPoints.find((point) => point.date.slice(0, 7) === month)
-    const prev = previousMonth?.value ?? firstPoint?.value
-    if (prev === undefined) continue
+  for (let i = 1; i < months.length; i++) {
+    const prev = byMonth.get(months[i - 1])!.value
+    const curr = byMonth.get(months[i])!.value
     if (prev > 0) {
-      const netFlow = transactions
-        .filter((transaction) => transaction.transaction_date.slice(0, 7) === month)
-        .reduce((total, transaction) => {
-          const position = positions.find((item) => item.ticker === transaction.ticker)
-          if (!position) return total
-          const priceInBrl = position?.asset?.currency === 'USD'
-            ? transaction.price * usdRate
-            : transaction.price
-          const flow = priceInBrl * transaction.quantity
-          return total + (transaction.type === 'buy' ? flow : -flow)
-        }, 0)
-
-      returns.set(month, (curr - prev - netFlow) / prev)
+      returns.set(months[i], curr / prev - 1)
     }
   }
   return returns
@@ -447,10 +425,7 @@ export function buildIntramonthlySeries(
   label: string,
   color: string,
 ): PerformanceSeries {
-  const validPoints = points.filter(
-    (point) => point.value !== null && Number.isFinite(point.value) && point.value > 0,
-  )
-  return { label, color, points: normalizeToBase100(validPoints) }
+  return { label, color, points: normalizeToBase100(points) }
 }
 
 /**

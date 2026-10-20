@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Wallet } from '../../modules/portfolio/services/walletService'
 import { WalletMorphSelector } from './WalletMorphSelector'
@@ -81,6 +82,23 @@ describe('Seletor de carteira do topo', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Nenhuma carteira')
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('abre a gestão quando só existe a carteira atual', () => {
+    wallets = [primary]
+    render(
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<WalletMorphSelector />} />
+          <Route path="/carteiras" element={<h1>Carteiras</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Carteira atual: Principal/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gerenciar carteiras' }))
+
+    expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
   })
 
   it('move nomes longos também ao receber foco', () => {

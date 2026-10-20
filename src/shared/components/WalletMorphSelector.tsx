@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useWallets } from '../../modules/portfolio/hooks/useWallets'
 import { walletPalette } from '../../modules/portfolio/walletPalette'
 
@@ -109,7 +110,7 @@ export function WalletMorphSelector() {
         />
       </button>
 
-      {otherWallets.length > 0 && (
+      {(otherWallets.length > 0 || open) && (
         <div
           id="wallet-selector-panel"
           ref={listRef}
@@ -117,13 +118,13 @@ export function WalletMorphSelector() {
           aria-label="Carteiras disponíveis"
           aria-hidden={!open}
           className={`wallet-selector-scroll absolute inset-x-0 top-[45px] z-20 overflow-y-auto overscroll-contain transition-[height] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${open ? '' : 'pointer-events-none'} ${open && hasMoreBelow ? 'wallet-selector-fade' : ''}`}
-          style={{ height: open ? `${listHeight}px` : '0px' }}
+          style={{ height: open ? `${otherWallets.length > 0 ? listHeight : 45}px` : '0px' }}
           onScroll={(event) => {
             const list = event.currentTarget
             setHasMoreBelow(list.scrollTop + list.clientHeight < list.scrollHeight - 2)
           }}
         >
-          <div className="relative" style={{ height: `${otherWallets.length * 45}px` }}>
+          <div className="relative" style={{ height: `${otherWallets.length > 0 ? otherWallets.length * 45 : 45}px` }}>
             {otherWallets.map((wallet, index) => (
               <button
                 key={wallet.id}
@@ -147,9 +148,30 @@ export function WalletMorphSelector() {
                 {walletName(wallet.name)}
               </button>
             ))}
+            {otherWallets.length === 0 && (
+              <ManageWalletsButton onNavigate={() => setOpen(false)} />
+            )}
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+function ManageWalletsButton({ onNavigate }: { onNavigate: () => void }) {
+  const navigate = useNavigate()
+
+  return (
+    <button
+      type="button"
+      aria-label="Gerenciar carteiras"
+      onClick={() => {
+        onNavigate()
+        navigate('/carteiras')
+      }}
+      className="group absolute inset-x-0 top-0 flex h-[38px] items-center rounded-full border border-white/[0.08] bg-[#2f2f2f] px-4 text-left text-[13px] font-medium text-white/80 shadow-[0_6px_18px_rgba(0,0,0,0.22)] transition-colors hover:border-white/[0.12] hover:bg-[#454545] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFD95A]"
+    >
+      Gerenciar carteiras
+    </button>
   )
 }

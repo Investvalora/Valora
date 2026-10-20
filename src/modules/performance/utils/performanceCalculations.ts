@@ -1,6 +1,7 @@
 import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
 import type { PositionWithAsset } from '../../portfolio/types'
+import type { Transaction } from '../../portfolio/services/transactionsService'
 import type { BenchmarkRow, NormalizedPoint, PerformanceSeries, AssetReturnRow } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -292,6 +293,9 @@ function lastPointPerMonth<T extends { date: string }>(
  */
 export function computeMonthlyPortfolioReturns(
   wealthSeries: WealthPoint[],
+  transactions: Transaction[] = [],
+  positions: PositionWithAsset[] = [],
+  usdRate = 1,
 ): Map<string, number> {
   // Filtra pontos com valor válido antes de agrupar
   const validPoints = wealthSeries.filter(
@@ -306,7 +310,19 @@ export function computeMonthlyPortfolioReturns(
     const prev = byMonth.get(months[i - 1])!.value
     const curr = byMonth.get(months[i])!.value
     if (prev > 0) {
-      returns.set(months[i], curr / prev - 1)
+      const month = months[i]
+      const netFlow = transactions
+        .filter((transaction) => transaction.transaction_date.slice(0, 7) === month)
+        .reduce((total, transaction) => {
+          const position = positions.find((item) => item.ticker === transaction.ticker)
+          const priceInBrl = position?.asset?.currency === 'USD'
+            ? transaction.price * usdRate
+            : transaction.price
+          const flow = priceInBrl * transaction.quantity
+          return total + (transaction.type === 'buy' ? flow : -flow)
+        }, 0)
+
+      returns.set(month, (curr - prev - netFlow) / prev)
     }
   }
   return returns

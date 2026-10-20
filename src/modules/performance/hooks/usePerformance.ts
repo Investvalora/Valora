@@ -202,8 +202,13 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
   //   intra-mês: normaliza dia a dia a partir do primeiro ponto disponível
 
   const portfolioMonthlyReturns = useMemo(
-    () => computeMonthlyPortfolioReturns(wealth.series),
-    [wealth.series],
+    () => computeMonthlyPortfolioReturns(
+      wealth.series,
+      transactionsQuery.data ?? [],
+      positions,
+      usdRateQuery.data?.rate || 5,
+    ),
+    [wealth.series, transactionsQuery.data, positions, usdRateQuery.data?.rate],
   )
 
   // true quando não há meses suficientes para o cálculo MoM

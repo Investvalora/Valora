@@ -7,6 +7,7 @@ import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
 import { wealthService } from '../services/wealthService'
 import { buildLastPricesMap, buildWealthSeries } from '../wealthCalculations'
 import type { WealthPeriod, WealthPoint, PositionSnapshot, PriceHistoryRow } from '../types'
+import type { Transaction } from '../../portfolio/services/transactionsService'
 
 /**
  * Número de dias que cada período representa.
@@ -126,6 +127,7 @@ export interface UseWealthHistoryResult {
 export function useWealthHistory(
   period: WealthPeriod,
   walletId?: string,
+  transactions: Transaction[] = [],
 ): UseWealthHistoryResult {
   const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
@@ -180,7 +182,7 @@ export function useWealthHistory(
   // 2b. Últimos preços (janela de 10 dias) — para lastPricesMap e patrimônio atual.
   //     Query separada para não depender do limite do histórico completo.
   const latestPricesQuery = useQuery({
-    queryKey: ['wealth', 'latest-prices', userId, [...tickers].sort()],
+    queryKey: ['wealth', 'latest-prices', userId, walletId, [...tickers].sort()],
     queryFn: () => wealthService.listLatestPrices(tickers),
     enabled: Boolean(userId) && tickers.length > 0,
     staleTime: WEALTH_STALE_TIME_MS,
@@ -214,8 +216,8 @@ export function useWealthHistory(
 
   // 5. Série temporal derivada no cliente — ancorada na primeira compra
   const series = useMemo(
-    () => buildWealthSeries(positions, priceRows, usdRate, earliestDate ?? undefined),
-    [positions, priceRows, usdRate, earliestDate],
+    () => buildWealthSeries(positions, priceRows, usdRate, earliestDate ?? undefined, transactions),
+    [positions, priceRows, usdRate, earliestDate, transactions],
   )
 
   const isLoading =

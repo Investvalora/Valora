@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { positionService } from '../../portfolio/services/positionService'
+import { transactionsService } from '../../portfolio/services/transactionsService'
 import { dividendService } from '../../dividends/services/dividendService'
 import { benchmarkService } from '../services/benchmarkService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
@@ -94,8 +95,15 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
   // Se for '' (carteira ainda carregando), passa undefined para não bloquear a query.
   const effectiveWalletId = walletId || undefined
 
+  const transactionsQuery = useQuery({
+    queryKey: ['portfolio', 'transactions-all', userId, effectiveWalletId],
+    queryFn: () => transactionsService.listAll(userId as string, effectiveWalletId),
+    enabled: Boolean(userId) && Boolean(effectiveWalletId),
+    staleTime: STALE_TIME_MS,
+  })
+
   // 1. Série de patrimônio diário + posições snapshot + USD rate
-  const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId)
+  const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId, transactionsQuery.data ?? [])
 
   // Piso do período selecionado
   const periodFloor = useMemo(
@@ -304,21 +312,24 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
     wealth.isLoading ||
     positionsQuery.isLoading ||
     dividendsQuery.isLoading ||
-    benchmarksQuery.isLoading
+    benchmarksQuery.isLoading ||
+    transactionsQuery.isLoading
 
   const isError =
     wealth.isError ||
     positionsQuery.isError ||
     dividendsQuery.isError ||
-    benchmarksQuery.isError
+    benchmarksQuery.isError ||
+    transactionsQuery.isError
 
   const error = (
-    (positionsQuery.error ?? benchmarksQuery.error ?? dividendsQuery.error) as Error | null
+    (positionsQuery.error ?? benchmarksQuery.error ?? dividendsQuery.error ?? transactionsQuery.error) as Error | null
   )
 
   const refetch = () => {
     void wealth.refetch()
     void positionsQuery.refetch()
+    void transactionsQuery.refetch()
     void benchmarksQuery.refetch()
   }
 

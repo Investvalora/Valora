@@ -1,5 +1,6 @@
 import { INTERNATIONAL_TYPES } from '../portfolio/composition'
 import type { WealthPoint, PositionSnapshot, PriceHistoryRow } from './types'
+import type { Transaction } from '../portfolio/services/transactionsService'
 
 /**
  * Constrói o mapa de último preço conhecido por ticker.
@@ -44,6 +45,7 @@ export function buildWealthSeries(
   priceRows: PriceHistoryRow[],
   usdRate: number,
   earliestDate?: string,
+  transactions: Transaction[] = [],
 ): WealthPoint[] {
   if (positions.length === 0) return []
   if (priceRows.length === 0) return []
@@ -56,6 +58,20 @@ export function buildWealthSeries(
       pos.type !== null &&
       (INTERNATIONAL_TYPES as readonly string[]).includes(pos.type)
     posMap.set(pos.ticker, { quantity: pos.quantity, needsConversion })
+  }
+
+  const transactionsByTicker = new Map<string, Transaction[]>()
+  for (const transaction of transactions) {
+    if (transaction.type !== 'buy' && transaction.type !== 'sell') continue
+    const tickerTransactions = transactionsByTicker.get(transaction.ticker) ?? []
+    tickerTransactions.push(transaction)
+    transactionsByTicker.set(transaction.ticker, tickerTransactions)
+  }
+  for (const tickerTransactions of transactionsByTicker.values()) {
+    tickerTransactions.sort((a, b) => {
+      const dateOrder = a.transaction_date.localeCompare(b.transaction_date)
+      return dateOrder !== 0 ? dateOrder : a.seq - b.seq
+    })
   }
 
   // Agrupa cotações por data → Map<date, Map<ticker, close>>
@@ -85,9 +101,21 @@ export function buildWealthSeries(
       const close = dayMap.get(ticker)
       if (close === undefined || !Number.isFinite(close)) continue
 
+      const tickerTransactions = transactionsByTicker.get(ticker)
+      let quantityAtDate = quantity
+      if (tickerTransactions && tickerTransactions.length > 0) {
+        quantityAtDate = 0
+        for (const transaction of tickerTransactions) {
+          if (transaction.transaction_date > date) break
+          quantityAtDate += transaction.type === 'buy' ? transaction.quantity : -transaction.quantity
+        }
+        quantityAtDate = Math.max(0, quantityAtDate)
+      }
+
+      if (quantityAtDate <= 0) continue
       hasAny = true
       const priceInBRL = needsConversion ? close * usdRate : close
-      total += priceInBRL * quantity
+      total += priceInBRL * quantityAtDate
     }
 
     return { date, value: hasAny ? total : null }

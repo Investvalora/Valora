@@ -315,6 +315,7 @@ export function computeMonthlyPortfolioReturns(
         .filter((transaction) => transaction.transaction_date.slice(0, 7) === month)
         .reduce((total, transaction) => {
           const position = positions.find((item) => item.ticker === transaction.ticker)
+          if (!position) return total
           const priceInBrl = position?.asset?.currency === 'USD'
             ? transaction.price * usdRate
             : transaction.price

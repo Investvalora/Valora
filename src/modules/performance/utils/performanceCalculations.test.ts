@@ -317,6 +317,23 @@ describe('computeMonthlyPortfolioReturns', () => {
 
     expect(result.has('2026-10')).toBe(false)
   })
+
+  it('calcula o primeiro mês fechado usando o primeiro ponto como base', () => {
+    const result = computeMonthlyPortfolioReturns(
+      makeWealth([
+        ['2026-09-15', 1000],
+        ['2026-09-30', 1100],
+        ['2026-10-20', 1200],
+      ]),
+      [],
+      [],
+      1,
+      new Date('2026-10-20T12:00:00Z'),
+    )
+
+    expect(result.get('2026-09')).toBeCloseTo(0.1)
+    expect(result.has('2026-10')).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------

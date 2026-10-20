@@ -246,7 +246,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
           name,
           label,
           color,
-          since,
+          periodFloor,
         )
       }
 
@@ -263,7 +263,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
       }
       return buildMonthlyAccumulatedSeries(alignedReturns, label, color)
     })
-  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, since])
+  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, periodFloor])
 
   // Resumo para os cards
   const summary = useMemo<PerformanceSummary>(() => {

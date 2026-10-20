@@ -308,11 +308,14 @@ export function computeMonthlyPortfolioReturns(
   const months = [...byMonth.keys()].filter((month) => month < currentMonth).sort()
 
   const returns = new Map<string, number>()
-  for (let i = 1; i < months.length; i++) {
-    const prev = byMonth.get(months[i - 1])!.value
-    const curr = byMonth.get(months[i])!.value
+  for (let i = 0; i < months.length; i++) {
+    const month = months[i]
+    const curr = byMonth.get(month)!.value
+    const previousMonth = i > 0 ? byMonth.get(months[i - 1]) : undefined
+    const firstPoint = validPoints.find((point) => point.date.slice(0, 7) === month)
+    const prev = previousMonth?.value ?? firstPoint?.value
+    if (prev === undefined) continue
     if (prev > 0) {
-      const month = months[i]
       const netFlow = transactions
         .filter((transaction) => transaction.transaction_date.slice(0, 7) === month)
         .reduce((total, transaction) => {

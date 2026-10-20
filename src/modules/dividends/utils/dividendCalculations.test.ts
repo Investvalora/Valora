@@ -30,25 +30,29 @@ describe('buildMonthlyBars', () => {
     expect(buildMonthlyBars([])).toEqual([])
   })
 
-  it('agrupa linhas do mesmo mês e soma total_value', () => {
+  it('agrupa pelo mês de pagamento e soma total_value por classe do ativo', () => {
     const rows: DividendRow[] = [
-      makeRow({ ex_date: '2026-03-15', total_value: 150 }),
-      makeRow({ ex_date: '2026-03-20', total_value: 80 }),
-      makeRow({ ex_date: '2026-04-10', total_value: 200 }),
+      makeRow({ ex_date: '2026-03-15', payment_date: '2026-04-01', asset_type: 'stock_br', total_value: 150 }),
+      makeRow({ ex_date: '2026-03-20', payment_date: '2026-04-25', asset_type: 'fii', total_value: 80 }),
+      makeRow({ ex_date: '2026-04-10', payment_date: '2026-05-10', asset_type: 'stock_br', total_value: 200 }),
     ]
 
     const bars = buildMonthlyBars(rows)
 
     expect(bars).toHaveLength(2)
-    expect(bars[0]).toEqual({ month: '2026-03', total: 230 })
-    expect(bars[1]).toEqual({ month: '2026-04', total: 200 })
+    expect(bars[0]).toEqual({
+      month: '2026-04',
+      total: 230,
+      byAssetType: { stock_br: 150, fii: 80 },
+    })
+    expect(bars[1]).toEqual({ month: '2026-05', total: 200, byAssetType: { stock_br: 200 } })
   })
 
   it('retorna barras ordenadas cronologicamente (mais antigo primeiro)', () => {
     const rows: DividendRow[] = [
-      makeRow({ ex_date: '2026-06-01', total_value: 50 }),
-      makeRow({ ex_date: '2026-01-15', total_value: 100 }),
-      makeRow({ ex_date: '2026-04-20', total_value: 75 }),
+      makeRow({ payment_date: '2026-06-01', total_value: 50 }),
+      makeRow({ payment_date: '2026-01-15', total_value: 100 }),
+      makeRow({ payment_date: '2026-04-20', total_value: 75 }),
     ]
 
     const bars = buildMonthlyBars(rows)
@@ -57,10 +61,10 @@ describe('buildMonthlyBars', () => {
     expect(months).toEqual(['2026-01', '2026-04', '2026-06'])
   })
 
-  it('ignora linhas com ex_date inválida', () => {
+  it('ignora linhas com payment_date e ex_date inválidas', () => {
     const rows: DividendRow[] = [
-      makeRow({ ex_date: 'invalid-date', total_value: 999 }),
-      makeRow({ ex_date: '2026-03-15', total_value: 100 }),
+      makeRow({ ex_date: 'invalid-date', payment_date: 'invalid-date', total_value: 999 }),
+      makeRow({ ex_date: '2026-03-15', payment_date: null, total_value: 100 }),
     ]
 
     const bars = buildMonthlyBars(rows)
@@ -68,11 +72,17 @@ describe('buildMonthlyBars', () => {
     expect(bars[0].month).toBe('2026-03')
   })
 
+  it('usa ex_date apenas como fallback quando payment_date está ausente', () => {
+    const bars = buildMonthlyBars([makeRow({ payment_date: null, ex_date: '2026-03-15' })])
+
+    expect(bars[0]).toMatchObject({ month: '2026-03', total: 150 })
+  })
+
   it('não inclui proventos futuros (ex_date > hoje) — responsabilidade do service/hook, mas a função não deve alterar os dados recebidos', () => {
     // buildMonthlyBars não filtra por data — esse filtro é feito pelo service.
     // O teste confirma que linhas com datas futuras passadas ao buildMonthlyBars
     // são incluídas normalmente (o hook garante que elas não chegam aqui).
-    const futureRow = makeRow({ ex_date: '2099-12-31', total_value: 500 })
+    const futureRow = makeRow({ payment_date: '2099-12-31', total_value: 500 })
     const bars = buildMonthlyBars([futureRow])
     expect(bars).toHaveLength(1)
     expect(bars[0].month).toBe('2099-12')

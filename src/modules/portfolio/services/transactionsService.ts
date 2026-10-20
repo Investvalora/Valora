@@ -32,6 +32,7 @@ export interface NewManualTransaction {
 
 const TRANSACTION_COLUMNS =
   'id, seq, user_id, wallet_id, ticker, type, quantity, price, brokerage_fee, tax, transaction_date, created_at'
+const TRANSACTION_PAGE_SIZE = 1000
 
 function tickerError(row: ParsedTransactionRow): CsvImportError {
   return {
@@ -148,24 +149,31 @@ export const transactionsService = {
   /**
    * Lista todas as transações do usuário (todos os tickers).
    * Ordenadas por `transaction_date DESC, seq DESC`.
-   * Limite de 2000 registros — suficiente para a tela de lançamentos no MVP.
+  * Pagina o histórico para não truncar cálculos que dependem da primeira transação.
    */
   async listAll(userId: string, walletId?: string): Promise<Transaction[]> {
-    let query = supabase
-      .from('transactions')
-      .select(TRANSACTION_COLUMNS)
-      .eq('user_id', userId)
+    const transactions: Transaction[] = []
 
-    if (walletId !== undefined) {
-      query = query.eq('wallet_id', walletId)
+    for (let start = 0; ; start += TRANSACTION_PAGE_SIZE) {
+      let query = supabase
+        .from('transactions')
+        .select(TRANSACTION_COLUMNS)
+        .eq('user_id', userId)
+
+      if (walletId !== undefined) {
+        query = query.eq('wallet_id', walletId)
+      }
+
+      const { data, error } = await query
+        .order('transaction_date', { ascending: false })
+        .order('seq', { ascending: false })
+        .range(start, start + TRANSACTION_PAGE_SIZE - 1)
+
+      if (error) throw error
+
+      const page = (data ?? []) as unknown as Transaction[]
+      transactions.push(...page)
+      if (page.length < TRANSACTION_PAGE_SIZE) return transactions
     }
-
-    const { data, error } = await query
-      .order('transaction_date', { ascending: false })
-      .order('seq', { ascending: false })
-      .limit(2000)
-
-    if (error) throw error
-    return (data ?? []) as unknown as Transaction[]
   },
 }

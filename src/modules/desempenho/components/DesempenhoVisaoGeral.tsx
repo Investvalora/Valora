@@ -3,6 +3,7 @@
  * Combina rentabilidade, proventos mensais, tabela mensal e top pagadores.
  */
 import { lazy, Suspense, useMemo } from 'react'
+import { Info } from 'lucide-react'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
@@ -233,7 +234,25 @@ export function DesempenhoVisaoGeral() {
           {/* Tabela mensal */}
           <PanelCard>
             <h3 className="mb-4 text-[14px] font-semibold text-white">
-              Rentabilidade mensal
+              <span className="inline-flex items-center gap-1.5">
+                Rentabilidade mensal
+                <span className="group relative inline-flex">
+                  <button
+                    type="button"
+                    aria-label="Sobre a rentabilidade mensal"
+                    title="A rentabilidade só é mostrada por mês fechado."
+                    className="rounded-full text-white/40 outline-none hover:text-white/70 focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-56 -translate-x-1/2 rounded-md border border-white/10 bg-[#292929] px-2.5 py-2 text-[11px] font-normal leading-relaxed text-white/80 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                  >
+                    A rentabilidade só é mostrada por mês fechado.
+                  </span>
+                </span>
+              </span>
             </h3>
             {isLoading ? (
               <div className="flex h-20 items-center justify-center">

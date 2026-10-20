@@ -1,6 +1,8 @@
 /** Períodos de análise disponíveis na tela Proventos. Subconjunto de WealthPeriod. */
 export type DividendPeriod = '6M' | '1A' | 'Tudo'
 
+import type { AssetType } from '../portfolio/types'
+
 /**
  * Linha crua retornada pelo `dividendService`, diretamente da tabela `dividends`.
  * `value_per_share` é NUMERIC no Postgres e pode chegar como string.
@@ -26,14 +28,18 @@ export interface DividendRow extends DividendRaw {
   quantity: number
   /** `value_per_share × quantity` em BRL. */
   total_value: number
+  /** Classe do ativo no catálogo, distinta do tipo de provento (dividendo/JCP). */
+  asset_type?: AssetType | null
 }
 
 /** Barra do gráfico mensal de proventos. */
 export interface MonthlyBar {
-  /** Mês no formato `YYYY-MM`. */
+  /** Mês de pagamento no formato `YYYY-MM`. */
   month: string
   /** Soma dos `total_value` de todas as linhas daquele mês. */
   total: number
+  /** Subtotais do mês por classe do ativo, incluindo `unknown` quando ausente. */
+  byAssetType: Record<string, number>
 }
 
 /** Colunas disponíveis para ordenação da tabela de proventos. */

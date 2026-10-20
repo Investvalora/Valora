@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { _periodToSince, _enrichRows } from './useDividends'
 import type { DividendRaw } from '../types'
 import type { PositionWithAsset } from '../../portfolio/types'
+import type { Transaction } from '../../portfolio/services/transactionsService'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,5 +163,46 @@ describe('_enrichRows', () => {
     _enrichRows(raw, positions)
 
     expect(raw).toEqual(original)
+  })
+
+  it('ignora proventos com data com anterior à primeira compra', () => {
+    const position = makePosition('PETR4', 100, { acquisition_date: '2025-01-15' })
+    const buys = [
+      {
+        ticker: 'PETR4',
+        type: 'buy',
+        quantity: 100,
+        transaction_date: '2025-01-15',
+      },
+    ] as Transaction[]
+
+    const result = _enrichRows([
+      makeRaw({ ex_date: '2025-01-10', payment_date: '2025-02-01' }),
+      makeRaw({ ex_date: '2025-01-20', payment_date: '2025-02-10' }),
+    ], [position], buys)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].ex_date).toBe('2025-01-20')
+  })
+
+  it('calcula o provento com a quantidade mantida na data com e inclui classe do ativo', () => {
+    const position = makePosition('PETR4', 60, {
+      acquisition_date: '2025-01-01',
+      asset: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' },
+    })
+    const transactions = [
+      { ticker: 'PETR4', type: 'buy', quantity: 100, transaction_date: '2025-01-01' },
+      { ticker: 'PETR4', type: 'sell', quantity: 40, transaction_date: '2025-03-01' },
+      { ticker: 'PETR4', type: 'buy', quantity: 25, transaction_date: '2025-04-01' },
+    ] as Transaction[]
+
+    const result = _enrichRows([
+      makeRaw({ ex_date: '2025-03-15', value_per_share: 0.5 }),
+    ], [position], transactions)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].quantity).toBe(60)
+    expect(result[0].total_value).toBe(30)
+    expect(result[0].asset_type).toBe('stock_br')
   })
 })

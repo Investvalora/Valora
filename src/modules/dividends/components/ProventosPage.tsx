@@ -132,8 +132,9 @@ export function ProventosPage() {
   const { avgMonthly, maxMonthly, maxMonthKey } = useMemo(() => {
     const byMonth = new Map<string, number>()
     for (const r of filteredRows) {
-      if (!r.ex_date) continue
-      const key = r.ex_date.slice(0, 7)
+      const date = r.payment_date || r.ex_date
+      if (!date) continue
+      const key = date.slice(0, 7)
       byMonth.set(key, (byMonth.get(key) ?? 0) + r.total_value)
     }
     const values = [...byMonth.values()]

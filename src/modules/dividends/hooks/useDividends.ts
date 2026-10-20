@@ -2,6 +2,9 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { positionService } from '../../portfolio/services/positionService'
+import { useAllTransactions } from '../../portfolio/hooks/useTransactions'
+import { useWallets } from '../../portfolio/hooks/useWallets'
+import type { Transaction } from '../../portfolio/services/transactionsService'
 import { dividendService } from '../services/dividendService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
 import type { DividendPeriod, DividendRaw, DividendRow } from '../types'
@@ -43,22 +46,62 @@ function periodToSince(period: DividendPeriod): string {
  * Linhas sem posição correspondente são descartadas (o ticker não pertence
  * mais à carteira ou há inconsistência nos dados).
  */
-function enrichRows(raw: DividendRaw[], positions: PositionWithAsset[]): DividendRow[] {
-  const quantityByTicker = new Map<string, number>()
+function enrichRows(
+  raw: DividendRaw[],
+  positions: PositionWithAsset[],
+  transactions: Transaction[] = [],
+): DividendRow[] {
+  const positionByTicker = new Map<string, PositionWithAsset>()
   for (const pos of positions) {
-    quantityByTicker.set(pos.ticker, pos.quantity)
+    positionByTicker.set(pos.ticker, pos)
+  }
+
+  const transactionsByTicker = new Map<string, Transaction[]>()
+  for (const transaction of transactions) {
+    if (transaction.type !== 'buy' && transaction.type !== 'sell') continue
+    const tickerTransactions = transactionsByTicker.get(transaction.ticker) ?? []
+    tickerTransactions.push(transaction)
+    transactionsByTicker.set(transaction.ticker, tickerTransactions)
   }
 
   const result: DividendRow[] = []
 
   for (const row of raw) {
-    const quantity = quantityByTicker.get(row.ticker)
-    if (quantity === undefined || quantity <= 0) continue
+    const position = positionByTicker.get(row.ticker)
+    if (!position) continue
+
+    const tickerTransactions = transactionsByTicker.get(row.ticker) ?? []
+    const firstBuyDate = tickerTransactions
+      .filter((transaction) => transaction.type === 'buy')
+      .reduce<string | null>(
+        (earliest, transaction) =>
+          earliest === null || transaction.transaction_date < earliest
+            ? transaction.transaction_date
+            : earliest,
+        null,
+      ) ?? position.acquisition_date
+
+    if (firstBuyDate && row.ex_date < firstBuyDate) continue
+
+    let quantity = position.quantity
+    if (tickerTransactions.length > 0) {
+      quantity = tickerTransactions.reduce((held, transaction) => {
+        if (transaction.transaction_date > row.ex_date) return held
+        const amount = Number(transaction.quantity)
+        if (!Number.isFinite(amount)) return held
+        return held + (transaction.type === 'buy' ? amount : -amount)
+      }, 0)
+    } else if (position.acquisition_date && position.acquisition_date > row.ex_date) {
+      continue
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) continue
 
     result.push({
       ...row,
       quantity,
       total_value: row.value_per_share * quantity,
+      asset_type: position.asset?.type ?? null,
     })
   }
 
@@ -81,8 +124,12 @@ export function _periodToSince(period: DividendPeriod): string {
  *
  * Exportado com prefixo `_` exclusivamente para testes unitários.
  */
-export function _enrichRows(raw: DividendRaw[], positions: PositionWithAsset[]): DividendRow[] {
-  return enrichRows(raw, positions)
+export function _enrichRows(
+  raw: DividendRaw[],
+  positions: PositionWithAsset[],
+  transactions: Transaction[] = [],
+): DividendRow[] {
+  return enrichRows(raw, positions, transactions)
 }
 
 export interface UseDividendsResult {
@@ -108,13 +155,16 @@ export interface UseDividendsResult {
  */
 export function useDividends(period: DividendPeriod): UseDividendsResult {
   const { user, loading: isSessionLoading } = useAuth()
+  const { selectedWallet } = useWallets()
+  const walletId = selectedWallet?.id ?? ''
   const userId = user?.id
+  const transactionsQuery = useAllTransactions()
 
   // --- Query 1: posições ---
   const positionsQuery = useQuery<PositionWithAsset[]>({
-    queryKey: ['portfolio', 'positions', userId],
-    queryFn: () => positionService.listPositions(userId as string),
-    enabled: Boolean(userId),
+    queryKey: ['portfolio', 'positions', userId, walletId],
+    queryFn: () => positionService.listPositions(userId as string, walletId),
+    enabled: Boolean(userId) && Boolean(walletId),
     staleTime: STALE_TIME_MS,
   })
 
@@ -128,21 +178,40 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
     [positions],
   )
 
-  const since = periodToSince(period)
+  const firstPurchaseDate = useMemo(() => {
+    const firstBuyByTicker = new Map<string, string>()
+    for (const transaction of transactionsQuery.data ?? []) {
+      if (transaction.type !== 'buy') continue
+      const current = firstBuyByTicker.get(transaction.ticker)
+      if (!current || transaction.transaction_date < current) {
+        firstBuyByTicker.set(transaction.ticker, transaction.transaction_date)
+      }
+    }
+
+    const purchaseDates = positions.map(
+      (position) => firstBuyByTicker.get(position.ticker) ?? position.acquisition_date,
+    ).filter((date): date is string => Boolean(date))
+    return purchaseDates.length > 0 ? purchaseDates.sort()[0] : null
+  }, [positions, transactionsQuery.data])
+
+  const periodSince = periodToSince(period)
+  const since = period === 'Tudo' && firstPurchaseDate
+    ? `${firstPurchaseDate.slice(0, 7)}-01`
+    : periodSince
 
   // --- Query 2: dividendos ---
   const dividendsQuery = useQuery<DividendRaw[]>({
-    queryKey: dividendsQueryKey(userId, period, tickers),
+    queryKey: [...dividendsQueryKey(userId, period, tickers), since],
     queryFn: () => dividendService.listDividendsByTickers(tickers, since),
-    enabled: Boolean(userId) && !positionsQuery.isLoading,
+    enabled: Boolean(userId) && Boolean(walletId) && !positionsQuery.isLoading && !transactionsQuery.isLoading,
     staleTime: STALE_TIME_MS,
   })
 
   // --- Enriquecimento client-side ---
   const rows = useMemo<DividendRow[]>(() => {
     if (!dividendsQuery.data || positions.length === 0) return []
-    return enrichRows(dividendsQuery.data, positions)
-  }, [dividendsQuery.data, positions])
+    return enrichRows(dividendsQuery.data, positions, transactionsQuery.data ?? [])
+  }, [dividendsQuery.data, positions, transactionsQuery.data])
 
   const availableTypes = useMemo<string[]>(() => {
     const types = new Set<string>()
@@ -151,14 +220,15 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   }, [rows])
 
   const isLoading =
-    isSessionLoading || positionsQuery.isLoading || dividendsQuery.isLoading
+    isSessionLoading || positionsQuery.isLoading || transactionsQuery.isLoading || dividendsQuery.isLoading
 
-  const isError = positionsQuery.isError || dividendsQuery.isError
+  const isError = positionsQuery.isError || transactionsQuery.isError || dividendsQuery.isError
 
-  const error = (positionsQuery.error ?? dividendsQuery.error) as Error | null
+  const error = (positionsQuery.error ?? transactionsQuery.error ?? dividendsQuery.error) as Error | null
 
   const refetch = () => {
     void positionsQuery.refetch()
+    void transactionsQuery.refetch()
     void dividendsQuery.refetch()
   }
 

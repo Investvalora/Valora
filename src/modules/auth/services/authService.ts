@@ -9,6 +9,7 @@ export const authService = {
       email: data.email,
       password: data.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           full_name: data.fullName,
           phone: data.phone || null,
@@ -25,6 +26,19 @@ export const authService = {
     }
 
     return authData
+  },
+
+  async resendSignupConfirmation(email: string) {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) throw error
+    return data
   },
 
   async login(data: LoginFormData) {

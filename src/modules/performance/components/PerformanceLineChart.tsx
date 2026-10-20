@@ -76,10 +76,12 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
  * o tooltip exibe a variação percentual acumulada de cada uma.
  */
 export default function PerformanceLineChart({ series }: PerformanceLineChartProps) {
+  const validSeries = series.filter((item) => item.points.length > 0)
+
   // Unifica todas as séries em um único array de pontos para o Recharts,
   // indexado por data. Cada objeto: { date, [label]: normalized, ... }
   const allDates = Array.from(
-    new Set(series.flatMap((s) => s.points.map((p) => p.date))),
+    new Set(validSeries.flatMap((s) => s.points.map((p) => p.date))),
   ).sort()
 
   if (allDates.length === 0) {
@@ -95,7 +97,7 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
 
   // Constrói mapa de pontos por série
   const pointsByLabel = new Map<string, Map<string, number | null>>()
-  for (const s of series) {
+  for (const s of validSeries) {
     const m = new Map<string, number | null>()
     for (const p of s.points) m.set(p.date, p.normalized ?? null)
     pointsByLabel.set(s.label, m)
@@ -103,7 +105,7 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
 
   const data = allDates.map((date) => {
     const entry: Record<string, string | number | null> = { date }
-    for (const s of series) {
+    for (const s of validSeries) {
       entry[s.label] = pointsByLabel.get(s.label)?.get(date) ?? null
     }
     return entry
@@ -144,7 +146,7 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
             <span style={{ color: '#d1d5db' }}>{value}</span>
           )}
         />
-        {series.map((s) => (
+        {validSeries.map((s) => (
           <Line
             key={s.label}
             type="monotone"

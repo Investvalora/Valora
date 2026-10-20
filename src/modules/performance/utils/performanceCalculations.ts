@@ -444,7 +444,10 @@ export function buildIntramonthlySeries(
   label: string,
   color: string,
 ): PerformanceSeries {
-  return { label, color, points: normalizeToBase100(points) }
+  const validPoints = points.filter(
+    (point) => point.value !== null && Number.isFinite(point.value) && point.value > 0,
+  )
+  return { label, color, points: normalizeToBase100(validPoints) }
 }
 
 /**

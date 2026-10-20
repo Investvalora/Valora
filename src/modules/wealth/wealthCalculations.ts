@@ -91,6 +91,7 @@ export function buildWealthSeries(
 
   // Coleta as datas ordenadas
   const dates = [...byDate.keys()].sort()
+  const lastCloseByTicker = new Map<string, number>()
 
   return dates.map((date) => {
     const dayMap = byDate.get(date)!
@@ -98,8 +99,12 @@ export function buildWealthSeries(
     let hasAny = false
 
     for (const [ticker, { quantity, needsConversion }] of posMap.entries()) {
-      const close = dayMap.get(ticker)
-      if (close === undefined || !Number.isFinite(close)) continue
+      const dayClose = dayMap.get(ticker)
+      if (dayClose !== undefined && Number.isFinite(dayClose)) {
+        lastCloseByTicker.set(ticker, dayClose)
+      }
+      const close = lastCloseByTicker.get(ticker)
+      if (close === undefined) continue
 
       const tickerTransactions = transactionsByTicker.get(ticker)
       let quantityAtDate = quantity

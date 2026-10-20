@@ -276,8 +276,8 @@ export function useDashboard(walletId?: string): DashboardData {
           : investedBRL,
       }))
 
-    // Tenta filtrar pelo mês da última aquisição (carteira completa)
-    const anchor = wealth.latestDate ?? wealth.earliestDate
+    // A evolução começa no primeiro ativo adicionado à carteira.
+    const anchor = wealth.earliestDate
     const anchorMonth = anchor ? anchor.slice(0, 7) : null
 
     if (anchorMonth) {
@@ -287,7 +287,7 @@ export function useDashboard(walletId?: string): DashboardData {
 
     // Fallback: usa todos os pontos disponíveis
     return toPoints(monthly)
-  }, [wealth.series, wealth.latestDate, wealth.earliestDate, valorInvestidoBRL])
+  }, [wealth.series, wealth.earliestDate, valorInvestidoBRL])
 
   // ── Composição para pizza ─────────────────────────────────────────────────
   // Usa lastPricesMap diretamente (não a série histórica) para garantir que

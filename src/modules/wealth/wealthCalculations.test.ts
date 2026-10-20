@@ -103,6 +103,17 @@ describe('buildWealthSeries — lacunas parciais (matrix row 3)', () => {
     expect(series[1].value).toBe(4100)
   })
 
+  it('mantém a última cotação quando um ativo não tem preço no dia seguinte', () => {
+    const rows = [
+      price('PETR4', '2026-01-01', 30),
+      price('VALE3', '2026-01-01', 20),
+      price('PETR4', '2026-01-02', 31),
+    ]
+    const series = buildWealthSeries(positions, rows, USD_RATE)
+
+    expect(series[1].value).toBe(31 * 100 + 20 * 50)
+  })
+
   it('nenhum ponto da série tem value = null quando todos os tickers têm cotação', () => {
     const rows = [
       price('PETR4', '2026-01-01', 30),

@@ -166,13 +166,10 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
   // 4. Benchmarks — busca desde o mês de `since` para ter o mês anterior
   //    como base do primeiro retorno mensal
   const benchmarkSince = useMemo(() => {
-    // Vai um mês antes do início para poder calcular o retorno do primeiro mês
-    const [year, month] = since.split('-').map(Number)
-    const prevMonth = month === 1
-      ? `${year - 1}-12-01`
-      : `${year}-${String(month - 1).padStart(2, '0')}-01`
-    return prevMonth < periodFloor ? periodFloor : prevMonth
-  }, [since, periodFloor])
+    // Busca desde o piso do período para sempre trazer o mês-base anterior
+    // ao primeiro retorno da carteira e permitir comparar CDI/IBOV/IFIX.
+    return periodFloor
+  }, [periodFloor])
 
   const benchmarksQuery = useQuery({
     queryKey: ['benchmarks', period, benchmarkSince],

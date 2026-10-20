@@ -7,7 +7,6 @@ import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
-import { AuthCallbackPage } from './modules/auth/components/AuthCallbackPage'
 import { AlertsPage } from './modules/alerts/components/AlertsPage'
 import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
 import { ProventosPage } from './modules/dividends/components/ProventosPage'
@@ -68,7 +67,6 @@ export function AppRoutes() {
         <Route path="/recuperar-senha" element={<PasswordRecoveryForm />} />
       </Route>
       <Route path="/signup"          element={<Navigate to="/cadastro" replace />} />
-      <Route path="/auth/callback"  element={<AuthCallbackPage />} />
       <Route path="/reset-password"  element={<ResetPasswordForm />} />
 
       {/* ── App principal — novo fluxo ── */}

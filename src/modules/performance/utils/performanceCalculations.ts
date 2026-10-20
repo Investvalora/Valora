@@ -181,7 +181,6 @@ export function computeAssetRows(
   _periodStart?: string,
   _periodEnd?: string,
 ): AssetReturnRow[] {
-  // Mantém os argumentos de período por compatibilidade com chamadas antigas.
   void _periodStart
   void _periodEnd
 

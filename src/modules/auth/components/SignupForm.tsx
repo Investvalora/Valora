@@ -140,7 +140,6 @@ export function SignupForm() {
             >
               {signupMutation.isPending ? 'Criando conta...' : 'Criar Conta'}
             </button>
-
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-400">

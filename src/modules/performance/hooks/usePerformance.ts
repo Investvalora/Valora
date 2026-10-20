@@ -235,25 +235,21 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
     return accumulatedReturnFromMonthly(portfolioMonthlyReturns)
   }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
 
-  // Data do primeiro ponto válido — para ancorar o fallback dos benchmarks
-  const portfolioStartDate = useMemo(() => {
-    const first = wealth.series.find((p) => p.value !== null && Number.isFinite(p.value))
-    return first?.date ?? null
-  }, [wealth.series])
-
   // Séries dos benchmarks
   const benchmarkSeries = useMemo<PerformanceSeries[]>(() => {
     const rows = benchmarksQuery.data ?? []
 
     return BENCHMARK_CONFIG.map(({ name, label, color }) => {
       if (useIntramonthlyfallback) {
-        // Fallback: série diária normalizada a partir de portfolioStartDate
+        // Fallback: usar o início da janela, não o primeiro preço da carteira.
+        // A carteira pode começar depois do último pregão disponível do índice;
+        // filtrar pelo primeiro preço da carteira deixaria CDI/IBOV/IFIX vazios.
         return buildIntramonthlyBenchmarkSeries(
           rows as Array<{ date: string; name: string; value: number }>,
           name,
           label,
           color,
-          portfolioStartDate ?? since,
+          since,
         )
       }
 
@@ -270,7 +266,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
       }
       return buildMonthlyAccumulatedSeries(alignedReturns, label, color)
     })
-  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, portfolioStartDate, since])
+  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, since])
 
   // Resumo para os cards
   const summary = useMemo<PerformanceSummary>(() => {

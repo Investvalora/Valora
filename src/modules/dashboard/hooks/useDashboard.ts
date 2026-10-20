@@ -5,6 +5,7 @@ import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
 import { dividendService } from '../../dividends/services/dividendService'
 import { positionService } from '../../portfolio/services/positionService'
+import { transactionsService } from '../../portfolio/services/transactionsService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
 import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
@@ -107,9 +108,16 @@ export function useDashboard(walletId?: string): DashboardData {
   const { user } = useAuth()
   const userId = user?.id
 
+  const transactionsQuery = useQuery({
+    queryKey: ['portfolio', 'transactions-all', userId, walletId],
+    queryFn: () => transactionsService.listAll(userId as string, walletId),
+    enabled: Boolean(userId) && walletId !== '',
+    staleTime: STALE_TIME_MS,
+  })
+
   // ── Série histórica de renda variável ────────────────────────────────────
   // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
-  const wealth = useWealthHistory('Tudo', walletId)
+  const wealth = useWealthHistory('Tudo', walletId, transactionsQuery.data ?? [])
 
   // ── Renda fixa ───────────────────────────────────────────────────────────
   const fi = useFixedIncomePositions(walletId)
@@ -300,18 +308,21 @@ export function useDashboard(walletId?: string): DashboardData {
   // ── Estado ────────────────────────────────────────────────────────────────
   const isLoading =
     wealth.isLoading ||
+    transactionsQuery.isLoading ||
     positionsQuery.isLoading ||
     dividendsQuery.isLoading ||
     fi.isLoading
 
   const isError =
     wealth.isError ||
+    transactionsQuery.isError ||
     positionsQuery.isError ||
     dividendsQuery.isError ||
     fi.isError
 
   const refetch = () => {
     wealth.refetch()
+    void transactionsQuery.refetch()
     void positionsQuery.refetch()
     void dividendsQuery.refetch()
   }

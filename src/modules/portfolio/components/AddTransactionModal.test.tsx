@@ -18,6 +18,7 @@ const holders = vi.hoisted(() => ({
     isPending: false,
   },
   calc: vi.fn(async () => undefined),
+  latestPrice: 42.37 as number | null,
 }))
 
 vi.mock('../hooks/useTransactions', () => ({
@@ -28,6 +29,9 @@ vi.mock('../hooks/useFixedIncomePositions', () => ({
 }))
 vi.mock('../hooks/useCalcFixedIncome', () => ({
   useCalcFixedIncome: () => ({ calc: holders.calc }),
+}))
+vi.mock('../hooks/useAssetSearch', () => ({
+  useTickerLatestPrice: () => holders.latestPrice,
 }))
 
 import { AddTransactionModal } from './AddTransactionModal'
@@ -83,6 +87,7 @@ beforeEach(() => {
   holders.addTx.mutateAsync.mockImplementation(async () => ({ id: 'txn-1' }))
   holders.addTx.isPending = false
   holders.calc.mockImplementation(async () => undefined)
+  holders.latestPrice = 42.37
 })
 
 // ─── seletor sem ticker ─────────────────────────────────────────────────────
@@ -126,6 +131,17 @@ describe('AddTransactionModal — ticker pré-preenchido', () => {
     expect(screen.getByText('PETR4')).toBeInTheDocument()
     expect(document.getElementById('rf-emissor')).toBeNull()
     expect(document.getElementById('td-ativo')).toBeNull()
+  })
+
+  it('preenche o último preço e preserva uma edição manual', async () => {
+    renderModal({ ticker: 'PETR4', assetType: 'stock_br', assetName: 'Petrobras PN' })
+
+    await waitFor(() => expect(document.getElementById('txn-price')).toHaveValue(42.37))
+
+    change('txn-price', '40.12')
+    holders.latestPrice = 43.99
+
+    await waitFor(() => expect(document.getElementById('txn-price')).toHaveValue(40.12))
   })
 })
 

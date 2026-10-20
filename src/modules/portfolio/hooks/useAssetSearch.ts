@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '../../../shared/services/supabaseClient'
 import { positionService } from '../services/positionService'
 import { Asset } from '../types'
 import { quotesQueryKey } from './useLatestQuotes'
@@ -56,16 +57,37 @@ export function useAssetLookup() {
 export function useTickerLatestPrice(ticker: string): number | null {
   const normalized = ticker.trim().toUpperCase()
   const queryClient = useQueryClient()
+  const canQuery = normalized.length >= 2
 
   const result = useQuery({
     queryKey: quotesQueryKey([normalized]),
-    queryFn: () => positionService.listLatestQuotes([normalized]),
-    enabled: normalized.length >= 4,
+    queryFn: async () => {
+      const history = await positionService.listLatestQuotes([normalized])
+      if (history.length > 0) return history
+
+      // Fallback para ativos sem histórico sincronizado: a Edge Function
+      // consulta a Brapi com a chave mantida no servidor.
+      const { data, error } = await supabase.functions.invoke('lookup-asset', {
+        body: { ticker: normalized },
+      })
+      if (error || !data || typeof data.latestPrice !== 'number' || data.latestPrice <= 0) {
+        return []
+      }
+
+      return [{
+        ticker: normalized,
+        close: data.latestPrice,
+        source: 'brapi',
+        date: new Date().toISOString().slice(0, 10),
+        updated_at: new Date().toISOString(),
+      }]
+    },
+    enabled: canQuery,
     staleTime: 60 * 1000,
   })
 
   // Tenta primeiro o cache da carteira inteira (evita nova request)
-  if (normalized.length >= 4) {
+  if (canQuery) {
     const allQueries = queryClient.getQueriesData<{ ticker: string; close: number }[]>({
       queryKey: ['portfolio', 'quotes'],
     })

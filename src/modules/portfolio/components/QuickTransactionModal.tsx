@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
@@ -6,9 +6,9 @@ import { useCalcFixedIncome } from '../hooks/useCalcFixedIncome'
 import { usePositions } from '../hooks/usePositions'
 import { useWallets } from '../hooks/useWallets'
 import { positionService } from '../services/positionService'
-import { ASSET_CLASS_LABEL } from '../composition'
+import { useAssetSearch, useTickerLatestPrice } from '../hooks/useAssetSearch'
 import { FIXED_INCOME_TYPE_INDEXER, FIXED_INCOME_RATE_LABEL } from '../types'
-import type { AssetType, FixedIncomeType, NewFixedIncomePosition } from '../types'
+import type { Asset, AssetType, FixedIncomeType, NewFixedIncomePosition } from '../types'
 
 interface QuickTransactionModalProps {
   isOpen: boolean
@@ -17,7 +17,27 @@ interface QuickTransactionModalProps {
 
 type FormCategory = AssetType | 'tesouro_direto'
 
-const ASSET_TYPES = Object.entries(ASSET_CLASS_LABEL) as [AssetType, string][]
+const ASSET_TYPES: [AssetType, string][] = [
+  ['stock_br', 'Ações BR'],
+  ['fii', 'FIIs'],
+  ['bdr', 'BDRs'],
+  ['stock_us', 'Stocks US'],
+  ['etf_us', 'ETFs US'],
+  ['etf_br', 'ETFs BR'],
+  ['reit', 'REITs'],
+  ['crypto', 'Criptomoedas'],
+]
+
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebounced(value), delayMs)
+    return () => window.clearTimeout(timeout)
+  }, [value, delayMs])
+
+  return debounced
+}
 
 type TesouroDiretoAtivo =
   | 'tesouro_selic' | 'tesouro_ipca' | 'tesouro_pre'
@@ -64,6 +84,10 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   const [date, setDate]             = useState(new Date().toISOString().slice(0, 10))
   const [quantity, setQuantity]     = useState('')
   const [price, setPrice]           = useState('')
+  const [priceManuallyEdited, setPriceManuallyEdited] = useState(false)
+  const [showAssetSuggestions, setShowAssetSuggestions] = useState(false)
+  const [highlightedAssetIndex, setHighlightedAssetIndex] = useState(-1)
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [otherCosts, setOtherCosts] = useState('')
 
   // Campos renda fixa
@@ -90,6 +114,20 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   const isRendaFixa     = assetClass === 'fixed_income'
   const isTesouroDireto = assetClass === 'tesouro_direto'
   const isVariavel      = !isRendaFixa && !isTesouroDireto
+  const debouncedTicker = useDebouncedValue(ticker, 250)
+  const { data: assetSuggestions = [], isFetching: isSearchingAssets } = useAssetSearch(debouncedTicker)
+  const filteredAssetSuggestions = assetSuggestions.filter((asset) => asset.type === assetClass)
+  const latestPrice = useTickerLatestPrice(ticker)
+
+  useEffect(() => {
+    if (isVariavel && latestPrice !== null && !priceManuallyEdited && ticker.trim().length >= 2) {
+      setPrice(String(latestPrice))
+    }
+  }, [isVariavel, latestPrice, priceManuallyEdited, ticker])
+
+  useEffect(() => {
+    setHighlightedAssetIndex((current) => Math.min(current, filteredAssetSuggestions.length - 1))
+  }, [filteredAssetSuggestions.length])
 
   // Derivados renda variável
   const parsedQty    = Number(quantity.replace(',', '.'))
@@ -120,11 +158,47 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   function resetFields() {
     setError('')
     setType('buy'); setTicker(''); setDate(new Date().toISOString().slice(0, 10))
-    setQuantity(''); setPrice(''); setOtherCosts('')
+    setQuantity(''); setPrice(''); setPriceManuallyEdited(false); setOtherCosts('')
+    setShowAssetSuggestions(false); setHighlightedAssetIndex(-1); setSelectedAsset(null)
     setRfEmissor(''); setRfTipo(''); setRfTaxa('')
     setRfValor(''); setRfDate(new Date().toISOString().slice(0, 10)); setRfMaturity('')
     setTdAtivo(''); setTdTaxa(''); setTdDate(new Date().toISOString().slice(0, 10))
     setTdMaturity(''); setTdQty(''); setTdPrice(''); setTdOther('')
+  }
+
+  function selectAsset(asset: Asset) {
+    setTicker(asset.ticker)
+    setSelectedAsset(asset)
+    setShowAssetSuggestions(false)
+    setHighlightedAssetIndex(-1)
+    setPriceManuallyEdited(false)
+  }
+
+  function handleTickerKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setShowAssetSuggestions(false)
+      setHighlightedAssetIndex(-1)
+      return
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (filteredAssetSuggestions.length === 0) return
+      event.preventDefault()
+      setShowAssetSuggestions(true)
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      setHighlightedAssetIndex((current) => {
+        const next = current + step
+        if (next < 0) return filteredAssetSuggestions.length - 1
+        if (next >= filteredAssetSuggestions.length) return 0
+        return next
+      })
+      return
+    }
+
+    if (event.key === 'Enter' && showAssetSuggestions && highlightedAssetIndex >= 0) {
+      event.preventDefault()
+      selectAsset(filteredAssetSuggestions[highlightedAssetIndex])
+    }
   }
 
   function handleClose() {
@@ -201,7 +275,9 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
       }
     }
     try {
-      const asset = await positionService.findAssetByTicker(norm)
+      const asset = selectedAsset?.ticker === norm
+        ? selectedAsset
+        : await positionService.findAssetByTicker(norm)
       if (!asset) { setError('Ativo não encontrado no catálogo.'); return }
       await addTransaction.mutateAsync({
         ticker: norm, type, transaction_date: date,
@@ -279,12 +355,45 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
               <input
                 id="qt-ticker"
                 value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setTicker(e.target.value.toUpperCase())
+                  setPriceManuallyEdited(false)
+                  setSelectedAsset(null)
+                  setShowAssetSuggestions(true)
+                  setHighlightedAssetIndex(-1)
+                }}
+                onFocus={() => setShowAssetSuggestions(true)}
+                onKeyDown={handleTickerKeyDown}
                 className={inputClass}
                 placeholder="PETR4"
                 autoCapitalize="characters"
                 maxLength={20}
               />
+              {isVariavel && showAssetSuggestions && ticker.trim().length >= 2 && (
+                <div className="relative z-20">
+                  <div className="absolute left-0 right-0 top-1 max-h-52 overflow-y-auto rounded-xl border border-white/[0.14] bg-[#242424] p-1 shadow-2xl">
+                    {isSearchingAssets && <p className="px-3 py-2 text-xs text-white/50">Buscando ativos...</p>}
+                    {!isSearchingAssets && filteredAssetSuggestions.length === 0 && (
+                      <p className="px-3 py-2 text-xs text-white/50">Nenhum ativo encontrado</p>
+                    )}
+                    {filteredAssetSuggestions.map((asset, index) => (
+                      <button
+                        key={`${asset.type}-${asset.ticker}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectAsset(asset)}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${index === highlightedAssetIndex ? 'bg-white/[0.12]' : 'hover:bg-white/[0.08]'}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium text-white">{asset.ticker}</span>
+                          <span className="block truncate text-xs text-white/50">{asset.name}</span>
+                        </span>
+                        <span className="ml-2 shrink-0 text-[10px] uppercase text-white/40">{asset.currency}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {isRendaFixa && (
@@ -333,7 +442,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
               </div>
               <div>
                 <label htmlFor="qt-price" className={labelClass}>Preço</label>
-                <input id="qt-price" type="number" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
+                <input id="qt-price" type="number" inputMode="decimal" value={price} onChange={(e) => { setPrice(e.target.value); setPriceManuallyEdited(true) }} className={inputClass} placeholder="0,00" min={0} />
               </div>
               <div>
                 <label htmlFor="qt-other-costs" className={labelClass}>

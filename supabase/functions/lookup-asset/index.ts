@@ -66,6 +66,11 @@ interface BrapiResult {
   regularMarketPrice: number | null;
 }
 
+interface AssetQuote {
+  price: number | null;
+  source: string;
+}
+
 // ─── inferência de tipo/moeda ─────────────────────────────────────────────
 
 /**
@@ -130,6 +135,65 @@ async function fetchBrapi(ticker: string): Promise<BrapiResult | null> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function vaultSecret(name: string): Promise<string> {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/vault_decrypted_secrets?select=decrypted_secret&name=eq.${encodeURIComponent(name)}&limit=1`,
+    { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+  )
+  if (!response.ok) return ''
+  const rows = await response.json() as Array<{ decrypted_secret?: string }>
+  return rows[0]?.decrypted_secret ?? ''
+}
+
+async function fetchProviderQuote(asset: AssetRow): Promise<AssetQuote> {
+  const symbol = asset.provider_symbol ?? asset.ticker;
+
+  if (asset.quote_provider === 'brapi') {
+    const result = await fetchBrapi(symbol);
+    return { price: result?.regularMarketPrice ?? null, source: 'brapi' };
+  }
+
+  if (asset.quote_provider === 'finnhub') {
+    const key = Deno.env.get('FINNHUB_API_KEY') ?? await vaultSecret('finnhub_key');
+    if (!key) return { price: null, source: 'finnhub' };
+    const response = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(key)}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+    );
+    if (!response.ok) return { price: null, source: 'finnhub' };
+    const data = await response.json() as { c?: number };
+    return { price: typeof data.c === 'number' && data.c > 0 ? data.c : null, source: 'finnhub' };
+  }
+
+  if (asset.quote_provider === 'coingecko') {
+    const key = Deno.env.get('COINGECKO_API_KEY') ?? await vaultSecret('coingecko_key');
+    const headers = key ? { 'x-cg-demo-api-key': key } : undefined;
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(symbol)}&vs_currencies=usd`,
+      { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+    );
+    if (!response.ok) return { price: null, source: 'coingecko' };
+    const data = await response.json() as Record<string, { usd?: number }>;
+    const price = data[symbol]?.usd;
+    return { price: typeof price === 'number' && price > 0 ? price : null, source: 'coingecko' };
+  }
+
+  if (asset.quote_provider === 'twelvedata') {
+    const key = Deno.env.get('TWELVEDATA_API_KEY') ?? await vaultSecret('twelvedata_key');
+    if (!key) return { price: null, source: 'twelvedata' };
+    const response = await fetch(
+      `https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(key)}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+    );
+    if (!response.ok) return { price: null, source: 'twelvedata' };
+    const data = await response.json() as { price?: string };
+    const price = Number(data.price);
+    return { price: Number.isFinite(price) && price > 0 ? price : null, source: 'twelvedata' };
+  }
+
+  return { price: null, source: asset.quote_provider };
 }
 
 // ─── PostgREST helpers ────────────────────────────────────────────────────
@@ -221,6 +285,7 @@ Deno.serve(async (req: Request) => {
           name: existing.name,
           type: existing.type,
           currency: existing.currency,
+          latestPrice: (await fetchProviderQuote(existing)).price,
           created: false,
         }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } },
@@ -257,6 +322,7 @@ Deno.serve(async (req: Request) => {
         name: inserted.name,
         type: inserted.type,
         currency: inserted.currency,
+        latestPrice: brapiResult.regularMarketPrice,
         created: true,
       }),
       { status: 201, headers: { ...CORS, 'Content-Type': 'application/json' } },

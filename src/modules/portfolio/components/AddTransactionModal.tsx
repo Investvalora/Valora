@@ -6,6 +6,7 @@ import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
 import { useCalcFixedIncome } from '../hooks/useCalcFixedIncome'
+import { useTickerLatestPrice } from '../hooks/useAssetSearch'
 import type {
   AssetType,
   FixedIncomeIndexer,
@@ -618,7 +619,8 @@ export function AddTransactionModal({
     handleSubmit,
     watch,
     reset,
-    formState: { errors },
+    setValue,
+    formState: { errors, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -649,6 +651,13 @@ export function AddTransactionModal({
   const quantity = watch('quantity')
   const price = watch('price')
   const brokerageFee = watch('brokerage_fee') ?? 0
+  const latestPrice = useTickerLatestPrice(ticker)
+
+  useEffect(() => {
+    if (latestPrice !== null && !dirtyFields.price) {
+      setValue('price', latestPrice, { shouldValidate: false })
+    }
+  }, [latestPrice, dirtyFields.price, setValue])
 
   const totalValue =
     Number.isFinite(quantity) && Number.isFinite(price) && quantity > 0 && price >= 0

@@ -1,0 +1,8 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    "Troca de modo no toggle não limpa o campo `name` — digitar um nome em modo 'new' e trocar para 'existing' sem selecionar nada envia o nome digitado, criando silenciosamente um score novo pelo caminho errado. Chamar setValue('name', '') ao trocar o scoreMode corrige.",
+    "`onSubmitAndAddAnother` não reseta `scoreMode` — após reset({ operator: 'gte', metric: 'dy', name: '' }), o toggle pode ficar dessincronizado do valor real no form. Adicionar setScoreMode('existing') junto ao reset retorna ao estado inicial padrão."
+  ],
+  "reviewDoc": "c:\\Users\\Samuel Leite\\wkspaces\\Valora\\.agents\\tasks\\nova-regra-score-review.md"
+}

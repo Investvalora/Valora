@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   normalizeToBase100,
   computePortfolioReturn,
+  computeMonthlyPortfolioReturns,
   buildBenchmarkSeries,
   extractReturnPct,
   computeAssetRows,
@@ -253,6 +254,22 @@ describe('computePortfolioReturn', () => {
     // primeiro não-nulo = 1000, último não-nulo = 1200 → retorno = 20%
     const result = computePortfolioReturn(series, [], [])
     expect(result).toBeCloseTo(0.2)
+  })
+})
+
+describe('computeMonthlyPortfolioReturns', () => {
+  it('mostra setembro usando o primeiro ponto do próprio mês', () => {
+    const result = computeMonthlyPortfolioReturns(
+      [
+        { date: '2026-09-15', value: 1000 },
+        { date: '2026-09-30', value: 1100 },
+        { date: '2026-10-20', value: 1200 },
+      ],
+      new Date('2026-10-20T12:00:00Z'),
+    )
+
+    expect(result.get('2026-09')).toBeCloseTo(0.1)
+    expect(result.has('2026-10')).toBe(false)
   })
 })
 

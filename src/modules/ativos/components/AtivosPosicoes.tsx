@@ -5,7 +5,10 @@
  * por classe de ativo com todas as colunas do Figma.
  */
 import { useMemo, useRef, useState } from 'react'
-import { Download, Filter } from 'lucide-react'
+import { Download, Filter, Columns3 } from 'lucide-react'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { useAssetColumns } from '../hooks/useAssetColumns'
+import { AssetColumnEditor } from './AssetColumnEditor'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { usePositions } from '../../portfolio/hooks/usePositions'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
@@ -26,6 +29,9 @@ import type { AssetCurrency, AssetClassKey } from '../../portfolio/types'
 import type { FundamentalsRow } from '../../score/types'
 
 export function AtivosPosicoes() {
+  const { user } = useAuth()
+  const columnSettings = useAssetColumns(user?.id ?? 'guest')
+  const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false)
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
 
@@ -190,6 +196,9 @@ export function AtivosPosicoes() {
           </span>
 
           <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
+              <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
+            </button>
             <button
               type="button"
               className="
@@ -223,6 +232,7 @@ export function AtivosPosicoes() {
             rows={enrichedRows}
             totalBRL={totalBRL}
             isLoading={isLoading}
+            visibleColumns={columnSettings.columns}
           />
         </div>
 
@@ -256,6 +266,7 @@ export function AtivosPosicoes() {
           )}
         </div>
       </PanelCard>
+      {isColumnEditorOpen && <AssetColumnEditor columns={columnSettings.columns} onSave={columnSettings.save} onClose={() => setIsColumnEditorOpen(false)} />}
     </div>
   )
 }

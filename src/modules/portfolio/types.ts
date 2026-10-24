@@ -241,6 +241,8 @@ export interface PositionRow {
   // (já existe como marketValueBRL)
   /** P/L da tabela fundamentals. */
   pl?: number | null
+  roe?: number | null
+  netMargin?: number | null
   /** P/VP da tabela fundamentals. */
   pvp?: number | null
   /** Dividend Yield % da tabela fundamentals. */

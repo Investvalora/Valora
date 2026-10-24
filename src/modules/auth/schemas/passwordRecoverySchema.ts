@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { passwordSchema } from './passwordSchema'
 
 export const passwordRecoverySchema = z.object({
   email: z
@@ -8,9 +9,7 @@ export const passwordRecoverySchema = z.object({
 })
 
 export const resetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  password: passwordSchema,
   confirmPassword: z
     .string()
     .min(1, 'Confirme sua nova senha'),

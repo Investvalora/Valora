@@ -1,17 +1,22 @@
 import { supabase } from '../../../shared/services/supabaseClient'
 import { LoginFormData, SignupFormData, UserProfile } from '../types'
+import { authRedirect } from './authRedirect'
+import { passwordSchema } from '../schemas/passwordSchema'
 
 export const authService = {
   async signup(data: SignupFormData) {
+    const fullName = data.fullName.trim()
+    if (fullName.length < 3) throw new Error('Nome completo deve ter no mínimo 3 caracteres')
+    passwordSchema.parse(data.password)
     // Create auth user with metadata
     // The trigger will automatically create the users table entry
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: authRedirect('/login'),
         data: {
-          full_name: data.fullName,
+          full_name: fullName,
           phone: data.phone || null,
         },
       },
@@ -38,6 +43,15 @@ export const authService = {
     return authData
   },
 
+  async loginWithGoogle() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: authRedirect('/login') },
+    })
+    if (error) throw error
+    return data
+  },
+
   async logout() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -45,7 +59,7 @@ export const authService = {
 
   async requestPasswordRecovery(email: string) {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: authRedirect('/reset-password'),
     })
 
     if (error) throw error
@@ -53,6 +67,7 @@ export const authService = {
   },
 
   async resetPassword(password: string) {
+    passwordSchema.parse(password)
     const { data, error } = await supabase.auth.updateUser({ password })
 
     if (error) throw error

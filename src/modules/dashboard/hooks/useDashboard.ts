@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useWalletTotals } from '../../portfolio/hooks/useWalletTotals'
+import { buildMonthlyWealth } from '../monthlyWealth'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
@@ -7,9 +9,8 @@ import { dividendService } from '../../dividends/services/dividendService'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
-import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
-import type { PositionRow, AssetClassSlice } from '../../portfolio/types'
-import type { PositionSnapshot } from '../../wealth/types'
+import type { AssetClassSlice } from '../../portfolio/types'
+import type { AssetType } from '../../portfolio/types'
 
 const STALE_TIME_MS = 5 * 60 * 1000
 
@@ -31,52 +32,6 @@ export function aggregateMonthly(
   return Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, value]) => ({ month, value }))
-}
-
-/** Constrói PositionRow[] mínimos para deriveComposition (renda variável). */
-function buildRowsForComposition(
-  positions: PositionSnapshot[],
-  lastPricesMap: Map<string, number>,
-  usdRate: number,
-): { rows: PositionRow[]; totalBRL: number } {
-  let totalBRL = 0
-
-  const rows: PositionRow[] = positions.map((pos) => {
-    const close = lastPricesMap.get(pos.ticker)
-    let marketValueBRL: number | null = null
-
-    if (close !== undefined && Number.isFinite(close)) {
-      const needsConversion =
-        pos.currency === 'USD' &&
-        pos.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.type)
-      const priceInBRL = needsConversion ? close * usdRate : close
-      marketValueBRL = priceInBRL * pos.quantity
-      if (!Number.isFinite(marketValueBRL)) marketValueBRL = null
-    }
-
-    if (marketValueBRL !== null) totalBRL += marketValueBRL
-
-    return {
-      id: pos.ticker,
-      ticker: pos.ticker,
-      name: null,
-      currency: pos.currency,
-      type: pos.type,
-      quantity: pos.quantity,
-      averagePrice: 0,
-      acquisitionDate: '',
-      quote: null,
-      quotePrice: Number.NaN,
-      marketValueBRL,
-      weightPercent: null,
-      changePercent: null,
-      isStaleQuote: false,
-      usesUSDRate: pos.currency === 'USD',
-    } satisfies PositionRow
-  })
-
-  return { rows, totalBRL }
 }
 
 export interface DashboardData {
@@ -103,17 +58,23 @@ export interface DashboardData {
   refetch: () => void
 }
 
-export function useDashboard(walletId?: string): DashboardData {
+export interface WealthChartFilters {
+  from?: string
+  to?: string
+  type?: AssetType | 'all'
+}
+
+export function useDashboard(walletId?: string, chartFilters?: WealthChartFilters): DashboardData {
   const { user } = useAuth()
   const userId = user?.id
 
   // ── Série histórica de renda variável ────────────────────────────────────
   // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
-  const wealth = useWealthHistory('Tudo', walletId)
+  const current = useWalletTotals()
+  const wealth = useWealthHistory('Tudo', walletId, chartFilters?.from)
 
   // ── Renda fixa ───────────────────────────────────────────────────────────
   const fi = useFixedIncomePositions(walletId)
-  const fiTotalBRL = fi.totalBRL
   const fiPrincipalBRL = useMemo(
     () => fi.rows.reduce((sum, r) => sum + r.principal, 0),
     [fi.rows],
@@ -144,58 +105,29 @@ export function useDashboard(walletId?: string): DashboardData {
   })
 
   // ── Patrimônio atual ──────────────────────────────────────────────────────
-  // Calculado diretamente dos últimos preços (lastPricesMap) + renda fixa.
-  // NÃO usa o último ponto da série histórica para evitar distorção por gaps.
+  // Mesma consulta e cálculo do seletor. Histórico fica restrito ao gráfico.
   const totalPatrimonioBRL = useMemo(() => {
-    const usdRate = wealth.usdRate || 5
-    let total = 0
-    let hasAny = false
-
-    for (const pos of wealth.positions) {
-      const close = wealth.lastPricesMap.get(pos.ticker)
-      if (close === undefined || !Number.isFinite(close) || close <= 0) continue
-
-      const needsConversion =
-        pos.currency === 'USD' &&
-        pos.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.type)
-
-      const priceInBRL = needsConversion ? close * usdRate : close
-      const value = priceInBRL * pos.quantity
-
-      if (Number.isFinite(value) && value > 0) {
-        total += value
-        hasAny = true
-      }
-    }
-
-    if (fiTotalBRL > 0) {
-      total += fiTotalBRL
-      hasAny = true
-    }
-
-    return hasAny ? total : null
-  }, [wealth.positions, wealth.lastPricesMap, wealth.usdRate, fiTotalBRL])
-
+    if (walletId === '' || current.isLoading || current.isError) return null
+    if (walletId !== undefined) return current.totals.get(walletId) ?? (current.totals.has(walletId) ? null : 0)
+    const values = [...current.totals.values()]
+    return values.some((value) => value === null) ? null : values.reduce<number>((sum, value) => sum + (value ?? 0), 0)
+  }, [walletId, current.totals, current.isLoading, current.isError])
   // ── Valor investido ───────────────────────────────────────────────────────
   const valorInvestidoBRL = useMemo(() => {
-    const usdRate = wealth.usdRate || 5
+    const usdRate = current.usdRate
     let total = 0
 
     for (const pos of positions) {
       const currency = pos.asset?.currency ?? 'BRL'
-      const needsConversion =
-        currency === 'USD' &&
-        pos.asset?.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.asset?.type ?? '')
-      const rate = needsConversion ? usdRate : 1
+      if (currency === 'USD' && usdRate === null) return null
+      const rate = currency === 'USD' ? usdRate! : 1
       total += Number(pos.average_price) * Number(pos.quantity) * rate
     }
 
     total += fiPrincipalBRL
 
     return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, wealth.usdRate, fiPrincipalBRL])
+  }, [positions, current.usdRate, fiPrincipalBRL])
 
   // ── Ganho de capital ──────────────────────────────────────────────────────
   const ganhoCapitalBRL = useMemo(() => {
@@ -250,67 +182,69 @@ export function useDashboard(walletId?: string): DashboardData {
   }, [totalPatrimonioBRL, valorInvestidoBRL])
 
   // ── Série mensal para o gráfico ───────────────────────────────────────────
-  // Filtra por latestDate para evitar barras com patrimônio parcial.
-  // Se não há pontos após latestDate (série carregando ou carteira de 1 dia),
-  // cai de volta para earliestDate como âncora.
+  // Cada mês usa o fechamento disponível por ativo e o custo das posições
+  // já adquiridas; não compara patrimônio parcial com o custo atual completo.
   const monthlySeries = useMemo(() => {
-    const monthly = aggregateMonthly(wealth.series)
+    const type = chartFilters?.type ?? 'all'
+    const chartPositions = positions.filter((position) => type === 'all' || position.asset?.type === type)
+    const chartFixed = type === 'all' || type === 'fixed_income' ? fi.rows : []
+    const prices = (wealth.priceRows ?? []).filter((price) => !chartFilters?.to || price.date <= chartFilters.to)
+    const monthly = buildMonthlyWealth(chartPositions, prices, chartFixed, current.usdRate, chartFilters?.to)
+    // O mês em andamento acompanha o mesmo patrimônio atualizado do resumo.
+    // O histórico pode terminar antes da última cotação ou conter dias parciais.
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const today = new Date().toISOString().slice(0, 10)
+    const includeCurrent = (!chartFilters?.from || chartFilters.from <= today) && (!chartFilters?.to || chartFilters.to >= today)
+    const ids = new Set(chartPositions.map((position) => position.id))
+    const chartRows = current.rows.filter((row) => ids.has(row.id))
+    const rateMissing = chartPositions.some((position) => position.asset?.currency === 'USD') && current.usdRate === null
+    const filteredTotal = current.isLoading || current.isError || chartRows.some((row) => row.marketValueBRL === null) || rateMissing
+      ? null
+      : chartRows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0) + chartFixed.reduce((sum, row) => sum + (row.currentValue ?? row.principal), 0)
+    const chartTotal = type === 'all' ? totalPatrimonioBRL : filteredTotal
+    const chartInvested = type === 'all' ? valorInvestidoBRL : rateMissing ? null : chartPositions.reduce((sum, position) => sum + Number(position.quantity) * Number(position.average_price) * (position.asset?.currency === 'USD' ? current.usdRate! : 1), 0) + chartFixed.reduce((sum, row) => sum + row.principal, 0)
+    if (includeCurrent && chartTotal !== null && chartTotal > 0) {
+      const currentPoint = monthly.find((point) => point.month === currentMonth)
+      if (currentPoint) {
+        currentPoint.totalBRL = chartTotal
+        currentPoint.investedBRL = chartInvested
+      } else monthly.push({ month: currentMonth, totalBRL: chartTotal, investedBRL: chartInvested })
+    }
     if (monthly.length === 0) return []
 
-    const investedBRL = valorInvestidoBRL
-
-    const toPoints = (data: typeof monthly) =>
-      data.map(({ month, value }) => ({
-        month,
-        totalBRL: value,
-        investedBRL: value !== null && investedBRL !== null
-          ? Math.min(investedBRL, value)
-          : investedBRL,
-      }))
-
-    // Tenta filtrar pelo mês da última aquisição (carteira completa)
-    const anchor = wealth.latestDate ?? wealth.earliestDate
-    const anchorMonth = anchor ? anchor.slice(0, 7) : null
-
-    if (anchorMonth) {
-      const filtered = monthly.filter(({ month }) => month >= anchorMonth)
-      if (filtered.length > 0) return toPoints(filtered)
-    }
-
-    // Fallback: usa todos os pontos disponíveis
-    return toPoints(monthly)
-  }, [wealth.series, wealth.latestDate, wealth.earliestDate, valorInvestidoBRL])
+    return monthly.filter((point) => (!chartFilters?.from || point.month >= chartFilters.from.slice(0, 7)) && (!chartFilters?.to || point.month <= chartFilters.to.slice(0, 7))).map((point) => ({
+      ...point,
+      investedBRL: point.totalBRL !== null && point.investedBRL !== null
+        ? Math.min(point.investedBRL, point.totalBRL)
+        : point.investedBRL,
+    }))
+  }, [positions, wealth.priceRows, fi.rows, current.rows, current.usdRate, current.isLoading, current.isError, valorInvestidoBRL, totalPatrimonioBRL, chartFilters?.from, chartFilters?.to, chartFilters?.type])
 
   // ── Composição para pizza ─────────────────────────────────────────────────
-  // Usa lastPricesMap diretamente (não a série histórica) para garantir que
-  // todos os ativos com cotação aparecem na composição.
+  // Usa as mesmas posições e cotações do patrimônio atual.
   const compositionSlices = useMemo(() => {
-    if (wealth.positions.length === 0) return []
-    const usdRate = wealth.usdRate || 5
-    const { rows, totalBRL } = buildRowsForComposition(
-      wealth.positions,
-      wealth.lastPricesMap,
-      usdRate,
-    )
-    if (totalBRL <= 0) return []
-    const derived = deriveComposition(rows, totalBRL)
-    return derived.slices
-  }, [wealth.positions, wealth.lastPricesMap, wealth.usdRate])
-
+    const ids = new Set(current.positions.filter((position) => walletId === undefined || position.wallet_id === walletId).map((position) => position.id))
+    const rows = current.rows.filter((row) => ids.has(row.id))
+    const total = rows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0)
+    return total > 0 ? deriveComposition(rows, total).slices : []
+  }, [current.positions, current.rows, walletId])
   // ── Estado ────────────────────────────────────────────────────────────────
   const isLoading =
+    current.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
     dividendsQuery.isLoading ||
     fi.isLoading
 
   const isError =
+    current.isError ||
     wealth.isError ||
     positionsQuery.isError ||
     dividendsQuery.isError ||
     fi.isError
 
   const refetch = () => {
+    current.refetch()
     wealth.refetch()
     void positionsQuery.refetch()
     void dividendsQuery.refetch()

@@ -17,6 +17,7 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
+import { buildAssetSlices, type CompositionSlice } from '../utils/compositionSlices'
 
 // ── Donut SVG com label central ────────────────────────────────────────────
 const CX = 100
@@ -53,7 +54,7 @@ function CompositionDonut({
   totalBRL,
   size = 200,
 }: {
-  slices: AssetClassSlice[]
+  slices: CompositionSlice[]
   totalBRL: number
   size?: number
 }) {
@@ -69,9 +70,10 @@ function CompositionDonut({
   let angle = 0
   const sectors = slices.map((s) => {
     const pct = (s.percent / total) * 100
-    const startDeg = angle + GAP_DEG / 2
     const sweep = (pct / 100) * 360
-    const endDeg = angle + sweep - GAP_DEG / 2
+    const gap = Math.min(GAP_DEG, sweep / 4)
+    const startDeg = angle + gap / 2
+    const endDeg = angle + sweep - gap / 2
     const midDeg = angle + sweep / 2
     angle += sweep
     return {
@@ -110,12 +112,14 @@ function CompositionDonut({
       {/* Fatias */}
       {sectors.map(({ slice, startDeg, endDeg }) => (
         <path
-          key={slice.type}
+          key={slice.id}
           d={sectorPath(startDeg, endDeg)}
-          fill={assetClassColor(slice.type)}
+          fill={slice.color}
           fillOpacity={0.88}
           aria-label={`${slice.label}: ${fmtPct(slice.percent)}`}
-        />
+        >
+          <title>{`${slice.label}: ${fmtMoney(slice.valueBRL)} (${fmtPct(slice.percent).replace('+', '')})`}</title>
+        </path>
       ))}
       {/* Labels externos de % — apenas fatias > 4% */}
       {sectors
@@ -124,12 +128,12 @@ function CompositionDonut({
           const pt = polar(CX, CY, LABEL_RADIUS, midDeg)
           return (
             <text
-              key={`lbl-${slice.type}`}
+              key={`lbl-${slice.id}`}
               x={pt.x.toFixed(2)}
               y={pt.y.toFixed(2)}
               textAnchor="middle"
               dominantBaseline="central"
-              fill={assetClassColor(slice.type)}
+              fill={slice.color}
               fontSize="9"
               fontWeight="600"
               fontFamily="inherit"
@@ -166,16 +170,16 @@ function CompositionDonut({
 }
 
 // ── Lista de classes ───────────────────────────────────────────────────────
-function ClassList({ slices }: { slices: AssetClassSlice[] }) {
+function ClassList({ slices }: { slices: CompositionSlice[] }) {
   return (
     <div className="flex flex-col gap-3">
       {slices.map((s) => {
-        const color = assetClassColor(s.type)
-        const isIntl = isInternationalClass(s.type)
+        const color = s.color
+        const isIntl = s.international
         const barWidth = Math.min(100, Math.max(0, s.percent))
 
         return (
-          <div key={s.type} className="flex flex-col gap-1.5">
+          <div key={s.id} className="flex flex-col gap-1.5">
             <div className="space-y-1.5 md:hidden">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
@@ -304,11 +308,14 @@ export function AtivosComposicao() {
 
   // Filtrar slices pelo toggle ativo
   const visibleSlices = useMemo(() => {
-    if (activeToggle === 'Exposição ao exterior') {
-      return composition.slices.filter((s) => isInternationalClass(s.type))
-    }
-    return composition.slices
-  }, [composition.slices, activeToggle])
+    if (activeToggle === 'Ativos') return buildAssetSlices(rows, totalBRL)
+    const slices = activeToggle === 'Exposição ao exterior'
+      ? composition.slices.filter((s) => isInternationalClass(s.type))
+      : composition.slices
+    return slices.map((slice: AssetClassSlice): CompositionSlice => ({
+      ...slice, id: slice.type, color: assetClassColor(slice.type), international: isInternationalClass(slice.type),
+    }))
+  }, [composition.slices, activeToggle, rows, totalBRL])
 
   return (
     <div className="flex flex-col gap-5">
@@ -345,7 +352,7 @@ export function AtivosComposicao() {
         {/* Cabeçalho */}
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <h2 className="text-[14px] font-semibold text-white">
-            Composição por classe
+            {activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
           </h2>
 
           {/* Toggle segmentado */}
@@ -366,6 +373,7 @@ export function AtivosComposicao() {
                 <button
                   key={opt}
                   type="button"
+                  aria-pressed={activeToggle === opt}
                   onClick={() => setActiveToggle(opt)}
                   className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
                     activeToggle === opt
@@ -410,9 +418,9 @@ export function AtivosComposicao() {
             <p className="text-[13px] text-[#8F8F8F]">Nenhuma posição avaliada.</p>
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-8 md:flex-row md:items-center">
+          <div className="flex flex-col items-start gap-8 md:flex-row">
             {/* Donut — 180px mobile, 200px desktop */}
-            <div className="shrink-0 self-center md:self-auto">
+            <div className="shrink-0 self-center md:sticky md:top-24 md:self-start">
               <div className="block md:hidden">
                 <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={180} />
               </div>

@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
-import { INTERNATIONAL_TYPES } from '../composition'
+import { derivePositionRows } from '../positionRows'
+import { useLatestQuotes } from './useLatestQuotes'
 import { fixedIncomeService } from '../services/fixedIncomeService'
 import { positionService } from '../services/positionService'
 
@@ -32,63 +33,50 @@ export function useWalletTotals() {
     [positions],
   )
 
-  const quotesQuery = useQuery({
-    queryKey: ['portfolio', 'wallet-quotes', tickers],
-    queryFn: () => positionService.listLatestQuotes(tickers),
-    enabled: tickers.length > 0,
-  })
-
-  const needsUsd = positions.some((position) => {
-    const asset = position.asset
-    return asset?.currency === 'USD' &&
-      asset.type !== null &&
-      INTERNATIONAL_TYPES.includes(asset.type)
-  })
+  const quotesQuery = useLatestQuotes(tickers)
+  const needsUsd = positions.some((position) => position.asset?.currency === 'USD')
   const usdQuery = useUSDRate({ enabled: needsUsd })
-
+  const derived = useMemo(() => derivePositionRows({
+    positions,
+    quotes: quotesQuery.data ?? [],
+    usdRate: usdQuery.data?.rate ?? null,
+  }), [positions, quotesQuery.data, usdQuery.data?.rate])
   const totals = useMemo(() => {
     const result = new Map<string, number | null>()
-    const quotes = new Map(
-      (quotesQuery.data ?? []).map((quote) => [quote.ticker, Number(quote.close)]),
-    )
-    const usdRate = usdQuery.data?.rate || 5
-
-    for (const position of positions) {
-      if (!position.wallet_id) continue
-      const close = quotes.get(position.ticker)
-      if (close === undefined || !Number.isFinite(close)) {
-        result.set(position.wallet_id, null)
-        continue
-      }
-
-      const asset = position.asset
-      const needsConversion = asset?.currency === 'USD' &&
-        asset.type !== null &&
-        INTERNATIONAL_TYPES.includes(asset.type)
-      const value = close * Number(position.quantity) * (needsConversion ? usdRate : 1)
-      if (result.get(position.wallet_id) !== null) {
-        result.set(position.wallet_id, (result.get(position.wallet_id) ?? 0) + value)
+    for (let i = 0; i < positions.length; i++) {
+      const walletId = positions[i].wallet_id
+      if (!walletId) continue
+      const value = derived.rows[i].marketValueBRL
+      if (value === null || result.get(walletId) === null) {
+        result.set(walletId, null)
+      } else {
+        result.set(walletId, (result.get(walletId) ?? 0) + value)
       }
     }
-
     for (const position of fixedIncomeQuery.data ?? []) {
       if (!position.wallet_id) continue
       const value = Number(position.current_value ?? position.principal)
-      if (result.get(position.wallet_id) !== null) {
+      if (!Number.isFinite(value)) {
+        result.set(position.wallet_id, null)
+      } else if (result.get(position.wallet_id) !== null) {
         result.set(position.wallet_id, (result.get(position.wallet_id) ?? 0) + value)
       }
     }
 
     return result
-  }, [positions, fixedIncomeQuery.data, quotesQuery.data, usdQuery.data?.rate])
+  }, [positions, fixedIncomeQuery.data, derived.rows])
 
   return {
     totals,
+    positions,
+    rows: derived.rows,
+    usdRate: usdQuery.data?.rate ?? null,
+    refetch: () => { void positionsQuery.refetch(); void fixedIncomeQuery.refetch(); void quotesQuery.refetch(); void usdQuery.refetch() },
     isLoading:
       positionsQuery.isLoading ||
       fixedIncomeQuery.isLoading ||
       quotesQuery.isLoading ||
       (needsUsd && usdQuery.isLoading),
-    isError: positionsQuery.isError || fixedIncomeQuery.isError || quotesQuery.isError,
+    isError: positionsQuery.isError || fixedIncomeQuery.isError || quotesQuery.isError || (needsUsd && usdQuery.isError),
   }
 }

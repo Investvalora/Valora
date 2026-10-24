@@ -96,13 +96,13 @@ describe('calcBazinCeiling', () => {
 
 describe('calcMargin', () => {
   it('margem positiva: cotação abaixo do teto', () => {
-    // teto=40, cotação=35: (40-35)/35 * 100 ≈ 14.29%
-    expect(calcMargin(40, 35)).toBeCloseTo(14.286, 2)
+    // teto=40, cotação=35: (40-35)/40 * 100 = 12.5%
+    expect(calcMargin(40, 35)).toBeCloseTo(12.5, 2)
   })
 
   it('margem negativa: cotação acima do teto', () => {
-    // teto=30, cotação=35: (30-35)/35 * 100 ≈ -14.29%
-    expect(calcMargin(30, 35)).toBeCloseTo(-14.286, 2)
+    // teto=30, cotação=35: (30-35)/30 * 100 ≈ -16.67%
+    expect(calcMargin(30, 35)).toBeCloseTo(-16.667, 2)
   })
 
   it('margem zero: cotação igual ao teto', () => {
@@ -138,7 +138,7 @@ describe('applyBazin', () => {
     expect(r.annualDividend).toBeCloseTo(2.40)
     expect(r.ceilingPrice).toBeCloseTo(40.00)
     expect(r.currentPrice).toBeCloseTo(35.00)
-    expect(r.margin).toBeCloseTo(14.286, 2)
+    expect(r.margin).toBeCloseTo(12.5, 2)
     expect(r.hasData).toBe(true)
     expect(r.currency).toBe('BRL')
   })

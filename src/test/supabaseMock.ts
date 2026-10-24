@@ -50,6 +50,7 @@ const CHAIN_METHODS = [
   'ilike',
   'order',
   'limit',
+  'range',
   'single',
   'maybeSingle',
 ] as const

@@ -41,7 +41,7 @@ export function calcBazinCeiling(
 }
 
 /**
- * Calcula a margem de segurança: `((ceilingPrice − currentPrice) / currentPrice) × 100`.
+ * Desconto sobre o teto: `((ceilingPrice − currentPrice) / ceilingPrice) × 100`.
  *
  * Retorna `null` quando qualquer entrada é nula ou inválida.
  */
@@ -51,8 +51,9 @@ export function calcMargin(
 ): number | null {
   if (ceilingPrice === null || currentPrice === null) return null
   if (!Number.isFinite(ceilingPrice) || !Number.isFinite(currentPrice)) return null
-  if (currentPrice <= 0) return null
-  return ((ceilingPrice - currentPrice) / currentPrice) * 100
+  if (currentPrice <= 0 || ceilingPrice <= 0) return null
+  const margin = ((ceilingPrice - currentPrice) / ceilingPrice) * 100
+  return Number.isFinite(margin) ? margin : null
 }
 
 /**
@@ -145,7 +146,7 @@ import type { GrahamByTicker, GrahamResult } from '../types'
  * - Obtém LPA e VPA de `fundamentals` (registro mais recente por ticker).
  * - Calcula Preço Justo = √(22,5 × LPA × VPA) na moeda do ativo.
  * - Converte Preço Justo e cotação para BRL quando a moeda é USD.
- * - Calcula margem de segurança ((grahamPrice − currentPrice) / currentPrice × 100).
+ * - Calcula desconto sobre o preço justo ((grahamPrice − currentPrice) / grahamPrice × 100).
  *
  * @param currencyByTicker  Map ticker → 'BRL'|'USD'.
  * @param usdRate           Taxa de câmbio USD/BRL. Deve ser > 0 e finito.

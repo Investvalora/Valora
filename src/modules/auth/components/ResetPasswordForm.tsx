@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ResetPasswordSchema, resetPasswordSchema } from '../schemas/passwordRecoverySchema'
+import { PASSWORD_HELP } from '../schemas/passwordSchema'
 import { authService } from '../services/authService'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink, authSuccessBox } from './authStyles'
@@ -46,7 +47,7 @@ export function ResetPasswordForm() {
     <AuthLayout
       prioritizeFormOnMobile
       title="Nova senha"
-      description="Defina uma nova senha com no mínimo 8 caracteres."
+      description={PASSWORD_HELP}
       footer={<Link to="/login" className={authLink}>Voltar para login</Link>}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>

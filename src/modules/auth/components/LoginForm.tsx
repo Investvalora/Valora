@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { loginSchema, LoginSchema } from '../schemas/loginSchema'
 import { authService } from '../services/authService'
@@ -12,10 +12,20 @@ import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLin
 
 export function LoginForm() {
   const navigate = useNavigate()
+  const location = useLocation()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
+  const callbackError = new URLSearchParams(location.search).get('error') ??
+    new URLSearchParams(location.hash.slice(1)).get('error')
+  const googleMutation = useMutation({
+    mutationFn: authService.loginWithGoogle,
+    onError: () => setErrorMessage('Não foi possível entrar com Google. Tente novamente ou use email e senha.'),
+  })
+  const oauthMessage = callbackError === 'access_denied'
+    ? 'Login com Google cancelado ou acesso não autorizado. Você pode tentar novamente.'
+    : callbackError ? 'Não foi possível concluir a autenticação. Tente novamente.' : ''
 
   const {
     register,
@@ -88,10 +98,16 @@ export function LoginForm() {
           <Link to="/recuperar-senha" className={authLink}>Esqueci minha senha</Link>
         </div>
 
-        {errorMessage && <p role="alert" className={authErrorBox}>{errorMessage}</p>}
+        {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
 
-        <button type="submit" disabled={loginMutation.isPending} className={authButton}>
+        <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className={authButton}>
           {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
+        </button>
+        <button type="button" disabled={googleMutation.isPending || loginMutation.isPending} className={authButton} onClick={() => {
+          setErrorMessage('')
+          googleMutation.mutate()
+        }}>
+          {googleMutation.isPending ? 'Conectando ao Google...' : 'Entrar com Google'}
         </button>
       </form>
     </AuthLayout>

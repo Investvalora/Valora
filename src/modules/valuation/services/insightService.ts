@@ -1,4 +1,5 @@
 import { supabase } from '../../../shared/services/supabaseClient'
+import { calcMargin } from '../utils/bazinCalculation'
 import type {
   CreateBazinInsightPayload,
   CreateGrahamInsightPayload,
@@ -19,7 +20,12 @@ export const insightService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return (data ?? []) as unknown as InsightRecord[]
+    // Snapshots antigos guardam a fórmula anterior. Recalcular com os preços
+    // do próprio snapshot mantém a leitura correta sem alterar seu histórico.
+    return ((data ?? []) as unknown as InsightRecord[]).map((insight) => ({
+      ...insight,
+      margin: calcMargin(insight.strategy === 'bazin' ? insight.ceiling_price : insight.graham_price, insight.current_price),
+    }))
   },
 
   /** Salva um insight Bazin calculado on-demand. */

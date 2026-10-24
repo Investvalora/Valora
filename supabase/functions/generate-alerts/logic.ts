@@ -104,7 +104,7 @@ export function findBazinAlertCandidates(
     const ceilingPrice = annualDividend / minDY
     if (!Number.isFinite(ceilingPrice) || ceilingPrice <= 0) continue
 
-    const margin = ((ceilingPrice - close) / close) * 100
+    const margin = ((ceilingPrice - close) / ceilingPrice) * 100
     if (!Number.isFinite(margin)) continue
 
     const ceilingFmt = ceilingPrice.toFixed(2).replace('.', ',')

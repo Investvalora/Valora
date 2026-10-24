@@ -27,6 +27,8 @@ RF01 - Permitir que o usuário crie uma conta informando nome, celular, e-mail, 
 
 RF02 - Permitir autenticação por e-mail e senha na tela de login.
 
+RF02a - Permitir autenticação pelo Google (RF-003 da ERS citada no levantamento), com retorno para a aplicação e mensagens para cancelamento e falha. O provedor precisa estar configurado no Supabase e no Google Cloud. A numeração RF03 abaixo pertence a este documento e identifica o direcionamento após autenticação.
+
 RF03 - Direcionar o usuário autenticado para o painel de carteira.
 
 RF04 - Exibir resumo consolidado da carteira com patrimônio total, lucro ou prejuízo, benchmark e score médio.
@@ -160,6 +162,10 @@ O fluxo principal observado é o seguinte:
 ## 7. Regras de negócio observadas
 
 - O cadastro exige confirmação de senha antes de permitir a continuidade.
+- O nome é validado após remover espaços nas extremidades; nomes vazios ou com menos de três caracteres são rejeitados. Espaços entre palavras são preservados.
+- Cadastro e redefinição adotam uma adaptação autorizada da política Microsoft para corresponder ao Supabase: 8 a 256 caracteres ASCII imprimíveis (incluindo espaços) e as quatro categorias: maiúsculas, minúsculas, números e símbolos. O Valora adiciona bloqueio local de palavras comuns e padrões previsíveis. O login não aplica essa validação a senhas existentes. A lista global proprietária de senhas banidas do Entra não é reproduzida. Referência: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-sspr-policy.
+- Resumo e seletor usam a mesma fonte de patrimônio atual: posições, últimas cotações, câmbio e renda fixa. Quando uma posição não pode ser valorizada, o total da carteira fica indisponível em vez de apresentar soma parcial como completa.
+- Desconto e sobrepreço são calculados sobre o preço de referência: `(referência − cotação) / referência × 100`, tanto em Bazin quanto em Graham. Percentual positivo indica desconto; negativo indica sobrepreço.
 - O login usa e-mail e senha como credenciais básicas de entrada.
 - A carteira prioriza notificações de inconsistências de precificação.
 - Ativos com comportamento fora do esperado recebem destaque visual.

@@ -72,7 +72,6 @@ export function LoginForm() {
       description="Acesse sua carteira e suas análises."
       footer={<>
         <p>Ainda não tem uma conta? <Link to="/cadastro" className={authLink}>Criar conta</Link></p>
-        <p className="mt-3 text-[10px] leading-relaxed text-[#777a80]">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</p>
       </>}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

@@ -35,6 +35,7 @@ lerna-debug.log*
 *.tmp
 .tmp/
 scripts-temp/
+supabase/.temp/
 
 # OS
 Thumbs.db

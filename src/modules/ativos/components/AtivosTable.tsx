@@ -6,7 +6,7 @@ import { groupRowsByClass } from '../../portfolio/composition'
 import { fmtMoney, fmtPct, fmtQty } from '../utils/fmt'
 import { ASSET_COLUMNS, DEFAULT_ASSET_COLUMNS, type AssetColumnId } from '../hooks/useAssetColumns'
 
-type Props = { rows: PositionRow[]; totalBRL: number; isLoading?: boolean; visibleColumns?: AssetColumnId[] }
+type Props = { rows: PositionRow[]; totalBRL: number; isLoading?: boolean; visibleColumns?: AssetColumnId[]; emptyMessage?: string }
 const decimal = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const number = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? '—' : decimal.format(value)
 const percent = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? '—' : `${decimal.format(value)}%`
@@ -40,7 +40,7 @@ function cell(column: AssetColumnId, row: PositionRow): ReactNode {
   }
 }
 
-export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns = DEFAULT_ASSET_COLUMNS }: Props) {
+export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns = DEFAULT_ASSET_COLUMNS, emptyMessage = 'Nenhuma posição cadastrada.' }: Props) {
   const groups = groupRowsByClass(rows, totalBRL)
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const columns = ASSET_COLUMNS.filter((column) => ('locked' in column && column.locked) || visibleColumns.includes(column.id))
@@ -52,7 +52,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns 
         </tr></thead>
         <tbody>
           {isLoading && Array.from({ length: 6 }, (_, index) => <tr key={index}>{columns.map((column) => <td key={column.id} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-white/5" /></td>)}</tr>)}
-          {!isLoading && rows.length === 0 && <tr><td colSpan={columns.length} className="py-10 text-center text-sm text-white/50">Nenhuma posição cadastrada.</td></tr>}
+          {!isLoading && rows.length === 0 && <tr><td colSpan={columns.length} className="py-10 text-center text-sm text-white/50">{emptyMessage}</td></tr>}
           {!isLoading && groups.map(({ summary, rows: groupRows }) => {
             const expanded = !collapsed.has(summary.key)
             return <Fragment key={summary.key}>

@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../shared/services/supabaseClient'
-import { fiQueryKey } from './useFixedIncomePositions'
 import { useAuth } from '../../auth/hooks/useAuth'
 
 export type CalcState = 'idle' | 'loading' | 'success' | 'error'
@@ -48,7 +47,10 @@ export function useCalcFixedIncome() {
       }
 
       // Invalida o cache para que a lista reflita os novos valores
-      queryClient.invalidateQueries({ queryKey: fiQueryKey(user.id) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', user.id] })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income-history', user.id] })
+      const result = await res.json() as { erros?: string[] }
+      if (result.erros?.length) throw new Error('Alguns títulos não puderam ser atualizados. Tente novamente.')
       setState('success')
     } catch (e) {
       setError((e as Error).message)

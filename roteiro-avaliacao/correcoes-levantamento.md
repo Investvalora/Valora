@@ -99,3 +99,39 @@ O seletor 1A no topo estava sem ação. Agora compartilha o período com os cont
 ### Editor de colunas em Ativos
 
 Adicionado painel lateral Editar colunas na tabela desktop de posições, com 20 opções agrupadas, Ativo e Quantidade obrigatórios, rascunho até Salvar, Cancelar e Restaurar padrão. A escolha persiste no navegador por usuário. Cabeçalhos, células, skeleton e colSpan seguem a seleção; ticker fica fixo na rolagem horizontal. Inclui indicadores já disponíveis, ROE e margem líquida vindos dos fundamentos. Não foram criadas fontes para CAGR, margem bruta, DY médio em cinco anos, avaliações ou metas de rebalanceamento da referência. Testes cobrem aplicar/cancelar/restaurar/persistir e isolamento entre usuários. Verificado no navegador ao ativar ROE, ocultar Nome e recarregar; padrão restaurado após teste. TypeScript e lint passaram.
+## Atualização — prioridades altas, 25/10/2026
+
+### Complemento posterior — câmbio, renda fixa e homologação
+
+PTAX histórica passou a ser consultada diretamente no BCB por período, com paginação e último boletim por data. A URL precisa codificar espaços em orderby como %20, pois Olinda rejeita '+': defeito identificado e corrigido em chamada real. Exemplo validado: janela 20–30/09/2026 retornou oito publicações, terminando em 30/09/2026. O cálculo usa a última taxa até cada fechamento mensal (ou corte personalizado), com tolerância de dez dias para fins de semana/feriados; ausência não usa cotação atual como fallback.
+
+macro_rates foi conferida via MCP: CDI/Selic desde 16/09/2024 e IPCA desde 09/2024. Consulta cliente é paginada. Estimativa histórica dos títulos ativos calcula prefixado e Selic com a taxa anual total cadastrada (mesma semântica atual), CDI com percentual da taxa diária, IPCA com meses inteiros e spread, limitando ao vencimento. Não inclui marcação a mercado, IR/IOF, cupons nem títulos desativados sem registros de resgate. Séries incompletas omitem o ponto e a interface explica as estimativas. Não se deve classificar essa reconstrução como extrato histórico integral da custódia.
+
+Homologação em produção: Google com a conta Valora retornou a /inicio no domínio publicado. Cadastro de conta de homologação por alias foi autorizado; senha e envio feitos pelo usuário. O usuário informou email recebido no spam, confirmação e retorno à tela inicial; sessão Valora Homologação em /inicio conferida no navegador. Confirmação e redirecionamento aprovados; entrega à caixa principal permanece pendente. Publicação pública do OAuth para contas fora do grupo autorizado não foi verificada.
+
+Validação desta etapa: 54 testes passaram em 13 arquivos (dashboard, Ativos, detalhe e Auth); build com TypeScript/PWA e lint passaram. Gráfico local com dados reais e filtro de renda fixa conferidos. Nenhuma migração ou configuração remota foi alterada; código novo sem commit/deploy.
+
+Os filtros de Ativos são compartilhados entre Posições, Composição e Lançamentos. O CSV exporta os resultados filtrados no formato padrão existente, com BOM e separador ponto e vírgula; a seleção visual de colunas não altera o arquivo.
+
+No detalhe do ativo, Lançamento abre AddTransactionModal com ticker, tipo e nome; a mutation existente usa a carteira selecionada e invalida posições e movimentações após sucesso. Criar alerta reaproveita PriceAlertForm com ticker preenchido; falhas preservam o formulário e sucesso abre a aba Alertas.
+
+O gráfico mensal passa a buscar movimentações paginadas da carteira e preços de todos os tickers negociados, inclusive os vendidos integralmente. Reconstrói quantidade/custo por carteira e ticker em ordem de data/seq, baixando vendas ao custo médio e incluindo meses sem pregão/transação. Não usa preços ou movimentações posteriores ao corte final. Para posições sem movimentações, preserva o saldo cadastrado. Dividendos/JCP/bonus não alteram quantidade, conforme o trigger atual do banco; taxas não entram no custo, também seguindo o trigger.
+
+Limites remanescentes: conversão ainda pelo câmbio atual; renda fixa histórica pelo principal, sem simular rendimentos passados. Esses dois itens continuam pendentes para considerar o histórico integral concluído. Nenhum schema ou dado remoto foi alterado nesta etapa.
+
+Validação: 36 testes direcionados passaram, cobrindo filtros/CSV, formulário de lançamento existente, integração dos atalhos com criação/falha de alerta, e reconstrução mensal de aportes, vendas e carteiras diferentes. Alterações locais sem commit.
+## Recebimentos da renda fixa e limites externos — 25/10/2026
+
+Adicionada tabela fixed_income_events com cupons e resgates, principal resgatado, valor bruto e saldo posterior informado pelo extrato. A inclusão serializa por título, valida a propriedade/carteira no banco, impede exceder principal, datas futuras/anteriores à aplicação ou à última movimentação e fecha títulos no resgate total. O principal original fica preservado; remaining_principal representa o custo ainda investido. Leitura e inclusão isoladas por RLS; sem privilégios de alteração/exclusão direta para authenticated/anon. Idempotência por UUID e verificação de conteúdo evita duplicação após perda de resposta.
+
+Frontend local: Ativos → Lançamentos ganhou registro de recebimentos, listagem por período/filtros e atualização de saldos. Histórico mensal consulta títulos ativos/encerrados e eventos; antes de cada recebimento usa a posição anterior, após usa o saldo posterior como base, sem somar o dinheiro recebido ao patrimônio investido. Títulos legados desativados sem datas/eventos não têm encerramento inventado. IR/IOF e marcação a mercado seguem fora da estimativa.
+
+Migrações 20261025143849_fixed_income_events e 20261025145230_fixed_income_event_idempotency aplicadas no projeto via MCP. Teste 040_fixed_income_events_test.sql executado em transação com rollback: cupons, resgate parcial/total, limites, ordem de datas, repetição do resgate total e isolamento de outro usuário passaram; nenhum fixture permaneceu. Reutilização do UUID com conteúdo diferente é rejeitada. Advisor após migração não acrescentou alertas em relação ao estado anterior; avisos preexistentes permanecem. Referências do advisor: https://supabase.com/docs/guides/database/database-linter e https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.
+
+calc-fixed-income versão 4 publicada, verify_jwt=true preservado. O recálculo lê saldo posterior/data do último evento, limita ao vencimento e faz update condicionado ao updated_at lido e active=true para não sobrescrever evento concorrente. Correção do percentual CDI sobre fator diário. Teste do handler passou; chamada autenticada real pela UI retornou Saldos atualizados. Código do frontend ainda sem commit/deploy.
+
+Google Cloud: homepage https://investvalora.vercel.app salva no branding. App continua Testing e Publish app desabilitado; links de privacidade e termos estão vazios. Não foram publicados links inexistentes nem políticas legais sem aprovação. Fonte: https://support.google.com/cloud/answer/15549049 e https://developers.google.com/identity/verification/authentication-policy-compliance.
+
+Email: SMTP personalizado SendGrid ativo, porta 587, nome Valora. Não foram lidos ou alterados segredos. Usuário informou ausência de domínio próprio. Autenticação própria de domínio remetente depende de domínio/DNS; spam ainda não resolvido. Diagnóstico não conclui causa específica sem cabeçalhos de autenticação e reputação. Orientações de email-best-practices aplicadas; SMTP existente preservado.
+
+Validação: 41 testes direcionados em 12 arquivos passaram; TypeScript/build/PWA e lint passaram. Nova UI aberta com os títulos reais e recálculo validado, sem registrar movimentos fictícios.

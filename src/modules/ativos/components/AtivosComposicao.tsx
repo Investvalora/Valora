@@ -18,6 +18,7 @@ import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { buildAssetSlices, type CompositionSlice } from '../utils/compositionSlices'
+import { useAssetFilters, useFilteredPositions } from '../hooks/useAssetFilters'
 
 // ── Donut SVG com label central ────────────────────────────────────────────
 const CX = 100
@@ -244,7 +245,9 @@ export function AtivosComposicao() {
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ─────────────────────────────────────────────────────────────────
-  const { data: positions = [], isLoading: posLoading } = usePositions(walletId)
+  const { data: allPositions = [], isLoading: posLoading } = usePositions(walletId)
+  const positions = useFilteredPositions(allPositions)
+  const { query, types } = useAssetFilters()
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
   const { data: quotes = [], isLoading: quotesLoading } = useLatestQuotes(tickers)
   const { data: usdRateData } = useUSDRate()
@@ -415,7 +418,7 @@ export function AtivosComposicao() {
           </div>
         ) : composition.slices.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center">
-            <p className="text-[13px] text-[#8F8F8F]">Nenhuma posição avaliada.</p>
+            <p className="text-[13px] text-[#8F8F8F]">{query || types.length ? 'Nenhum ativo corresponde aos filtros selecionados.' : 'Nenhuma posição avaliada.'}</p>
           </div>
         ) : (
           <div className="flex flex-col items-start gap-8 md:flex-row">

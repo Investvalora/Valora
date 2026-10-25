@@ -56,6 +56,8 @@ interface FiPosition {
   rate: number;       // % CDI, spread IPCA+, ou taxa prefixada (% a.a.)
   principal: number;
   application_date: string; // YYYY-MM-DD
+  maturity_date?: string | null;
+  updated_at?: string;
 }
 
 interface MacroRate {
@@ -70,12 +72,16 @@ async function pgGetPositions(userId: string): Promise<FiPosition[]> {
   const url =
     `${SUPABASE_URL}/rest/v1/fixed_income_positions` +
     `?user_id=eq.${userId}&active=eq.true` +
-    `&select=id,user_id,type,indexer,rate,principal,application_date`;
+    `&select=id,user_id,type,indexer,rate,principal,application_date,maturity_date,updated_at,events:fixed_income_events(event_date,balance_after,seq)`;
   const r = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });
   if (!r.ok) throw new Error(`PostgREST GET positions ${r.status}`);
-  return r.json();
+  const positions = await r.json() as (FiPosition & { events?: { event_date: string; balance_after: number; seq: number }[] })[];
+  return positions.map((position) => {
+    const latest = [...(position.events ?? [])].sort((a, b) => b.event_date.localeCompare(a.event_date) || b.seq - a.seq)[0];
+    return latest ? { ...position, principal: Number(latest.balance_after), application_date: latest.event_date } : position;
+  });
 }
 
 async function pgGetMacroRates(
@@ -97,10 +103,12 @@ async function pgGetMacroRates(
 async function pgUpdateCurrentValue(
   positionId: string,
   currentValue: number,
+  expectedUpdatedAt?: string,
 ): Promise<void> {
   const url =
     `${SUPABASE_URL}/rest/v1/fixed_income_positions` +
-    `?id=eq.${positionId}`;
+    `?id=eq.${positionId}&active=eq.true` +
+    (expectedUpdatedAt ? `&updated_at=eq.${encodeURIComponent(expectedUpdatedAt)}` : '');
   const r = await fetch(url, {
     method: 'PATCH',
     headers: {
@@ -142,8 +150,8 @@ function hoje(): string {
  * Prefixado e Selic: juros compostos com taxa anual fixa.
  * fator = (1 + taxa_aa/100)^(du/252)
  */
-function calcPrefixado(principal: number, rateAa: number, from: string): number {
-  const du = diasUteis(from, hoje());
+function calcPrefixado(principal: number, rateAa: number, from: string, to = hoje()): number {
+  const du = diasUteis(from, to);
   if (du <= 0) return principal;
   const fator = Math.pow(1 + rateAa / 100, du / 252);
   return principal * fator;
@@ -159,19 +167,20 @@ async function calcCdi(
   principal: number,
   pctCdi: number,
   from: string,
+  to = hoje(),
 ): Promise<number> {
-  const rates = await pgGetMacroRates('cdi', from, hoje());
+  const rates = await pgGetMacroRates('cdi', from, to);
   if (!rates.length) {
     // Sem dados: usa CDI médio aproximado de 10,5% a.a. como fallback
     const fallbackAa = 10.5;
-    const du = diasUteis(from, hoje());
+    const du = diasUteis(from, to);
     return principal * Math.pow(1 + (pctCdi / 100) * (fallbackAa / 100), du / 252);
   }
   let fatorAcum = 1;
   for (const { value } of rates) {
     // value = CDI anualizado em % a.a.
     // fator diário = (1 + pctCdi/100 × cdi_aa/100)^(1/252)
-    const fatorDia = Math.pow(1 + (pctCdi / 100) * (value / 100), 1 / 252);
+    const fatorDia = 1 + (Math.pow(1 + value / 100, 1 / 252) - 1) * pctCdi / 100;
     fatorAcum *= fatorDia;
   }
   return principal * fatorAcum;
@@ -185,15 +194,16 @@ async function calcIpca(
   principal: number,
   spreadAa: number,
   from: string,
+  to = hoje(),
 ): Promise<number> {
-  const rates = await pgGetMacroRates('ipca', from, hoje());
+  const rates = await pgGetMacroRates('ipca', from, to);
   // Produto dos fatores mensais de IPCA
   let fatorIpca = 1;
   for (const { value } of rates) {
     fatorIpca *= 1 + value / 100;
   }
   // Spread prefixado pro-rata sobre dias corridos
-  const dc = diasCorridos(from, hoje());
+  const dc = diasCorridos(from, to);
   const fatorSpread = dc > 0 ? Math.pow(1 + spreadAa / 100, dc / 365) : 1;
   return principal * fatorIpca * fatorSpread;
 }
@@ -202,17 +212,18 @@ async function calcIpca(
 
 async function calcularValor(pos: FiPosition): Promise<number> {
   const { indexer, rate, principal, application_date } = pos;
+  const to = pos.maturity_date && pos.maturity_date < hoje() ? pos.maturity_date : hoje();
 
   switch (indexer) {
     case 'pre':
-      return calcPrefixado(principal, rate, application_date);
+      return calcPrefixado(principal, rate, application_date, to);
     case 'selic':
       // Selic: usa taxa média do período (similar ao prefixado mas com dados reais)
-      return calcPrefixado(principal, rate, application_date);
+      return calcPrefixado(principal, rate, application_date, to);
     case 'cdi':
-      return calcCdi(principal, rate, application_date);
+      return calcCdi(principal, rate, application_date, to);
     case 'ipca':
-      return calcIpca(principal, rate, application_date);
+      return calcIpca(principal, rate, application_date, to);
     default:
       return principal; // indexador desconhecido: retorna principal sem rendimento
   }
@@ -262,7 +273,7 @@ Deno.serve(async (req: Request) => {
     for (const pos of positions) {
       try {
         const valor = await calcularValor(pos);
-        await pgUpdateCurrentValue(pos.id, valor);
+        await pgUpdateCurrentValue(pos.id, valor, pos.updated_at);
         atualizadas++;
       } catch (e) {
         erros.push(`${pos.id}: ${(e as Error).message.slice(0, 120)}`);

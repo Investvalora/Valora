@@ -4,7 +4,7 @@
  * A lógica de dados e KPIs foi movida para os componentes-folha (AtivosPosicoes, etc.).
  */
 import { Outlet } from 'react-router-dom'
-import { Filter } from 'lucide-react'
+import { AssetFilterButton, AssetFiltersPanel, ActiveAssetFilters } from './AssetFiltersPanel'
 import { SubTabBar } from './SubTabBar'
 
 const ATIVOS_TABS = [
@@ -21,26 +21,17 @@ export function AtivosPage() {
         <h1 className="text-[22px] font-semibold text-white">Ativos</h1>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            className="
-              flex items-center gap-1.5 rounded-full
-              border border-white/[0.1] bg-[#393939]
-              px-3.5 py-1.5 text-[13px] font-medium text-white
-              transition-colors hover:bg-white/[0.12]
-            "
-          >
-            <Filter className="h-3.5 w-3.5 text-white/70" strokeWidth={1.8} aria-hidden="true" />
-            Filtrar
-          </button>
+          <AssetFilterButton />
         </div>
       </div>
 
       {/* ── Sub-tabs ── */}
       <SubTabBar tabs={ATIVOS_TABS} mobileVariant="segmented" />
+      <ActiveAssetFilters />
 
       {/* ── Conteúdo da sub-rota ── */}
       <Outlet />
+      <AssetFiltersPanel />
     </div>
   )
 }

@@ -90,6 +90,7 @@ export function useAddFixedIncomePosition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: fiQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income-history', userId] })
       queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', userId] })
     },
   })
@@ -107,7 +108,8 @@ export function useDeactivateFixedIncomePosition() {
       return fixedIncomeService.deactivatePosition(userId, positionId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: fiQueryKey(userId) })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', userId] })
+      queryClient.invalidateQueries({ queryKey: ['portfolio', 'fixed-income-history', userId] })
     },
   })
 }

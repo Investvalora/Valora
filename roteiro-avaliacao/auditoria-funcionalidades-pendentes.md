@@ -1,5 +1,46 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Complemento mais recente — páginas públicas e alternativas sem domínio
+
+- /sobre, /privacidade e /termos publicados em produção pela PR #69 (merge 28a0ef5), acessíveis sem login e ligados às telas de acesso. Por orientação do usuário, usam somente Valora e o email do projeto, sem nomes pessoais. Textos revisados e aprovados pelo usuário em 25/10. Links salvos no branding do Google. Após autorização explícita do usuário, publicação OAuth confirmada: painel Audience exibe In production e External. Não foi realizado novo login com uma segunda conta externa nesta etapa. Assuntos do SendGrid adiados pelo usuário, sem mudança de configuração.
+- Não é obrigatório comprar domínio para testar SMTP: Gmail é alternativa gratuita com cotas e conta elegível, sem garantia de entrega fora do spam. Considerando a preocupação do usuário com volume, o SendGrid existente foi preservado.
+- Limite real conferido no painel do projeto: 30 emails/h no Supabase, intervalo mínimo por destinatário de 30s. O limite por hora é configurável com SMTP próprio; nenhuma configuração foi alterada.
+- Plano/cota SendGrid conferidos em 25/10: Free Trial de 100 emails/dia, com término em 18/11/2026. Remetente individual verificado, sem domínio autenticado; rastreamento de cliques e aberturas ativo. Após revisão, usuário decidiu manter tudo como está por enquanto. Nenhuma configuração alterada. Detalhes em verificacao-sendgrid-20261025.md.
+- Detalhes, fontes e URLs para revisão: publicacao-google-email.md. Oito testes, build e lint passaram.
+
+## Estado mais recente — 25/10/2026, recebimentos da renda fixa
+
+- Implementados cupons, resgates parciais e totais em Ativos → Lançamentos. O usuário informa principal resgatado, valor bruto recebido e saldo posterior do extrato. O histórico mantém títulos encerrados e usa cada saldo posterior como nova base de capitalização.
+- Migrações `20261025143849_fixed_income_events.sql` e `20261025145230_fixed_income_event_idempotency.sql` aplicadas via MCP. RLS de leitura/inclusão por proprietário, histórico sem alteração/exclusão direta, trava por título e validação de principal/saldo/datas. Repetir o mesmo UUID/conteúdo não duplica nem reaplica um resgate, inclusive após encerramento. Teste SQL transacional passou e reverteu todos os fixtures.
+- `calc-fixed-income` versão 4 publicada com JWT obrigatório; considera o saldo posterior ao último movimento, vencimento e proteção contra sobrescrever um recebimento concorrente. Recálculo autenticado real conferido pela interface local: Saldos atualizados.
+- Frontend permanece local, sem novo commit/publicação. Testes direcionados: 41 passaram em 12 arquivos; build e lint passaram. Sem movimentos financeiros fictícios persistidos.
+- Google: status Testing confirmado, apenas uma conta autorizada. Homepage pública salva no branding; Publish app continua desabilitado. Faltam páginas públicas de privacidade e termos; não foram inventados links nem publicadas políticas em nome do projeto. A ausência de domínio próprio, por si só, não comprova impedimento do OAuth básico; o bloqueio observado é a configuração de branding incompleta.
+- Email: SMTP personalizado ativo no SendGrid. Usuário confirmou que o Valora não possui domínio próprio/DNS. Sem domínio controlado, não é possível configurar SPF/DKIM/DMARC próprios. Entrega fora do spam permanece pendente; não se atribui a causa do spam somente a isso sem análise dos cabeçalhos/reputação. Nenhuma configuração de SMTP, segredo ou DNS alterada.
+- Próximos passos externos: preparar/aprovar/publicar páginas de privacidade e termos para concluir branding; definir domínio remetente e autenticação no SendGrid e repetir teste de entrega.
+
+As seções posteriores preservam etapas anteriores e são supersedidas por este estado quando houver divergência.
+
+## Atualização local — 25/10/2026
+
+### Homologação e histórico — atualização posterior de 25/10
+
+- Google homologado em produção com a conta Valora: login retornou a https://investvalora.vercel.app/inicio. Isso comprova o fluxo dessa conta autorizada; não comprova liberação do aplicativo Google para qualquer conta externa.
+- Confirmação de email homologada em produção com alias autorizado: usuário recebeu o email, confirmou o link e foi à página inicial. A sessão Valora Homologação em /inicio foi conferida no navegador. Não houve retorno a localhost.
+- Nova pendência de entregabilidade: o email de confirmação chegou ao spam; revisar remetente/SMTP e autenticação do domínio antes de considerar a entrega à caixa principal homologada.
+- Câmbio mensal integrado à PTAX pública, paginada, usando somente publicação até cada corte; sem fallback do câmbio atual para meses sem histórico. Consulta real validada no BCB e evolução local conferida.
+- Renda fixa histórica calculada como estimativa bruta dos títulos ativos cadastrados: prefixado/Selic pela taxa anual registrada; CDI pela série diária disponível; IPCA por meses completos e spread. Corta no vencimento e omite pontos sem cobertura necessária.
+- O histórico continua sendo uma reconstrução, não um extrato de custódia: não inclui títulos de renda fixa já desativados sem histórico de resgate, cupons, impostos ou marcação a mercado. Selic preserva a semântica atual do cadastro (taxa anual total), sem interpretar o campo como spread. Essas extensões exigem um modelo de movimentações de renda fixa e revisão de requisito.
+- Validação atual: 54 testes direcionados, TypeScript/build/PWA e lint passaram. Código financeiro novo permanece local e sem publicação.
+
+- Concluídos: os dois botões Filtrar em Ativos, com busca por nome/ticker e tipos compartilhada entre as três abas.
+- Concluído: Exportar CSV em Ativos usa as posições filtradas e as colunas padrão do exportador existente, independentemente das colunas visíveis. Desabilitado durante carregamento ou sem resultados.
+- Concluídos: atalhos Lançamento do ativo e Criar alerta no detalhe abrem os fluxos existentes com o ticker preenchido. Lançamentos usam a carteira selecionada, como o fluxo já existente.
+- Histórico patrimonial parcialmente corrigido: compras e vendas reconstruídas em ordem de data/seq, custo médio por carteira/ticker, posições encerradas incluídas nos meses anteriores, corte final respeitado no dia exato. Dividendos e bonificações não alteram quantidade, seguindo a regra atual do banco. Posições sem movimentações mantêm o cadastro como saldo inicial.
+- Ainda em aberto na prioridade alta: câmbio histórico e rendimentos históricos da renda fixa. O histórico usa câmbio atual e principal da renda fixa nos meses passados. Sem metadados ou cotação necessários, o ponto incompleto não é apresentado como patrimônio completo.
+- As tabelas abaixo preservam o levantamento original de 24/10; os quatro primeiros controles foram atendidos conforme esta atualização. Permanecem posição ideal, alteração de senha e os recursos parciais listados adiante.
+
+Esta atualização está local, sem novo commit ou publicação.
+
 Revisão de código em 24/10/2026, na branch fix/levantamento-valora. Nenhuma funcionalidade foi alterada nesta auditoria. Evidências se referem ao código local; não foi feita homologação completa de todas as telas nem nova verificação da configuração remota.
 
 ## Controles expostos sem implementação completa

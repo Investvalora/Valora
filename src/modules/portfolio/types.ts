@@ -63,6 +63,7 @@ export const FIXED_INCOME_TYPE_INDEXER: Record<FixedIncomeType, FixedIncomeIndex
 
 /** Linha de `public.fixed_income_positions`. */
 export interface FixedIncomePosition {
+  remaining_principal?: number | null
   id: string
   user_id: string
   wallet_id?: string
@@ -82,6 +83,22 @@ export interface FixedIncomePosition {
   created_at: string
   updated_at: string
 }
+
+export interface FixedIncomeEvent {
+  id: string
+  seq: number
+  user_id: string
+  wallet_id: string
+  position_id: string
+  type: 'coupon' | 'redemption'
+  event_date: string
+  amount: number
+  principal_redeemed: number
+  balance_after: number
+  created_at: string
+}
+
+export type NewFixedIncomeEvent = Pick<FixedIncomeEvent, 'id' | 'position_id' | 'type' | 'event_date' | 'amount' | 'principal_redeemed' | 'balance_after'>
 
 /** Payload de criação de posição de renda fixa. */
 export interface NewFixedIncomePosition {

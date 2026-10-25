@@ -13,6 +13,9 @@ import {
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAssetDetail } from '../hooks/useAssetDetail'
+import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
+import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
+import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
 import { usePositions } from '../../portfolio/hooks/usePositions'
@@ -130,6 +133,8 @@ interface AssetDetailHeroProps {
   dailyChangePct: number | null
   currency: AssetCurrency
   onBack: () => void
+  onTransaction: () => void
+  onAlert: () => void
 }
 
 function AssetDetailHero({
@@ -141,6 +146,8 @@ function AssetDetailHero({
   dailyChangePct,
   currency,
   onBack,
+  onTransaction,
+  onAlert,
 }: AssetDetailHeroProps) {
   const initial = ticker.charAt(0).toUpperCase()
   const badgeBg = color + '29' // ~16% opacity hex
@@ -203,12 +210,14 @@ function AssetDetailHero({
         <div className="flex gap-2 md:ml-auto">
           <button
             type="button"
+            onClick={onTransaction}
             className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
           >
             + Lançamento do ativo
           </button>
           <button
             type="button"
+            onClick={onAlert}
             className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
           >
             Criar alerta
@@ -1121,6 +1130,8 @@ function VisaoGeral({
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export function AtivoDetailPage() {
+  const [transactionOpen, setTransactionOpen] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
   const { ticker: rawTicker = '' } = useParams<{ ticker: string }>()
   const navigate = useNavigate()
   const ticker = rawTicker.toUpperCase()
@@ -1282,7 +1293,13 @@ export function AtivoDetailPage() {
         dailyChangePct={changeVsAvg}
         currency={currency}
         onBack={() => navigate(-1)}
+        onTransaction={() => setTransactionOpen(true)}
+        onAlert={() => setAlertOpen(true)}
       />
+      <AddTransactionModal isOpen={transactionOpen} onClose={() => setTransactionOpen(false)} ticker={asset.ticker} assetType={asset.type} assetName={asset.name} />
+      <Modal isOpen={alertOpen} onClose={() => setAlertOpen(false)} title="Criar alerta">
+        {alertOpen && <PriceAlertForm key={ticker} initialTicker={asset.ticker} onClose={() => { setAlertOpen(false); setActiveTab('alertas') }} />}
+      </Modal>
 
       {/* ── Sub-tabs ─────────────────────────────────────────────────────── */}
       <InternalSubTabBar activeTab={activeTab} onTabChange={setActiveTab} />

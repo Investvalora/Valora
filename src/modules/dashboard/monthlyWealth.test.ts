@@ -1,6 +1,39 @@
 import { expect, it } from 'vitest'
 import { buildMonthlyWealth } from './monthlyWealth'
 import type { PositionWithAsset } from '../portfolio/types'
+import type { HistoricalTransaction } from './monthlyWealth'
+
+const trade = (overrides: Partial<HistoricalTransaction> = {}): HistoricalTransaction => ({ ticker: 'BR', wallet_id: 'w', transaction_date: '2026-08-01', seq: 1, type: 'buy', quantity: 10, price: 10, currency: 'BRL', ...overrides })
+
+it('reconstrói aportes, venda parcial e encerramento sem aplicar a quantidade atual ao passado', () => {
+  const result = buildMonthlyWealth([], [
+    { ticker: 'BR', date: '2026-08-31', close: 12 },
+    { ticker: 'BR', date: '2026-09-30', close: 18 },
+  ], [], null, '2026-10-25', [
+    trade(), trade({ transaction_date: '2026-09-01', seq: 2, quantity: 10, price: 20 }),
+    trade({ transaction_date: '2026-09-02', seq: 3, type: 'sell', quantity: 5, price: 30 }),
+    trade({ transaction_date: '2026-10-01', seq: 4, type: 'sell', quantity: 15, price: 40 }),
+  ])
+  expect(result).toEqual([
+    { month: '2026-08', totalBRL: 120, investedBRL: 100 },
+    { month: '2026-09', totalBRL: 270, investedBRL: 225 },
+    { month: '2026-10', totalBRL: 0, investedBRL: 0 },
+  ])
+})
+
+it('mantém custo por carteira, respeita o corte exato e ignora proventos na quantidade', () => {
+  const result = buildMonthlyWealth([], [{ ticker: 'BR', date: '2026-09-10', close: 12 }, { ticker: 'BR', date: '2026-09-30', close: 100 }], [], null, '2026-09-15', [
+    trade(), trade({ wallet_id: 'other', price: 20 }),
+    trade({ type: 'sell', quantity: 10, transaction_date: '2026-09-01', seq: 2 }),
+    trade({ type: 'dividend', quantity: 999, seq: 3 }),
+    trade({ type: 'buy', quantity: 999, transaction_date: '2026-09-20', seq: 4 }),
+  ])
+  expect(result[result.length - 1]).toEqual({ month: '2026-09', totalBRL: 120, investedBRL: 200 })
+})
+
+it('não assume moeda BRL para ativo vendido sem metadados', () => {
+  expect(buildMonthlyWealth([], [{ ticker: 'BR', date: '2026-08-31', close: 12 }], [], 5, '2026-08-31', [trade({ currency: null })])).toEqual([])
+})
 
 const positions = [
   { ticker: 'BR', quantity: 10, average_price: 10, acquisition_date: '2026-09-01', asset: { currency: 'BRL' } },

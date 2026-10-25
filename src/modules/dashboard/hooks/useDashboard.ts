@@ -2,6 +2,11 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useWalletTotals } from '../../portfolio/hooks/useWalletTotals'
 import { buildMonthlyWealth } from '../monthlyWealth'
+import { transactionsService } from '../../portfolio/services/transactionsService'
+import { wealthService } from '../../wealth/services/wealthService'
+import { historicalRatesService } from '../services/historicalRatesService'
+import { fixedIncomePrincipalAt } from '../historicalValuation'
+import { useFixedIncomeHistory } from '../../portfolio/hooks/useFixedIncomeHistory'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
@@ -72,9 +77,33 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
   const current = useWalletTotals()
   const wealth = useWealthHistory('Tudo', walletId, chartFilters?.from)
+  const transactionsQuery = useQuery({
+    queryKey: ['portfolio', 'transactions-all', userId, walletId],
+    queryFn: () => transactionsService.listAll(userId!, walletId),
+    enabled: Boolean(userId) && walletId !== '',
+    staleTime: STALE_TIME_MS,
+  })
+  const historicalAssets = useQuery({
+    queryKey: ['dashboard', 'historical-assets', [...new Set((transactionsQuery.data ?? []).map((row) => row.ticker))].sort()],
+    queryFn: async () => Promise.all([...new Set((transactionsQuery.data ?? []).map((row) => row.ticker))].map((ticker) => positionService.findAssetByTicker(ticker))),
+    enabled: transactionsQuery.isSuccess,
+    staleTime: STALE_TIME_MS,
+  })
+  const historicalPrices = useQuery({
+    queryKey: ['dashboard', 'historical-prices', userId, walletId, transactionsQuery.dataUpdatedAt],
+    queryFn: () => {
+      const trades = (transactionsQuery.data ?? []).filter((row) => row.type === 'buy' || row.type === 'sell')
+      const first = trades.map((row) => row.transaction_date).sort()[0]
+      return first ? wealthService.listPriceHistory([...new Set(trades.map((row) => row.ticker))], first) : Promise.resolve([])
+    },
+    enabled: transactionsQuery.isSuccess,
+    staleTime: STALE_TIME_MS,
+  })
 
   // ── Renda fixa ───────────────────────────────────────────────────────────
   const fi = useFixedIncomePositions(walletId)
+  const fiHistory = useFixedIncomeHistory(walletId)
+  const historicalFixed = useMemo(() => (fiHistory.data?.positions ?? []).map((position) => ({ ...position, events: (fiHistory.data?.events ?? []).filter((event) => event.position_id === position.id) })), [fiHistory.data])
   const fiPrincipalBRL = useMemo(
     () => fi.rows.reduce((sum, r) => sum + r.principal, 0),
     [fi.rows],
@@ -88,6 +117,22 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     staleTime: STALE_TIME_MS,
   })
   const positions = useMemo(() => positionsQuery.data ?? [], [positionsQuery.data])
+  const historyFrom = [...positions.map((row) => row.acquisition_date), ...(transactionsQuery.data ?? []).map((row) => row.transaction_date), ...historicalFixed.map((row) => row.application_date)].sort()[0]
+  const historyTo = chartFilters?.to && chartFilters.to < new Date().toISOString().slice(0, 10) ? chartFilters.to : new Date().toISOString().slice(0, 10)
+  const rateFrom = historyFrom ? shiftIsoDate(-10, new Date(`${historyFrom}T12:00:00Z`)) : historyTo
+  const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD')
+  const historicalRates = useQuery({
+    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0],
+    queryFn: async () => {
+      const [usd, macro] = await Promise.all([
+        hasHistoricalUsd ? historicalRatesService.usd(rateFrom, historyTo) : Promise.resolve([]),
+        historicalFixed.length ? historicalRatesService.macro(rateFrom, historyTo) : Promise.resolve([]),
+      ])
+      return { usd, macro }
+    },
+    enabled: Boolean(userId) && Boolean(historyFrom) && rateFrom <= historyTo && positionsQuery.isSuccess && transactionsQuery.isSuccess && historicalAssets.isSuccess && fiHistory.isSuccess,
+    staleTime: 60 * 60 * 1000,
+  })
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
   const tickers = useMemo(() => positions.map((p) => p.ticker).sort(), [positions])
@@ -187,9 +232,11 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   const monthlySeries = useMemo(() => {
     const type = chartFilters?.type ?? 'all'
     const chartPositions = positions.filter((position) => type === 'all' || position.asset?.type === type)
-    const chartFixed = type === 'all' || type === 'fixed_income' ? fi.rows : []
-    const prices = (wealth.priceRows ?? []).filter((price) => !chartFilters?.to || price.date <= chartFilters.to)
-    const monthly = buildMonthlyWealth(chartPositions, prices, chartFixed, current.usdRate, chartFilters?.to)
+    const chartFixed = type === 'all' || type === 'fixed_income' ? historicalFixed : []
+    const assets = new Map((historicalAssets.data ?? []).filter((asset) => asset !== null).map((asset) => [asset.ticker, asset]))
+    const trades = (transactionsQuery.data ?? []).filter((trade) => type === 'all' || assets.get(trade.ticker)?.type === type).map((trade) => ({ ...trade, currency: assets.get(trade.ticker)?.currency ?? null }))
+    const prices = [...(wealth.priceRows ?? []), ...(historicalPrices.data ?? [])].filter((price) => !chartFilters?.to || price.date <= chartFilters.to)
+    const monthly = buildMonthlyWealth(chartPositions, prices, chartFixed, current.usdRate, historyTo, trades, historicalRates.data ?? { usd: [], macro: [] })
     // O mês em andamento acompanha o mesmo patrimônio atualizado do resumo.
     // O histórico pode terminar antes da última cotação ou conter dias parciais.
     const currentMonth = new Date().toISOString().slice(0, 7)
@@ -200,9 +247,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     const rateMissing = chartPositions.some((position) => position.asset?.currency === 'USD') && current.usdRate === null
     const filteredTotal = current.isLoading || current.isError || chartRows.some((row) => row.marketValueBRL === null) || rateMissing
       ? null
-      : chartRows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0) + chartFixed.reduce((sum, row) => sum + (row.currentValue ?? row.principal), 0)
+      : chartRows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0) + fi.rows.filter(() => type === 'all' || type === 'fixed_income').reduce((sum, row) => sum + (row.currentValue ?? row.principal), 0)
     const chartTotal = type === 'all' ? totalPatrimonioBRL : filteredTotal
-    const chartInvested = type === 'all' ? valorInvestidoBRL : rateMissing ? null : chartPositions.reduce((sum, position) => sum + Number(position.quantity) * Number(position.average_price) * (position.asset?.currency === 'USD' ? current.usdRate! : 1), 0) + chartFixed.reduce((sum, row) => sum + row.principal, 0)
+    const chartInvested = type === 'all' ? valorInvestidoBRL : rateMissing ? null : chartPositions.reduce((sum, position) => sum + Number(position.quantity) * Number(position.average_price) * (position.asset?.currency === 'USD' ? current.usdRate! : 1), 0) + chartFixed.reduce((sum, row) => sum + fixedIncomePrincipalAt(row, today), 0)
     if (includeCurrent && chartTotal !== null && chartTotal > 0) {
       const currentPoint = monthly.find((point) => point.month === currentMonth)
       if (currentPoint) {
@@ -218,7 +265,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
         ? Math.min(point.investedBRL, point.totalBRL)
         : point.investedBRL,
     }))
-  }, [positions, wealth.priceRows, fi.rows, current.rows, current.usdRate, current.isLoading, current.isError, valorInvestidoBRL, totalPatrimonioBRL, chartFilters?.from, chartFilters?.to, chartFilters?.type])
+  }, [positions, wealth.priceRows, transactionsQuery.data, historicalAssets.data, historicalPrices.data, historicalRates.data, historyTo, historicalFixed, fi.rows, current.rows, current.usdRate, current.isLoading, current.isError, valorInvestidoBRL, totalPatrimonioBRL, chartFilters?.from, chartFilters?.to, chartFilters?.type])
 
   // ── Composição para pizza ─────────────────────────────────────────────────
   // Usa as mesmas posições e cotações do patrimônio atual.
@@ -230,6 +277,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   }, [current.positions, current.rows, walletId])
   // ── Estado ────────────────────────────────────────────────────────────────
   const isLoading =
+    fiHistory.isLoading ||
+    historicalRates.isLoading ||
+    transactionsQuery.isLoading || historicalAssets.isLoading || historicalPrices.isLoading ||
     current.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
@@ -237,6 +287,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     fi.isLoading
 
   const isError =
+    fiHistory.isError ||
+    historicalRates.isError ||
+    transactionsQuery.isError || historicalAssets.isError || historicalPrices.isError ||
     current.isError ||
     wealth.isError ||
     positionsQuery.isError ||
@@ -244,6 +297,11 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     fi.isError
 
   const refetch = () => {
+    void fiHistory.refetch()
+    void historicalRates.refetch()
+    void transactionsQuery.refetch()
+    void historicalAssets.refetch()
+    void historicalPrices.refetch()
     current.refetch()
     wealth.refetch()
     void positionsQuery.refetch()

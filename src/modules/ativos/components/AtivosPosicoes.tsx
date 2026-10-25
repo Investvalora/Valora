@@ -5,7 +5,10 @@
  * por classe de ativo com todas as colunas do Figma.
  */
 import { useMemo, useRef, useState } from 'react'
-import { Download, Filter, Columns3 } from 'lucide-react'
+import { Download, Columns3 } from 'lucide-react'
+import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
+import { AssetFilterButton } from './AssetFiltersPanel'
+import { useAssetFilters, useFilteredPositions } from '../hooks/useAssetFilters'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAssetColumns } from '../hooks/useAssetColumns'
 import { AssetColumnEditor } from './AssetColumnEditor'
@@ -37,7 +40,10 @@ export function AtivosPosicoes() {
 
   // ── Dados ────────────────────────────────────────────────────────────────
 
-  const { data: positions = [], isLoading: posLoading } = usePositions(walletId)
+  const { data: allPositions = [], isLoading: posLoading } = usePositions(walletId)
+  const positions = useFilteredPositions(allPositions)
+  const { query, types } = useAssetFilters()
+  const hasFilters = Boolean(query || types.length)
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
 
   const { data: quotes = [], isLoading: quotesLoading } = useLatestQuotes(tickers)
@@ -199,20 +205,12 @@ export function AtivosPosicoes() {
             <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
               <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
             </button>
+            <AssetFilterButton />
             <button
               type="button"
-              className="
-                flex items-center gap-1.5 rounded-full
-                border border-white/[0.1] bg-transparent
-                px-3.5 py-1.5 text-[12px] font-medium text-white/60
-                transition-colors hover:bg-white/[0.06] hover:text-white
-              "
-            >
-              <Filter className="h-3 w-3" strokeWidth={1.8} aria-hidden="true" />
-              Filtrar
-            </button>
-            <button
-              type="button"
+              onClick={() => downloadPositionsCsv(baseRows)}
+              disabled={posLoading || quotesLoading || baseRows.length === 0}
+              title="Exportar posições filtradas com as colunas padrão do CSV"
               className="
                 flex items-center gap-1.5 rounded-full
                 border border-white/[0.1] bg-transparent
@@ -233,6 +231,7 @@ export function AtivosPosicoes() {
             totalBRL={totalBRL}
             isLoading={isLoading}
             visibleColumns={columnSettings.columns}
+            emptyMessage={hasFilters ? 'Nenhum ativo corresponde aos filtros selecionados.' : undefined}
           />
         </div>
 
@@ -244,7 +243,7 @@ export function AtivosPosicoes() {
             </div>
           ) : groups.length === 0 ? (
             <div className="flex items-center justify-center py-10">
-              <p className="text-[13px] text-white/40">Nenhuma posição cadastrada.</p>
+              <p className="text-[13px] text-white/40">{hasFilters ? 'Nenhum ativo corresponde aos filtros selecionados.' : 'Nenhuma posição cadastrada.'}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2 p-3">

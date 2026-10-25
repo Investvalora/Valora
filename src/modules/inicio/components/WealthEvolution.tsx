@@ -34,6 +34,7 @@ export function WealthEvolution() {
         : dashboard.isLoading ? <p role="status" className="py-8 text-sm text-white/50">Carregando evolução…</p>
         : dashboard.isError ? <button type="button" onClick={dashboard.refetch} className="py-8 text-sm text-red-300">Não foi possível carregar a evolução. Tentar novamente</button>
         : <div className="overflow-x-auto"><div style={{ minWidth: dashboard.monthlySeries.length > 12 ? dashboard.monthlySeries.length * 64 + 66 : undefined }}><EvolucaoChart data={dashboard.monthlySeries} /></div></div>}
+      <p className="mt-3 text-xs text-white/40">Histórico em reais pelo câmbio de cada mês. Renda fixa: estimativa bruta dos títulos cadastrados, considerando cupons e resgates registrados, sem impostos nem marcação a mercado. Meses sem preços ou índices suficientes são omitidos.</p>
     </div>
   )
 }

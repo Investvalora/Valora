@@ -7,8 +7,10 @@
 import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
+import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { usePositions } from '../../portfolio/hooks/usePositions'
+import { matchesAssetFilters, useAssetFilters, useFilteredPositions } from '../hooks/useAssetFilters'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
@@ -393,7 +395,9 @@ export function AtivosLancamentos() {
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ─────────────────────────────────────────────────────────────────
-  const { data: positions = [] } = usePositions(walletId)
+  const { data: allPositions = [] } = usePositions(walletId)
+  const positions = useFilteredPositions(allPositions)
+  const { query, types } = useAssetFilters()
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
   const { data: quotes = [] } = useLatestQuotes(tickers)
   const { data: usdRateData } = useUSDRate()
@@ -465,7 +469,7 @@ export function AtivosLancamentos() {
       string,
       { assetType: AssetType | null; assetName: string | null; currency: string; quantity: number }
     >()
-    for (const pos of positions) {
+    for (const pos of allPositions) {
       map.set(pos.ticker, {
         assetType: pos.asset?.type ?? null,
         assetName: pos.asset?.name ?? null,
@@ -474,7 +478,7 @@ export function AtivosLancamentos() {
       })
     }
     return map
-  }, [positions])
+  }, [allPositions])
 
   const assetTypeMap = useMemo(() => {
     const m = new Map<string, AssetType | null>()
@@ -490,9 +494,13 @@ export function AtivosLancamentos() {
   }, [period])
 
   const filteredByPeriod = useMemo(() => {
-    if (!since) return transactions
-    return transactions.filter((t) => t.transaction_date >= since)
-  }, [transactions, since])
+    return transactions.filter((transaction) => {
+      const asset = positionMap.get(transaction.ticker)
+      return (!since || transaction.transaction_date >= since) && matchesAssetFilters({
+        ticker: transaction.ticker, name: asset?.assetName, type: asset?.assetType,
+      }, { query, types })
+    })
+  }, [transactions, since, positionMap, query, types])
 
   const chartData = useMemo(
     () => buildMonthlyAportes(filteredByPeriod, assetTypeMap, assetTypeFilter),
@@ -721,6 +729,7 @@ export function AtivosLancamentos() {
       </PanelCard>
 
       {/* Modal global de adicionar lançamento */}
+      <FixedIncomeHistoryPanel since={since} />
       <AddTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

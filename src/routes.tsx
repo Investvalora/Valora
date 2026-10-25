@@ -21,6 +21,7 @@ import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
 import { WalletsPage } from './modules/portfolio/components/WalletsPage'
+import { PublicInfoPage } from './modules/public/components/PublicInfoPage'
 
 // ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
 const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
@@ -61,6 +62,9 @@ export function AppRoutes() {
   return (
     <Routes>
       {/* ── Rotas públicas ── */}
+      <Route path="/sobre" element={<PublicInfoPage page="about" />} />
+      <Route path="/privacidade" element={<PublicInfoPage page="privacy" />} />
+      <Route path="/termos" element={<PublicInfoPage page="terms" />} />
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login"           element={<LoginForm />} />
         <Route path="/cadastro"        element={<SignupForm />} />

@@ -40,7 +40,7 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
   const tooltipX = Math.min(totalW - 228, Math.max(PAD_L, PAD_L + activeIndex * colW + colW / 2 - 112))
 
   return (
-    <svg viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} className="block w-full" aria-label="Gráfico de evolução do patrimônio" role="group" onPointerLeave={() => setActiveMonth(null)}>
+    <svg viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} className="block w-full min-w-[960px] md:min-w-0" aria-label="Gráfico de evolução do patrimônio" role="group" onPointerLeave={() => setActiveMonth(null)}>
       {Array.from({ length: gridCount + 1 }, (_, index) => index).map((index) => {
         const value = index * gridStep
         const y = toY(value)

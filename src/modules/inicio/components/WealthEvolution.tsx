@@ -37,7 +37,8 @@ export function WealthEvolution() {
       {!valid ? <p role="alert" className="py-8 text-sm text-red-300">Informe as duas datas, com a data inicial anterior ou igual à final.</p>
         : dashboard.isLoading ? <p role="status" className="py-8 text-sm text-white/50">Carregando evolução…</p>
         : dashboard.isError ? <button type="button" onClick={dashboard.refetch} className="py-8 text-sm text-red-300">Não foi possível carregar a evolução. Tentar novamente</button>
-        : <div className="overflow-x-auto"><div style={{ minWidth: dashboard.monthlySeries.length > 12 ? dashboard.monthlySeries.length * 64 + 66 : undefined }}><EvolucaoChart data={dashboard.monthlySeries} /></div></div>}
+        : <div className="overflow-x-auto" role="region" aria-label="Evolução mensal com rolagem horizontal" tabIndex={0}><div style={{ minWidth: dashboard.monthlySeries.length > 12 ? dashboard.monthlySeries.length * 64 + 66 : undefined }}><EvolucaoChart data={dashboard.monthlySeries} /></div></div>}
+      {valid && !dashboard.isLoading && !dashboard.isError && dashboard.monthlySeries.length > 0 && <p className="mt-2 text-xs text-white/50 md:hidden">Deslize o gráfico para ver os meses. Toque em uma barra para ver os valores.</p>}
       <p className="mt-3 text-xs text-white/40">Histórico em reais pelo câmbio de cada mês. Renda fixa: estimativa bruta dos títulos cadastrados, considerando cupons e resgates registrados, sem impostos nem marcação a mercado. Meses sem preços ou índices suficientes são omitidos.</p>
     </div>
   )

@@ -148,6 +148,18 @@ describe('AddTransactionModal — ticker pré-preenchido', () => {
 // ─── Renda Fixa ──────────────────────────────────────────────────────────────
 
 describe('AddTransactionModal — Renda Fixa', () => {
+  it.each([['rdb_cdi', 'cdi'], ['rdb_pre', 'pre']])('cadastra %s com o indexador correto e sem vencimento', async (type, indexer) => {
+    renderModal()
+    selectCategory('fixed_income')
+    change('rf-emissor', 'Banco teste')
+    change('rf-tipo', type)
+    change('rf-taxa', '115')
+    change('rf-valor', '1000')
+    change('rf-date', '2026-01-15')
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalled())
+    expect(holders.addFI.mutate.mock.calls[0][0]).toMatchObject({ type, indexer, principal: 1000, maturity_date: null })
+  })
   it('submete o payload com indexador derivado do tipo do título', async () => {
     const { onClose } = renderModal()
     selectCategory('fixed_income')

@@ -16,6 +16,8 @@ export type FixedIncomeType =
   | 'tesouro_pre'
   | 'cdb_cdi'
   | 'cdb_pre'
+  | 'rdb_cdi'
+  | 'rdb_pre'
   | 'lci_cdi'
   | 'lca_cdi'
   | 'lci_pre'
@@ -34,6 +36,8 @@ export const FIXED_INCOME_TYPE_LABEL: Record<FixedIncomeType, string> = {
   tesouro_pre:   'Tesouro Prefixado',
   cdb_cdi:       'CDB % CDI',
   cdb_pre:       'CDB Prefixado',
+  rdb_cdi:       'RDB % CDI',
+  rdb_pre:       'RDB Prefixado',
   lci_cdi:       'LCI % CDI',
   lca_cdi:       'LCA % CDI',
   lci_pre:       'LCI Prefixado',
@@ -55,6 +59,8 @@ export const FIXED_INCOME_TYPE_INDEXER: Record<FixedIncomeType, FixedIncomeIndex
   tesouro_pre:   'pre',
   cdb_cdi:       'cdi',
   cdb_pre:       'pre',
+  rdb_cdi:       'cdi',
+  rdb_pre:       'pre',
   lci_cdi:       'cdi',
   lca_cdi:       'cdi',
   lci_pre:       'pre',

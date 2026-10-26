@@ -31,9 +31,9 @@ async function vaultSecret(name: string): Promise<string> {
 }
 
 /** SELECT em assets filtrando por providers globais. */
-async function listGlobalAssets(): Promise<{ ticker: string; provider_symbol: string | null; quote_provider: string }[]> {
+async function listGlobalAssets(): Promise<{ ticker: string; provider_symbol: string | null; quote_provider: string; currency: string }[]> {
   const url = `${SUPABASE_URL}/rest/v1/assets`
-    + `?select=ticker,provider_symbol,quote_provider`
+    + `?select=ticker,provider_symbol,quote_provider,currency`
     + `&active=eq.true`
     + `&quote_provider=in.(finnhub,coingecko,awesomeapi)`;
   const res = await fetch(url, {
@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
       const ids = cgAssets.map((a) => a.provider_symbol ?? a.ticker).join(',');
       try {
         const res = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,brl`,
           {
             headers: cgKey ? { 'x-cg-demo-api-key': cgKey } : {},
             signal: AbortSignal.timeout(8_000),
@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
         const upserts: Record<string, unknown>[] = [];
         for (const asset of cgAssets) {
           const sym = asset.provider_symbol ?? asset.ticker;
-          const price = json[sym]?.usd;
+          const price = json[sym]?.[asset.currency.toLowerCase()];
           if (!price) { failed++; errors.push(`${asset.ticker}: coingecko sem preço`); continue; }
           upserts.push({
             ticker: asset.ticker, date: today,

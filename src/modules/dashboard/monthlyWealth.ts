@@ -70,11 +70,19 @@ export function buildMonthlyWealth(
     let invested = 0
     let complete = true
     let hasPosition = false
+    // Before a BRL pair's first sync, reuse its USD market history at that
+    // month's PTAX. Acquisition costs stay in the original BRL currency.
+    const closeFor = (ticker: string) => {
+      const native = latest.get(ticker)
+      if (native !== undefined) return native
+      const usd = ticker.endsWith('-BRL') ? latest.get(ticker.slice(0, -4)) : undefined
+      return usd !== undefined && monthlyUsd !== null ? usd * monthlyUsd : undefined
+    }
     for (const state of ledger.values()) {
       if (state.quantity <= 0) continue
       hasPosition = true
       const rate = state.currency === 'USD' ? monthlyUsd : state.currency === 'BRL' ? 1 : null
-      const close = latest.get(state.ticker)
+      const close = closeFor(state.ticker)
       if (rate === null || close === undefined) { complete = false; continue }
       total += state.quantity * close * rate
       invested += state.cost * rate
@@ -84,7 +92,7 @@ export function buildMonthlyWealth(
       if (position.acquisition_date > cutoff) continue
       hasPosition = true
       const rate = position.asset?.currency === 'USD' ? monthlyUsd : 1
-      const close = latest.get(position.ticker)
+      const close = closeFor(position.ticker)
       if (rate === null || close === undefined) { complete = false; continue }
       total += Number(position.quantity) * close * rate
       invested += Number(position.quantity) * Number(position.average_price) * rate

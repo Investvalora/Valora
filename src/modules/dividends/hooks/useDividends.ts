@@ -6,6 +6,7 @@ import { useAllTransactions } from '../../portfolio/hooks/useTransactions'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import { dividendService } from '../services/dividendService'
+import { incomeHistoryService, mergeIncomeHistory } from '../services/incomeHistoryService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import type { DividendPeriod, DividendRaw, DividendRow } from '../types'
@@ -159,12 +160,18 @@ export interface UseDividendsResult {
  *
  * O enriquecimento (quantity + total_value) é client-side em `useMemo`.
  */
-export function useDividends(period: DividendPeriod, status: 'paid' | 'announced' = 'paid'): UseDividendsResult {
+export function useDividends(period: DividendPeriod, status: 'paid' | 'announced' = 'paid', walletOverride?: string): UseDividendsResult {
   const { user, loading: isSessionLoading } = useAuth()
   const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
+  const walletId = walletOverride ?? selectedWallet?.id ?? ''
   const userId = user?.id
-  const transactionsQuery = useAllTransactions()
+  const transactionsQuery = useAllTransactions(walletId)
+  const recordedIncome = useQuery({
+    queryKey: ['dividends', 'recorded', userId, walletId],
+    queryFn: () => incomeHistoryService.list(userId!, walletId),
+    enabled: Boolean(userId && walletId) && status === 'paid',
+    staleTime: STALE_TIME_MS,
+  })
 
   // --- Query 1: posições ---
   const positionsQuery = useQuery<PositionWithAsset[]>({
@@ -180,8 +187,8 @@ export function useDividends(period: DividendPeriod, status: 'paid' | 'announced
   )
 
   const tickers = useMemo(
-    () => positions.map((p) => p.ticker).sort(),
-    [positions],
+    () => [...new Set([...positions.map((p) => p.ticker), ...(recordedIncome.data?.entries.map(row => row.ticker) ?? [])])].sort(),
+    [positions, recordedIncome.data],
   )
 
   const firstPurchaseDate = useMemo(() => {
@@ -216,9 +223,11 @@ export function useDividends(period: DividendPeriod, status: 'paid' | 'announced
 
   // --- Enriquecimento client-side ---
   const rows = useMemo<DividendRow[]>(() => {
-    if (!dividendsQuery.data || positions.length === 0) return []
-    return enrichRows(dividendsQuery.data, positions, transactionsQuery.data ?? [], status === 'announced')
-  }, [dividendsQuery.data, positions, transactionsQuery.data, status])
+    const estimates = enrichRows(dividendsQuery.data ?? [], positions, transactionsQuery.data ?? [], status === 'announced')
+    return status === 'paid' && recordedIncome.data
+      ? mergeIncomeHistory(estimates, recordedIncome.data, periodSince)
+      : estimates
+  }, [dividendsQuery.data, positions, transactionsQuery.data, status, recordedIncome.data, periodSince])
 
   const availableTypes = useMemo<string[]>(() => {
     const types = new Set<string>()
@@ -227,16 +236,17 @@ export function useDividends(period: DividendPeriod, status: 'paid' | 'announced
   }, [rows])
 
   const isLoading =
-    isSessionLoading || positionsQuery.isLoading || transactionsQuery.isLoading || dividendsQuery.isLoading
+    isSessionLoading || positionsQuery.isLoading || transactionsQuery.isLoading || dividendsQuery.isLoading || (status === 'paid' && recordedIncome.isLoading)
 
-  const isError = positionsQuery.isError || transactionsQuery.isError || dividendsQuery.isError
+  const isError = positionsQuery.isError || transactionsQuery.isError || dividendsQuery.isError || (status === 'paid' && recordedIncome.isError)
 
-  const error = (positionsQuery.error ?? transactionsQuery.error ?? dividendsQuery.error) as Error | null
+  const error = (positionsQuery.error ?? transactionsQuery.error ?? dividendsQuery.error ?? recordedIncome.error) as Error | null
 
   const refetch = () => {
     void positionsQuery.refetch()
     void transactionsQuery.refetch()
     void dividendsQuery.refetch()
+    if (status === 'paid') void recordedIncome.refetch()
   }
 
   return {

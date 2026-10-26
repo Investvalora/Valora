@@ -10,7 +10,7 @@ import { useFixedIncomeHistory } from '../../portfolio/hooks/useFixedIncomeHisto
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
-import { dividendService } from '../../dividends/services/dividendService'
+import { useDividends } from '../../dividends/hooks/useDividends'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
@@ -94,7 +94,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     queryFn: () => {
       const trades = (transactionsQuery.data ?? []).filter((row) => row.type === 'buy' || row.type === 'sell')
       const first = trades.map((row) => row.transaction_date).sort()[0]
-      return first ? wealthService.listPriceHistory([...new Set(trades.map((row) => row.ticker))], first) : Promise.resolve([])
+      const tickers = [...new Set(trades.flatMap(row => row.ticker.endsWith('-BRL')
+        ? [row.ticker, row.ticker.slice(0, -4)] : [row.ticker]))]
+      return first ? wealthService.listPriceHistory(tickers, first) : Promise.resolve([])
     },
     enabled: transactionsQuery.isSuccess,
     staleTime: STALE_TIME_MS,
@@ -120,7 +122,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   const historyFrom = [...positions.map((row) => row.acquisition_date), ...(transactionsQuery.data ?? []).map((row) => row.transaction_date), ...historicalFixed.map((row) => row.application_date)].sort()[0]
   const historyTo = chartFilters?.to && chartFilters.to < new Date().toISOString().slice(0, 10) ? chartFilters.to : new Date().toISOString().slice(0, 10)
   const rateFrom = historyFrom ? shiftIsoDate(-10, new Date(`${historyFrom}T12:00:00Z`)) : historyTo
-  const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD')
+  const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD' || row.asset?.type === 'crypto') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD' || asset?.type === 'crypto')
   const historicalRates = useQuery({
     queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0],
     queryFn: async () => {
@@ -135,19 +137,12 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   })
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
-  const tickers = useMemo(() => positions.map((p) => p.ticker).sort(), [positions])
 
   // Sempre busca os últimos 12 meses completos — independente de earliestDate,
   // que pode ser recente (set/26), enquanto dividendos podem ter sido pagos
   // em dez/25 para ativos que o usuário tinha antes de cadastrar no Valora.
-  const sinceProventos = useMemo(() => shiftIsoDate(-365), [])
 
-  const dividendsQuery = useQuery({
-    queryKey: ['dashboard', 'dividends-12m', userId, walletId, tickers],
-    queryFn: () => dividendService.listDividendsByTickers(tickers, sinceProventos),
-    enabled: Boolean(userId) && tickers.length > 0,
-    staleTime: STALE_TIME_MS,
-  })
+  const dividendsQuery = useDividends('1A', 'paid', walletId)
 
   // ── Patrimônio atual ──────────────────────────────────────────────────────
   // Mesma consulta e cálculo do seletor. Histórico fica restrito ao gráfico.
@@ -182,14 +177,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
   const proventos12mBRL = useMemo(() => {
-    const rawRows = dividendsQuery.data ?? []
-    const qtyMap = new Map(positions.map((p) => [p.ticker, Number(p.quantity)]))
-    const total = rawRows.reduce((acc, r) => {
-      const qty = qtyMap.get(r.ticker) ?? 0
-      return acc + Number(r.value_per_share) * qty
-    }, 0)
+    const total = dividendsQuery.rows.reduce((acc, row) => acc + row.total_value, 0)
     return total > 0 ? total : null
-  }, [dividendsQuery.data, positions])
+  }, [dividendsQuery.rows])
 
   // ── Lucro total = ganho de capital + proventos ────────────────────────────
   const lucroTotalBRL = useMemo(() => {

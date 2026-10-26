@@ -171,12 +171,12 @@ async function fetchProviderQuote(asset: AssetRow): Promise<AssetQuote> {
     const key = Deno.env.get('COINGECKO_API_KEY') ?? await vaultSecret('coingecko_key');
     const headers = key ? { 'x-cg-demo-api-key': key } : undefined;
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(symbol)}&vs_currencies=usd`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(symbol)}&vs_currencies=${asset.currency.toLowerCase()}`,
       { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
     );
     if (!response.ok) return { price: null, source: 'coingecko' };
-    const data = await response.json() as Record<string, { usd?: number }>;
-    const price = data[symbol]?.usd;
+    const data = await response.json() as Record<string, Record<string, number>>;
+    const price = data[symbol]?.[asset.currency.toLowerCase()];
     return { price: typeof price === 'number' && price > 0 ? price : null, source: 'coingecko' };
   }
 

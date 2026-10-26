@@ -201,7 +201,7 @@ export function ProventosPage() {
   }
 
   // ── Estado: sem posições ─────────────────────────────────────────────────
-  if (!hasPositions) {
+  if (!hasPositions && rows.length === 0) {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold text-white mb-6">Proventos</h1>

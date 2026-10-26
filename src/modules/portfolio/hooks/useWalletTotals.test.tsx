@@ -16,7 +16,9 @@ vi.mock('../services/positionService', () => ({
   normalizeTickers: (tickers: string[]) => [...new Set(tickers)].sort(),
   positionService: { listAllPositions: vi.fn(), listPositions: vi.fn(), listLatestQuotes: vi.fn() },
 }))
-vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPositions: vi.fn() } }))
+vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPositions: vi.fn(), listHistory: vi.fn() } }))
+vi.mock('../services/transactionsService', () => ({ transactionsService: { listAll: async () => [] } }))
+vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: async () => [], macro: async () => [] } }))
 vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: async () => [] } }))
 vi.mock('../../wealth/hooks/useWealthHistory', () => ({ useWealthHistory: () => ({
   positions: [{ ticker: 'BR', quantity: 1, currency: 'BRL', type: 'stock_br' }],
@@ -44,6 +46,7 @@ beforeEach(() => {
     { ticker: 'BR', close, date: '2026-10-23' }, { ticker: 'USD', close: 10, date: '2026-10-23' },
   ] as Awaited<ReturnType<typeof positionService.listLatestQuotes>>)
   vi.mocked(fixedIncomeService.listPositions).mockResolvedValue(fixed)
+  vi.mocked(fixedIncomeService.listHistory).mockResolvedValue({ positions: fixed.map((position) => ({ ...position, indexer: 'pre', rate: 0, active: true })), events: [] })
 })
 
 function show(filters?: WealthChartFilters) {
@@ -81,7 +84,7 @@ it('mantém o ganho no topo da barra atual mesmo com histórico parcial e preser
   expect(point.totalBRL).toBeCloseTo(12524.60)
   expect(point.investedBRL).toBe(10900)
   expect(point.totalBRL! - point.investedBRL!).toBeCloseTo(1624.60)
-  expect(result.current.dashboard.monthlySeries.find((point) => point.month === '2000-01')?.totalBRL).toBe(11900)
+  await waitFor(() => expect(result.current.dashboard.monthlySeries.find((point) => point.month === '2000-01')?.totalBRL).toBe(11900))
 
   close = 11575.73
   await act(async () => { await client.invalidateQueries({ queryKey: ['portfolio', 'quotes'] }) })

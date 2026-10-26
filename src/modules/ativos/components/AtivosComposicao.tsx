@@ -1,3 +1,5 @@
+import { AssetValuationNotice } from './AssetValuationNotice'
+import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
  * AtivosComposicao — sub-rota /ativos/composicao
  *
@@ -6,10 +8,6 @@
  */
 import { useMemo, useRef, useState } from 'react'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
-import { useUSDRate } from '../../../shared/hooks/useUSDRate'
-import { derivePositionRows } from '../../portfolio/positionRows'
 import { deriveComposition, assetClassColor, isInternationalClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
@@ -18,7 +16,7 @@ import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { buildAssetSlices, type CompositionSlice } from '../utils/compositionSlices'
-import { useAssetFilters, useFilteredPositions } from '../hooks/useAssetFilters'
+import { useAssetFilters } from '../hooks/useAssetFilters'
 
 // ── Donut SVG com label central ────────────────────────────────────────────
 const CX = 100
@@ -245,13 +243,8 @@ export function AtivosComposicao() {
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ─────────────────────────────────────────────────────────────────
-  const { data: allPositions = [], isLoading: posLoading } = usePositions(walletId)
-  const positions = useFilteredPositions(allPositions)
+  const { positions, tickers, compositionRows, totalBRL, patrimonioBRL, valorInvestidoBRL, assetCount, isLoading, isError, complete } = useAtivosValuation(walletId)
   const { query, types } = useAssetFilters()
-  const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
-  const { data: quotes = [], isLoading: quotesLoading } = useLatestQuotes(tickers)
-  const { data: usdRateData } = useUSDRate()
-  const usdRate = usdRateData?.rate ?? 5
 
   const quantityByTicker = useMemo(() => {
     const m = new Map<string, number>()
@@ -260,33 +253,13 @@ export function AtivosComposicao() {
   }, [positions])
 
   const dividendTotalsByTicker = useDividendTotals(tickers, quantityByTicker)
+  const composition = useMemo(() => deriveComposition(compositionRows, totalBRL), [compositionRows, totalBRL])
 
   // ── Derivação ─────────────────────────────────────────────────────────────
-  const { rows, totalBRL } = useMemo(
-    () => derivePositionRows({ positions, quotes, usdRate }),
-    [positions, quotes, usdRate],
-  )
-
-  const composition = useMemo(() => deriveComposition(rows, totalBRL), [rows, totalBRL])
-
-  // ── KPI values ────────────────────────────────────────────────────────────
-  const valorInvestidoBRL = useMemo(() => {
-    if (positions.length === 0) return null
-    let total = 0
-    for (const p of positions) {
-      const qty = Number(p.quantity)
-      const avgPrice = Number(p.average_price)
-      const currency = p.asset?.currency ?? 'BRL'
-      const rate = currency === 'USD' ? usdRate : 1
-      total += qty * avgPrice * rate
-    }
-    return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, usdRate])
-
   const ganhoCapitalBRL = useMemo(() => {
-    if (totalBRL <= 0 || valorInvestidoBRL === null) return null
-    return totalBRL - valorInvestidoBRL
-  }, [totalBRL, valorInvestidoBRL])
+    if (patrimonioBRL === null || valorInvestidoBRL === null) return null
+    return patrimonioBRL - valorInvestidoBRL
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
@@ -295,9 +268,9 @@ export function AtivosComposicao() {
   }, [dividendTotalsByTicker])
 
   const rentabilidadePct = useMemo(() => {
-    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || totalBRL <= 0) return null
-    return ((totalBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalBRL, valorInvestidoBRL])
+    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || patrimonioBRL === null) return null
+    return ((patrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   // ── Resumo popover ─────────────────────────────────────────────────────────
   const [isResumoOpen, setIsResumoOpen] = useState(false)
@@ -307,31 +280,31 @@ export function AtivosComposicao() {
   const [activeToggle, setActiveToggle] = useState<ToggleOption>('Tipo de ativos')
   const [showIdeal, setShowIdeal] = useState(false)
 
-  const isLoading = posLoading || quotesLoading
 
   // Filtrar slices pelo toggle ativo
   const visibleSlices = useMemo(() => {
-    if (activeToggle === 'Ativos') return buildAssetSlices(rows, totalBRL)
+    if (activeToggle === 'Ativos') return buildAssetSlices(compositionRows, totalBRL)
     const slices = activeToggle === 'Exposição ao exterior'
       ? composition.slices.filter((s) => isInternationalClass(s.type))
       : composition.slices
     return slices.map((slice: AssetClassSlice): CompositionSlice => ({
       ...slice, id: slice.type, color: assetClassColor(slice.type), international: isInternationalClass(slice.type),
     }))
-  }, [composition.slices, activeToggle, rows, totalBRL])
+  }, [composition.slices, activeToggle, compositionRows, totalBRL])
 
   return (
     <div className="flex flex-col gap-5">
+      <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar ── */}
       <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
-          patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+          patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
           ganhoCapital={fmtMoney(ganhoCapitalBRL)}
           ganhoCapitalPositive={
             ganhoCapitalBRL === null ? null : ganhoCapitalBRL >= 0
           }
-          ativos={rows.length}
+          ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
           resumoBtnRef={resumoBtnRef}
         />
@@ -339,7 +312,7 @@ export function AtivosComposicao() {
         {isResumoOpen && (
           <ResumoCarteiraPopover
             anchorRef={resumoBtnRef}
-            patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+            patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}

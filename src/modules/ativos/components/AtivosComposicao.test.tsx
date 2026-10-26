@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { AtivosComposicao } from './AtivosComposicao'
 
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'wallet' } }) }))
+vi.mock('../../portfolio/hooks/useFixedIncomePositions', () => ({ useFixedIncomePositions: () => ({ data: [] }) }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [
   { id: 'a', ticker: 'AAA3', quantity: 10, average_price: 8, acquisition_date: '2026-01-01', asset: { currency: 'BRL', type: 'stock_br', name: 'Empresa A' } },
   { id: 'b', ticker: 'BBB3', quantity: 5, average_price: 8, acquisition_date: '2026-01-01', asset: { currency: 'BRL', type: 'stock_br', name: 'Empresa B' } },

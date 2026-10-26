@@ -1,5 +1,19 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Homologação após PR #70 — 25/10/2026
+
+- PR #70 integrada pelo usuário; deploy do commit de merge ce05935520afd7ad5b8d632df79fceaa79e21987 com status Vercel success.
+- Usuário confirmou cadastro com uma nova conta Google externa e login funcionando em produção. OAuth externo homologado por relato do usuário.
+- Conferência em produção com carteira contendo renda variável e dois títulos de renda fixa: Início inclui ambas; Ativos → Posições e Lançamentos omitem renda fixa nos KPIs. A diferença de patrimônio corresponde à soma dos current_value dos dois títulos; a diferença no investido corresponde à soma dos principais. Causa confirmada no código: essas telas derivam os KPIs somente de usePositions/derivePositionRows, enquanto Início usa useWalletTotals incluindo fixed_income_positions.
+- **Alta pendente: incluir renda fixa nos totais e na apresentação de Ativos**, alinhando Posições, Composição e Lançamentos ao mesmo escopo de carteira/filtros, sem apresentar totais parciais como patrimônio total. Rever também carregamento/ausência de câmbio, pois as telas de Ativos ainda têm fallback local de 5.
+- O último ponto do histórico mensal coincide com o patrimônio do Início. Filtro Renda Fixa apresenta principal e ganho compatíveis com os títulos cadastrados; filtro 1M reduz o gráfico ao mês atual. Controles restaurados a 1A/Todos os tipos após o teste.
+- Não existem recebimentos de renda fixa registrados nessa carteira. Cupons/resgates permanecem cobertos pelos testes automatizados, mas sem homologação por extrato real nesta etapa. Nenhum movimento foi criado, excluído ou recalculado durante a conferência.
+- A conferência confirma consistência interna nos pontos acima; não substitui conciliação dos fechamentos históricos e estimativas com extratos externos. O seletor atual de carteira não exibe valor monetário, portanto não houve comparação visual de total nele.
+
+Este registro substitui os estados anteriores quando houver divergência. A falha foi corrigida localmente na branch codex/ativos-totais-renda-fixa: cálculo compartilhado entre as três abas, renda fixa na composição por classe/ativo, tabela própria com principal restante/saldo/ganho/peso e contagem combinada. Filtros de classe/nome se aplicam também aos títulos. Ausência de câmbio, carregamento ou falha não produzem patrimônio parcial apresentado como total. O CSV existente continua exportando renda variável, com escopo explícito no tooltip. Aguarda revisão e publicação; nenhum merge automático.
+
+Validação da correção: 14 testes de Ativos e 6 de consistência do total da carteira passaram, além do build TypeScript/Vite/PWA e lint dos arquivos alterados. O teste de histórico do total da carteira teve seus mocks atualizados para as consultas históricas introduzidas na PR #70, sem chamadas remotas durante o teste. A conferência final em produção depende do merge/publicação pelo usuário.
+
 ## Complemento mais recente — páginas públicas e alternativas sem domínio
 
 - /sobre, /privacidade e /termos publicados em produção pela PR #69 (merge 28a0ef5), acessíveis sem login e ligados às telas de acesso. Por orientação do usuário, usam somente Valora e o email do projeto, sem nomes pessoais. Textos revisados e aprovados pelo usuário em 25/10. Links salvos no branding do Google. Após autorização explícita do usuário, publicação OAuth confirmada: painel Audience exibe In production e External. Não foi realizado novo login com uma segunda conta externa nesta etapa. Assuntos do SendGrid adiados pelo usuário, sem mudança de configuração.

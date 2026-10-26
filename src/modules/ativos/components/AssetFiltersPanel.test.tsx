@@ -7,11 +7,13 @@ import { AtivosPosicoes } from './AtivosPosicoes'
 import { AtivosComposicao } from './AtivosComposicao'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
 import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
+const fixedState = vi.hoisted(() => ({ data: [] as { id: string; name: string; principal: number; remaining_principal: number; current_value: number }[], isLoading: false, isError: false }))
 
 vi.mock('../../portfolio/export/positionsCsv', () => ({ downloadPositionsCsv: vi.fn() }))
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' } }) }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'wallet' } }) }))
+vi.mock('../../portfolio/hooks/useFixedIncomePositions', () => ({ useFixedIncomePositions: () => fixedState }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [
   { id: 'a', ticker: 'AAA3', quantity: 10, average_price: 8, acquisition_date: '2026-01-01', asset: { currency: 'BRL', type: 'stock_br', name: 'Ações Alfa' } },
   { id: 'b', ticker: 'FII11', quantity: 5, average_price: 8, acquisition_date: '2026-01-01', asset: { currency: 'BRL', type: 'fii', name: 'Fundo Beta' } },
@@ -24,10 +26,10 @@ vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: (
 vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ data: [] }) }))
 vi.mock('../../valuation/hooks/useBazin', () => ({ useBazin: () => ({ bazinByTicker: new Map() }) }))
 
-beforeEach(() => { useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
+beforeEach(() => { fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
 
 function show() {
-  render(<MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
+  return render(<MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
     <Route path="posicoes" element={<AtivosPosicoes />} /><Route path="composicao" element={<AtivosComposicao />} />
   </Route></Routes></MemoryRouter>)
 }
@@ -79,4 +81,38 @@ it('combina classes por OU e busca por E, ignorando acentos e caixa', () => {
   expect(matchesAssetFilters(asset, { query: 'alfa', types: ['fii'] })).toBe(false)
   expect(matchesAssetFilters(asset, { query: 'alfa beta', types: [] })).toBe(false)
   expect(matchesAssetFilters({ ticker: 'SEM' }, { query: 'sem', types: ['unknown'] })).toBe(true)
+})
+
+it('inclui renda fixa nos KPIs, tabela e composição e respeita filtro por classe e nome', async () => {
+  fixedState.data = [{ id: 'f', name: 'Tesouro IPCA', principal: 150, remaining_principal: 100, current_value: 120 }]
+  const user = userEvent.setup()
+  show()
+  expect(screen.getByRole('table', { name: 'Posições de renda fixa' })).toHaveTextContent('Tesouro IPCA')
+  expect(screen.getByText(/R\$\s*320,00/)).toBeInTheDocument()
+  await user.click(screen.getAllByRole('button', { name: /^Filtrar/ })[0])
+  await user.click(screen.getByRole('checkbox', { name: 'Renda Fixa' }))
+  await user.type(screen.getByLabelText('Ticker ou nome do ativo'), 'tesouro')
+  await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+  expect(screen.queryByRole('link', { name: 'AAA3' })).not.toBeInTheDocument()
+  expect(screen.getByRole('table', { name: 'Posições de renda fixa' })).toHaveTextContent('120,00')
+  await user.click(screen.getByRole('tab', { name: 'Composição' }))
+  let chart = screen.getAllByRole('img', { name: 'Gráfico de composição da carteira' })[0]
+  expect(within(chart).getByLabelText(/Renda Fixa:/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Ativos' }))
+  chart = screen.getAllByRole('img', { name: 'Gráfico de composição da carteira' })[0]
+  expect(within(chart).getByLabelText(/Tesouro IPCA:/)).toBeInTheDocument()
+})
+
+it('não mostra total parcial durante carregamento ou falha da renda fixa', () => {
+  fixedState.isLoading = true
+  const view = show()
+  expect(screen.queryByText(/R\$\s*200,00/)).not.toBeInTheDocument()
+  expect(screen.getByText('Carregando posições e renda fixa…')).toBeInTheDocument()
+  // Uma falha de consulta também impede apresentar apenas a parcela variável.
+  fixedState.isLoading = false
+  fixedState.isError = true
+  view.unmount()
+  show()
+  expect(screen.queryByText(/R\$\s*200,00/)).not.toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent('O patrimônio total está indisponível.')
 })

@@ -1,3 +1,4 @@
+import { ChartPeriodFilter } from '../../../shared/components/ChartPeriodFilter'
 import { useState } from 'react'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
@@ -22,6 +23,8 @@ export function WealthEvolution() {
           <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#33AA3B]/85" />Valor aplicado</span>
           <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#A9E0AC]/80" />Ganho de capital</span>
         </div>
+        <div className="flex max-w-full flex-wrap items-start gap-3">
+        <ChartPeriodFilter />
         <label className="flex flex-col gap-1 text-xs text-white/60">
           <span className="sr-only">Tipo de ativo</span>
           <select aria-label="Tipo de ativo do gráfico" className={selectClass} value={type} onChange={(event) => setType(event.target.value as AssetType | 'all')}>
@@ -29,6 +32,7 @@ export function WealthEvolution() {
             {(Object.keys(ASSET_CLASS_COLOR) as AssetType[]).map((value) => <option key={value} value={value}>{assetClassLabel(value)}</option>)}
           </select>
         </label>
+        </div>
       </div>
       {!valid ? <p role="alert" className="py-8 text-sm text-red-300">Informe as duas datas, com a data inicial anterior ou igual à final.</p>
         : dashboard.isLoading ? <p role="status" className="py-8 text-sm text-white/50">Carregando evolução…</p>

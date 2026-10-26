@@ -1,3 +1,4 @@
+import { portfolioReturn } from '../../performance/utils/performanceCalculations'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useWalletTotals } from '../../portfolio/hooks/useWalletTotals'
@@ -52,7 +53,7 @@ export interface DashboardData {
   proventos12mBRL: number | null
   /** Variação % do patrimônio nos últimos 12M (série histórica). */
   variacaoPct: number | null
-  /** Rentabilidade Total = (patrimônio - custo) / custo. Sempre disponível. */
+  /** Retorno histórico desde o início, com a mesma fórmula de Desempenho. */
   rentabilidadeTotalPct: number | null
   /** Série mensal para o gráfico de barras (desde o início da carteira). */
   monthlySeries: Array<{ month: string; totalBRL: number | null; investedBRL: number | null }>
@@ -74,9 +75,11 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   const userId = user?.id
 
   // ── Série histórica de renda variável ────────────────────────────────────
-  // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
+  // Histórico completo para o gráfico; métricas usam períodos independentes do filtro.
   const current = useWalletTotals()
   const wealth = useWealthHistory('Tudo', walletId, chartFilters?.from)
+  const performanceHistory = useWealthHistory('Tudo', walletId)
+  const annualHistory = useWealthHistory('1A', walletId)
   const transactionsQuery = useQuery({
     queryKey: ['portfolio', 'transactions-all', userId, walletId],
     queryFn: () => transactionsService.listAll(userId!, walletId),
@@ -188,33 +191,14 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   }, [ganhoCapitalBRL, proventos12mBRL])
 
   // ── Variação % 12M ───────────────────────────────────────────────────────
-  // Retorno da série histórica a partir de latestDate (ou earliestDate).
-  // Usa 1 ou mais pontos — não exige 12 meses cheios. Se a carteira tem
-  // só 1 dia de dados, compara o patrimônio atual com esse único ponto.
-  const variacaoPct = useMemo(() => {
-    if (totalPatrimonioBRL === null) return null
-
-    const anchor = wealth.latestDate ?? wealth.earliestDate
-    if (!anchor) return null
-
-    const validFromAnchor = wealth.series.filter(
-      (p) => p.value !== null && p.value > 0 && p.date >= anchor,
-    )
-
-    if (validFromAnchor.length === 0) return null
-
-    const first = validFromAnchor[0].value!
-    if (first <= 0) return null
-    return ((totalPatrimonioBRL - first) / first) * 100
-  }, [totalPatrimonioBRL, wealth.series, wealth.latestDate, wealth.earliestDate])
-
-  // ── Rentabilidade Total ───────────────────────────────────────────────────
-  // (patrimônio atual - custo total) / custo total
-  // Sempre disponível quando há patrimônio e custo.
-  const rentabilidadeTotalPct = useMemo(() => {
-    if (totalPatrimonioBRL === null || valorInvestidoBRL === null || valorInvestidoBRL <= 0) return null
-    return ((totalPatrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalPatrimonioBRL, valorInvestidoBRL])
+  // Mesma série e fórmula usadas por Desempenho em cada período.
+  const returnPercent = (history: typeof wealth) => {
+    if (history.isLoading || history.isError || walletId === '') return null
+    const value = portfolioReturn(history.series)
+    return value === null ? null : value * 100
+  }
+  const variacaoPct = returnPercent(annualHistory)
+  const rentabilidadeTotalPct = returnPercent(performanceHistory)
 
   // ── Série mensal para o gráfico ───────────────────────────────────────────
   // Cada mês usa o fechamento disponível por ativo e o custo das posições

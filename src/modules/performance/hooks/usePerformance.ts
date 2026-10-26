@@ -12,11 +12,10 @@ import {
   computeMonthlyPortfolioReturns,
   computeMonthlyBenchmarkReturns,
   buildMonthlyAccumulatedSeries,
-  accumulatedReturnFromMonthly,
+  portfolioReturn,
   buildIntramonthlySeries,
   buildIntramonthlyBenchmarkSeries,
   extractReturnPct,
-  normalizeToBase100,
   computeMonthlyTableData,
 } from '../utils/performanceCalculations'
 import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
@@ -209,17 +208,10 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
 
   // Retorno acumulado da carteira para os cards
-  const portfolioReturnPct = useMemo(() => {
-    if (useIntramonthlyfallback) {
-      // Intra-mês: (últimoPonto / primeiroPonto) − 1
-      const pts = normalizeToBase100(wealth.series)
-      if (pts.length === 0) return null
-      const last = pts[pts.length - 1]
-      if (!last || !Number.isFinite(last.normalized)) return null
-      return last.normalized / 100 - 1
-    }
-    return accumulatedReturnFromMonthly(portfolioMonthlyReturns)
-  }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
+  const portfolioReturnPct = useMemo(
+    () => portfolioReturn(wealth.series),
+    [wealth.series],
+  )
 
   // Data do primeiro ponto válido — para ancorar o fallback dos benchmarks
   const portfolioStartDate = useMemo(() => {

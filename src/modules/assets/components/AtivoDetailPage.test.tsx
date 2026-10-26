@@ -1,10 +1,17 @@
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AtivoDetailPage } from './AtivoDetailPage'
+import { valueAssets } from '../../ativos/assetValuation'
+import type { FixedIncomePosition, LatestQuote, PositionWithAsset } from '../../portfolio/types'
 
 const create = vi.hoisted(() => vi.fn())
+const valuation = vi.hoisted(() => vi.fn())
+beforeEach(() => valuation.mockReturnValue({ positions: [], rows: [], isLoading: false, isError: false }))
+vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' } }) }))
+vi.mock('../../ativos/hooks/useAtivosValuation', () => ({ useAtivosValuation: (...args: unknown[]) => valuation(...args) }))
+vi.mock('../hooks/useDailyChange', () => ({ useDailyChange: () => -2.5 }))
 vi.mock('../hooks/useAssetDetail', () => ({ useAssetDetail: () => ({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } }) }))
 vi.mock('../hooks/usePriceHistory', () => ({ usePriceHistory: () => ({ data: [] }) }))
 vi.mock('../hooks/useAssetDividends', () => ({ useAssetDividends: () => ({ data: [] }) }))
@@ -41,4 +48,17 @@ it('abre lançamento preenchido e cria alerta com o ticker do detalhe, permitind
   expect(create).toHaveBeenLastCalledWith({ ticker: 'PETR4', targetPrice: 25, condition: 'below' })
   expect(screen.queryByRole('dialog', { name: 'Criar alerta' })).not.toBeInTheDocument()
   expect(screen.getByRole('tab', { name: 'Alertas' })).toHaveAttribute('aria-selected', 'true')
+})
+
+it('mostra peso sobre BRL, USD e renda fixa da carteira selecionada e separa variação diária do custo', () => {
+  const positions = [
+    { id: 'a', ticker: 'PETR4', quantity: 10, average_price: 10, asset: { currency: 'BRL', type: 'stock_br' } },
+    { id: 'b', ticker: 'AAPL', quantity: 1, average_price: 20, asset: { currency: 'USD', type: 'stock_us' } },
+  ] as PositionWithAsset[]
+  const valued = valueAssets(positions, [{ ticker: 'PETR4', close: 20 }, { ticker: 'AAPL', close: 20 }] as LatestQuote[], [{ name: 'CDB', principal: 100, current_value: 100 }] as FixedIncomePosition[], 5)
+  valuation.mockReturnValue({ ...valued, positions, isLoading: false, isError: false })
+  render(<MemoryRouter initialEntries={['/ativo/PETR4']}><Routes><Route path="/ativo/:ticker" element={<AtivoDetailPage />} /></Routes></MemoryRouter>)
+  expect(valuation).toHaveBeenCalledWith('w1', true)
+  expect(screen.getByText('+50,00%')).toBeInTheDocument()
+  expect(screen.getByText('-2,50% no último fechamento')).toBeInTheDocument()
 })

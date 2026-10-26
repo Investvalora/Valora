@@ -534,3 +534,12 @@ export function computeMonthlyTableData(
   rows.sort((a, b) => b.year - a.year)
   return rows
 }
+
+/** Mesmo retorno acumulado para Início e Desempenho, na mesma série/período. */
+export function portfolioReturn(series: Array<{ date: string; value: number | null }>): number | null {
+  const monthly = computeMonthlyPortfolioReturns(series)
+  if (monthly.size > 0) return accumulatedReturnFromMonthly(monthly)
+  const points = normalizeToBase100(series)
+  const last = points[points.length - 1]
+  return last && Number.isFinite(last.normalized) ? last.normalized / 100 - 1 : null
+}

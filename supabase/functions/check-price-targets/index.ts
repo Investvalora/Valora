@@ -54,6 +54,7 @@ type PriceTargetAlert = {
   target_price: number
   condition: 'above' | 'below'
   status: string
+  last_quote_date: string | null
 }
 
 Deno.serve(async (request) => {
@@ -66,7 +67,7 @@ Deno.serve(async (request) => {
   try {
     // 1. Buscar alertas price_target ativos (novo ou lido) do usuário
     const alertsRes = await rest(
-      `alerts?user_id=eq.${userId}&type=eq.price_target&status=in.(novo,lido)&select=id,ticker,target_price,condition,status`,
+      `alerts?user_id=eq.${userId}&type=eq.price_target&status=in.(novo,lido)&select=id,ticker,target_price,condition,status,last_quote_date`,
     )
     if (!alertsRes.ok) throw new Error('Falha ao ler alertas de preço-alvo.')
 
@@ -75,16 +76,17 @@ Deno.serve(async (request) => {
 
     // 2. Buscar cotação mais recente de cada ticker único
     const tickers = [...new Set(priceTargets.map((a) => a.ticker))]
-    const quoteByTicker = new Map<string, number>()
+    const quoteByTicker = new Map<string, { close: number; date: string }>()
 
     for (const ticker of tickers) {
       const quoteRes = await rest(
-        `price_history?ticker=eq.${ticker}&select=close&order=date.desc&limit=1`,
+        `price_history?ticker=eq.${encodeURIComponent(ticker)}&close=not.is.null&select=close,date&order=date.desc&limit=1`,
       )
-      if (!quoteRes.ok) continue
-      const [row] = (await quoteRes.json()) as Array<{ close: number }>
-      if (row && typeof row.close === 'number' && row.close > 0) {
-        quoteByTicker.set(ticker, row.close)
+      if (!quoteRes.ok) throw new Error('Falha ao consultar cotação de preço-alvo.')
+      const [row] = (await quoteRes.json()) as Array<{ close: number | string; date: string }>
+      const close = row?.close == null ? NaN : Number(row.close)
+      if (Number.isFinite(close) && close > 0 && typeof row?.date === 'string') {
+        quoteByTicker.set(ticker, { close, date: row.date })
       }
     }
 
@@ -92,8 +94,9 @@ Deno.serve(async (request) => {
     let triggered = 0
 
     for (const alert of priceTargets) {
-      const close = quoteByTicker.get(alert.ticker)
-      if (close === undefined) continue // sem cotação — skip silencioso
+      const quote = quoteByTicker.get(alert.ticker)
+      if (!quote) continue // sem cotação — não há condição a avaliar
+      const { close, date } = quote
 
       const targetPrice = Number(alert.target_price)
       const conditionMet =
@@ -101,13 +104,17 @@ Deno.serve(async (request) => {
         (alert.condition === 'above' && close >= targetPrice)
 
       // Só dispara se ainda não está 'novo' (evita atualização desnecessária)
-      if (conditionMet && alert.status !== 'novo') {
-        const updateRes = await rest(`alerts?id=eq.${alert.id}&user_id=eq.${userId}`, {
+      // Ler a notificação não deve dispará-la de novo para o mesmo fechamento.
+      if (conditionMet && alert.status !== 'novo' && alert.last_quote_date !== date) {
+        const previousDate = alert.last_quote_date ? `eq.${alert.last_quote_date}` : 'is.null'
+        const updateRes = await rest(`alerts?id=eq.${alert.id}&user_id=eq.${userId}&status=eq.lido&last_quote_date=${previousDate}`, {
           method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ status: 'novo' }),
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ status: 'novo', last_quote_date: date }),
         })
-        if (updateRes.ok) triggered++
+        if (!updateRes.ok) throw new Error('Falha ao disparar alerta de preço-alvo.')
+        const updated = await updateRes.json()
+        triggered += Array.isArray(updated) ? updated.length : 0
       }
     }
 

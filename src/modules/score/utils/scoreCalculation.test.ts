@@ -139,6 +139,13 @@ describe('evaluateRule', () => {
 // ─── applyScoreRules ───────────────────────────────────────────────────────────
 
 describe('applyScoreRules', () => {
+  it('limita o total final a 0–100 sem limitar cada regra ou perder penalidades', () => {
+    const positive = rule({ metric: 'pl', operator: 'gt', threshold_min: 0, points: 150 })
+    const penalty = rule({ metric: 'pl', operator: 'gt', threshold_min: 0, points: -70 })
+    expect(applyScoreRules([positive], [fund('AAA', { pl: 10 })]).get('AAA')).toBe(100)
+    expect(applyScoreRules([penalty], [fund('AAA', { pl: 10 })]).get('AAA')).toBe(0)
+    expect(applyScoreRules([positive, penalty], [fund('AAA', { pl: 10 })]).get('AAA')).toBe(80)
+  })
   const ruleGte10 = rule({ metric: 'pl', operator: 'gte', threshold_min: 10, points: 20 })
   const ruleLt5 = rule({ metric: 'dy', operator: 'lt', threshold_min: 5, points: 10 })
 

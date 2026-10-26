@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShellNovo } from './AppShellNovo'
+vi.mock('../../modules/alerts/hooks/usePriceTargetMonitor', () => ({ usePriceTargetMonitor: () => ({}) }))
 
 vi.mock('../../modules/auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1', email: 'teste@valora.local', user_metadata: {} } }),

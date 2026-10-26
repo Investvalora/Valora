@@ -48,6 +48,8 @@ const CHAIN_METHODS = [
   'gte',
   'lte',
   'gt',
+  'lt',
+  'not',
   'or',
   'ilike',
   'order',

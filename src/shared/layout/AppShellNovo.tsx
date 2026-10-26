@@ -7,8 +7,10 @@ import { TopBar } from '../components/TopBar'
 import { QuickTransactionModal } from '../../modules/portfolio/components/QuickTransactionModal'
 import { MobileNav } from './MobileNav'
 import { useSidebarPreference } from '../stores/useSidebarPreference'
+import { usePriceTargetMonitor } from '../../modules/alerts/hooks/usePriceTargetMonitor'
 
 export function AppShellNovo() {
+  usePriceTargetMonitor()
   const { data: alertCount = 0 } = useNewAlertsCount()
   const { user } = useAuth()
   const { compact, setCompact } = useSidebarPreference(user?.id)

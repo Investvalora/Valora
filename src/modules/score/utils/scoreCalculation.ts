@@ -40,7 +40,7 @@ export function evaluateRule(rule: ScoreRule, value: number): boolean {
  * score total por ticker.
  *
  * - Ticker sem fundamentals → `null` (dado indisponível, exibe "N/A").
- * - Ticker com fundamentals → soma dos `points` das regras satisfeitas (pode ser 0).
+ * - Ticker com fundamentals → soma dos pontos satisfeitos, limitada a 0–100.
  * - Métricas com valor `null` nos fundamentals contam como regra não satisfeita.
  *
  * A função é pura: não acessa banco, não lança exceções, não tem efeitos colaterais.
@@ -68,7 +68,8 @@ export function applyScoreRules(
       }
     }
 
-    result.set(ticker, total)
+    // Preserva pontos e penalidades configurados, limitando apenas o resultado.
+    result.set(ticker, Math.min(100, Math.max(0, total)))
   }
 
   return result

@@ -157,6 +157,16 @@ export const positionService = {
     return pickLatestPerTicker((data ?? []) as unknown as LatestQuote[])
   },
 
+  /** Fechamento anterior ao dia da cotação, inclusive após feriados. */
+  async previousClose(ticker: string, date: string): Promise<number | null> {
+    const { data, error } = await supabase.from('price_history')
+      .select('close').eq('ticker', ticker).lt('date', date)
+      .not('close', 'is', null).order('date', { ascending: false }).limit(1)
+    if (error) throw error
+    const close = data?.[0]?.close
+    return close != null && Number.isFinite(Number(close)) && Number(close) > 0 ? Number(close) : null
+  },
+
   /** Insere a posição amarrando `user_id` à sessão, nunca ao formulário. */
   async addPosition(userId: string, position: NewPosition): Promise<Position> {
     const { data, error } = await supabase

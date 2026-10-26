@@ -106,6 +106,18 @@ describe('normalizeTickers', () => {
 })
 
 describe('positionService.listLatestQuotes', () => {
+  it('busca fechamento anterior por data, sem assumir dia útil consecutivo', async () => {
+    supabaseMock.on('price_history', ({ calls }) => {
+      expect(calls).toContainEqual({ method: 'eq', args: ['ticker', 'PETR4'] })
+      expect(calls).toContainEqual({ method: 'lt', args: ['date', '2026-10-26'] })
+      expect(calls).toContainEqual({ method: 'order', args: ['date', { ascending: false }] })
+      expect(calls).toContainEqual({ method: 'limit', args: [1] })
+      return { data: [{ close: '40.25' }], error: null }
+    })
+    expect(await positionService.previousClose('PETR4', '2026-10-26')).toBe(40.25)
+    supabaseMock.on('price_history', () => ({ data: [], error: null }))
+    expect(await positionService.previousClose('SEMBASE', '2026-10-26')).toBeNull()
+  })
   const QUOTE_ROWS = [
     // Ordem que o banco devolve: `(ticker, date desc)`.
     { ticker: 'PETR4', date: '2026-02-10', close: 34.5, source: 'b3_cotahist', updated_at: NOW },

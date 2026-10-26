@@ -20,10 +20,10 @@ vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPos
 vi.mock('../services/transactionsService', () => ({ transactionsService: { listAll: async () => [] } }))
 vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: async () => [], macro: async () => [] } }))
 vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: async () => [] } }))
-vi.mock('../../wealth/hooks/useWealthHistory', () => ({ useWealthHistory: () => ({
+vi.mock('../../wealth/hooks/useWealthHistory', () => ({ useWealthHistory: (period: string) => ({
   positions: [{ ticker: 'BR', quantity: 1, currency: 'BRL', type: 'stock_br' }],
   lastPricesMap: new Map([['BR', 11575.73]]), usdRate: 5,
-  series: history, latestDate: null, earliestDate: null, isLoading: false, isError: false, refetch: vi.fn(),
+  series: period === '1A' ? annualHistory ?? history : history, latestDate: null, earliestDate: null, isLoading: false, isError: false, refetch: vi.fn(),
   priceRows: history.map((point) => ({ ticker: 'BR', date: point.date, close: point.value })),
 }) }))
 
@@ -34,11 +34,13 @@ const positions = [
 const fixed = [{ wallet_id: 'w1', principal: 900, current_value: 1000, application_date: '2000-01-01' }] as FixedIncomePosition[]
 let close = 11524.60
 let history: Array<{ date: string; value: number | null }> = []
+let annualHistory: typeof history | undefined
 
 beforeEach(() => {
   vi.clearAllMocks()
   close = 11524.60
   history = []
+  annualHistory = undefined
   vi.mocked(useUSDRate).mockReturnValue({ data: { rate: 5 }, isLoading: false, isError: false, refetch: vi.fn() } as unknown as ReturnType<typeof useUSDRate>)
   vi.mocked(positionService.listAllPositions).mockResolvedValue(positions)
   vi.mocked(positionService.listPositions).mockResolvedValue([positions[0]])
@@ -72,6 +74,15 @@ it('não usa câmbio fixo inventado para carteira em USD sem taxa', async () => 
   await waitFor(() => expect(result.current.selector.totals.has('w2')).toBe(true))
   expect(result.current.selector.totals.get('w2')).toBeNull()
   expect(result.current.selector.totals.get('w1')).toBeCloseTo(12524.60)
+})
+
+it('usa retorno histórico equivalente a Desempenho e mantém 12M separado do total e do custo atual', async () => {
+  history = [{ date: '2025-01-31', value: 100 }, { date: '2026-08-31', value: 110 }, { date: '2026-09-30', value: 121 }]
+  annualHistory = history.slice(1)
+  const { result } = show()
+  await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(12524.60))
+  expect(result.current.dashboard.rentabilidadeTotalPct).toBeCloseTo(21)
+  expect(result.current.dashboard.variacaoPct).toBeCloseTo(10)
 })
 
 it('mantém o ganho no topo da barra atual mesmo com histórico parcial e preserva meses fechados', async () => {

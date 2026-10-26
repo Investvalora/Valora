@@ -22,7 +22,7 @@ import {
 import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
 import type { PerformancePeriod, PerformanceSeries, PerformanceSummary, AssetReturnRow } from '../types'
 import type { MonthlyTableRow } from '../utils/performanceCalculations'
-import type { PositionWithAsset } from '../../portfolio/types'
+import type { AssetType, PositionWithAsset } from '../../portfolio/types'
 import type { DividendRaw } from '../../dividends/types'
 import type { WealthPeriod } from '../../wealth/types'
 
@@ -31,14 +31,13 @@ const STALE_TIME_MS = 5 * 60 * 1000
 
 /**
  * Dias por período — mesma tabela de `useWealthHistory`.
- * "Tudo" usa 365 como janela máxima (AD-11).
+ * "Tudo" usa a primeira aquisição, sem teto de um ano.
  */
-const PERIOD_DAYS: Record<PerformancePeriod, number> = {
+const PERIOD_DAYS: Record<Exclude<PerformancePeriod, 'Tudo'>, number> = {
   '1M': 30,
   '3M': 90,
   '6M': 180,
   '1A': 365,
-  'Tudo': 365,
 }
 
 /** Configuração dos benchmarks: nome na tabela, rótulo no UI e cor da linha. */
@@ -86,42 +85,42 @@ export interface UsePerformanceResult {
  * Isso torna benchmarks e carteira independentes de datas exatas,
  * eliminando problemas de lag D+1 e fins de semana.
  */
-export function usePerformance(period: PerformancePeriod, walletId?: string): UsePerformanceResult {
+export function usePerformance(period: PerformancePeriod, walletId?: string, assetType?: AssetType): UsePerformanceResult {
   const { user } = useAuth()
   const userId = user?.id
 
-  // Só passa walletId para useWealthHistory quando tiver um ID real.
-  // Se for '' (carteira ainda carregando), passa undefined para não bloquear a query.
-  const effectiveWalletId = walletId || undefined
+  // Carteira ainda carregando ('') não deve consultar o agregado de todas.
+  const effectiveWalletId = walletId
 
   // 1. Série de patrimônio diário + posições snapshot + USD rate
-  const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId)
+  const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId, undefined, assetType)
 
   // Piso do período selecionado
   const periodFloor = useMemo(
-    () => shiftIsoDate(-PERIOD_DAYS[period]),
+    () => shiftIsoDate(period === 'Tudo' ? 0 : -PERIOD_DAYS[period]),
     [period],
   )
 
   // `since` efetivo: nunca antes da primeira compra
   const since = useMemo(() => {
+    if (period === 'Tudo' && wealth.earliestDate) return wealth.earliestDate
     if (wealth.earliestDate && wealth.earliestDate > periodFloor) {
       return wealth.earliestDate
     }
     return periodFloor
-  }, [periodFloor, wealth.earliestDate])
+  }, [period, periodFloor, wealth.earliestDate])
 
   // 2. Posições completas (com average_price para computeAssetRows)
   const positionsQuery = useQuery<PositionWithAsset[]>({
     queryKey: ['portfolio', 'positions', userId, effectiveWalletId],
     queryFn: () => positionService.listPositions(userId as string, effectiveWalletId),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && walletId !== '',
     staleTime: STALE_TIME_MS,
   })
 
   const positions = useMemo(
-    () => positionsQuery.data ?? [],
-    [positionsQuery.data],
+    () => (positionsQuery.data ?? []).filter((position) => !assetType || position.asset?.type === assetType),
+    [positionsQuery.data, assetType],
   )
 
   const tickers = useMemo(
@@ -131,10 +130,10 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
 
   // 3. Dividendos do período
   const dividendsQuery = useQuery<DividendRaw[]>({
-    queryKey: ['performance', 'dividends', userId, period, tickers],
+    queryKey: ['performance', 'dividends', userId, effectiveWalletId, period, since, assetType, tickers],
     queryFn: () =>
       tickers.length > 0
-        ? dividendService.listDividendsByTickers(tickers, since)
+        ? dividendService.listDividendsByTickers(tickers, since, true)
         : Promise.resolve([]),
     enabled: Boolean(userId) && !wealth.isLoading,
     staleTime: STALE_TIME_MS,
@@ -163,8 +162,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
     const prevMonth = month === 1
       ? `${year - 1}-12-01`
       : `${year}-${String(month - 1).padStart(2, '0')}-01`
-    return prevMonth < periodFloor ? periodFloor : prevMonth
-  }, [since, periodFloor])
+    return period === 'Tudo' ? prevMonth : prevMonth < periodFloor ? periodFloor : prevMonth
+  }, [since, periodFloor, period])
 
   const benchmarksQuery = useQuery({
     queryKey: ['benchmarks', period, benchmarkSince],
@@ -320,6 +319,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string): Us
     void wealth.refetch()
     void positionsQuery.refetch()
     void benchmarksQuery.refetch()
+    void dividendsQuery.refetch()
   }
 
   return {

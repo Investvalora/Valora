@@ -64,9 +64,7 @@ export const wealthService = {
   /**
    * Histórico de preços dos tickers informados desde `since` até hoje.
    *
-   * Máximo 365 pontos por ticker (AD-11 / NFR-3): a consulta traz no máximo
-   * `tickers.length × 365` linhas — suficiente para o período "Tudo" com a
-   * amostragem diária exigida.
+   * Consulta paginada, sem limitar o histórico a 365 pontos por ticker.
    *
    * Sem cotação no período → array vazio para aquele ticker (lacuna total).
    */

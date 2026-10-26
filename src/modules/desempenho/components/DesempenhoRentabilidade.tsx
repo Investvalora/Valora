@@ -11,6 +11,7 @@ import { TabelaMensal } from './TabelaMensal'
 import { usePositions } from '../../portfolio/hooks/usePositions'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { PerformancePeriod } from '../../performance/types'
+import type { AssetType } from '../../portfolio/types'
 
 const PerformanceLineChart = lazy(
   () => import('../../performance/components/PerformanceLineChart'),
@@ -83,10 +84,10 @@ export function DesempenhoRentabilidade() {
   const [typeFilter, setTypeFilter] = useState('Todos os tipos')
 
   const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading } =
-    usePerformance(period, walletId)
+    usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
 
   // Positions para obter o type do ativo (classe)
-  const { data: positions = [] } = usePositions()
+  const { data: positions = [] } = usePositions(walletId)
   const tickerTypeMap = useMemo(() => {
     const m = new Map<string, string>()
     for (const p of positions) {
@@ -106,13 +107,13 @@ export function DesempenhoRentabilidade() {
 
   // Tipos disponíveis para o dropdown
   const availableTypes = useMemo(() => {
-    const types = new Set<string>()
-    for (const r of assetRows) {
-      const t = tickerTypeMap.get(r.ticker)
+    const types = new Set<string>(typeFilter === 'Todos os tipos' ? [] : [typeFilter])
+    for (const position of positions) {
+      const t = position.asset?.type
       if (t && ASSET_CLASS_LABELS[t]) types.add(ASSET_CLASS_LABELS[t])
     }
     return ['Todos os tipos', ...Array.from(types).sort()]
-  }, [assetRows, tickerTypeMap])
+  }, [positions, typeFilter])
 
   // KPIs
   const rentPct = summary.portfolioReturnPct
@@ -127,7 +128,7 @@ export function DesempenhoRentabilidade() {
       const classeLabel = t ? (ASSET_CLASS_LABELS[t] ?? t) : '—'
       const vscdipp =
         r.totalReturnPct != null && summary.cdiReturnPct != null
-          ? ((r.totalReturnPct - summary.cdiReturnPct * 100) / 100).toFixed(2)
+          ? (r.totalReturnPct - summary.cdiReturnPct * 100).toFixed(2)
           : '—'
       return [r.ticker, r.name ?? '', classeLabel, r.totalReturnPct?.toFixed(2) ?? '—', vscdipp]
     })
@@ -214,6 +215,7 @@ export function DesempenhoRentabilidade() {
           <div className="flex flex-wrap gap-2 mt-2">
             {/* Dropdown período */}
             <select
+              aria-label="Período da rentabilidade"
               value={period}
               onChange={(e) => setPeriod(e.target.value as PerformancePeriod)}
               className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
@@ -226,6 +228,7 @@ export function DesempenhoRentabilidade() {
             </select>
             {/* Dropdown tipo */}
             <select
+              aria-label="Tipo de ativo da rentabilidade"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"

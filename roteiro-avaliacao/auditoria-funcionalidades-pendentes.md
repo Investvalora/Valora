@@ -1,5 +1,46 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Rentabilidade: filtros e período completo — 25/10/2026
+
+- Implementado na branch codex/filtros-rentabilidade: classe selecionada aplicada às posições que geram série, resumo, tabela mensal, tabela por ativo e consulta de proventos. Dropdown usa as classes da carteira selecionada, sem perder as demais opções ao filtrar.
+- Desde o início usa a aquisição mais antiga das posições analisadas, sem teto de 365 dias. Histórico de preços já paginado; benchmarks passam a paginar e a rentabilidade solicita proventos completos. Falha numa página não entrega resultado truncado como completo.
+- Chave de cache dos proventos inclui carteira, início efetivo e classe. Carteira ainda carregando não consulta todas as carteiras por engano. CSV corrige a unidade de vs CDI para pontos percentuais.
+- Validação: 80 testes passaram em 8 arquivos; build TypeScript/Vite/PWA e lint dos arquivos alterados passaram. Aguarda revisão e publicação; merge exclusivo do usuário.
+- Preservada a metodologia existente de rentabilidade baseada nas posições atuais e preços: não é uma nova reconstrução de TWR por todos os aportes/resgates, nem passa a incluir posições já encerradas. O ganho por ativo continua comparando cotação atual com preço médio, com proventos do período selecionado.
+- Prioridades altas encerradas como validação técnica, conforme alinhamento com o usuário. Conciliação externa fica como validação futura, sem equivaler os testes isolados a movimentação financeira real.
+
+Este estado substitui os apontamentos históricos abaixo sobre filtros ainda desconectados e teto de um ano.
+
+## Extrato externo recebido — 25/10/2026
+
+- Usuário forneceu extrato consolidado de outubro dos dois títulos do Tesouro, com investido, saldo bruto, líquido e quantidade. O documento apresenta uma posição consolidada, sem histórico de compras, cupons ou resgates.
+- Usuário esclareceu depois que o extrato é de outra conta. A comparação não comprova divergência cadastral nem erro de cálculo no Valora; hipótese anterior de cadastro incorreto descartada. Nenhum cadastro/saldo alterado.
+- Saldo bruto do extrato também difere da estimativa contratual do aplicativo. O extrato do Tesouro reflete preço de mercado; o aplicativo informa estimativa bruta sem marcação a mercado. Não tratar a diferença inteira como erro aritmético nem criar cupom/resgate para ajustar saldo.
+- Usuário esclareceu que o lançamento BTC era teste. Está identificado como exceção de teste, ainda persistido; nenhuma exclusão ou reconstrução de posição foi executada.
+- Arquivo privado e valores detalhados não foram adicionados ao repositório. A comparação detalhada foi apresentada no chat a partir do documento original.
+
+O extrato de outra conta não é base para ajustar a carteira de teste. Lançamento de teste identificado e preservado. Testes técnicos isolados aprovados; conciliação com extrato correspondente fica para validação futura.
+
+## Conciliação interna ampliada — 25/10/2026
+
+- 20 testes direcionados passaram em 6 arquivos: histórico mensal, câmbio, renda fixa histórica, painel de recebimentos, serviço e função de recálculo.
+- Teste SQL 040 repetido no Supabase: PASS para cupom, resgate parcial/total, limites, cronologia, idempotência e RLS entre usuários. Transação encerrada com rollback de todos os fixtures; nenhum movimento persistido na carteira.
+- Conferência somente de leitura da carteira autorizada: as 27 posições atuais conferem com as compras em quantidade e preço médio, dentro das precisões armazenadas. Essa carteira não possui vendas registradas no conjunto conferido.
+- Fechamento de setembro reconstruído independentemente por SQL a partir das movimentações e últimos preços até 30/09. Conversão pela PTAX oficial BCB de venda de 30/09/2026: 5,1809. A soma com a estimativa de renda fixa coincide, ao centavo, com o gráfico; custo convertido também coincide. Isso valida a consistência interna, não a correção das cotações de origem ou de um extrato externo.
+- **Exceção pendente de decisão do usuário:** há uma compra BTC sem posição atual ou venda correspondente. Perguntado se o lançamento é válido ou teste. Nenhuma exclusão, recálculo de posição ou alteração de dados realizada.
+- Perguntado sobre disponibilidade de extratos externos. Até recebê-los, não marcar conciliação por corretora/Tesouro como concluída. A homologação técnica de cupons/resgates passou; o teste com recebimento real continua dependente de dados/documento do usuário.
+
+Prioridades altas restantes: resolver a exceção BTC conforme a intenção do usuário e conciliar com extratos. A evidência de testes isolados não deve ser apresentada como homologação de movimentação financeira real.
+
+## Homologação da PR #71 em produção — 25/10/2026
+
+- Merge realizado pelo usuário, commit 3ac716ca19c27ce31e5bbd7f7daad8cd7ad2f866; deploy Vercel success confirmado.
+- Após recarregar a produção, Posições, Composição e Lançamentos apresentam os mesmos patrimônio, investido e ganho do Início para a carteira mista. Contagem inclui os dois títulos; tabela própria e classe Renda Fixa presentes.
+- Filtro Renda Fixa conferido em produção: isola os dois títulos, saldo, principal e ganho correspondentes. Filtros limpos ao final; visão completa restaurada.
+- **Concluído: divergência dos totais causada pela exclusão de renda fixa em Ativos.** Permanecem pendentes conciliação histórica com extratos e homologação real de cupons/resgates; não houve alteração de posições ou movimentos nesta verificação.
+
+Este estado substitui a pendência de publicação da correção abaixo.
+
 ## Homologação após PR #70 — 25/10/2026
 
 - PR #70 integrada pelo usuário; deploy do commit de merge ce05935520afd7ad5b8d632df79fceaa79e21987 com status Vercel success.

@@ -1,5 +1,24 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Correção da coluna Valor atual — 26/10/2026
+
+- Implementada na branch codex/valor-atual-rentabilidade: coluna usa derivePositionRows com a última cotação e o câmbio compartilhado, em vez de quantidade × preço médio.
+- Ativos USD convertidos para BRL; dados ausentes, carregamento e falha não substituem valor de mercado por custo ou câmbio local inventado. Ausência de câmbio afeta somente as linhas USD.
+- 38 testes direcionados passaram; lint passou. A confirmação em produção depende de revisão e merge pelo usuário.
+
+Este estado substitui a pendência da coluna registrada abaixo; alteração ainda não publicada em produção.
+
+## PR #72 homologada em produção — 26/10/2026
+
+- Merge feito pelo usuário, commit db3b5c886b88e8a4bfc502214337686b14fe40eb; deploy de produção Vercel success confirmado.
+- Alternância Todos/FII/Cripto atualiza resumo, linhas por ativo e tabela mensal; mudança do traçado da curva confirmada no SVG renderizado. FII restringe a tabela aos seis ativos dessa classe; retornar a Todos restaura 27 ativos.
+- Período 1 mês produz resultado diferente de Desde o início. Dataset desta carteira não demonstrou visualmente um intervalo de preços superior a um ano; cobertura desse caso foi validada com aquisição de 2020 nos testes automatizados, sem declarar homologação histórica por extrato.
+- Controles restaurados para Desde o início/Todos os tipos. Nenhum dado de carteira alterado.
+
+Concluídos os controles de tipo e período da PR #72. Mantidas as limitações de metodologia registradas abaixo.
+
+Nova pendência confirmada na revisão: a coluna Valor atual da tabela de rentabilidade exibe quantity × average_price, formatado em BRL até para ativos USD. Corrigir para valor de mercado com conversão, ou alinhar o rótulo e a moeda ao custo exibido, sem confundir com o filtro já homologado. Evidência: DesempenhoRentabilidade.tsx, cálculo de qty/avgPrice e célula Valor atual.
+
 ## Rentabilidade: filtros e período completo — 25/10/2026
 
 - Implementado na branch codex/filtros-rentabilidade: classe selecionada aplicada às posições que geram série, resumo, tabela mensal, tabela por ativo e consulta de proventos. Dropdown usa as classes da carteira selecionada, sem perder as demais opções ao filtrar.

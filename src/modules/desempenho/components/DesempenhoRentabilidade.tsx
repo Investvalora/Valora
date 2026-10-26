@@ -9,6 +9,9 @@ import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
 import { TabelaMensal } from './TabelaMensal'
 import { usePositions } from '../../portfolio/hooks/usePositions'
+import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
+import { useUSDRate } from '../../../shared/hooks/useUSDRate'
+import { derivePositionRows } from '../../portfolio/positionRows'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { PerformancePeriod } from '../../performance/types'
 import type { AssetType } from '../../portfolio/types'
@@ -87,7 +90,15 @@ export function DesempenhoRentabilidade() {
     usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
 
   // Positions para obter o type do ativo (classe)
-  const { data: positions = [] } = usePositions(walletId)
+  const { data: positions = [], isLoading: positionsLoading, isError: positionsError } = usePositions(walletId)
+  const tickers = useMemo(() => positions.map((position) => position.ticker), [positions])
+  const quotes = useLatestQuotes(tickers)
+  const needsUsd = positions.some((position) => position.asset?.currency === 'USD')
+  const usd = useUSDRate({ enabled: needsUsd })
+  const marketValues = useMemo(() => {
+    const rows = derivePositionRows({ positions, quotes: quotes.data ?? [], usdRate: usd.isError || usd.isLoading ? null : usd.data?.rate ?? null }).rows
+    return new Map(rows.map((row) => [row.ticker, positionsLoading || positionsError || quotes.isLoading || quotes.isError ? null : row.marketValueBRL]))
+  }, [positions, quotes.data, quotes.isLoading, quotes.isError, usd.data?.rate, usd.isLoading, usd.isError, positionsLoading, positionsError])
   const tickerTypeMap = useMemo(() => {
     const m = new Map<string, string>()
     for (const p of positions) {
@@ -411,10 +422,7 @@ export function DesempenhoRentabilidade() {
                         ? 'text-nf-green'
                         : 'text-nf-pink'
 
-                  // Posição para buscar valor de mercado
-                  const position = positions.find((p) => p.ticker === row.ticker)
-                  const qty = position?.quantity ?? 0
-                  const avgPrice = position?.average_price ?? 0
+                  const marketValue = marketValues.get(row.ticker) ?? null
 
                   // Barra de desempenho — escala relativa ao máximo absoluto
                   const maxRent = Math.max(
@@ -470,8 +478,8 @@ export function DesempenhoRentabilidade() {
                       </td>
                       {/* Valor atual */}
                       <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-white">
-                        {qty > 0 && avgPrice > 0
-                          ? fmtBRL(qty * avgPrice)
+                        {marketValue !== null
+                          ? fmtBRL(marketValue)
                           : '—'}
                       </td>
                       {/* Rentabilidade */}

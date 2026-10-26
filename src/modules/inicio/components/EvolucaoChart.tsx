@@ -83,7 +83,7 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
               d={`M ${x} ${baseline} V ${y + radius} Q ${x} ${y} ${x + radius} ${y} H ${x + barWidth - radius} Q ${x + barWidth} ${y} ${x + barWidth} ${y + radius} V ${baseline} Z`}
               fill={`url(#${fillId})`}
             />
-            {index === points.length - 1 && total > 0 && (
+            {total > 0 && (
               <text x={cx} y={Math.max(10, toY(total) - 6)} textAnchor="middle" fontSize={11} fontWeight={500} fill="white">
                 {money.format(total)}
               </text>

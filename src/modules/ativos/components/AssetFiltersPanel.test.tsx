@@ -8,6 +8,7 @@ import { AtivosComposicao } from './AtivosComposicao'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
 import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
 const fixedState = vi.hoisted(() => ({ data: [] as { id: string; name: string; principal: number; remaining_principal: number; current_value: number }[], isLoading: false, isError: false }))
+const scoreState = vi.hoisted(() => ({ enabled: false }))
 
 vi.mock('../../portfolio/export/positionsCsv', () => ({ downloadPositionsCsv: vi.fn() }))
 
@@ -23,16 +24,33 @@ vi.mock('../../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () =>
 ] }) }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: { rate: 5 } }) }))
 vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: () => new Map() }))
-vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ data: [] }) }))
+vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ data: scoreState.enabled ? [{ ticker: 'AAA3', pl: 8 }] : [] }) }))
+vi.mock('../../score/hooks/useScoreRules', () => ({ useScoreRules: () => ({ data: scoreState.enabled ? [{ id: 'rule', name: 'Valor', metric: 'pl', operator: 'lt', threshold_min: 10, points: 5 }] : [] }), groupRulesByName: () => scoreState.enabled ? new Map([['Valor', []]]) : new Map() }))
+vi.mock('../../score/hooks/useScorePreferences', () => ({ useScorePreferences: () => ({ data: scoreState.enabled ? { default_score_rule_id: 'rule' } : null }), useUpsertScorePreferences: () => ({ mutate: vi.fn() }) }))
 vi.mock('../../valuation/hooks/useBazin', () => ({ useBazin: () => ({ bazinByTicker: new Map() }) }))
 
-beforeEach(() => { fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
+beforeEach(() => { scoreState.enabled = false; fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
 
 function show() {
   return render(<MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
     <Route path="posicoes" element={<AtivosPosicoes />} /><Route path="composicao" element={<AtivosComposicao />} />
   </Route></Routes></MemoryRouter>)
 }
+
+it('reaproveita score preferido, regras e fundamentos na coluna escolhida', async () => {
+  scoreState.enabled = true
+  const user = userEvent.setup()
+  show()
+  expect(screen.getByLabelText('Score das posições')).toHaveValue('Valor')
+  await user.click(screen.getByRole('button', { name: 'Editar colunas' }))
+  await user.click(screen.getByRole('checkbox', { name: 'Meu score' }))
+  await user.click(screen.getByRole('button', { name: /^Salvar$/ }))
+  const table = within(screen.getByRole('table', { name: 'Posições por classe de ativo' }))
+  expect(table.getByRole('columnheader', { name: 'Meu score' })).toBeInTheDocument()
+  expect(table.getByRole('row', { name: /AAA3/ })).toHaveTextContent('5,00')
+  const index = table.getAllByRole('columnheader').findIndex((header) => header.textContent === 'Meu score')
+  expect(within(table.getByRole('row', { name: /FII11/ })).getAllByRole('cell')[index]).toHaveTextContent('—')
+})
 
 it('os dois botões abrem o painel; aplicar filtra tabela e composição, limpar restaura os dados', async () => {
   const user = userEvent.setup()

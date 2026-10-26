@@ -123,6 +123,7 @@ export function AssetGroupCard({
                   <span className="truncate text-[11px] text-white/40">
                     {row.name ?? shortLabel}
                   </span>
+                  {row.score !== undefined && <span className="text-[11px] text-nf-blue">Meu score: {row.score === null ? '—' : row.score}</span>}
                 </div>
 
                 {/* Valor atual */}

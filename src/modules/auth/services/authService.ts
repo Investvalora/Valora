@@ -74,6 +74,17 @@ export const authService = {
     return data
   },
 
+  async requestPasswordChangeCode() {
+    const { error } = await supabase.auth.reauthenticate()
+    if (error) throw error
+  },
+
+  async changePassword(password: string, nonce?: string) {
+    passwordSchema.parse(password)
+    const { error } = await supabase.auth.updateUser({ password, ...(nonce ? { nonce } : {}) })
+    if (error) throw error
+  },
+
   async getCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser()
     return user

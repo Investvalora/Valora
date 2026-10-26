@@ -1,5 +1,27 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Prioridades médias implementadas — 26/10/2026
+
+- Branch `codex/prioridades-medias`; aguardam revisão, merge pelo usuário e homologação em produção.
+- Período global: barra superior disponível em telas estreitas, com quebra de linha e intervalo personalizado adaptável. Continua sendo o mesmo estado usado pela evolução do patrimônio, sem outro seletor sobre o gráfico. Não declarar homologação em aparelho real.
+- Conta: formulário de nova senha e confirmação, política compartilhada, mensagens de erro/sucesso, cancelamento e suporte ao nonce de reautenticação exigido pelo Supabase. Formulário conferido no navegador local; credenciais da conta real não foram alteradas. Envio e reautenticação cobertos por testes com dublês; troca real fica para o usuário.
+- Composição: usuário definiu metas por classe. Editor por carteira, soma de 100%, valores entre 0 e 100 e diferença em reais sobre o patrimônio completo, incluindo renda fixa. Os filtros visuais de Ativos não mudam a base das metas. Diferença representa realocação no patrimônio atual, não valor de aporte para atingir a meta sem vendas. Não executa ordens. Metas de teste não foram salvas na carteira real.
+- Migração `20261026031629_wallet_allocation_targets.sql` aplicada ao Supabase: coluna JSON em wallets, validação no banco e permissão de atualização restrita à coluna, mantendo RLS de proprietário. Teste SQL 041 passou para persistência, limites, soma e isolamento entre usuários; fixture revertida integralmente.
+- Ativos: seletor reaproveita regras e preferência de score existentes, calcula com os fundamentos disponíveis e permite a coluna Meu score no editor. Score também aparece nos cards de celular. Conferido no navegador local com preferência existente; valores ausentes aparecem como —.
+- Proventos: Pagos considera apenas datas de pagamento informadas até hoje, inclusive na consulta compartilhada usada pelos resumos. Anunciados / a receber separa pagamentos futuros datados de registros sem data. Estes últimos podem já ter sido pagos e não comprovam valores a receber. Horizonte, busca, moeda nativa e estimativa de quantidade são explícitos; compra na data ex não cria direito. Consulta paginada e cache por carteira/situação. Não cria novos anúncios nem adiciona provedor de dados; análise ainda se restringe aos ativos atuais da carteira, sem conciliação de crédito na corretora.
+- Validação automatizada: 64 testes principais em 9 arquivos, 2 do editor de metas e 103 de regressão em 10 arquivos (há sobreposição de 19 testes entre os conjuntos). Lint dos arquivos alterados e build TypeScript/Vite/PWA passaram.
+- Advisors não apontaram a nova função/tabela como problema. Permanecem avisos anteriores: [search_path de funções antigas](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable), [extensões em public](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public), [execução da função antiga handle_new_user](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) e [proteção contra senhas vazadas desativada](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Nenhuma dessas configurações foi alterada neste escopo.
+
+Este estado substitui os apontamentos históricos de controles médios sem implementação. Entrega técnica implementada; validações reais indicadas acima continuam pendentes.
+
+## PR #73 homologada em produção — 26/10/2026
+
+- Merge realizado pelo usuário, commit a081e473da6c25a72d2dcae8a9d471b5baef957e; deploy Vercel success confirmado.
+- Aba recarregada para receber a versão nova. Valor atual conferido na rentabilidade para ativo BRL e ativo USD; ambos coincidem com o saldo das mesmas posições na tabela de Ativos.
+- **Concluída: coluna Valor atual usando custo e sem conversão USD.** A rentabilidade agora apresenta valor de mercado em BRL nessa coluna. Nenhum movimento financeiro ou cadastro alterado na conferência.
+
+Este estado substitui a pendência de publicação da correção abaixo.
+
 ## Correção da coluna Valor atual — 26/10/2026
 
 - Implementada na branch codex/valor-atual-rentabilidade: coluna usa derivePositionRows com a última cotação e o câmbio compartilhado, em vez de quantidade × preço médio.

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -55,7 +55,11 @@ describe('Perfil e conta', () => {
     expect(screen.queryByText('Último acesso')).not.toBeInTheDocument()
     expect(screen.queryByText('Conta criada em')).not.toBeInTheDocument()
     expect(screen.queryByText('Seu espaço')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Alterar senha · em breve' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Alterar senha' })).toBeEnabled()
+    fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'compact' } })
+    expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('compact')
+    fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'expanded' } })
+    expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('expanded')
     expect(screen.getByRole('button', { name: 'Sair da conta' })).toHaveClass('text-rose-300')
   })
 

@@ -1,5 +1,10 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Preferência de barra lateral — 26/10/2026
+
+- Perfil e conta oferece menu expandido ou retraído. O botão de recolher/expandir também salva a última escolha.
+- Persistência por usuário neste navegador; sem sincronização entre dispositivos. Armazenamento bloqueado mantém a preferência apenas na sessão. Navegação móvel permanece independente.
+
 ## Tooltip e início da evolução — 26/10/2026
 
 - Tooltip com patrimônio, aplicado e ganho por mês, acionado por mouse, foco ou toque; Escape fecha.

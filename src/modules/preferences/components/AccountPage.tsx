@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { authService } from '../../auth/services/authService'
 import { ChangePasswordForm } from './ChangePasswordForm'
+import { useSidebarPreference } from '../../../shared/stores/useSidebarPreference'
 
 function textValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -24,6 +25,7 @@ function Detail({ label, value }: {
 
 export function AccountPage() {
   const { user, logout } = useAuth()
+  const { compact, setCompact } = useSidebarPreference(user?.id)
   const navigate = useNavigate()
   const [isLeaving, setIsLeaving] = useState(false)
   const [logoutError, setLogoutError] = useState('')
@@ -87,6 +89,17 @@ export function AccountPage() {
             </div>
             <p className="mt-2 text-sm text-white/45">Defina uma nova senha de acesso à sua conta.</p>
             <ChangePasswordForm />
+          </section>
+
+          <section className="hidden border-b border-white/10 py-6 md:block">
+            <h2 className="text-sm font-semibold text-white">Barra lateral</h2>
+            <p id="sidebar-preference-help" className="mt-2 text-sm text-white/45">Escolha como o menu deve abrir neste navegador. O botão de expandir ou recolher também salva sua escolha para os próximos acessos.</p>
+            <label className="mt-4 block text-sm text-white/75">Estado do menu
+              <select aria-describedby="sidebar-preference-help" value={compact ? 'compact' : 'expanded'} onChange={(event) => setCompact(event.target.value === 'compact')} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#262626] px-3 text-white">
+                <option value="expanded">Expandida</option>
+                <option value="compact">Retraída</option>
+              </select>
+            </label>
           </section>
 
           <section className="py-6">

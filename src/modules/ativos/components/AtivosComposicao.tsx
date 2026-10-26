@@ -1,4 +1,5 @@
 import { AssetValuationNotice } from './AssetValuationNotice'
+import { AllocationTargets } from './AllocationTargets'
 import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
  * AtivosComposicao — sub-rota /ativos/composicao
@@ -411,6 +412,7 @@ export function AtivosComposicao() {
             </div>
           </div>
         )}
+        {showIdeal && <AllocationTargets key={walletId} walletId={walletId} />}
       </PanelCard>
     </div>
   )

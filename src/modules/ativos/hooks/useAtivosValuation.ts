@@ -6,10 +6,13 @@ import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { matchesAssetFilters, useAssetFilters, useFilteredPositions } from './useAssetFilters'
 import { valueAssets } from '../assetValuation'
 
-export function useAtivosValuation(walletId: string) {
+export function useAtivosValuation(walletId: string, ignoreFilters = false) {
   const positionQuery = usePositions(walletId)
-  const positions = useFilteredPositions(positionQuery.data ?? [])
-  const { query, types } = useAssetFilters()
+  const filteredPositions = useFilteredPositions(positionQuery.data ?? [])
+  const positions = useMemo(() => ignoreFilters ? positionQuery.data ?? [] : filteredPositions, [ignoreFilters, positionQuery.data, filteredPositions])
+  const filters = useAssetFilters()
+  const query = ignoreFilters ? '' : filters.query
+  const types = useMemo(() => ignoreFilters ? [] : filters.types, [ignoreFilters, filters.types])
   const fixedQuery = useFixedIncomePositions(walletId)
   const fixed = useMemo(() => (fixedQuery.data ?? []).filter((position) => matchesAssetFilters({
     ticker: position.name, name: position.name, type: 'fixed_income',

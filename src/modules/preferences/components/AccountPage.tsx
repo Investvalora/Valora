@@ -4,6 +4,7 @@ import { KeyRound, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { authService } from '../../auth/services/authService'
+import { ChangePasswordForm } from './ChangePasswordForm'
 
 function textValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -84,10 +85,8 @@ export function AccountPage() {
               <KeyRound className="h-4 w-4 text-white/50" strokeWidth={1.8} aria-hidden="true" />
               <h2 className="text-sm font-semibold text-white">Mudar minha senha</h2>
             </div>
-            <p className="mt-2 text-sm text-white/45">Em breve você poderá alterar sua senha por aqui.</p>
-            <button type="button" disabled className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-white/[0.1] px-4 text-sm font-medium text-white/35 disabled:cursor-not-allowed">
-              Alterar senha · em breve
-            </button>
+            <p className="mt-2 text-sm text-white/45">Defina uma nova senha de acesso à sua conta.</p>
+            <ChangePasswordForm />
           </section>
 
           <section className="py-6">

@@ -36,6 +36,7 @@ function cell(column: AssetColumnId, row: PositionRow): ReactNode {
     case 'pvp': return number(row.pvp)
     case 'roe': return percent(row.roe)
     case 'netMargin': return percent(row.netMargin)
+    case 'score': return number(row.score)
     case 'acquisition': return row.acquisitionDate ? row.acquisitionDate.slice(0, 10).split('-').reverse().join('/') : '—'
   }
 }

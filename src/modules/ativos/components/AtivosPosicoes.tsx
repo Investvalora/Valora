@@ -18,6 +18,9 @@ import { AssetColumnEditor } from './AssetColumnEditor'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
+import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
+import { useScorePreferences, useUpsertScorePreferences } from '../../score/hooks/useScorePreferences'
+import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useBazin } from '../../valuation/hooks/useBazin'
 import { enrichPositionRows } from '../../portfolio/enrichPositionRows'
 import { groupRowsByClass } from '../../portfolio/composition'
@@ -52,6 +55,14 @@ export function AtivosPosicoes() {
   const dividendTotalsByTicker = useDividendTotals(tickers, quantityByTicker)
 
   const { data: fundamentalsRows = [] } = useFundamentals(tickers)
+  const rulesQuery = useScoreRules()
+  const preferencesQuery = useScorePreferences()
+  const saveScore = useUpsertScorePreferences()
+  const allRules = useMemo(() => rulesQuery.data ?? [], [rulesQuery.data])
+  const scoreNames = useMemo(() => Array.from(groupRulesByName(allRules).keys()).sort(), [allRules])
+  const activeScoreName = allRules.find((rule) => rule.id === preferencesQuery.data?.default_score_rule_id)?.name ?? ''
+  const activeRules = useMemo(() => allRules.filter((rule) => rule.name === activeScoreName), [allRules, activeScoreName])
+  const scoreByTicker = useCalculateScore(activeRules, fundamentalsRows)
   const fundamentalsByTicker = useMemo(() => {
     const m = new Map<string, FundamentalsRow>()
     for (const f of fundamentalsRows) m.set(f.ticker, f)
@@ -71,7 +82,7 @@ export function AtivosPosicoes() {
 
   // ── Derivação ─────────────────────────────────────────────────────────────
 
-  const enrichedRows = useMemo(
+  const enrichedBase = useMemo(
     () =>
       enrichPositionRows({
         rows: baseRows,
@@ -81,6 +92,9 @@ export function AtivosPosicoes() {
       }),
     [baseRows, fundamentalsByTicker, dividendTotalsByTicker, bazinByTicker],
   )
+  const enrichedRows = useMemo(() => enrichedBase.map((row) => ({ ...row,
+    score: activeScoreName ? scoreByTicker.get(row.ticker) ?? null : undefined,
+  })), [enrichedBase, activeScoreName, scoreByTicker])
 
   // ── KPI values ───────────────────────────────────────────────────────────
 
@@ -160,6 +174,19 @@ export function AtivosPosicoes() {
       </div>
 
       {/* ── Tabela de posições — desktop ── */}
+      <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
+        <label>Meu score
+          <select aria-label="Score das posições" value={activeScoreName} disabled={rulesQuery.isLoading || preferencesQuery.isLoading || rulesQuery.isError || preferencesQuery.isError || saveScore.isPending}
+            onChange={(event) => saveScore.mutate({ default_score_rule_id: allRules.find((rule) => rule.name === event.target.value)?.id ?? null })}
+            className="ml-2 min-h-11 rounded-lg border border-white/15 bg-[#262626] px-3 text-white">
+            <option value="">Sem score</option>
+            {scoreNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+        {scoreNames.length === 0 && !rulesQuery.isLoading && <span>Crie suas regras na página Score.</span>}
+        {(rulesQuery.isError || preferencesQuery.isError || saveScore.isError) && <span role="alert" className="text-rose-300">Não foi possível carregar ou salvar o score. Tente novamente.</span>}
+        {activeScoreName && <span>Veja a coluna “Meu score” em Editar colunas. Sem fundamentos: —.</span>}
+      </div>
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">

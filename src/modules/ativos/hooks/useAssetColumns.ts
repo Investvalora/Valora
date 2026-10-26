@@ -19,6 +19,7 @@ export const ASSET_COLUMNS = [
   { id: 'pvp', label: 'P/VP', group: 'Dados fundamentalistas' },
   { id: 'roe', label: 'ROE', group: 'Dados fundamentalistas' },
   { id: 'netMargin', label: 'Margem líquida', group: 'Dados fundamentalistas' },
+  { id: 'score', label: 'Meu score', group: 'Dados fundamentalistas' },
   { id: 'weight', label: '% na carteira', group: 'Carteira' },
   { id: 'acquisition', label: 'Data de aquisição', group: 'Carteira' },
 ] as const

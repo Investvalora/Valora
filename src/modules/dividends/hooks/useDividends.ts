@@ -7,6 +7,7 @@ import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import { dividendService } from '../services/dividendService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import type { DividendPeriod, DividendRaw, DividendRow } from '../types'
 import type { PositionWithAsset } from '../../portfolio/types'
 
@@ -50,6 +51,7 @@ function enrichRows(
   raw: DividendRaw[],
   positions: PositionWithAsset[],
   transactions: Transaction[] = [],
+  announced = false,
 ): DividendRow[] {
   const positionByTicker = new Map<string, PositionWithAsset>()
   for (const pos of positions) {
@@ -65,6 +67,7 @@ function enrichRows(
   }
 
   const result: DividendRow[] = []
+  const today = toIsoDate(new Date())
 
   for (const row of raw) {
     const position = positionByTicker.get(row.ticker)
@@ -81,17 +84,18 @@ function enrichRows(
         null,
       ) ?? position.acquisition_date
 
-    if (firstBuyDate && row.ex_date < firstBuyDate) continue
+    if (firstBuyDate && row.ex_date <= firstBuyDate) continue
 
     let quantity = position.quantity
+    // Datas ex futuras usam a posição atual apenas como estimativa, sem antecipar compras.
     if (tickerTransactions.length > 0) {
       quantity = tickerTransactions.reduce((held, transaction) => {
-        if (transaction.transaction_date > row.ex_date) return held
+        if (announced && row.ex_date > today ? transaction.transaction_date > today : transaction.transaction_date >= row.ex_date) return held
         const amount = Number(transaction.quantity)
         if (!Number.isFinite(amount)) return held
         return held + (transaction.type === 'buy' ? amount : -amount)
       }, 0)
-    } else if (position.acquisition_date && position.acquisition_date > row.ex_date) {
+    } else if (position.acquisition_date && position.acquisition_date >= row.ex_date) {
       continue
     }
 
@@ -102,6 +106,7 @@ function enrichRows(
       quantity,
       total_value: row.value_per_share * quantity,
       asset_type: position.asset?.type ?? null,
+      currency: position.asset?.currency ?? 'BRL',
     })
   }
 
@@ -128,8 +133,9 @@ export function _enrichRows(
   raw: DividendRaw[],
   positions: PositionWithAsset[],
   transactions: Transaction[] = [],
+  announced = false,
 ): DividendRow[] {
-  return enrichRows(raw, positions, transactions)
+  return enrichRows(raw, positions, transactions, announced)
 }
 
 export interface UseDividendsResult {
@@ -153,7 +159,7 @@ export interface UseDividendsResult {
  *
  * O enriquecimento (quantity + total_value) é client-side em `useMemo`.
  */
-export function useDividends(period: DividendPeriod): UseDividendsResult {
+export function useDividends(period: DividendPeriod, status: 'paid' | 'announced' = 'paid'): UseDividendsResult {
   const { user, loading: isSessionLoading } = useAuth()
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
@@ -198,11 +204,12 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   const since = period === 'Tudo' && firstPurchaseDate
     ? `${firstPurchaseDate.slice(0, 7)}-01`
     : periodSince
+  const until = period === 'Tudo' ? '9999-12-31' : shiftIsoDate(period === '6M' ? 183 : 365)
 
   // --- Query 2: dividendos ---
   const dividendsQuery = useQuery<DividendRaw[]>({
-    queryKey: [...dividendsQueryKey(userId, period, tickers), since],
-    queryFn: () => dividendService.listDividendsByTickers(tickers, since),
+    queryKey: [...dividendsQueryKey(userId, period, tickers), walletId, since, status, until],
+    queryFn: () => dividendService.listDividendsByTickers(tickers, since, true, status, until),
     enabled: Boolean(userId) && Boolean(walletId) && !positionsQuery.isLoading && !transactionsQuery.isLoading,
     staleTime: STALE_TIME_MS,
   })
@@ -210,8 +217,8 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   // --- Enriquecimento client-side ---
   const rows = useMemo<DividendRow[]>(() => {
     if (!dividendsQuery.data || positions.length === 0) return []
-    return enrichRows(dividendsQuery.data, positions, transactionsQuery.data ?? [])
-  }, [dividendsQuery.data, positions, transactionsQuery.data])
+    return enrichRows(dividendsQuery.data, positions, transactionsQuery.data ?? [], status === 'announced')
+  }, [dividendsQuery.data, positions, transactionsQuery.data, status])
 
   const availableTypes = useMemo<string[]>(() => {
     const types = new Set<string>()

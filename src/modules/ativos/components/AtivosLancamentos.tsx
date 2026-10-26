@@ -19,6 +19,7 @@ import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
+import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import {
   ASSET_CLASS_LABEL,
   ASSET_CLASS_ORDER,
@@ -706,12 +707,9 @@ export function AtivosLancamentos() {
 
       {/* Modal global de adicionar lançamento */}
       <FixedIncomeHistoryPanel since={since} />
-      <AddTransactionModal
+      <QuickTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        ticker=""
-        assetType={null}
-        assetName={null}
       />
     </div>
   )

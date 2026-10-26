@@ -2,6 +2,8 @@
 
 ## Retorno do usuário e ajuste do topo móvel — 26/10/2026
 
+- Atualização solicitada depois: período e intervalo personalizado movidos do topo global para os controles de Evolução do patrimônio, junto ao tipo de ativo, tanto no desktop quanto no mobile/PWA. Barra superior volta a ficar oculta no celular, onde a carteira é trocada pelo gesto existente. Este comportamento substitui a descrição anterior de período no topo.
+
 - Usuário confirmou o funcionamento da troca efetiva de senha após o merge da PR #74. Validação de senha concluída.
 - Seletor de carteira do topo ocultado nas telas móveis/PWA, pois a troca por gesto já está disponível. Mantidos o período global no topo e o seletor de carteira no desktop.
 - Ajuste móvel aguarda publicação e conferência do usuário.

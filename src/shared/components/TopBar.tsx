@@ -1,5 +1,4 @@
-import { Bell, CalendarDays, Plus } from 'lucide-react'
-import { CHART_PERIODS, useChartPeriod, type ChartPeriod } from '../stores/useChartPeriod'
+import { Bell, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
@@ -12,9 +11,8 @@ export function TopBar({
   alertCount = 0,
   onNovoLancamento,
 }: TopBarProps) {
-  const { period, from, to, setPeriod, setFrom, setTo } = useChartPeriod()
   return (
-    <header className="relative z-40 flex min-h-[58px] shrink-0 flex-wrap items-center justify-between gap-2 bg-[#131313] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:px-10 md:py-2">
+    <header className="relative z-40 hidden min-h-[58px] shrink-0 flex-wrap items-center justify-between gap-2 bg-[#131313] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:flex md:px-10 md:py-2">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-full h-7">
         <div className="absolute inset-0 backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#131313] via-[#131313]/60 to-transparent" />
@@ -26,30 +24,7 @@ export function TopBar({
           <WalletMorphSelector />
         </div>
 
-        {/* Seletor de período */}
-        <label
-          className="
-            flex min-h-11 items-center gap-2 rounded-full
-            border border-white/[0.1] bg-[#393939]
-            px-4 py-2 text-[13px] font-medium text-white
-            transition-colors hover:bg-white/[0.12]
-          "
-        >
-          <CalendarDays className="h-3.5 w-3.5 text-white/70" strokeWidth={1.8} aria-hidden="true" />
-          <select aria-label="Período da evolução do patrimônio" value={period} onChange={(event) => setPeriod(event.target.value as ChartPeriod)} className="min-w-0 bg-[#393939] text-white outline-none">
-            {CHART_PERIODS.map(([value, label]) => <option key={value} value={value}>{value === 'custom' || value === 'Tudo' ? label : value}</option>)}
-          </select>
-        </label>
-        {period === 'custom' && (
-          <div role="group" aria-label="Intervalo personalizado" className="absolute left-0 top-full mt-2 flex max-w-[calc(100vw-2rem)] flex-wrap gap-3 rounded-xl border border-white/15 bg-[#262626] p-3 shadow-xl">
-            <label className="flex flex-col gap-1 text-xs text-white/60">De
-              <input aria-label="Data inicial do gráfico" type="date" value={from} max={to || undefined} onInput={(event) => setFrom(event.currentTarget.value)} onChange={(event) => setFrom(event.target.value)} className="min-h-10 rounded-lg border border-white/15 bg-[#393939] px-2 text-white" />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-white/60">Até
-              <input aria-label="Data final do gráfico" type="date" value={to} min={from || undefined} onInput={(event) => setTo(event.currentTarget.value)} onChange={(event) => setTo(event.target.value)} className="min-h-10 rounded-lg border border-white/15 bg-[#393939] px-2 text-white" />
-            </label>
-          </div>
-        )}
+
       </div>
 
       {/* ── Ações globais ── */}

@@ -12,8 +12,9 @@ vi.mock('../../../shared/components/WalletMorphSelector', () => ({ WalletMorphSe
 
 beforeEach(() => { useChartPeriod.setState({ period: '1A', from: '2026-09-01', to: '2026-09-30' }); vi.clearAllMocks() })
 
-it('sincroniza período do topo e gráfico, aplica tipo e valida intervalo personalizado', () => {
+it('filtra período no gráfico sem duplicar no topo, aplica tipo e valida intervalo personalizado', () => {
   render(<MemoryRouter><TopBar /><WealthEvolution /></MemoryRouter>)
+  expect(screen.getAllByLabelText('Período da evolução do patrimônio')).toHaveLength(1)
   fireEvent.change(screen.getByLabelText('Período da evolução do patrimônio'), { target: { value: '2A' } })
   expect(screen.queryByLabelText('Período do gráfico')).not.toBeInTheDocument()
   expect(useDashboard).toHaveBeenLastCalledWith('w1', expect.objectContaining(chartDateRange('2A', '', '')))

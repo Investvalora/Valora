@@ -11,6 +11,7 @@ import { useWallets } from '../../portfolio/hooks/useWallets'
 import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHome'
 import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
+import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -96,6 +97,7 @@ export function InicioPage() {
         />
       </div>
 
+      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} />
       {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">

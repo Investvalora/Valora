@@ -3,6 +3,7 @@
  * Combina rentabilidade, proventos mensais, tabela mensal e top pagadores.
  */
 import { lazy, Suspense, useMemo } from 'react'
+import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 import { Info } from 'lucide-react'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
@@ -57,7 +58,7 @@ export function DesempenhoVisaoGeral() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
 
-  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading } =
+  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading, historyIncomplete } =
     usePerformance('1A', walletId)
 
   const dashboard = useDashboard(walletId)
@@ -99,6 +100,7 @@ export function DesempenhoVisaoGeral() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ReturnHistoryNotice incomplete={historyIncomplete} />
       {/* ── Cabeçalho ── */}
       <h2 className="text-[18px] font-semibold text-white">Visão Geral</h2>
 

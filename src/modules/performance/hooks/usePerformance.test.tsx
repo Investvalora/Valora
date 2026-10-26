@@ -10,6 +10,14 @@ import { dividendService } from '../../dividends/services/dividendService'
 import { benchmarkService } from '../services/benchmarkService'
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
+vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' } }) }))
+vi.mock('./useHistoricalReturns', () => ({ useHistoricalReturns: (period: string, wallet: string, type?: string) => {
+  const value = type === 'stock_br' ? 1 : type === 'fii' ? 0 : 0.5
+  const active = wallet === 'w1' && period === 'Tudo'
+  return { monthly: active ? new Map([['2020-01', value]]) : new Map(), returnPct: active ? value : null,
+    since: '2020-01-01', startDate: '2020-01-01', points: [], missingMonths: new Set(), incomplete: false,
+    isLoading: false, isError: false, refetch: vi.fn() }
+} }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: { rate: 5 }, isLoading: false }) }))
 vi.mock('../../wealth/services/wealthService', () => ({ wealthService: { listPositionsSnapshot: vi.fn(), listPriceHistory: vi.fn(), listLatestPrices: vi.fn() } }))
 vi.mock('../../portfolio/services/positionService', () => ({ positionService: { listPositions: async (_: string, wallet: string) => wallet === 'w2' ? [] : positions } }))
@@ -45,10 +53,10 @@ function show() {
 it('filtra gráfico, resumo, tabela e proventos juntos e restaura todas as classes sem cache cruzado', async () => {
   const { result, rerender } = show()
   await waitFor(() => expect(result.current.summary.portfolioReturnPct).toBeCloseTo(0.5))
-  expect(result.current.assetRows).toHaveLength(2)
+  await waitFor(() => expect(result.current.assetRows).toHaveLength(2))
   rerender({ type: 'stock_br', period: 'Tudo', wallet: 'w1' })
   await waitFor(() => expect(result.current.summary.portfolioReturnPct).toBeCloseTo(1))
-  expect(result.current.assetRows.map((r) => r.ticker)).toEqual(['AAA3'])
+  await waitFor(() => expect(result.current.assetRows.map((r) => r.ticker)).toEqual(['AAA3']))
   expect(result.current.portfolioSeries.points[result.current.portfolioSeries.points.length - 1]?.normalized).toBe(200)
   expect(dividendService.listDividendsByTickers).toHaveBeenCalledWith(['AAA3'], '2020-01-01', true)
   rerender({ type: 'fii', period: 'Tudo', wallet: 'w1' })

@@ -66,3 +66,34 @@ self.addEventListener('fetch', (event) => {
     )
   }
 })
+
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data?.json() ?? {}
+  } catch {
+    // Uma mensagem inválida ainda gera um aviso visível.
+  }
+  event.waitUntil(self.registration.showNotification('Novo alerta no Valora', {
+    body: 'Abra o app para conferir seus alertas.',
+    icon: '/icons/valora-192.png',
+    badge: '/icons/valora-192.png',
+    tag: typeof data.tag === 'string' ? data.tag : 'valora-alert',
+    data: { url: '/alertas' },
+  }))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil((async () => {
+    const url = new URL('/alertas', self.location.origin).href
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin)
+    if (existing) {
+      await existing.navigate(url)
+      await existing.focus()
+      return
+    }
+    await self.clients.openWindow(url)
+  })())
+})

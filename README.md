@@ -84,6 +84,9 @@ arquivos da interface no cache; os dados das carteiras continuam dependendo da
 conexão com o Supabase. No site publicado, sirva `dist` por HTTPS e configure o
 servidor para retornar `index.html` nas rotas da aplicação, como `/carteira`.
 
+Para configurar e testar notificações push, veja
+[docs/push-notifications.md](docs/push-notifications.md).
+
 ## Estrutura do Projeto
 
 ```

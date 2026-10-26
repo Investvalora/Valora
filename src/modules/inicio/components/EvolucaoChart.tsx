@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 
 type MonthlySeries = DashboardData['monthlySeries']
@@ -18,6 +18,7 @@ function labelForMonth(month: string) {
 
 export function EvolucaoChart({ data }: { data: MonthlySeries }) {
   const chartId = useId()
+  const [activeMonth, setActiveMonth] = useState<string | null>(null)
   const points = data
 
   if (points.length === 0) {
@@ -34,9 +35,12 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
   const barWidth = Math.min(64, colW * 0.68)
   const baseline = PAD_T + H
   const toY = (value: number) => baseline - (value / axisMax) * H
+  const activeIndex = points.findIndex((point) => point.month === activeMonth)
+  const active = points[activeIndex]
+  const tooltipX = Math.min(totalW - 228, Math.max(PAD_L, PAD_L + activeIndex * colW + colW / 2 - 112))
 
   return (
-    <svg viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} className="block w-full" aria-label="Gráfico de evolução do patrimônio" role="img">
+    <svg viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} className="block w-full" aria-label="Gráfico de evolução do patrimônio" role="group" onPointerLeave={() => setActiveMonth(null)}>
       {Array.from({ length: gridCount + 1 }, (_, index) => index).map((index) => {
         const value = index * gridStep
         const y = toY(value)
@@ -63,7 +67,10 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
         const fillId = `${chartId}-bar-${index}`
 
         return (
-          <g key={point.month} aria-label={`${label}: Aplicado ${money.format(invested)}, ganho ${money.format(gain)}`}>
+          <g key={point.month} role="button" tabIndex={0} aria-label={`${label}: Patrimônio ${money.format(total)}, aplicado ${money.format(invested)}, ganho ${money.format(gain)}`}
+            onPointerEnter={() => setActiveMonth(point.month)} onFocus={() => setActiveMonth(point.month)} onBlur={() => setActiveMonth(null)}
+            onClick={() => setActiveMonth(point.month)} onKeyDown={(event) => { if (event.key === 'Escape') setActiveMonth(null) }}>
+            <rect x={PAD_L + index * colW} y={PAD_T} width={colW} height={H + PAD_B} fill="transparent" />
             <defs>
               <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgba(169,224,172,0.8)" />
@@ -85,6 +92,13 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
           </g>
         )
       })}
+      {active && <g role="tooltip" aria-label={`Valores de ${labelForMonth(active.month)}`} pointerEvents="none">
+        <rect x={tooltipX} y={PAD_T} width={224} height={112} rx={10} fill="#262626" stroke="#666" />
+        <text x={tooltipX + 14} y={PAD_T + 23} fill="white" fontSize={13} fontWeight={600}>{labelForMonth(active.month)}</text>
+        <text x={tooltipX + 14} y={PAD_T + 49} fill="white" fontSize={12}>Patrimônio: {money.format(active.totalBRL ?? 0)}</text>
+        <text x={tooltipX + 14} y={PAD_T + 72} fill="#67CF70" fontSize={12}>Valor aplicado: {active.investedBRL === null ? '—' : money.format(active.investedBRL)}</text>
+        <text x={tooltipX + 14} y={PAD_T + 95} fill="#A9E0AC" fontSize={12}>Ganho de capital: {active.investedBRL === null ? '—' : money.format((active.totalBRL ?? 0) - active.investedBRL)}</text>
+      </g>}
     </svg>
   )
 }

@@ -1,5 +1,12 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Tooltip e início da evolução — 26/10/2026
+
+- Tooltip com patrimônio, aplicado e ganho por mês, acionado por mouse, foco ou toque; Escape fecha.
+- Reconstrução começa no primeiro investimento registrado do recorte, não em cotações antigas nem na data legada de uma posição que já possui movimentos. Venda órfã e compra futura não iniciam a série; aplicação de renda fixa anterior continua válida.
+- Usuário confirmou que as aplicações antigas e compras anteriores são válidas e devem permanecer no histórico. As barras pequenas anteriores a setembro/2026 não serão removidas artificialmente. Nenhum cadastro ou movimento alterado.
+- 10 testes direcionados e lint passaram. Aguarda revisão e merge pelo usuário.
+
 ## Retorno do usuário e ajuste do topo móvel — 26/10/2026
 
 - Atualização solicitada depois: período e intervalo personalizado movidos do topo global para os controles de Evolução do patrimônio, junto ao tipo de ativo, tanto no desktop quanto no mobile/PWA. Barra superior volta a ficar oculta no celular, onde a carteira é trocada pelo gesto existente. Este comportamento substitui a descrição anterior de período no topo.

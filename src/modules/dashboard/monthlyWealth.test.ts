@@ -5,6 +5,23 @@ import type { HistoricalTransaction } from './monthlyWealth'
 
 const trade = (overrides: Partial<HistoricalTransaction> = {}): HistoricalTransaction => ({ ticker: 'BR', wallet_id: 'w', transaction_date: '2026-08-01', seq: 1, type: 'buy', quantity: 10, price: 10, currency: 'BRL', ...overrides })
 
+it('não cria meses anteriores à primeira compra por cotações ou data legada da posição', () => {
+  const position = { wallet_id: 'w', ticker: 'BR', quantity: 10, average_price: 10, acquisition_date: '2024-01-01', asset: { currency: 'BRL' } } as PositionWithAsset
+  const result = buildMonthlyWealth([position], [
+    { ticker: 'BR', date: '2025-01-31', close: 5 },
+    { ticker: 'BR', date: '2026-09-30', close: 12 },
+  ], [], null, '2026-10-26', [trade({ transaction_date: '2026-09-15' })])
+  expect(result.map((point) => point.month)).toEqual(['2026-09', '2026-10'])
+})
+
+it('não inicia com venda órfã ou compra futura e preserva aplicação antiga válida', () => {
+  const prices = [{ ticker: 'BR', date: '2025-01-31', close: 10 }]
+  expect(buildMonthlyWealth([], prices, [], null, '2026-10-26', [trade({ type: 'sell' })])).toEqual([])
+  expect(buildMonthlyWealth([], prices, [], null, '2026-10-26', [trade({ transaction_date: '2027-01-01' })])).toEqual([])
+  const fixed = buildMonthlyWealth([], prices, [{ principal: 100, application_date: '2025-09-01' }], null, '2025-10-26')
+  expect(fixed.map((point) => point.month)).toEqual(['2025-09', '2025-10'])
+})
+
 it('reconstrói aportes, venda parcial e encerramento sem aplicar a quantidade atual ao passado', () => {
   const result = buildMonthlyWealth([], [
     { ticker: 'BR', date: '2026-08-31', close: 12 },

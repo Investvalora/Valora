@@ -25,7 +25,13 @@ export function buildMonthlyWealth(
   const ledger = new Map<string, { ticker: string; currency: HistoricalTransaction['currency']; quantity: number; cost: number }>()
   let tradeCursor = 0
   const monthSet = new Set(prices.map((row) => row.date.slice(0, 7)))
-  const firstDate = [...trades.map((row) => row.transaction_date), ...positions.map((row) => row.acquisition_date), ...fixedIncome.map((row) => row.application_date)].sort()[0]
+  // Cotações antigas não iniciam uma carteira. Quando existe razão de movimentos,
+  // ele define o início daquele ativo em vez da data legada da posição.
+  const firstDate = [...trades.filter((row) => row.type === 'buy' && Number(row.quantity) > 0 && row.transaction_date <= until).map((row) => row.transaction_date),
+    ...positions.filter((row) => !tradedKeys.has(`${row.wallet_id}:${row.ticker}`) && Number(row.quantity) > 0).map((row) => row.acquisition_date),
+    ...fixedIncome.filter((row) => Number(row.principal) > 0).map((row) => row.application_date)]
+    .filter((date): date is string => Boolean(date) && date <= until).sort()[0]
+  if (!firstDate) return []
   if (firstDate) {
     const date = new Date(`${firstDate.slice(0, 7)}-01T00:00:00Z`)
     while (date.toISOString().slice(0, 7) <= until.slice(0, 7)) {
@@ -33,7 +39,7 @@ export function buildMonthlyWealth(
       date.setUTCMonth(date.getUTCMonth() + 1)
     }
   }
-  const months = [...monthSet].sort()
+  const months = [...monthSet].filter((month) => month >= firstDate.slice(0, 7) && month <= until.slice(0, 7)).sort()
   const sorted = [...prices].sort((a, b) => a.date.localeCompare(b.date))
   const latest = new Map<string, number>()
   let cursor = 0

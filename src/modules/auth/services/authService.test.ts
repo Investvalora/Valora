@@ -6,6 +6,7 @@ vi.mock('../../../shared/services/supabaseClient', () => ({
   supabase: {
     auth: {
       signUp: vi.fn(),
+      signInWithOAuth: vi.fn(),
       resetPasswordForEmail: vi.fn(),
     },
   },
@@ -56,5 +57,16 @@ it('pede o reset para a página da origem atual', async () => {
 
   expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(signupData.email, {
     redirectTo: `${window.location.origin}/reset-password`,
+  })
+})
+
+it('inicia a autenticação Google retornando para a origem atual', async () => {
+  vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'google', url: 'https://accounts.google.com' }, error: null })
+
+  await authService.loginWithGoogle()
+
+  expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}/inicio` },
   })
 })

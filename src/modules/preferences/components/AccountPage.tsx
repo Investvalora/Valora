@@ -4,6 +4,7 @@ import { KeyRound, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { authService } from '../../auth/services/authService'
+import { PushNotificationsControl } from './PushNotificationsControl'
 
 function textValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -79,6 +80,8 @@ export function AccountPage() {
         </div>
 
         <div className="min-w-0 border-t border-white/[0.1] lg:border-t-0">
+          <PushNotificationsControl />
+
           <section className="border-b border-white/[0.1] py-6 lg:pt-0">
             <div className="flex items-center gap-2.5">
               <KeyRound className="h-4 w-4 text-white/50" strokeWidth={1.8} aria-hidden="true" />

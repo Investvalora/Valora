@@ -13,7 +13,6 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import type { Asset } from '../../portfolio/types'
 import type { Alert, AlertCondition, AlertType } from '../types'
-import { PushNotificationsControl } from './PushNotificationsControl'
 
 // ─── Formatadores ────────────────────────────────────────────────────────────
 
@@ -155,7 +154,7 @@ function AlertCard({ alert }: { alert: Alert }) {
       {isPriceTargetTriggered && (
         <div className="mt-4 rounded-xl border border-nf-purple/20 bg-nf-purple/[0.06] p-4">
           <p className="text-sm font-medium text-white">
-            🎯 Preço-alvo atingido! Deseja manter o alerta ativo para monitorar novamente?
+            Preço-alvo atingido! Deseja manter o alerta ativo para monitorar novamente?
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -600,8 +599,6 @@ export function AlertsPage() {
           </button>
         </div>
       </header>
-
-      <PushNotificationsControl />
 
       <div className="mb-4 flex items-center gap-2 md:hidden">
         <div role="tablist" aria-label="Filtrar alertas" className="grid min-w-0 flex-1 grid-cols-3 rounded-full bg-[#393939] p-0.5">

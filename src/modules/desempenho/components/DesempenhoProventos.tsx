@@ -59,14 +59,14 @@ function DividendCard({ row }: { row: DividendRow }) {
           </span>
         </div>
         <span className="shrink-0 text-[14px] font-semibold text-nf-green tabular-nums">
-          {fmtBRL(row.total_value)}
+          <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
         </span>
       </div>
 
       {/* Linha 2: 3 colunas Data ex / Valor/cota / Quantidade */}
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div>
-          <span className="block text-[10px] text-white/40">Data ex</span>
+          <span className="block text-[10px] text-white/40">{row.source === 'imported' ? 'Data COM' : 'Data ex'}</span>
           <span className="text-[12px] text-white/80 tabular-nums">{fmtDate(row.ex_date)}</span>
         </div>
         <div>
@@ -136,7 +136,7 @@ function PaidDividends() {
   const visibleRows = filteredRows.slice(0, visibleCount)
 
   function exportCSV() {
-    const headers = ['Ticker', 'Tipo', 'Data ex', 'Data pagamento', 'Valor/cota', 'Qtd', 'Total']
+    const headers = ['Ticker', 'Tipo', 'Data COM / ex', 'Data pagamento', 'Valor/cota', 'Qtd', 'Total']
     const csvRows = filteredRows.map((r) => [
       r.ticker,
       r.type,
@@ -170,7 +170,7 @@ function PaidDividends() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-xs text-white/50">Pagos considera apenas registros com data de pagamento informada até hoje, para os ativos atuais da carteira. Registros sem data ficam na outra aba; confira os créditos na corretora.</p>
+      <p className="text-xs text-white/50">O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Proventos</h2>
@@ -391,7 +391,7 @@ function PaidDividends() {
                   <tr className="bg-white/[0.04]">
                     <th className="px-3 py-2.5 text-left font-medium text-white/50">Ticker</th>
                     <th className="px-3 py-2.5 text-left font-medium text-white/50">Tipo</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Data ex</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Data COM / ex</th>
                     <th className="px-3 py-2.5 text-right font-medium text-white/50">
                       Data pagamento
                     </th>
@@ -432,7 +432,7 @@ function PaidDividends() {
                         {row.quantity}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-nf-green">
-                        {fmtBRL(row.total_value)}
+                        <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
                       </td>
                     </tr>
                   ))}

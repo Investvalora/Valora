@@ -5,6 +5,17 @@ import type { HistoricalTransaction } from './monthlyWealth'
 
 const trade = (overrides: Partial<HistoricalTransaction> = {}): HistoricalTransaction => ({ ticker: 'BR', wallet_id: 'w', transaction_date: '2026-08-01', seq: 1, type: 'buy', quantity: 10, price: 10, currency: 'BRL', ...overrides })
 
+it('avalia cripto em BRL pelo histórico USD e PTAX do mês, preservando o custo em reais', () => {
+  const trades = [trade({ ticker: 'BTC-BRL', quantity: 0.01, price: 300000 })]
+  const rates = { usd: [{ date: '2026-08-31', value: 5 }, { date: '2026-09-30', value: 6 }], macro: [] }
+  const rows = buildMonthlyWealth([], [
+    { ticker: 'BTC', date: '2026-08-31', close: 70000 },
+    { ticker: 'BTC-BRL', date: '2026-09-30', close: 400000 },
+  ], [], 99, '2026-09-30', trades, rates)
+  expect(rows.map(row => [row.totalBRL, row.investedBRL])).toEqual([[3500, 3000], [4000, 3000]])
+  expect(buildMonthlyWealth([], [{ ticker: 'BTC', date: '2026-08-31', close: 70000 }], [], 99, '2026-08-31', trades, { usd: [], macro: [] })).toEqual([])
+})
+
 it('não cria meses anteriores à primeira compra por cotações ou data legada da posição', () => {
   const position = { wallet_id: 'w', ticker: 'BR', quantity: 10, average_price: 10, acquisition_date: '2024-01-01', asset: { currency: 'BRL' } } as PositionWithAsset
   const result = buildMonthlyWealth([position], [

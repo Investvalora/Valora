@@ -110,11 +110,11 @@ export function allTransactionsQueryKey(userId: string | undefined, walletId?: s
 }
 
 /** Lista todas as transações do usuário (todos os tickers). */
-export function useAllTransactions() {
+export function useAllTransactions(walletOverride?: string) {
   const { user } = useAuth()
   const userId = user?.id
   const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
+  const walletId = walletOverride ?? selectedWallet?.id ?? ''
 
   return useQuery({
     queryKey: allTransactionsQueryKey(userId, walletId),

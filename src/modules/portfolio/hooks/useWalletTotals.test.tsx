@@ -11,6 +11,9 @@ import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import type { WealthChartFilters } from '../../dashboard/hooks/useDashboard'
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
+vi.mock('../../performance/hooks/useHistoricalReturns', () => ({ useHistoricalReturns: (period: string) => ({
+  returnPct: period === '1A' ? 0.1 : 0.21, incomplete: false, isLoading: false, isError: false, refetch: vi.fn(),
+}) }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: vi.fn() }))
 vi.mock('../services/positionService', () => ({
   normalizeTickers: (tickers: string[]) => [...new Set(tickers)].sort(),

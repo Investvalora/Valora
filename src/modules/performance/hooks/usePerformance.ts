@@ -1,3 +1,5 @@
+import { useHistoricalReturns } from './useHistoricalReturns'
+import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -9,11 +11,8 @@ import { benchmarkService } from '../services/benchmarkService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
 import {
   computeAssetRows,
-  computeMonthlyPortfolioReturns,
   computeMonthlyBenchmarkReturns,
   buildMonthlyAccumulatedSeries,
-  portfolioReturn,
-  buildIntramonthlySeries,
   buildIntramonthlyBenchmarkSeries,
   extractReturnPct,
   computeMonthlyTableData,
@@ -51,6 +50,7 @@ export function performanceQueryKey(userId: string | undefined, period: Performa
 }
 
 export interface UsePerformanceResult {
+  historyIncomplete?: boolean
   /** Série da carteira (acumulada mês a mês, base 100). */
   portfolioSeries: PerformanceSeries
   /** Séries dos benchmarks (acumuladas mês a mês, base 100). */
@@ -73,23 +73,17 @@ export interface UsePerformanceResult {
   usdRateIsFallback: boolean
 }
 
-/**
- * Hook principal da tela Rentabilidade.
- *
- * Usa cálculo **mês a mês** (estilo Investidor10):
- * - Retorno de cada mês = valorFimMês / valorFimMêsAnterior − 1
- * - Série acumulada = composição dos retornos mensais (base 100)
- * - Benchmarks seguem o mesmo algoritmo com seus valores diários
- *
- * Isso torna benchmarks e carteira independentes de datas exatas,
- * eliminando problemas de lag D+1 e fins de semana.
+/** Retorno agregado reconstruido por movimentos e cobertura historica.
+ * As posicoes atuais continuam separadas para a tabela por ativo.
  */
 export function usePerformance(period: PerformancePeriod, walletId?: string, assetType?: AssetType): UsePerformanceResult {
   const { user } = useAuth()
   const userId = user?.id
 
   // Carteira ainda carregando ('') não deve consultar o agregado de todas.
-  const effectiveWalletId = walletId
+  const { selectedWallet } = useWallets()
+  const effectiveWalletId = walletId ?? selectedWallet?.id ?? ''
+  const historical = useHistoricalReturns(period, effectiveWalletId, assetType)
 
   // 1. Série de patrimônio diário + posições snapshot + USD rate
   const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId, undefined, assetType)
@@ -101,15 +95,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   )
 
   // `since` efetivo: nunca antes da primeira compra
-  const since = useMemo(() => {
-    if (period === 'Tudo' && wealth.earliestDate) return wealth.earliestDate
-    if (wealth.earliestDate && wealth.earliestDate > periodFloor) {
-      return wealth.earliestDate
-    }
-    return periodFloor
-  }, [period, periodFloor, wealth.earliestDate])
+  const since = historical.since
 
-  // 2. Posições completas (com average_price para computeAssetRows)
   const positionsQuery = useQuery<PositionWithAsset[]>({
     queryKey: ['portfolio', 'positions', userId, effectiveWalletId],
     queryFn: () => positionService.listPositions(userId as string, effectiveWalletId),
@@ -167,7 +154,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const benchmarksQuery = useQuery({
     queryKey: ['benchmarks', period, benchmarkSince],
     queryFn: () => benchmarkService.listBenchmarks(benchmarkSince),
-    enabled: Boolean(userId) && !wealth.isLoading,
+    enabled: Boolean(userId) && !wealth.isLoading && !historical.isLoading,
     staleTime: STALE_TIME_MS,
   })
 
@@ -184,42 +171,24 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   )
   const usdRateQuery = useUSDRate({ enabled: hasInternational })
 
-  // --- Derivações client-side ---
-  //
-  // Estratégia dual:
-  // - ≥ 2 meses de dados → cálculo mês a mês acumulado (estilo Investidor10)
-  // - < 2 meses (carteira nova, período 1M dentro do mês corrente) → fallback
-  //   intra-mês: normaliza dia a dia a partir do primeiro ponto disponível
-
-  const portfolioMonthlyReturns = useMemo(
-    () => computeMonthlyPortfolioReturns(wealth.series),
-    [wealth.series],
-  )
-
-  // true quando não há meses suficientes para o cálculo MoM
+  const portfolioMonthlyReturns = historical.monthly
   const useIntramonthlyfallback = portfolioMonthlyReturns.size === 0
-
-  // Série da carteira
   const portfolioSeries = useMemo<PerformanceSeries>(() => {
-    if (useIntramonthlyfallback) {
-      return buildIntramonthlySeries(wealth.series, 'Carteira', '#3b82f6')
+    if (historical.incomplete || historical.isLoading || historical.isError) return { label: 'Carteira', color: '#3b82f6', points: [] }
+    if (!useIntramonthlyfallback) return buildMonthlyAccumulatedSeries(portfolioMonthlyReturns, 'Carteira', '#3b82f6')
+    if (historical.returnPct === null || !historical.startDate) return { label: 'Carteira', color: '#3b82f6', points: [] }
+    let factor = 100
+    const points = [{ date: historical.startDate, normalized: 100 }]
+    for (const point of historical.points.filter(p => p.date >= historical.since)) {
+      if (point.returnPct === null) return { label: 'Carteira', color: '#3b82f6', points: [] }
+      factor *= 1 + point.returnPct
+      points.push({ date: point.date, normalized: factor })
     }
-    return buildMonthlyAccumulatedSeries(portfolioMonthlyReturns, 'Carteira', '#3b82f6')
-  }, [useIntramonthlyfallback, wealth.series, portfolioMonthlyReturns])
+    return { label: 'Carteira', color: '#3b82f6', points }
+  }, [historical.incomplete, historical.isLoading, historical.isError, historical.returnPct, historical.startDate, historical.points, historical.since, useIntramonthlyfallback, portfolioMonthlyReturns])
+  const portfolioReturnPct = historical.returnPct
+  const portfolioStartDate = historical.startDate
 
-  // Retorno acumulado da carteira para os cards
-  const portfolioReturnPct = useMemo(
-    () => portfolioReturn(wealth.series),
-    [wealth.series],
-  )
-
-  // Data do primeiro ponto válido — para ancorar o fallback dos benchmarks
-  const portfolioStartDate = useMemo(() => {
-    const first = wealth.series.find((p) => p.value !== null && Number.isFinite(p.value))
-    return first?.date ?? null
-  }, [wealth.series])
-
-  // Séries dos benchmarks
   const benchmarkSeries = useMemo<PerformanceSeries[]>(() => {
     const rows = benchmarksQuery.data ?? []
 
@@ -287,17 +256,20 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
 
   // Tabela mês a mês (estilo Investidor10)
   const monthlyTableData = useMemo<MonthlyTableRow[]>(
-    () => computeMonthlyTableData(portfolioMonthlyReturns),
-    [portfolioMonthlyReturns],
+    () => computeMonthlyTableData(portfolioMonthlyReturns).map(row => ({ ...row,
+      annualReturn: [...historical.missingMonths].some(m => Number(m.slice(0, 4)) === row.year) ? null : row.annualReturn,
+      accumulatedReturn: [...historical.missingMonths].some(m => Number(m.slice(0, 4)) <= row.year) ? null : row.accumulatedReturn,
+    })),
+    [portfolioMonthlyReturns, historical.missingMonths],
   )
 
-  const isLoading =
+  const isLoading = historical.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
     dividendsQuery.isLoading ||
     benchmarksQuery.isLoading
 
-  const isError =
+  const isError = historical.isError ||
     wealth.isError ||
     positionsQuery.isError ||
     dividendsQuery.isError ||
@@ -308,6 +280,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   )
 
   const refetch = () => {
+    historical.refetch()
     void wealth.refetch()
     void positionsQuery.refetch()
     void benchmarksQuery.refetch()
@@ -315,6 +288,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   }
 
   return {
+    historyIncomplete: historical.incomplete,
     portfolioSeries,
     benchmarkSeries,
     summary,
@@ -324,8 +298,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     isError,
     error,
     refetch,
-    hasPositions: wealth.hasPositions,
-    hasHistory: wealth.hasHistory,
+    hasPositions: historical.points.length > 0 || wealth.hasPositions,
+    hasHistory: historical.points.length > 0,
     usdRateIsFallback: usdRateQuery.data?.isFallback ?? wealth.usdRateIsFallback,
   }
 }

@@ -4,6 +4,7 @@
  */
 import { lazy, Suspense, useState, useMemo } from 'react'
 import { Download, Info } from 'lucide-react'
+import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
@@ -86,7 +87,7 @@ export function DesempenhoRentabilidade() {
   const [period, setPeriod] = useState<PerformancePeriod>('Tudo')
   const [typeFilter, setTypeFilter] = useState('Todos os tipos')
 
-  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading } =
+  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete } =
     usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
 
   // Positions para obter o type do ativo (classe)
@@ -155,6 +156,7 @@ export function DesempenhoRentabilidade() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ReturnHistoryNotice incomplete={historyIncomplete} />
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Rentabilidade</h2>

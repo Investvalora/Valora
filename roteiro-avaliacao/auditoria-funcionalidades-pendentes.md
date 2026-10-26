@@ -1,5 +1,11 @@
 # Auditoria de funcionalidades pendentes — Valora
 
+## Retorno do usuário e ajuste do topo móvel — 26/10/2026
+
+- Usuário confirmou o funcionamento da troca efetiva de senha após o merge da PR #74. Validação de senha concluída.
+- Seletor de carteira do topo ocultado nas telas móveis/PWA, pois a troca por gesto já está disponível. Mantidos o período global no topo e o seletor de carteira no desktop.
+- Ajuste móvel aguarda publicação e conferência do usuário.
+
 ## Prioridades médias implementadas — 26/10/2026
 
 - Branch `codex/prioridades-medias`; aguardam revisão, merge pelo usuário e homologação em produção.

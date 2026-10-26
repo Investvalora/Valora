@@ -22,7 +22,9 @@ export function TopBar({
       {/* ── Filtros globais ── */}
       <div className="relative flex max-w-full flex-wrap items-center gap-3">
         {/* Seletor de carteira */}
-        <WalletMorphSelector />
+        <div className="hidden md:block">
+          <WalletMorphSelector />
+        </div>
 
         {/* Seletor de período */}
         <label

@@ -46,6 +46,8 @@ const CHAIN_METHODS = [
   // com "is not a function" antes de qualquer asserção.
   'in',
   'gte',
+  'lte',
+  'gt',
   'or',
   'ilike',
   'order',

@@ -7,17 +7,17 @@ import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
 import { wealthService } from '../services/wealthService'
 import { buildLastPricesMap, buildWealthSeries } from '../wealthCalculations'
 import type { WealthPeriod, WealthPoint, PositionSnapshot, PriceHistoryRow } from '../types'
+import type { AssetType } from '../../portfolio/types'
 
 /**
  * Número de dias que cada período representa.
- * "Tudo" usa 365 dias como janela máxima (AD-11 / NFR-3).
+ * "Tudo" é ancorado na primeira aquisição das posições analisadas.
  */
-const PERIOD_DAYS: Record<WealthPeriod, number> = {
+const PERIOD_DAYS: Record<Exclude<WealthPeriod, 'Tudo'>, number> = {
   '1M': 30,
   '3M': 90,
   '6M': 180,
   '1A': 365,
-  'Tudo': 365,
 }
 
 /** staleTime de 5 minutos — dados de baixa frequência (epic-3-context). */
@@ -42,7 +42,7 @@ export function wealthHistoryQueryKey(
  * Calcula a data de início do período em ISO `YYYY-MM-DD`.
  */
 function periodSince(period: WealthPeriod): string {
-  return shiftIsoDate(-PERIOD_DAYS[period])
+  return shiftIsoDate(period === 'Tudo' ? 0 : -PERIOD_DAYS[period])
 }
 
 /**
@@ -128,6 +128,7 @@ export function useWealthHistory(
   period: WealthPeriod,
   walletId?: string,
   sinceOverride?: string,
+  assetType?: AssetType,
 ): UseWealthHistoryResult {
   const { user, loading: isSessionLoading } = useAuth()
   const userId = user?.id
@@ -144,8 +145,8 @@ export function useWealthHistory(
   })
 
   const positions: PositionSnapshot[] = useMemo(
-    () => positionsQuery.data ?? [],
-    [positionsQuery.data],
+    () => (positionsQuery.data ?? []).filter((position) => !assetType || position.type === assetType),
+    [positionsQuery.data, assetType],
   )
 
   const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
@@ -161,8 +162,8 @@ export function useWealthHistory(
   // maxDate garante que se o período selecionado começar depois da primeira
   // compra, usamos o período — caso contrário ancoramos na compra.
   const since = useMemo(
-    () => (earliestDate ? maxDate(sinceOverride ?? periodFloor, earliestDate) : sinceOverride ?? periodFloor),
-    [periodFloor, earliestDate, sinceOverride],
+    () => (earliestDate ? maxDate(sinceOverride ?? (period === 'Tudo' ? earliestDate : periodFloor), earliestDate) : sinceOverride ?? periodFloor),
+    [period, periodFloor, earliestDate, sinceOverride],
   )
 
   // 2. Histórico de preços a partir do since efetivo (para a série do gráfico)

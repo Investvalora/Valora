@@ -34,21 +34,29 @@ export const dividendService = {
    * RLS de `dividends` libera SELECT apenas para `authenticated`; sem sessão
    * a resposta viria vazia.
    */
-  async listDividendsByTickers(tickers: string[], since: string): Promise<DividendRaw[]> {
+  async listDividendsByTickers(tickers: string[], since: string, completeHistory = false): Promise<DividendRaw[]> {
     if (tickers.length === 0) return []
 
     const today = toIsoDate(new Date())
 
-    const { data, error } = await supabase
-      .from('dividends')
-      .select(DIVIDEND_COLUMNS)
-      .in('ticker', tickers)
-      .or(`and(payment_date.gte.${since},payment_date.lte.${today}),and(payment_date.is.null,ex_date.gte.${since},ex_date.lte.${today})`)
-      .gt('value_per_share', 0)
-      .order('payment_date', { ascending: false, nullsFirst: false })
-      .limit(DIVIDENDS_LIMIT)
+    const rows: DividendRaw[] = []
+    for (let start = 0; ; start += DIVIDENDS_LIMIT) {
+      const query = supabase
+        .from('dividends')
+        .select(DIVIDEND_COLUMNS)
+        .in('ticker', tickers)
+        .or(`and(payment_date.gte.${since},payment_date.lte.${today}),and(payment_date.is.null,ex_date.gte.${since},ex_date.lte.${today})`)
+        .gt('value_per_share', 0)
+        .order('payment_date', { ascending: false, nullsFirst: false })
+        .order('ex_date', { ascending: false })
+        .order('ticker')
+        .order('type')
+      const { data, error } = await (completeHistory ? query.range(start, start + DIVIDENDS_LIMIT - 1) : query.limit(DIVIDENDS_LIMIT))
 
-    if (error) throw error
-    return (data ?? []) as unknown as DividendRaw[]
+      if (error) throw error
+      const page = (data ?? []) as unknown as DividendRaw[]
+      rows.push(...page)
+      if (!completeHistory || page.length < DIVIDENDS_LIMIT) return rows
+    }
   },
 }

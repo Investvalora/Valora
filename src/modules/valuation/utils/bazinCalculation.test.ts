@@ -189,6 +189,8 @@ describe('applyBazin', () => {
     const r = result.get('AAPL')!
     expect(r.annualDividend).toBeCloseTo(0.24 * rate, 4)
     expect(r.currentPrice).toBeCloseTo(219.49 * rate, 2)
+    expect(r.ceilingPriceLocal).toBeCloseTo(0.24 / minDY)
+    expect(r.ceilingPrice).toBeCloseTo((r.ceilingPriceLocal ?? 0) * rate)
     expect(r.currency).toBe('USD')
   })
 })

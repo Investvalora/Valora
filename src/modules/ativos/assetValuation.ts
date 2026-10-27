@@ -19,6 +19,7 @@ export function valueAssets(positions: PositionWithAsset[], quotes: LatestQuote[
     else invested += principal
     return {
       id: position.id, ticker: position.name, name: position.name, type: 'fixed_income', currency: 'BRL',
+      fixedIncome: { type: position.type, indexer: position.indexer, rate: Number(position.rate) },
       quantity: 1, averagePrice: principal, acquisitionDate: position.application_date,
       quote: null, quotePrice: value, marketValueBRL: Number.isFinite(value) ? value : null,
       weightPercent: null, changePercent: principal > 0 ? (value / principal - 1) * 100 : null,

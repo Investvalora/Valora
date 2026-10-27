@@ -1,8 +1,15 @@
 import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Info, ChevronLeft } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { SubTabBar } from '../../ativos/components/SubTabBar'
+import { ANALISE_TABS } from '../../analise/analiseTabs'
 import { useInsights, useDeleteInsight } from '../hooks/useInsights'
 import { NovoInsightModal } from './NovoInsightModal'
-import type { InsightRecord } from '../types'
+import { ValuationGuide } from './ValuationGuide'
+import { StrategyManager } from './StrategyManager'
+import { InvestmentCalculators } from './InvestmentCalculators'
+import type { StrategyInput } from '../hooks/useStrategies'
+import type { InsightRecord, InsightStrategy } from '../types'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
 
@@ -53,7 +60,7 @@ function MarginIndicator({
   const isOpp = margin > 0
   return (
     <span
-      className={`inline-flex items-center gap-1 font-semibold ${isOpp ? 'text-green-400' : 'text-red-400'}`}
+      className={`inline-flex items-center gap-1 font-medium ${margin === 0 ? 'text-white/60' : isOpp ? 'text-nf-green' : 'text-[#f288ba]'}`}
       aria-label={`${formatPercent(margin)} ${isOpp ? (positiveLabel ?? 'acima') : (negativeLabel ?? 'abaixo')}`}
     >
       <span aria-hidden="true">{isOpp ? '▲' : '▼'}</span>
@@ -83,8 +90,8 @@ function ExplicacaoCalculo({ insight }: { insight: InsightRecord }) {
           </p>
           <p className="text-xs text-gray-400">
             O método Bazin estima o <strong className="text-white">preço-teto</strong> — o valor máximo que
-            vale pagar por um ativo com base no dividendo que ele distribui. Se a cotação estiver
-            abaixo do teto, o ativo está numa faixa de oportunidade.
+            corresponde ao DY desejado caso os proventos se repitam. Uma cotação abaixo do teto
+            precisa ser analisada junto à sustentabilidade das distribuições.
           </p>
 
           <div className="mt-3 space-y-1.5 font-mono text-xs">
@@ -151,15 +158,15 @@ function ExplicacaoCalculo({ insight }: { insight: InsightRecord }) {
         <div className="mt-3 space-y-1.5 font-mono text-xs">
           <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
             <span className="text-gray-400">LPA (Lucro Por Ação)</span>
-            <span className="text-white">{formatBRL(lpa)}</span>
+            <span className="text-white">{lpa == null ? MISSING : `${lpa.toLocaleString('pt-BR')} ${insight.currency}`}</span>
           </div>
           <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
             <span className="text-gray-400">VPA (Valor Patrimonial Por Ação)</span>
-            <span className="text-white">{formatBRL(vpa)}</span>
+            <span className="text-white">{vpa == null ? MISSING : `${vpa.toLocaleString('pt-BR')} ${insight.currency}`}</span>
           </div>
           <div className="flex justify-between gap-4 border-b border-dark-border pb-1">
             <span className="text-gray-400">
-              Preço justo = √(22,5 × {formatBRL(lpa)} × {formatBRL(vpa)})
+              Referência em {insight.currency} = √(22,5 × {lpa ?? MISSING} × {vpa ?? MISSING}); preço exibido em BRL
             </span>
             <span className="text-white font-semibold">{formatBRL(justo)}</span>
           </div>
@@ -201,7 +208,7 @@ function InsightRow({
 }) {
   const [expanded, setExpanded] = useState(false)
 
-  const CELL = 'px-4 py-3 text-sm text-gray-200'
+  const CELL = 'px-3 py-4 text-xs text-white/80'
   const CELL_RIGHT = `${CELL} text-right`
 
   const refPrice = insight.strategy === 'bazin' ? insight.ceiling_price : insight.graham_price
@@ -222,14 +229,8 @@ function InsightRow({
             )}
           </span>
         </th>
-        <td className={CELL}>
-          <span className={`text-xs font-semibold ${strategyColor}`}>{strategyLabel}</span>
-          {insight.strategy === 'bazin' && insight.min_dy !== null && (
-            <span className="text-xs text-gray-500 ml-1">
-              DY {(insight.min_dy * 100).toFixed(0)}%
-            </span>
-          )}
-        </td>
+        <td className={CELL}><span className={`text-xs ${strategyColor}`}>{strategyLabel}</span></td>
+        <td className={CELL}>{insight.strategy === 'bazin' && insight.min_dy !== null ? `${(insight.min_dy * 100).toLocaleString('pt-BR')}%` : MISSING}</td>
         <td className={CELL_RIGHT}>{formatBRL(refPrice)}</td>
         <td className={CELL_RIGHT}>{formatBRL(insight.current_price)}</td>
         <td className={CELL_RIGHT}>
@@ -239,18 +240,11 @@ function InsightRow({
             negativeLabel={insight.strategy === 'bazin' ? 'acima do teto' : 'acima do justo'}
           />
         </td>
-        <td className={`${CELL_RIGHT} text-xs text-gray-500`}>
-          {dateFormatter.format(new Date(insight.created_at))}
-        </td>
         <td className="px-4 py-3 text-right">
           <span className="inline-flex items-center gap-2">
-            <span className="text-gray-500" aria-hidden="true">
-              {expanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </span>
+            <button type="button" aria-label={`${expanded ? 'Ocultar' : 'Ver'} cálculo de ${insight.ticker}`} aria-expanded={expanded} onClick={(event) => { event.stopPropagation(); setExpanded(!expanded) }} className="rounded p-1 text-white/40 hover:text-white" title={`Criado em ${dateFormatter.format(new Date(insight.created_at))}`}>
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
             <button
               type="button"
               disabled={isDeleting}
@@ -284,6 +278,7 @@ function InsightRow({
 function InsightsList() {
   const { data: insights = [], isLoading, isError } = useInsights()
   const deleteInsight = useDeleteInsight()
+  const [showAll, setShowAll] = useState(false)
 
   if (isLoading) {
     return <p className="text-sm text-gray-400 animate-pulse py-4">Carregando insights…</p>
@@ -305,22 +300,24 @@ function InsightsList() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-dark-border">
+    <section className="rounded-2xl border border-white/[0.08] bg-[#1b1b1b] p-5 lg:p-6">
+      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-white">{showAll ? 'Todos os insights' : 'Insights recentes'}</h2>{insights.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)} className="text-xs text-[#a0a7ff] hover:underline">{showAll ? 'Ver recentes' : 'Ver todos'} <span aria-hidden="true">›</span></button>}</div>
+      <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <caption className="sr-only">Insights salvos</caption>
-        <thead className="bg-dark-bg">
+        <thead>
           <tr>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Ativo</th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Estratégia</th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Preço de referência</th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Cotação</th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Margem</th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Criado em</th>
+            <th scope="col" className="px-3 pb-3 text-left text-[11px] font-normal text-white/40">Ativo</th>
+            <th scope="col" className="px-3 pb-3 text-left text-[11px] font-normal text-white/40">Estratégia</th>
+            <th scope="col" className="px-3 pb-3 text-left text-[11px] font-normal text-white/40">DY mínimo</th>
+            <th scope="col" className="px-3 pb-3 text-right text-[11px] font-normal text-white/40">Preço de referência</th>
+            <th scope="col" className="px-3 pb-3 text-right text-[11px] font-normal text-white/40">Cotação</th>
+            <th scope="col" className="px-3 pb-3 text-right text-[11px] font-normal text-white/40">Margem de segurança</th>
             <th scope="col" className="px-4 py-3 w-16" aria-label="Ações" />
           </tr>
         </thead>
         <tbody>
-          {insights.map((insight) => (
+          {(showAll ? insights : insights.slice(0, 5)).map((insight) => (
             <InsightRow
               key={insight.id}
               insight={insight}
@@ -330,10 +327,11 @@ function InsightsList() {
           ))}
         </tbody>
       </table>
-      <p className="px-4 py-2 text-xs text-gray-600 border-t border-dark-border">
+      </div>
+      <p className="mt-3 text-[11px] text-white/35">
         Clique em uma linha para ver como o cálculo foi feito.
       </p>
-    </div>
+    </section>
   )
 }
 
@@ -341,34 +339,47 @@ function InsightsList() {
 
 export function EstrategiasPage() {
   const [showInsightModal, setShowInsightModal] = useState(false)
+  const [insightMethod, setInsightMethod] = useState<InsightStrategy>('bazin')
+  const [strategyPreset, setStrategyPreset] = useState<{ key: number; draft: StrategyInput } | null>(null)
+  function openInsight(method: InsightStrategy) {
+    setInsightMethod(method)
+    setShowInsightModal(true)
+  }
 
   return (
-    <div className="p-8 flex flex-col gap-6 max-w-5xl mx-auto">
+    <div className="flex w-full flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
 
       {/* Cabeçalho */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <header>
+      <Link to="/analise/visao-geral" className="mb-3 inline-flex items-center gap-1 text-xs text-white/45 hover:text-white"><ChevronLeft className="h-3 w-3" />Análise</Link>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Estratégias</h1>
-          <p className="text-gray-400 text-sm">
-            Analise qualquer ativo com os métodos Bazin e Graham. Clique num insight para ver a conta.
+          <h1 className="mb-1 text-[26px] font-medium tracking-tight text-white">Estratégias</h1>
+          <p className="text-xs leading-relaxed text-white/45">
+            Crie seus critérios de análise ou compare referências de preço com Bazin e Graham.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setShowInsightModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onClick={() => openInsight('bazin')}
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#393939] px-4 py-2 text-xs text-white transition-colors hover:bg-[#484848] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff]"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Novo Insight
         </button>
       </div>
+      <SubTabBar tabs={ANALISE_TABS} mobileVariant="segmented" />
+      </header>
 
+      <StrategyManager key={strategyPreset?.key ?? 'default'} initialDraft={strategyPreset?.draft} />
+      <ValuationGuide onCalculate={openInsight} />
+      <InvestmentCalculators onUseYield={(yieldRate, parameters) => setStrategyPreset({ key: Date.now(), draft: { name: 'Preço-teto de FIIs', method: 'fii', min_dy: yieldRate, safety_discount: 0, show_in_assets: true, ...parameters } })} />
       {/* Lista de insights */}
       <InsightsList />
 
       {/* Modal */}
       {showInsightModal && (
-        <NovoInsightModal onClose={() => setShowInsightModal(false)} />
+        <NovoInsightModal initialStrategy={insightMethod} onClose={() => setShowInsightModal(false)} />
       )}
     </div>
   )

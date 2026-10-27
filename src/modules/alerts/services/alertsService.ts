@@ -1,10 +1,23 @@
 import { supabase } from '../../../shared/services/supabaseClient'
-import type { Alert, AlertCondition, AlertStatus } from '../types'
+import type { Alert, AlertCondition, AlertStatus, EditAlertPayload } from '../types'
 
 const ALERT_COLUMNS =
-  'id, user_id, type, ticker, status, title, description, last_quote_date, target_price, condition, created_at, updated_at'
+  'id, user_id, type, ticker, status, title, description, last_quote_date, target_price, condition, created_at, updated_at, ignored_at'
 
 export const alertsService = {
+  async editAlert(userId: string, alert: Pick<Alert, 'id' | 'type' | 'status'>, payload: EditAlertPayload): Promise<void> {
+    const title = payload.title.trim()
+    const description = payload.description.trim()
+    if (!title || title.length > 200 || !description || description.length > 2000) throw new Error('Preencha título e descrição válidos.')
+    const changes: Record<string, unknown> = { title, description }
+    if (alert.type === 'price_target') {
+      if (!Number.isFinite(payload.targetPrice) || payload.targetPrice! <= 0 || !['above', 'below'].includes(payload.condition ?? '')) throw new Error('Preço-alvo ou condição inválidos.')
+      Object.assign(changes, { target_price: payload.targetPrice, condition: payload.condition, last_quote_date: null })
+      if (alert.status !== 'ignorado') changes.status = 'lido'
+    }
+    const { error } = await supabase.from('alerts').update(changes).eq('id', alert.id).eq('user_id', userId).eq('type', alert.type).select('id').single()
+    if (error) throw error
+  },
   async listAlerts(userId: string): Promise<Alert[]> {
     const { data, error } = await supabase
       .from('alerts')

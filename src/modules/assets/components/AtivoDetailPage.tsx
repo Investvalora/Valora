@@ -896,7 +896,7 @@ interface TabScoreProps {
   currency: AssetCurrency
 }
 
-function TabScore({ activeScoreName, scoreValue, bazin, currency }: TabScoreProps) {
+function TabScore({ activeScoreName, scoreValue, bazin }: TabScoreProps) {
   return (
     <div className="space-y-4">
       {activeScoreName && (
@@ -930,19 +930,19 @@ function TabScore({ activeScoreName, scoreValue, bazin, currency }: TabScoreProp
               <div>
                 <p className="text-xs text-[#8f8f8f] mb-1">Dividendo 12M</p>
                 <p className="font-semibold text-white tabular-nums">
-                  {fmtMoney(bazin.annualDividend ?? null, currency)}
+                  {fmtMoney(bazin.annualDividend ?? null, 'BRL')}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-[#8f8f8f] mb-1">Preço-Teto</p>
                 <p className="font-semibold text-white tabular-nums">
-                  {fmtMoney(bazin.ceilingPrice ?? null, currency)}
+                  {fmtMoney(bazin.ceilingPrice ?? null, 'BRL')}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-[#8f8f8f] mb-1">Cotação</p>
                 <p className="font-semibold text-white tabular-nums">
-                  {fmtMoney(bazin.currentPrice ?? null, currency)}
+                  {fmtMoney(bazin.currentPrice ?? null, 'BRL')}
                 </p>
               </div>
               <div>

@@ -2,10 +2,8 @@
  * AnaliseVisaoGeral — sub-rota /analise/visao-geral.
  * Combina Score, Alertas e Proventos em três colunas, com tabela de pontuação por ativo.
  */
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Modal } from '../../../shared/components/Modal'
-import { ScoreRuleForm } from '../../score/components/ScoreRuleForm'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
@@ -24,9 +22,6 @@ import type { Alert } from '../../alerts/types'
 
 export function AnaliseVisaoGeral() {
   const navigate = useNavigate()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingRule, setEditingRule] = useState<ScoreRule | undefined>(undefined)
-  const [modalBusy, setModalBusy] = useState(false)
 
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
@@ -84,14 +79,7 @@ export function AnaliseVisaoGeral() {
   }
 
   function openEditRule(rule: ScoreRule) {
-    setEditingRule(rule)
-    setIsModalOpen(true)
-  }
-
-  function closeModal() {
-    if (modalBusy) return
-    setIsModalOpen(false)
-    setEditingRule(undefined)
+    navigate(`/analise/score/${rule.id}/editar`, { state: { returnTo: '/analise/visao-geral' } })
   }
 
   return (
@@ -361,20 +349,6 @@ export function AnaliseVisaoGeral() {
         )}
       </PanelCard>
 
-      {/* ── Modal Nova/Editar regra ── */}
-      <Modal
-        isOpen={isModalOpen}
-        title={editingRule ? 'Editar regra' : 'Nova regra de score'}
-        onClose={closeModal}
-        dismissible={!modalBusy}
-      >
-        <ScoreRuleForm
-          editingRule={editingRule}
-          onSuccess={closeModal}
-          onCancel={closeModal}
-          onBusyChange={setModalBusy}
-        />
-      </Modal>
     </div>
   )
 }

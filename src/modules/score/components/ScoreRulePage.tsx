@@ -4,7 +4,7 @@
  * - Edição (/analise/score/:id/editar): modal sobre AnaliseScore (comportamento original mantido)
  */
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { scoreRuleSchema, type ScoreRuleFormValues } from '../utils/scoreValidation'
@@ -19,6 +19,7 @@ import type { ScoreMetric, ScoreOperator, ScoreRule } from '../types'
 import { ScorePreviewPanel } from './ScorePreviewPanel'
 import { Modal } from '../../../shared/components/Modal'
 import { AnaliseScore } from '../../analise/components/AnaliseScore'
+import { AnaliseVisaoGeral } from '../../analise/components/AnaliseVisaoGeral'
 
 // ── Tokens de estilo ──────────────────────────────────────────────────────
 const INPUT_CLASS =
@@ -29,7 +30,11 @@ const ERROR_CLASS = 'text-red-400 text-[11px] mt-1'
 // ── Hook compartilhado de lógica de formulário ────────────────────────────
 function useScoreRuleForm(id?: string) {
   const navigate = useNavigate()
+  const location = useLocation()
   const isEditing = Boolean(id)
+  const returnTo = isEditing && location.state?.returnTo === '/analise/visao-geral'
+    ? '/analise/visao-geral'
+    : '/analise/score'
 
   const { data: rules = [], isLoading: rulesLoading } = useScoreRules()
   const createRule = useCreateScoreRule()
@@ -94,7 +99,7 @@ function useScoreRuleForm(id?: string) {
       } else {
         await createRule.mutateAsync(buildPayload(values))
       }
-      navigate('/analise/score')
+      navigate(returnTo)
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
       console.error(err)
@@ -121,7 +126,7 @@ function useScoreRuleForm(id?: string) {
     watchedName, watchedMetric, watchedOperator, watchedMin, watchedMax, watchedPoints,
     isBetween, existingRulesInScore,
     onSubmit, onSubmitAndAddAnother,
-    navigate, setValue,
+    navigate, returnTo, setValue,
   }
 }
 
@@ -429,6 +434,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
   const state = useScoreRuleForm(id)
   const [isOpen, setIsOpen] = useState(true)
   const navigationTimer = useRef<number | null>(null)
+  const BackgroundPage = state.returnTo === '/analise/visao-geral' ? AnaliseVisaoGeral : AnaliseScore
 
   useEffect(() => () => {
     if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current)
@@ -437,13 +443,13 @@ function ScoreRuleEditModal({ id }: { id: string }) {
   function finishAndReturn() {
     if (navigationTimer.current !== null) return
     setIsOpen(false)
-    navigationTimer.current = window.setTimeout(() => state.navigate('/analise/score'), 300)
+    navigationTimer.current = window.setTimeout(() => state.navigate(state.returnTo), 300)
   }
 
   if (state.rulesLoading) {
     return (
       <>
-        <AnaliseScore />
+        <BackgroundPage />
         <Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}>
           <p className="py-8 text-center text-sm text-white/50">Carregando regra…</p>
         </Modal>
@@ -454,7 +460,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
   if (!state.editingRule) {
     return (
       <>
-        <AnaliseScore />
+        <BackgroundPage />
         <Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}>
           <p className="py-8 text-center text-sm text-white/50">Regra não encontrada.</p>
         </Modal>
@@ -464,7 +470,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
 
   return (
     <>
-      <AnaliseScore />
+      <BackgroundPage />
       <Modal
         isOpen
         title="Editar regra de score"

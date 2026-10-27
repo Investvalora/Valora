@@ -109,7 +109,8 @@ export function applyBazin(
 
     const margin = calcMargin(ceilingPrice, currentPrice)
 
-    result.set(ticker, { ticker, currency, annualDividend, ceilingPrice, currentPrice, margin, hasData })
+    const ceilingPriceLocal = calcBazinCeiling(annualDividendLocal, minDY)
+    result.set(ticker, { ticker, currency, annualDividend, ceilingPrice, ceilingPriceLocal, currentPrice, margin, hasData })
   }
 
   return result

@@ -11,6 +11,23 @@ import { alertsService } from './alertsService'
 beforeEach(() => resetSupabaseMock())
 
 describe('alertsService', () => {
+  it('edita preço-alvo somente na conta e tipo corretos e reinicia monitoramento', async () => {
+    supabaseMock.on('alerts', () => ({ data: { id: 'a' }, error: null }))
+    await alertsService.editAlert('u', { id: 'a', type: 'price_target', status: 'novo' }, { title: ' Teto ', description: ' Nova condição ', targetPrice: 12.5, condition: 'below' })
+    expect(supabaseMock.callArgs('alerts', 'update')).toEqual([[{ title: 'Teto', description: 'Nova condição', target_price: 12.5, condition: 'below', last_quote_date: null, status: 'lido' }]])
+    expect(supabaseMock.callArgs('alerts', 'eq')).toEqual([['id', 'a'], ['user_id', 'u'], ['type', 'price_target']])
+  })
+  it('editar ignorado não reativa nem altera data de exclusão', async () => {
+    supabaseMock.on('alerts', () => ({ data: { id: 'a' }, error: null }))
+    await alertsService.editAlert('u', { id: 'a', type: 'overvalued', status: 'ignorado' }, { title: 'Teto', description: 'Revisar', targetPrice: 12.5, condition: 'below' })
+    expect(supabaseMock.callArgs('alerts', 'update')).toEqual([[{ title: 'Teto', description: 'Revisar' }]])
+  })
+  it('rejeita campos vazios e preços não finitos antes de escrever', async () => {
+    const alert = { id: 'a', type: 'price_target' as const, status: 'lido' as const }
+    await expect(alertsService.editAlert('u', alert, { title: ' ', description: 'Texto' })).rejects.toThrow()
+    await expect(alertsService.editAlert('u', alert, { title: 'Teto', description: 'Texto', targetPrice: Infinity, condition: 'below' })).rejects.toThrow()
+    expect(supabaseMock.callArgs('alerts', 'update')).toEqual([])
+  })
   it('atualiza status somente quando a linha do usuário existe', async () => {
     supabaseMock.on('alerts', () => ({ data: { id: 'alert-1' }, error: null }))
 

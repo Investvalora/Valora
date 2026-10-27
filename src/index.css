@@ -264,3 +264,21 @@ body {
   mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
 }
+
+/* Barra nativa de apoio; o controle superior permanece visível em tabelas longas. */
+.assets-table-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #626262 #222222;
+}
+.assets-table-scroll::-webkit-scrollbar {
+  display: block;
+  height: 12px;
+}
+.assets-table-scroll::-webkit-scrollbar-track {
+  background: #222222;
+}
+.assets-table-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid #222222;
+  border-radius: 10px;
+  background: #626262;
+}

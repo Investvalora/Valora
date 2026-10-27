@@ -5,6 +5,9 @@
 import { ChevronDown } from 'lucide-react'
 import type { PositionRow, AssetType } from '../../portfolio/types'
 import { fmtMoney, fmtPct } from '../utils/fmt'
+import type { ValuationStrategy } from '../../valuation/hooks/useStrategies'
+import { StrategyValue } from '../../valuation/components/StrategyValue'
+import { strategyAppliesTo } from '../../valuation/utils/strategyAssetTypes'
 
 /** Rótulo curto por tipo de ativo (mesmo mapa de AtivosLancamentos). */
 const ASSET_TYPE_SHORT: Partial<Record<AssetType, string>> = {
@@ -42,6 +45,7 @@ export interface AssetGroupCardProps {
   rows: PositionRow[]
   isExpanded: boolean
   onToggle: () => void
+  strategies?: ValuationStrategy[]
 }
 
 export function AssetGroupCard({
@@ -53,6 +57,7 @@ export function AssetGroupCard({
   rows,
   isExpanded,
   onToggle,
+  strategies = [],
 }: AssetGroupCardProps) {
   const positiveVariation = variationPct !== null && variationPct >= 0
 
@@ -124,6 +129,7 @@ export function AssetGroupCard({
                     {row.name ?? shortLabel}
                   </span>
                   {row.score !== undefined && <span className="text-[11px] text-nf-blue">Meu score: {row.score === null ? '—' : row.score}</span>}
+                  {strategies.filter((strategy) => strategy.show_in_assets && strategyAppliesTo(strategy, row.type)).map((strategy) => <span key={strategy.id} className="text-[11px] text-white/60">{strategy.name}: <StrategyValue strategy={strategy} row={row} /></span>)}
                 </div>
 
                 {/* Valor atual */}

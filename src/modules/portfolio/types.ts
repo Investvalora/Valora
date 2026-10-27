@@ -221,6 +221,8 @@ export interface PositionSort {
  * zero é uma afirmação sobre o patrimônio, ausência é uma lacuna.
  */
 export interface PositionRow {
+  /** Identidade do produto para agrupar lotes sem alterar seus lançamentos. */
+  fixedIncome?: { type: FixedIncomeType; indexer: FixedIncomeIndexer; rate: number }
   id: string
   ticker: string
   name: string | null

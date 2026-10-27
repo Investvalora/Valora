@@ -14,6 +14,7 @@ import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import type { Asset } from '../../portfolio/types'
 import type { Alert, AlertCondition, AlertType } from '../types'
 import { PushNotificationsControl } from './PushNotificationsControl'
+import { EditAlertButton } from './EditAlertButton'
 
 // ─── Formatadores ────────────────────────────────────────────────────────────
 
@@ -150,6 +151,8 @@ function AlertCard({ alert }: { alert: Alert }) {
 
       <p className="mt-2 text-[12px] leading-snug text-zinc-300 md:text-sm">{alert.description}</p>
       <p className="mt-2 text-[11px] text-nf-muted md:text-xs">Criado em {formatDate(alert.created_at)}</p>
+      <div className="mt-3"><EditAlertButton alert={alert} /></div>
+      {isIgnored && <p className="mt-2 text-xs text-white/45">Exclusão automática após 3 dias de ignorado.</p>}
 
       {/* Ações para alertas price_target disparados */}
       {isPriceTargetTriggered && (

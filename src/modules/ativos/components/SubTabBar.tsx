@@ -23,16 +23,17 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
   return (
     <div
       className={segmented
-        ? 'relative grid w-full grid-cols-3 border-b border-white/[0.08] md:flex md:w-auto md:gap-6 md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        ? 'relative grid w-full border-b border-white/[0.08] md:flex md:w-auto md:gap-6 md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         : 'flex gap-6 overflow-x-auto border-b border-white/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}
       role="tablist"
+      style={segmented ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` } : undefined}
     >
       {segmented && (
         <span
           data-testid="subtab-selection-indicator"
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-px left-0 h-0.5 w-1/3 rounded-full bg-nf-blue transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:hidden"
-          style={{ transform: `translateX(${activeIndex * 100}%)` }}
+          className="pointer-events-none absolute -bottom-px left-0 h-0.5 rounded-full bg-nf-blue transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:hidden"
+          style={{ width: `${100 / tabs.length}%`, transform: `translateX(${activeIndex * 100}%)` }}
         />
       )}
       {tabs.map(({ label, to }) => (

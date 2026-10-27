@@ -1,15 +1,22 @@
+import { useHistoricalReturns } from '../../performance/hooks/useHistoricalReturns'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useWalletTotals } from '../../portfolio/hooks/useWalletTotals'
+import { buildMonthlyWealth } from '../monthlyWealth'
+import { transactionsService } from '../../portfolio/services/transactionsService'
+import { wealthService } from '../../wealth/services/wealthService'
+import { historicalRatesService } from '../services/historicalRatesService'
+import { fixedIncomePrincipalAt } from '../historicalValuation'
+import { useFixedIncomeHistory } from '../../portfolio/hooks/useFixedIncomeHistory'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
-import { dividendService } from '../../dividends/services/dividendService'
+import { useDividends } from '../../dividends/hooks/useDividends'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
-import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
-import type { PositionRow, AssetClassSlice } from '../../portfolio/types'
-import type { PositionSnapshot } from '../../wealth/types'
+import type { AssetClassSlice } from '../../portfolio/types'
+import type { AssetType } from '../../portfolio/types'
 
 const STALE_TIME_MS = 5 * 60 * 1000
 
@@ -33,53 +40,8 @@ export function aggregateMonthly(
     .map(([month, value]) => ({ month, value }))
 }
 
-/** Constrói PositionRow[] mínimos para deriveComposition (renda variável). */
-function buildRowsForComposition(
-  positions: PositionSnapshot[],
-  lastPricesMap: Map<string, number>,
-  usdRate: number,
-): { rows: PositionRow[]; totalBRL: number } {
-  let totalBRL = 0
-
-  const rows: PositionRow[] = positions.map((pos) => {
-    const close = lastPricesMap.get(pos.ticker)
-    let marketValueBRL: number | null = null
-
-    if (close !== undefined && Number.isFinite(close)) {
-      const needsConversion =
-        pos.currency === 'USD' &&
-        pos.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.type)
-      const priceInBRL = needsConversion ? close * usdRate : close
-      marketValueBRL = priceInBRL * pos.quantity
-      if (!Number.isFinite(marketValueBRL)) marketValueBRL = null
-    }
-
-    if (marketValueBRL !== null) totalBRL += marketValueBRL
-
-    return {
-      id: pos.ticker,
-      ticker: pos.ticker,
-      name: null,
-      currency: pos.currency,
-      type: pos.type,
-      quantity: pos.quantity,
-      averagePrice: 0,
-      acquisitionDate: '',
-      quote: null,
-      quotePrice: Number.NaN,
-      marketValueBRL,
-      weightPercent: null,
-      changePercent: null,
-      isStaleQuote: false,
-      usesUSDRate: pos.currency === 'USD',
-    } satisfies PositionRow
-  })
-
-  return { rows, totalBRL }
-}
-
 export interface DashboardData {
+  historyIncomplete?: boolean
   /** Patrimônio total atual em BRL (renda variável + renda fixa). `null` sem cotações. */
   totalPatrimonioBRL: number | null
   /** Custo total: preço médio × qtd (renda variável) + principal (renda fixa). */
@@ -92,7 +54,7 @@ export interface DashboardData {
   proventos12mBRL: number | null
   /** Variação % do patrimônio nos últimos 12M (série histórica). */
   variacaoPct: number | null
-  /** Rentabilidade Total = (patrimônio - custo) / custo. Sempre disponível. */
+  /** Retorno histórico desde o início, com a mesma fórmula de Desempenho. */
   rentabilidadeTotalPct: number | null
   /** Série mensal para o gráfico de barras (desde o início da carteira). */
   monthlySeries: Array<{ month: string; totalBRL: number | null; investedBRL: number | null }>
@@ -103,17 +65,51 @@ export interface DashboardData {
   refetch: () => void
 }
 
-export function useDashboard(walletId?: string): DashboardData {
+export interface WealthChartFilters {
+  from?: string
+  to?: string
+  type?: AssetType | 'all'
+}
+
+export function useDashboard(walletId?: string, chartFilters?: WealthChartFilters): DashboardData {
   const { user } = useAuth()
   const userId = user?.id
 
   // ── Série histórica de renda variável ────────────────────────────────────
-  // Período "Tudo" (365 dias) — mostra o máximo de histórico disponível
-  const wealth = useWealthHistory('Tudo', walletId)
+  // Histórico completo para o gráfico; métricas usam períodos independentes do filtro.
+  const current = useWalletTotals()
+  const wealth = useWealthHistory('Tudo', walletId, chartFilters?.from)
+  const performanceHistory = useHistoricalReturns('Tudo', walletId)
+  const annualHistory = useHistoricalReturns('1A', walletId)
+  const transactionsQuery = useQuery({
+    queryKey: ['portfolio', 'transactions-all', userId, walletId],
+    queryFn: () => transactionsService.listAll(userId!, walletId),
+    enabled: Boolean(userId) && walletId !== '',
+    staleTime: STALE_TIME_MS,
+  })
+  const historicalAssets = useQuery({
+    queryKey: ['dashboard', 'historical-assets', [...new Set((transactionsQuery.data ?? []).map((row) => row.ticker))].sort()],
+    queryFn: async () => Promise.all([...new Set((transactionsQuery.data ?? []).map((row) => row.ticker))].map((ticker) => positionService.findAssetByTicker(ticker))),
+    enabled: transactionsQuery.isSuccess,
+    staleTime: STALE_TIME_MS,
+  })
+  const historicalPrices = useQuery({
+    queryKey: ['dashboard', 'historical-prices', userId, walletId, transactionsQuery.dataUpdatedAt],
+    queryFn: () => {
+      const trades = (transactionsQuery.data ?? []).filter((row) => row.type === 'buy' || row.type === 'sell')
+      const first = trades.map((row) => row.transaction_date).sort()[0]
+      const tickers = [...new Set(trades.flatMap(row => row.ticker.endsWith('-BRL')
+        ? [row.ticker, row.ticker.slice(0, -4)] : [row.ticker]))]
+      return first ? wealthService.listPriceHistory(tickers, first) : Promise.resolve([])
+    },
+    enabled: transactionsQuery.isSuccess,
+    staleTime: STALE_TIME_MS,
+  })
 
   // ── Renda fixa ───────────────────────────────────────────────────────────
   const fi = useFixedIncomePositions(walletId)
-  const fiTotalBRL = fi.totalBRL
+  const fiHistory = useFixedIncomeHistory(walletId)
+  const historicalFixed = useMemo(() => (fiHistory.data?.positions ?? []).map((position) => ({ ...position, events: (fiHistory.data?.events ?? []).filter((event) => event.position_id === position.id) })), [fiHistory.data])
   const fiPrincipalBRL = useMemo(
     () => fi.rows.reduce((sum, r) => sum + r.principal, 0),
     [fi.rows],
@@ -127,75 +123,55 @@ export function useDashboard(walletId?: string): DashboardData {
     staleTime: STALE_TIME_MS,
   })
   const positions = useMemo(() => positionsQuery.data ?? [], [positionsQuery.data])
+  const historyFrom = [...positions.map((row) => row.acquisition_date), ...(transactionsQuery.data ?? []).map((row) => row.transaction_date), ...historicalFixed.map((row) => row.application_date)].sort()[0]
+  const historyTo = chartFilters?.to && chartFilters.to < new Date().toISOString().slice(0, 10) ? chartFilters.to : new Date().toISOString().slice(0, 10)
+  const rateFrom = historyFrom ? shiftIsoDate(-10, new Date(`${historyFrom}T12:00:00Z`)) : historyTo
+  const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD' || row.asset?.type === 'crypto') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD' || asset?.type === 'crypto')
+  const historicalRates = useQuery({
+    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0],
+    queryFn: async () => {
+      const [usd, macro] = await Promise.all([
+        hasHistoricalUsd ? historicalRatesService.usd(rateFrom, historyTo) : Promise.resolve([]),
+        historicalFixed.length ? historicalRatesService.macro(rateFrom, historyTo) : Promise.resolve([]),
+      ])
+      return { usd, macro }
+    },
+    enabled: Boolean(userId) && Boolean(historyFrom) && rateFrom <= historyTo && positionsQuery.isSuccess && transactionsQuery.isSuccess && historicalAssets.isSuccess && fiHistory.isSuccess,
+    staleTime: 60 * 60 * 1000,
+  })
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
-  const tickers = useMemo(() => positions.map((p) => p.ticker).sort(), [positions])
 
   // Sempre busca os últimos 12 meses completos — independente de earliestDate,
   // que pode ser recente (set/26), enquanto dividendos podem ter sido pagos
   // em dez/25 para ativos que o usuário tinha antes de cadastrar no Valora.
-  const sinceProventos = useMemo(() => shiftIsoDate(-365), [])
 
-  const dividendsQuery = useQuery({
-    queryKey: ['dashboard', 'dividends-12m', userId, walletId, tickers],
-    queryFn: () => dividendService.listDividendsByTickers(tickers, sinceProventos),
-    enabled: Boolean(userId) && tickers.length > 0,
-    staleTime: STALE_TIME_MS,
-  })
+  const dividendsQuery = useDividends('1A', 'paid', walletId)
 
   // ── Patrimônio atual ──────────────────────────────────────────────────────
-  // Calculado diretamente dos últimos preços (lastPricesMap) + renda fixa.
-  // NÃO usa o último ponto da série histórica para evitar distorção por gaps.
+  // Mesma consulta e cálculo do seletor. Histórico fica restrito ao gráfico.
   const totalPatrimonioBRL = useMemo(() => {
-    const usdRate = wealth.usdRate || 5
-    let total = 0
-    let hasAny = false
-
-    for (const pos of wealth.positions) {
-      const close = wealth.lastPricesMap.get(pos.ticker)
-      if (close === undefined || !Number.isFinite(close) || close <= 0) continue
-
-      const needsConversion =
-        pos.currency === 'USD' &&
-        pos.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.type)
-
-      const priceInBRL = needsConversion ? close * usdRate : close
-      const value = priceInBRL * pos.quantity
-
-      if (Number.isFinite(value) && value > 0) {
-        total += value
-        hasAny = true
-      }
-    }
-
-    if (fiTotalBRL > 0) {
-      total += fiTotalBRL
-      hasAny = true
-    }
-
-    return hasAny ? total : null
-  }, [wealth.positions, wealth.lastPricesMap, wealth.usdRate, fiTotalBRL])
-
+    if (walletId === '' || current.isLoading || current.isError) return null
+    if (walletId !== undefined) return current.totals.get(walletId) ?? (current.totals.has(walletId) ? null : 0)
+    const values = [...current.totals.values()]
+    return values.some((value) => value === null) ? null : values.reduce<number>((sum, value) => sum + (value ?? 0), 0)
+  }, [walletId, current.totals, current.isLoading, current.isError])
   // ── Valor investido ───────────────────────────────────────────────────────
   const valorInvestidoBRL = useMemo(() => {
-    const usdRate = wealth.usdRate || 5
+    const usdRate = current.usdRate
     let total = 0
 
     for (const pos of positions) {
       const currency = pos.asset?.currency ?? 'BRL'
-      const needsConversion =
-        currency === 'USD' &&
-        pos.asset?.type !== null &&
-        (INTERNATIONAL_TYPES as readonly string[]).includes(pos.asset?.type ?? '')
-      const rate = needsConversion ? usdRate : 1
+      if (currency === 'USD' && usdRate === null) return null
+      const rate = currency === 'USD' ? usdRate! : 1
       total += Number(pos.average_price) * Number(pos.quantity) * rate
     }
 
     total += fiPrincipalBRL
 
     return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, wealth.usdRate, fiPrincipalBRL])
+  }, [positions, current.usdRate, fiPrincipalBRL])
 
   // ── Ganho de capital ──────────────────────────────────────────────────────
   const ganhoCapitalBRL = useMemo(() => {
@@ -205,14 +181,9 @@ export function useDashboard(walletId?: string): DashboardData {
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
   const proventos12mBRL = useMemo(() => {
-    const rawRows = dividendsQuery.data ?? []
-    const qtyMap = new Map(positions.map((p) => [p.ticker, Number(p.quantity)]))
-    const total = rawRows.reduce((acc, r) => {
-      const qty = qtyMap.get(r.ticker) ?? 0
-      return acc + Number(r.value_per_share) * qty
-    }, 0)
+    const total = dividendsQuery.rows.reduce((acc, row) => acc + row.total_value, 0)
     return total > 0 ? total : null
-  }, [dividendsQuery.data, positions])
+  }, [dividendsQuery.rows])
 
   // ── Lucro total = ganho de capital + proventos ────────────────────────────
   const lucroTotalBRL = useMemo(() => {
@@ -221,102 +192,95 @@ export function useDashboard(walletId?: string): DashboardData {
   }, [ganhoCapitalBRL, proventos12mBRL])
 
   // ── Variação % 12M ───────────────────────────────────────────────────────
-  // Retorno da série histórica a partir de latestDate (ou earliestDate).
-  // Usa 1 ou mais pontos — não exige 12 meses cheios. Se a carteira tem
-  // só 1 dia de dados, compara o patrimônio atual com esse único ponto.
-  const variacaoPct = useMemo(() => {
-    if (totalPatrimonioBRL === null) return null
+  // Mesma série e fórmula usadas por Desempenho em cada período.
+  const variacaoPct = annualHistory.returnPct === null ? null : annualHistory.returnPct * 100
+  const rentabilidadeTotalPct = performanceHistory.returnPct === null ? null : performanceHistory.returnPct * 100
 
-    const anchor = wealth.latestDate ?? wealth.earliestDate
-    if (!anchor) return null
-
-    const validFromAnchor = wealth.series.filter(
-      (p) => p.value !== null && p.value > 0 && p.date >= anchor,
-    )
-
-    if (validFromAnchor.length === 0) return null
-
-    const first = validFromAnchor[0].value!
-    if (first <= 0) return null
-    return ((totalPatrimonioBRL - first) / first) * 100
-  }, [totalPatrimonioBRL, wealth.series, wealth.latestDate, wealth.earliestDate])
-
-  // ── Rentabilidade Total ───────────────────────────────────────────────────
-  // (patrimônio atual - custo total) / custo total
-  // Sempre disponível quando há patrimônio e custo.
-  const rentabilidadeTotalPct = useMemo(() => {
-    if (totalPatrimonioBRL === null || valorInvestidoBRL === null || valorInvestidoBRL <= 0) return null
-    return ((totalPatrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalPatrimonioBRL, valorInvestidoBRL])
-
-  // ── Série mensal para o gráfico ───────────────────────────────────────────
-  // Filtra por latestDate para evitar barras com patrimônio parcial.
-  // Se não há pontos após latestDate (série carregando ou carteira de 1 dia),
-  // cai de volta para earliestDate como âncora.
   const monthlySeries = useMemo(() => {
-    const monthly = aggregateMonthly(wealth.series)
+    const type = chartFilters?.type ?? 'all'
+    const chartPositions = positions.filter((position) => type === 'all' || position.asset?.type === type)
+    const chartFixed = type === 'all' || type === 'fixed_income' ? historicalFixed : []
+    const assets = new Map((historicalAssets.data ?? []).filter((asset) => asset !== null).map((asset) => [asset.ticker, asset]))
+    const trades = (transactionsQuery.data ?? []).filter((trade) => type === 'all' || assets.get(trade.ticker)?.type === type).map((trade) => ({ ...trade, currency: assets.get(trade.ticker)?.currency ?? null }))
+    const prices = [...(wealth.priceRows ?? []), ...(historicalPrices.data ?? [])].filter((price) => !chartFilters?.to || price.date <= chartFilters.to)
+    const monthly = buildMonthlyWealth(chartPositions, prices, chartFixed, current.usdRate, historyTo, trades, historicalRates.data ?? { usd: [], macro: [] })
+    // O mês em andamento acompanha o mesmo patrimônio atualizado do resumo.
+    // O histórico pode terminar antes da última cotação ou conter dias parciais.
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    const today = new Date().toISOString().slice(0, 10)
+    const includeCurrent = (!chartFilters?.from || chartFilters.from <= today) && (!chartFilters?.to || chartFilters.to >= today)
+    const ids = new Set(chartPositions.map((position) => position.id))
+    const chartRows = current.rows.filter((row) => ids.has(row.id))
+    const rateMissing = chartPositions.some((position) => position.asset?.currency === 'USD') && current.usdRate === null
+    const filteredTotal = current.isLoading || current.isError || chartRows.some((row) => row.marketValueBRL === null) || rateMissing
+      ? null
+      : chartRows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0) + fi.rows.filter(() => type === 'all' || type === 'fixed_income').reduce((sum, row) => sum + (row.currentValue ?? row.principal), 0)
+    const chartTotal = type === 'all' ? totalPatrimonioBRL : filteredTotal
+    const chartInvested = type === 'all' ? valorInvestidoBRL : rateMissing ? null : chartPositions.reduce((sum, position) => sum + Number(position.quantity) * Number(position.average_price) * (position.asset?.currency === 'USD' ? current.usdRate! : 1), 0) + chartFixed.reduce((sum, row) => sum + fixedIncomePrincipalAt(row, today), 0)
+    if (includeCurrent && chartTotal !== null && chartTotal > 0) {
+      const currentPoint = monthly.find((point) => point.month === currentMonth)
+      if (currentPoint) {
+        currentPoint.totalBRL = chartTotal
+        currentPoint.investedBRL = chartInvested
+      } else monthly.push({ month: currentMonth, totalBRL: chartTotal, investedBRL: chartInvested })
+    }
     if (monthly.length === 0) return []
 
-    const investedBRL = valorInvestidoBRL
-
-    const toPoints = (data: typeof monthly) =>
-      data.map(({ month, value }) => ({
-        month,
-        totalBRL: value,
-        investedBRL: value !== null && investedBRL !== null
-          ? Math.min(investedBRL, value)
-          : investedBRL,
-      }))
-
-    // Tenta filtrar pelo mês da última aquisição (carteira completa)
-    const anchor = wealth.latestDate ?? wealth.earliestDate
-    const anchorMonth = anchor ? anchor.slice(0, 7) : null
-
-    if (anchorMonth) {
-      const filtered = monthly.filter(({ month }) => month >= anchorMonth)
-      if (filtered.length > 0) return toPoints(filtered)
-    }
-
-    // Fallback: usa todos os pontos disponíveis
-    return toPoints(monthly)
-  }, [wealth.series, wealth.latestDate, wealth.earliestDate, valorInvestidoBRL])
+    return monthly.filter((point) => (!chartFilters?.from || point.month >= chartFilters.from.slice(0, 7)) && (!chartFilters?.to || point.month <= chartFilters.to.slice(0, 7))).map((point) => ({
+      ...point,
+      investedBRL: point.totalBRL !== null && point.investedBRL !== null
+        ? Math.min(point.investedBRL, point.totalBRL)
+        : point.investedBRL,
+    }))
+  }, [positions, wealth.priceRows, transactionsQuery.data, historicalAssets.data, historicalPrices.data, historicalRates.data, historyTo, historicalFixed, fi.rows, current.rows, current.usdRate, current.isLoading, current.isError, valorInvestidoBRL, totalPatrimonioBRL, chartFilters?.from, chartFilters?.to, chartFilters?.type])
 
   // ── Composição para pizza ─────────────────────────────────────────────────
-  // Usa lastPricesMap diretamente (não a série histórica) para garantir que
-  // todos os ativos com cotação aparecem na composição.
+  // Usa as mesmas posições e cotações do patrimônio atual.
   const compositionSlices = useMemo(() => {
-    if (wealth.positions.length === 0) return []
-    const usdRate = wealth.usdRate || 5
-    const { rows, totalBRL } = buildRowsForComposition(
-      wealth.positions,
-      wealth.lastPricesMap,
-      usdRate,
-    )
-    if (totalBRL <= 0) return []
-    const derived = deriveComposition(rows, totalBRL)
-    return derived.slices
-  }, [wealth.positions, wealth.lastPricesMap, wealth.usdRate])
-
+    const ids = new Set(current.positions.filter((position) => walletId === undefined || position.wallet_id === walletId).map((position) => position.id))
+    const rows = current.rows.filter((row) => ids.has(row.id))
+    const total = rows.reduce((sum, row) => sum + (row.marketValueBRL ?? 0), 0)
+    return total > 0 ? deriveComposition(rows, total).slices : []
+  }, [current.positions, current.rows, walletId])
   // ── Estado ────────────────────────────────────────────────────────────────
   const isLoading =
+    performanceHistory.isLoading || annualHistory.isLoading ||
+    fiHistory.isLoading ||
+    historicalRates.isLoading ||
+    transactionsQuery.isLoading || historicalAssets.isLoading || historicalPrices.isLoading ||
+    current.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
     dividendsQuery.isLoading ||
     fi.isLoading
 
   const isError =
+    performanceHistory.isError || annualHistory.isError ||
+    fiHistory.isError ||
+    historicalRates.isError ||
+    transactionsQuery.isError || historicalAssets.isError || historicalPrices.isError ||
+    current.isError ||
     wealth.isError ||
     positionsQuery.isError ||
     dividendsQuery.isError ||
     fi.isError
 
   const refetch = () => {
+    performanceHistory.refetch()
+    annualHistory.refetch()
+    void fiHistory.refetch()
+    void historicalRates.refetch()
+    void transactionsQuery.refetch()
+    void historicalAssets.refetch()
+    void historicalPrices.refetch()
+    current.refetch()
     wealth.refetch()
     void positionsQuery.refetch()
     void dividendsQuery.refetch()
   }
 
   return {
+    historyIncomplete: performanceHistory.incomplete || annualHistory.incomplete,
     totalPatrimonioBRL,
     valorInvestidoBRL,
     ganhoCapitalBRL,

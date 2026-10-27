@@ -1,3 +1,5 @@
+import { AssetValuationNotice } from './AssetValuationNotice'
+import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
  * AtivosLancamentos — sub-rota /ativos/lancamentos
  *
@@ -7,18 +9,17 @@
 import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
+import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
-import { useUSDRate } from '../../../shared/hooks/useUSDRate'
+import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { useAllTransactions, buildMonthlyAportes } from '../../portfolio/hooks/useTransactions'
 import { useDeleteTransaction } from '../../portfolio/hooks/useTransactions'
-import { derivePositionRows } from '../../portfolio/positionRows'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
+import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import {
   ASSET_CLASS_LABEL,
   ASSET_CLASS_ORDER,
@@ -393,11 +394,8 @@ export function AtivosLancamentos() {
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ─────────────────────────────────────────────────────────────────
-  const { data: positions = [] } = usePositions(walletId)
-  const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
-  const { data: quotes = [] } = useLatestQuotes(tickers)
-  const { data: usdRateData } = useUSDRate()
-  const usdRate = usdRateData?.rate ?? 5
+  const { allPositions, positions, tickers, patrimonioBRL, valorInvestidoBRL, assetCount, isLoading, isError, complete } = useAtivosValuation(walletId)
+  const { query, types } = useAssetFilters()
 
   const quantityByTicker = useMemo(() => {
     const m = new Map<string, number>()
@@ -415,28 +413,10 @@ export function AtivosLancamentos() {
   } = useAllTransactions()
 
   // ── Derivação KPIs ─────────────────────────────────────────────────────────
-  const { rows, totalBRL } = useMemo(
-    () => derivePositionRows({ positions, quotes, usdRate }),
-    [positions, quotes, usdRate],
-  )
-
-  const valorInvestidoBRL = useMemo(() => {
-    if (positions.length === 0) return null
-    let total = 0
-    for (const p of positions) {
-      const qty = Number(p.quantity)
-      const avgPrice = Number(p.average_price)
-      const currency = p.asset?.currency ?? 'BRL'
-      const rate = currency === 'USD' ? usdRate : 1
-      total += qty * avgPrice * rate
-    }
-    return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, usdRate])
-
   const ganhoCapitalBRL = useMemo(() => {
-    if (totalBRL <= 0 || valorInvestidoBRL === null) return null
-    return totalBRL - valorInvestidoBRL
-  }, [totalBRL, valorInvestidoBRL])
+    if (patrimonioBRL === null || valorInvestidoBRL === null) return null
+    return patrimonioBRL - valorInvestidoBRL
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
@@ -445,9 +425,9 @@ export function AtivosLancamentos() {
   }, [dividendTotalsByTicker])
 
   const rentabilidadePct = useMemo(() => {
-    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || totalBRL <= 0) return null
-    return ((totalBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalBRL, valorInvestidoBRL])
+    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || patrimonioBRL === null) return null
+    return ((patrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   // ── Resumo popover ─────────────────────────────────────────────────────────
   const [isResumoOpen, setIsResumoOpen] = useState(false)
@@ -465,7 +445,7 @@ export function AtivosLancamentos() {
       string,
       { assetType: AssetType | null; assetName: string | null; currency: string; quantity: number }
     >()
-    for (const pos of positions) {
+    for (const pos of allPositions) {
       map.set(pos.ticker, {
         assetType: pos.asset?.type ?? null,
         assetName: pos.asset?.name ?? null,
@@ -474,7 +454,7 @@ export function AtivosLancamentos() {
       })
     }
     return map
-  }, [positions])
+  }, [allPositions])
 
   const assetTypeMap = useMemo(() => {
     const m = new Map<string, AssetType | null>()
@@ -490,9 +470,13 @@ export function AtivosLancamentos() {
   }, [period])
 
   const filteredByPeriod = useMemo(() => {
-    if (!since) return transactions
-    return transactions.filter((t) => t.transaction_date >= since)
-  }, [transactions, since])
+    return transactions.filter((transaction) => {
+      const asset = positionMap.get(transaction.ticker)
+      return (!since || transaction.transaction_date >= since) && matchesAssetFilters({
+        ticker: transaction.ticker, name: asset?.assetName, type: asset?.assetType,
+      }, { query, types })
+    })
+  }, [transactions, since, positionMap, query, types])
 
   const chartData = useMemo(
     () => buildMonthlyAportes(filteredByPeriod, assetTypeMap, assetTypeFilter),
@@ -515,14 +499,15 @@ export function AtivosLancamentos() {
 
   return (
     <div className="flex flex-col gap-5">
+      <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar ── */}
       <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
-          patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+          patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
           ganhoCapital={fmtMoney(ganhoCapitalBRL)}
           ganhoCapitalPositive={ganhoCapitalBRL === null ? null : ganhoCapitalBRL >= 0}
-          ativos={rows.length}
+          ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
           resumoBtnRef={resumoBtnRef}
         />
@@ -530,7 +515,7 @@ export function AtivosLancamentos() {
         {isResumoOpen && (
           <ResumoCarteiraPopover
             anchorRef={resumoBtnRef}
-            patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+            patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
@@ -721,12 +706,10 @@ export function AtivosLancamentos() {
       </PanelCard>
 
       {/* Modal global de adicionar lançamento */}
-      <AddTransactionModal
+      <FixedIncomeHistoryPanel since={since} />
+      <QuickTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        ticker=""
-        assetType={null}
-        assetName={null}
       />
     </div>
   )

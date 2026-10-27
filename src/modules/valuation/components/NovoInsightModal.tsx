@@ -60,7 +60,7 @@ function MarginBadge({ margin }: { margin: number | null }) {
   return (
     <span className={`inline-flex items-center gap-1 text-sm font-bold ${isOpp ? 'text-green-400' : 'text-red-400'}`}>
       {isOpp ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-      {fmtPct(margin)}
+      {fmtPct(Math.abs(margin))}
       <span className="text-xs font-normal ml-1">{isOpp ? 'abaixo do teto' : 'acima do teto'}</span>
     </span>
   )

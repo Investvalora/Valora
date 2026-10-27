@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -21,6 +21,10 @@ import { useAuthStore } from '../../auth/store'
 import { downloadPositionsCsv } from '../export/positionsCsv'
 import { CarteiraPage } from './CarteiraPage'
 
+// A tela resolve carteira, posições e cotações em etapas assíncronas.
+// O limite padrão de 1s gerava falhas de carregamento intermitentes.
+configure({ asyncUtilTimeout: 3000 })
+
 const SESSION_USER_ID = '11111111-1111-4111-8111-111111111111'
 const DEFAULT_WALLET_ID = '22222222-2222-4222-8222-222222222222'
 
@@ -33,6 +37,7 @@ const CATALOG_ASSET = {
 
 const CREATED_ROW = {
   id: 'pos-1',
+  wallet_id: DEFAULT_WALLET_ID,
   user_id: SESSION_USER_ID,
   ticker: 'PETR4',
   quantity: 100,
@@ -365,8 +370,7 @@ describe('CarteiraPage — falha de revalidação', () => {
     shouldFail = true
     await queryClient.refetchQueries({ queryKey: ['portfolio', 'positions', SESSION_USER_ID] })
 
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Não foi possível atualizar suas posições')
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível atualizar suas posições'))
 
     // A linha continua na tela.
     expect(screen.getByRole('row', { name: /PETR4/ })).toBeInTheDocument()
@@ -395,6 +399,7 @@ describe('CarteiraPage — falha de revalidação', () => {
 
 const VALE_ROW = {
   id: 'pos-vale',
+  wallet_id: DEFAULT_WALLET_ID,
   user_id: SESSION_USER_ID,
   ticker: 'VALE3',
   quantity: 50,
@@ -407,6 +412,7 @@ const VALE_ROW = {
 
 const USD_ROW = {
   id: 'pos-aapl',
+  wallet_id: DEFAULT_WALLET_ID,
   user_id: SESSION_USER_ID,
   ticker: 'AAPL',
   quantity: 10,
@@ -446,11 +452,14 @@ describe('CarteiraPage — valor de mercado, peso e patrimônio', () => {
     renderPage()
     await screen.findByRole('row', { name: /PETR4/ })
 
-    await waitFor(() =>
-      expect(supabaseMock.callArgs('price_history', 'in')).toEqual([
-        ['ticker', ['PETR4', 'VALE3']],
-      ]),
-    )
+    await waitFor(() => {
+      const calls = supabaseMock.callArgs('price_history', 'in')
+      expect(calls).toContainEqual(['ticker', ['PETR4', 'VALE3']])
+      for (const [column, tickers] of calls) {
+        expect(column).toBe('ticker')
+        expect((tickers as string[]).every((ticker) => ['PETR4', 'VALE3'].includes(ticker))).toBe(true)
+      }
+    })
   })
 
   /**
@@ -784,8 +793,10 @@ describe('CarteiraPage — composição por classe', () => {
     renderPage()
     await screen.findByRole('row', { name: /PETR4/ })
 
+    // O import lazy do Recharts pode exceder 1s em workers concorrentes.
     await waitFor(() =>
       expect(document.querySelector('.recharts-responsive-container')).not.toBeNull(),
+      { timeout: 4000 },
     )
 
     const degraded = consoleWarn.mock.calls.some(

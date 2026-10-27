@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
@@ -60,6 +61,8 @@ const TD_DB_TYPE: Record<TesouroDiretoAtivo, FixedIncomeType> = {
 }
 
 const RF_TYPES: { value: FixedIncomeType; label: string }[] = [
+  { value: 'rdb_cdi', label: 'RDB CDI' },
+  { value: 'rdb_pre', label: 'RDB Prefixado' },
   { value: 'cdb_cdi', label: 'CDB CDI' },
   { value: 'cdb_pre', label: 'CDB Pré' },
   { value: 'lci_cdi', label: 'LCI CDI' },
@@ -108,6 +111,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   const [tdOther, setTdOther]           = useState('')
 
   const [error, setError] = useState('')
+  const [changingCurrency, setChangingCurrency] = useState(false)
 
   const isSaving = addTransaction.isPending || addFI.isPending
 
@@ -118,6 +122,11 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   const { data: assetSuggestions = [], isFetching: isSearchingAssets } = useAssetSearch(debouncedTicker)
   const filteredAssetSuggestions = assetSuggestions.filter((asset) => asset.type === assetClass)
   const latestPrice = useTickerLatestPrice(ticker)
+  const { data: catalogAsset } = useQuery({
+    queryKey: ['portfolio', 'asset', ticker],
+    queryFn: () => positionService.findAssetByTicker(ticker),
+    enabled: isOpen && isVariavel && ticker.trim().length >= 2,
+  })
 
   useEffect(() => {
     if (isVariavel && latestPrice !== null && !priceManuallyEdited && ticker.trim().length >= 2) {
@@ -153,7 +162,8 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   const tdIndexer   = tdDbType ? FIXED_INCOME_TYPE_INDEXER[tdDbType] : null
   const tdTaxaLabel = tdIndexer ? FIXED_INCOME_RATE_LABEL[tdIndexer] : 'Taxa'
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const quoteCurrency = isVariavel ? (selectedAsset?.currency ?? catalogAsset?.currency ?? 'BRL') : 'BRL'
+  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: quoteCurrency })
 
   function resetFields() {
     setError('')
@@ -172,6 +182,23 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
     setShowAssetSuggestions(false)
     setHighlightedAssetIndex(-1)
     setPriceManuallyEdited(false)
+  }
+
+  async function changeCryptoCurrency(currency: string) {
+    setChangingCurrency(true)
+    setError('')
+    try {
+      const base = ticker.replace(/-BRL$/, '')
+      const asset = await positionService.findAssetByTicker(currency === 'BRL' ? `${base}-BRL` : base)
+      if (!asset) { setError('Esta moeda não está disponível para o ativo.'); return }
+      setPrice('')
+      setOtherCosts('')
+      selectAsset(asset)
+    } catch {
+      setError('Não foi possível consultar a moeda. Tente novamente.')
+    } finally {
+      setChangingCurrency(false)
+    }
   }
 
   function handleTickerKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -281,7 +308,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
       if (!asset) { setError('Ativo não encontrado no catálogo.'); return }
       await addTransaction.mutateAsync({
         ticker: norm, type, transaction_date: date,
-        quantity: parsedQty, price: parsedPrice,
+        quantity: parsedQty, price: parsedPrice, brokerage_fee: parsedOther,
       })
       setAssetClass('fii')
       resetFields()
@@ -432,23 +459,34 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
           {/* Campos renda variável */}
           {isVariavel && (
             <>
+              {assetClass === 'crypto' && (
+                <div className="col-span-2">
+                  <label htmlFor="qt-crypto-currency" className={labelClass}>Moeda do lançamento</label>
+                  <select id="qt-crypto-currency" value={quoteCurrency} disabled={!catalogAsset || changingCurrency}
+                    className={inputClass} onChange={event => { void changeCryptoCurrency(event.target.value) }}>
+                    <option value="BRL">Real (BRL)</option>
+                    <option value="USD">Dólar (USD)</option>
+                  </select>
+                  <p className="mt-1 text-xs text-white/50">Informe preço e custos na moeda escolhida. Posições em BRL e USD são acompanhadas separadamente.</p>
+                </div>
+              )}
               <div>
                 <label htmlFor="qt-date" className={labelClass}>Data da transação</label>
                 <input id="qt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
               </div>
               <div>
                 <label htmlFor="qt-qty" className={labelClass}>Quantidade</label>
-                <input id="qt-qty" type="number" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} placeholder="0" min={0} />
+                <input id="qt-qty" type="number" step="any" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} placeholder="0" min={0} />
               </div>
               <div>
-                <label htmlFor="qt-price" className={labelClass}>Preço</label>
-                <input id="qt-price" type="number" inputMode="decimal" value={price} onChange={(e) => { setPrice(e.target.value); setPriceManuallyEdited(true) }} className={inputClass} placeholder="0,00" min={0} />
+                <label htmlFor="qt-price" className={labelClass}>Preço ({quoteCurrency})</label>
+                <input id="qt-price" type="number" step="any" inputMode="decimal" value={price} onChange={(e) => { setPrice(e.target.value); setPriceManuallyEdited(true) }} className={inputClass} placeholder="0,00" min={0} />
               </div>
               <div>
                 <label htmlFor="qt-other-costs" className={labelClass}>
-                  Outros custos <span className="text-white/30">OPCIONAL</span>
+                  Outros custos ({quoteCurrency}) <span className="text-white/30">OPCIONAL</span>
                 </label>
-                <input id="qt-other-costs" type="number" inputMode="decimal" value={otherCosts} onChange={(e) => setOtherCosts(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
+                <input id="qt-other-costs" type="number" step="any" inputMode="decimal" value={otherCosts} onChange={(e) => setOtherCosts(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
               </div>
             </>
           )}
@@ -468,11 +506,11 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
               </div>
               <div>
                 <label htmlFor="qt-rf-taxa" className={labelClass}>{rfTaxaLabel}</label>
-                <input id="qt-rf-taxa" type="number" inputMode="decimal" value={rfTaxa} onChange={(e) => setRfTaxa(e.target.value)} className={inputClass} placeholder="110" min={0} disabled={!rfTipo} />
+                <input id="qt-rf-taxa" type="number" step="any" inputMode="decimal" value={rfTaxa} onChange={(e) => setRfTaxa(e.target.value)} className={inputClass} placeholder="110" min={0} disabled={!rfTipo} />
               </div>
               <div>
                 <label htmlFor="qt-rf-valor" className={labelClass}>Valor (R$)</label>
-                <input id="qt-rf-valor" type="number" inputMode="decimal" value={rfValor} onChange={(e) => setRfValor(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
+                <input id="qt-rf-valor" type="number" step="any" inputMode="decimal" value={rfValor} onChange={(e) => setRfValor(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
               </div>
               <div>
                 <label htmlFor="qt-rf-date" className={labelClass}>Data da transação</label>
@@ -492,7 +530,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
             <>
               <div>
                 <label htmlFor="qt-td-taxa" className={labelClass}>{tdTaxaLabel}</label>
-                <input id="qt-td-taxa" type="number" inputMode="decimal" value={tdTaxa} onChange={(e) => setTdTaxa(e.target.value)} className={inputClass} placeholder="13.5" min={0} disabled={!tdAtivo} />
+                <input id="qt-td-taxa" type="number" step="any" inputMode="decimal" value={tdTaxa} onChange={(e) => setTdTaxa(e.target.value)} className={inputClass} placeholder="13.5" min={0} disabled={!tdAtivo} />
               </div>
               <div>
                 <label htmlFor="qt-td-maturity" className={labelClass}>
@@ -506,17 +544,17 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
               </div>
               <div>
                 <label htmlFor="qt-td-qty" className={labelClass}>Quantidade</label>
-                <input id="qt-td-qty" type="number" inputMode="decimal" value={tdQty} onChange={(e) => setTdQty(e.target.value)} className={inputClass} placeholder="0,01" min={0.01} step={0.01} />
+                <input id="qt-td-qty" type="number" step={0.01} inputMode="decimal" value={tdQty} onChange={(e) => setTdQty(e.target.value)} className={inputClass} placeholder="0,01" min={0.01} />
               </div>
               <div>
                 <label htmlFor="qt-td-price" className={labelClass}>Preço (R$)</label>
-                <input id="qt-td-price" type="number" inputMode="decimal" value={tdPrice} onChange={(e) => setTdPrice(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
+                <input id="qt-td-price" type="number" step="any" inputMode="decimal" value={tdPrice} onChange={(e) => setTdPrice(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
               </div>
               <div>
                 <label htmlFor="qt-td-other" className={labelClass}>
-                  Outros custos <span className="text-white/30">OPCIONAL</span>
+                  Outros custos ({quoteCurrency}) <span className="text-white/30">OPCIONAL</span>
                 </label>
-                <input id="qt-td-other" type="number" inputMode="decimal" value={tdOther} onChange={(e) => setTdOther(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
+                <input id="qt-td-other" type="number" step="any" inputMode="decimal" value={tdOther} onChange={(e) => setTdOther(e.target.value)} className={inputClass} placeholder="0,00" min={0} />
               </div>
             </>
           )}
@@ -539,7 +577,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
           </button>
           <button
             type="submit"
-            disabled={isSaving || !selectedWallet}
+            disabled={isSaving || changingCurrency || !selectedWallet}
             className="rounded-full bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
           >
             {isSaving ? 'Salvando…' : 'Salvar'}

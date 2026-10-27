@@ -6,7 +6,9 @@ import { useAllTransactions } from '../../portfolio/hooks/useTransactions'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import { dividendService } from '../services/dividendService'
+import { incomeHistoryService, mergeIncomeHistory } from '../services/incomeHistoryService'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import type { DividendPeriod, DividendRaw, DividendRow } from '../types'
 import type { PositionWithAsset } from '../../portfolio/types'
 
@@ -50,6 +52,7 @@ function enrichRows(
   raw: DividendRaw[],
   positions: PositionWithAsset[],
   transactions: Transaction[] = [],
+  announced = false,
 ): DividendRow[] {
   const positionByTicker = new Map<string, PositionWithAsset>()
   for (const pos of positions) {
@@ -65,6 +68,7 @@ function enrichRows(
   }
 
   const result: DividendRow[] = []
+  const today = toIsoDate(new Date())
 
   for (const row of raw) {
     const position = positionByTicker.get(row.ticker)
@@ -81,17 +85,18 @@ function enrichRows(
         null,
       ) ?? position.acquisition_date
 
-    if (firstBuyDate && row.ex_date < firstBuyDate) continue
+    if (firstBuyDate && row.ex_date <= firstBuyDate) continue
 
     let quantity = position.quantity
+    // Datas ex futuras usam a posição atual apenas como estimativa, sem antecipar compras.
     if (tickerTransactions.length > 0) {
       quantity = tickerTransactions.reduce((held, transaction) => {
-        if (transaction.transaction_date > row.ex_date) return held
+        if (announced && row.ex_date > today ? transaction.transaction_date > today : transaction.transaction_date >= row.ex_date) return held
         const amount = Number(transaction.quantity)
         if (!Number.isFinite(amount)) return held
         return held + (transaction.type === 'buy' ? amount : -amount)
       }, 0)
-    } else if (position.acquisition_date && position.acquisition_date > row.ex_date) {
+    } else if (position.acquisition_date && position.acquisition_date >= row.ex_date) {
       continue
     }
 
@@ -102,6 +107,7 @@ function enrichRows(
       quantity,
       total_value: row.value_per_share * quantity,
       asset_type: position.asset?.type ?? null,
+      currency: position.asset?.currency ?? 'BRL',
     })
   }
 
@@ -128,8 +134,9 @@ export function _enrichRows(
   raw: DividendRaw[],
   positions: PositionWithAsset[],
   transactions: Transaction[] = [],
+  announced = false,
 ): DividendRow[] {
-  return enrichRows(raw, positions, transactions)
+  return enrichRows(raw, positions, transactions, announced)
 }
 
 export interface UseDividendsResult {
@@ -153,12 +160,18 @@ export interface UseDividendsResult {
  *
  * O enriquecimento (quantity + total_value) é client-side em `useMemo`.
  */
-export function useDividends(period: DividendPeriod): UseDividendsResult {
+export function useDividends(period: DividendPeriod, status: 'paid' | 'announced' = 'paid', walletOverride?: string): UseDividendsResult {
   const { user, loading: isSessionLoading } = useAuth()
   const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
+  const walletId = walletOverride ?? selectedWallet?.id ?? ''
   const userId = user?.id
-  const transactionsQuery = useAllTransactions()
+  const transactionsQuery = useAllTransactions(walletId)
+  const recordedIncome = useQuery({
+    queryKey: ['dividends', 'recorded', userId, walletId],
+    queryFn: () => incomeHistoryService.list(userId!, walletId),
+    enabled: Boolean(userId && walletId) && status === 'paid',
+    staleTime: STALE_TIME_MS,
+  })
 
   // --- Query 1: posições ---
   const positionsQuery = useQuery<PositionWithAsset[]>({
@@ -174,8 +187,8 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   )
 
   const tickers = useMemo(
-    () => positions.map((p) => p.ticker).sort(),
-    [positions],
+    () => [...new Set([...positions.map((p) => p.ticker), ...(recordedIncome.data?.entries.map(row => row.ticker) ?? [])])].sort(),
+    [positions, recordedIncome.data],
   )
 
   const firstPurchaseDate = useMemo(() => {
@@ -198,20 +211,23 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   const since = period === 'Tudo' && firstPurchaseDate
     ? `${firstPurchaseDate.slice(0, 7)}-01`
     : periodSince
+  const until = period === 'Tudo' ? '9999-12-31' : shiftIsoDate(period === '6M' ? 183 : 365)
 
   // --- Query 2: dividendos ---
   const dividendsQuery = useQuery<DividendRaw[]>({
-    queryKey: [...dividendsQueryKey(userId, period, tickers), since],
-    queryFn: () => dividendService.listDividendsByTickers(tickers, since),
+    queryKey: [...dividendsQueryKey(userId, period, tickers), walletId, since, status, until],
+    queryFn: () => dividendService.listDividendsByTickers(tickers, since, true, status, until),
     enabled: Boolean(userId) && Boolean(walletId) && !positionsQuery.isLoading && !transactionsQuery.isLoading,
     staleTime: STALE_TIME_MS,
   })
 
   // --- Enriquecimento client-side ---
   const rows = useMemo<DividendRow[]>(() => {
-    if (!dividendsQuery.data || positions.length === 0) return []
-    return enrichRows(dividendsQuery.data, positions, transactionsQuery.data ?? [])
-  }, [dividendsQuery.data, positions, transactionsQuery.data])
+    const estimates = enrichRows(dividendsQuery.data ?? [], positions, transactionsQuery.data ?? [], status === 'announced')
+    return status === 'paid' && recordedIncome.data
+      ? mergeIncomeHistory(estimates, recordedIncome.data, periodSince)
+      : estimates
+  }, [dividendsQuery.data, positions, transactionsQuery.data, status, recordedIncome.data, periodSince])
 
   const availableTypes = useMemo<string[]>(() => {
     const types = new Set<string>()
@@ -220,16 +236,17 @@ export function useDividends(period: DividendPeriod): UseDividendsResult {
   }, [rows])
 
   const isLoading =
-    isSessionLoading || positionsQuery.isLoading || transactionsQuery.isLoading || dividendsQuery.isLoading
+    isSessionLoading || positionsQuery.isLoading || transactionsQuery.isLoading || dividendsQuery.isLoading || (status === 'paid' && recordedIncome.isLoading)
 
-  const isError = positionsQuery.isError || transactionsQuery.isError || dividendsQuery.isError
+  const isError = positionsQuery.isError || transactionsQuery.isError || dividendsQuery.isError || (status === 'paid' && recordedIncome.isError)
 
-  const error = (positionsQuery.error ?? transactionsQuery.error ?? dividendsQuery.error) as Error | null
+  const error = (positionsQuery.error ?? transactionsQuery.error ?? dividendsQuery.error ?? recordedIncome.error) as Error | null
 
   const refetch = () => {
     void positionsQuery.refetch()
     void transactionsQuery.refetch()
     void dividendsQuery.refetch()
+    if (status === 'paid') void recordedIncome.refetch()
   }
 
   return {

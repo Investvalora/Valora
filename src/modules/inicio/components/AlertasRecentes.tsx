@@ -9,7 +9,7 @@ export function AlertasRecentes() {
   const newCount = alerts.filter((alert) => alert.status === 'novo').length
 
   return (
-    <PanelCard className="flex w-[420px] shrink-0 flex-col" padding="p-6">
+    <PanelCard className="flex min-w-0 w-full flex-col" padding="p-6">
       <div className="mb-4 flex items-center gap-3">
         <h2 className="flex-1 text-[15px] font-semibold text-white/80">Alertas recentes</h2>
         {newCount > 0 && (

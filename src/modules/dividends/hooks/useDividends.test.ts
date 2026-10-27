@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { _periodToSince, _enrichRows } from './useDividends'
 import type { DividendRaw } from '../types'
 import type { PositionWithAsset } from '../../portfolio/types'
@@ -81,6 +81,32 @@ describe('_periodToSince', () => {
 // ---------------------------------------------------------------------------
 
 describe('_enrichRows', () => {
+  it('compra na data ex não cria direito e venda na data ex preserva a quantidade anterior', () => {
+    const position = makePosition('PETR4', 100, { acquisition_date: '2026-01-01' })
+    const transactions = [
+      { ticker: 'PETR4', type: 'buy', quantity: 100, transaction_date: '2026-01-01' },
+      { ticker: 'PETR4', type: 'buy', quantity: 20, transaction_date: '2026-03-15' },
+      { ticker: 'PETR4', type: 'sell', quantity: 40, transaction_date: '2026-03-15' },
+    ] as Transaction[]
+    expect(_enrichRows([makeRaw()], [position], transactions)[0].quantity).toBe(100)
+    expect(_enrichRows([makeRaw()], [makePosition('PETR4', 100, { acquisition_date: '2026-03-15' })])).toEqual([])
+  })
+
+  it('anúncios futuros consideram compras até hoje e ignoram lançamentos futuros', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-26T12:00:00Z'))
+    try {
+      const position = makePosition('PETR4', 120, { acquisition_date: '2026-01-01' })
+      const transactions = [
+        { ticker: 'PETR4', type: 'buy', quantity: 100, transaction_date: '2026-01-01' },
+        { ticker: 'PETR4', type: 'buy', quantity: 20, transaction_date: '2026-10-26' },
+        { ticker: 'PETR4', type: 'buy', quantity: 50, transaction_date: '2026-11-01' },
+      ] as Transaction[]
+      const result = _enrichRows([makeRaw({ ex_date: '2026-11-10', payment_date: null })], [position], transactions, true)
+      expect(result[0].quantity).toBe(120)
+      expect(result[0].currency).toBe('BRL')
+    } finally { vi.useRealTimers() }
+  })
   it('retorna array vazio quando raw é vazio', () => {
     const result = _enrichRows([], [makePosition('PETR4', 100)])
     expect(result).toHaveLength(0)

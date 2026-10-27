@@ -26,7 +26,7 @@ export function calcGrahamPrice(
 }
 
 /**
- * Margem de segurança Graham: ((preçoJusto − cotação) / cotação) × 100.
+ * Desconto Graham: ((preçoJusto − cotação) / preçoJusto) × 100.
  * Positiva = cotação abaixo do justo (oportunidade).
  * Negativa = cotação acima do justo (sobrevalorizado).
  * `null` quando qualquer entrada é inválida.
@@ -37,6 +37,7 @@ export function calcGrahamMargin(
 ): number | null {
   if (grahamPrice === null || currentPrice === null) return null
   if (!Number.isFinite(grahamPrice) || !Number.isFinite(currentPrice)) return null
-  if (currentPrice <= 0) return null
-  return ((grahamPrice - currentPrice) / currentPrice) * 100
+  if (currentPrice <= 0 || grahamPrice <= 0) return null
+  const margin = ((grahamPrice - currentPrice) / grahamPrice) * 100
+  return Number.isFinite(margin) ? margin : null
 }

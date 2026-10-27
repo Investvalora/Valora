@@ -1,47 +1,34 @@
-import { Bell, CalendarDays, ChevronDown, Plus } from 'lucide-react'
+import { Bell, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
 type TopBarProps = {
-  periodo?: string
   alertCount?: number
   onNovoLancamento?: () => void
 }
 
 export function TopBar({
-  periodo = '1A',
   alertCount = 0,
   onNovoLancamento,
 }: TopBarProps) {
   return (
-    <header className="relative z-40 hidden h-[58px] shrink-0 items-center justify-between bg-[#131313] px-10 md:flex">
+    <header className="relative z-40 hidden min-h-[58px] shrink-0 flex-wrap items-center justify-between gap-2 bg-[#131313] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:flex md:px-10 md:py-2">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-full h-7">
         <div className="absolute inset-0 backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#131313] via-[#131313]/60 to-transparent" />
       </div>
       {/* ── Filtros globais ── */}
-      <div className="flex items-center gap-3">
+      <div className="relative flex max-w-full flex-wrap items-center gap-3">
         {/* Seletor de carteira */}
-        <WalletMorphSelector />
+        <div className="hidden md:block">
+          <WalletMorphSelector />
+        </div>
 
-        {/* Seletor de período */}
-        <button
-          type="button"
-          className="
-            flex items-center gap-2 rounded-full
-            border border-white/[0.1] bg-[#393939]
-            px-4 py-2 text-[13px] font-medium text-white
-            transition-colors hover:bg-white/[0.12]
-          "
-        >
-          <CalendarDays className="h-3.5 w-3.5 text-white/70" strokeWidth={1.8} aria-hidden="true" />
-          {periodo}
-          <ChevronDown className="h-3 w-3 text-[#BBBBBB]" strokeWidth={2} aria-hidden="true" />
-        </button>
+
       </div>
 
       {/* ── Ações globais ── */}
-      <div className="flex items-center gap-3">
+      <div className="hidden items-center gap-3 md:flex">
         {/* Sino */}
         <Link
           to="/alertas"

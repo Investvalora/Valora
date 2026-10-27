@@ -11,7 +11,7 @@ export interface DividendRaw {
   ticker: string
   /** Tipo do provento: `dividend`, `jcp`, etc. */
   type: string
-  /** Data COM — data-base de referência para o direito ao provento. `YYYY-MM-DD`. */
+  /** Primeiro dia ex-direito. É necessário possuir o ativo antes desta data. */
   ex_date: string
   /** Data de pagamento. `YYYY-MM-DD`. */
   payment_date: string | null
@@ -24,12 +24,17 @@ export interface DividendRaw {
  * usuário e o valor total recebido (calculado client-side).
  */
 export interface DividendRow extends DividendRaw {
+  /** Imported rows display record_date (Data COM) in the common date column. */
+  source?: 'imported'
+  record_date?: string | null
+  gross_amount?: number
   /** Quantidade atual da posição do usuário no ticker. */
   quantity: number
-  /** `value_per_share × quantity` em BRL. */
+  /** Total líquido importado, ou estimativa `value_per_share × quantity`. */
   total_value: number
   /** Classe do ativo no catálogo, distinta do tipo de provento (dividendo/JCP). */
   asset_type?: AssetType | null
+  currency?: string
 }
 
 /** Barra do gráfico mensal de proventos. */

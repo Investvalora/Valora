@@ -13,9 +13,14 @@ import {
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAssetDetail } from '../hooks/useAssetDetail'
+import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
+import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
+import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
-import { usePositions } from '../../portfolio/hooks/usePositions'
+import { useWallets } from '../../portfolio/hooks/useWallets'
+import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
+import { useDailyChange } from '../hooks/useDailyChange'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useScoreRules } from '../../score/hooks/useScoreRules'
@@ -130,6 +135,8 @@ interface AssetDetailHeroProps {
   dailyChangePct: number | null
   currency: AssetCurrency
   onBack: () => void
+  onTransaction: () => void
+  onAlert: () => void
 }
 
 function AssetDetailHero({
@@ -141,6 +148,8 @@ function AssetDetailHero({
   dailyChangePct,
   currency,
   onBack,
+  onTransaction,
+  onAlert,
 }: AssetDetailHeroProps) {
   const initial = ticker.charAt(0).toUpperCase()
   const badgeBg = color + '29' // ~16% opacity hex
@@ -194,7 +203,7 @@ function AssetDetailHero({
                 dailyChangePct >= 0 ? 'text-nf-green' : 'text-nf-pink'
               }`}
             >
-              {fmtPct(dailyChangePct)} hoje
+              {fmtPct(dailyChangePct)} no último fechamento
             </span>
           )}
         </div>
@@ -203,12 +212,14 @@ function AssetDetailHero({
         <div className="flex gap-2 md:ml-auto">
           <button
             type="button"
+            onClick={onTransaction}
             className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
           >
             + Lançamento do ativo
           </button>
           <button
             type="button"
+            onClick={onAlert}
             className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
           >
             Criar alerta
@@ -1121,6 +1132,8 @@ function VisaoGeral({
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export function AtivoDetailPage() {
+  const [transactionOpen, setTransactionOpen] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
   const { ticker: rawTicker = '' } = useParams<{ ticker: string }>()
   const navigate = useNavigate()
   const ticker = rawTicker.toUpperCase()
@@ -1131,7 +1144,9 @@ export function AtivoDetailPage() {
   // ── Dados do ativo ──────────────────────────────────────────────────────────
   const { data: asset, isLoading: assetLoading } = useAssetDetail(ticker)
   const { data: priceHistory = [] } = usePriceHistory(ticker, period)
-  const { data: positions = [] } = usePositions()
+  const { selectedWallet } = useWallets()
+  const valuation = useAtivosValuation(selectedWallet?.id ?? '', true)
+  const positions = valuation.positions
   const quotesQuery = useLatestQuotes([ticker])
   const { data: fundamentalsList = [] } = useFundamentals([ticker])
 
@@ -1173,14 +1188,14 @@ export function AtivoDetailPage() {
   )
 
   const fundamental = fundamentalsList[0] ?? null
+  const dailyChangePct = useDailyChange(quote)
 
   // ── Cor da classe do ativo ──────────────────────────────────────────────────
   const assetType = asset?.type ?? null
   const color = assetType ? assetClassColor(assetType) : '#8f8f8f'
 
-  // ── Variação diária % (vs preço de abertura — usando changePercent do quote se disponível) ──
-  // Como LatestQuote não tem open, calculamos changeVsAvg apenas como fallback visual
-  // A variação diária real precisaria de open_price — exibimos changeVsAvg como proxy
+  // Variação da posição sobre o custo de compra.
+  // Ganho sobre o custo pertence à posição; o cabeçalho usa o fechamento anterior.
   const currentPrice = quote ? Number(quote.close) : null
   const avgPrice = myPosition ? Number(myPosition.average_price) : null
   const quantity = myPosition ? Number(myPosition.quantity) : 0
@@ -1191,18 +1206,8 @@ export function AtivoDetailPage() {
       : null
 
   // ── Peso na carteira ────────────────────────────────────────────────────────
-  const totalPortfolioBRL = useMemo(() => {
-    return positions.reduce((sum, p) => {
-      const q = quotesQuery.data ?? []
-      const qt = q.find((qr) => qr.ticker === p.ticker)
-      if (!qt) return sum
-      return sum + Number(qt.close) * Number(p.quantity)
-    }, 0)
-  }, [positions, quotesQuery.data])
-
-  const balance = currentPrice != null ? currentPrice * quantity : null
-  const portfolioWeight =
-    balance != null && totalPortfolioBRL > 0 ? (balance / totalPortfolioBRL) * 100 : null
+  const portfolioWeight = valuation.isLoading || valuation.isError ? null
+    : valuation.rows.find((row) => row.ticker === ticker)?.weightPercent ?? null
 
   // ── Resultado da posição ────────────────────────────────────────────────────
   const valorInvestido = avgPrice != null && quantity > 0 ? avgPrice * quantity : null
@@ -1279,10 +1284,16 @@ export function AtivoDetailPage() {
         type={assetTypeLabel}
         color={color}
         currentPrice={currentPrice}
-        dailyChangePct={changeVsAvg}
+        dailyChangePct={dailyChangePct}
         currency={currency}
         onBack={() => navigate(-1)}
+        onTransaction={() => setTransactionOpen(true)}
+        onAlert={() => setAlertOpen(true)}
       />
+      <AddTransactionModal isOpen={transactionOpen} onClose={() => setTransactionOpen(false)} ticker={asset.ticker} assetType={asset.type} assetName={asset.name} />
+      <Modal isOpen={alertOpen} onClose={() => setAlertOpen(false)} title="Criar alerta">
+        {alertOpen && <PriceAlertForm key={ticker} initialTicker={asset.ticker} onClose={() => { setAlertOpen(false); setActiveTab('alertas') }} />}
+      </Modal>
 
       {/* ── Sub-tabs ─────────────────────────────────────────────────────── */}
       <InternalSubTabBar activeTab={activeTab} onTabChange={setActiveTab} />

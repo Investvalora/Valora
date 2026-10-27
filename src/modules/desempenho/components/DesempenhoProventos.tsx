@@ -10,6 +10,7 @@ import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
 import { filterAndSort } from '../../dividends/utils/dividendCalculations'
 import type { DividendPeriod } from '../../dividends/types'
 import type { DividendRow } from '../../dividends/types'
+import { AnnouncedDividends } from './AnnouncedDividends'
 
 const ProventosChart = lazy(() =>
   import('./ProventosChart').then((m) => ({ default: m.ProventosChart })),
@@ -58,14 +59,14 @@ function DividendCard({ row }: { row: DividendRow }) {
           </span>
         </div>
         <span className="shrink-0 text-[14px] font-semibold text-nf-green tabular-nums">
-          {fmtBRL(row.total_value)}
+          <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
         </span>
       </div>
 
-      {/* Linha 2: 3 colunas Data com / Valor/cota / Quantidade */}
+      {/* Linha 2: 3 colunas Data ex / Valor/cota / Quantidade */}
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div>
-          <span className="block text-[10px] text-white/40">Data com</span>
+          <span className="block text-[10px] text-white/40">{row.source === 'imported' ? 'Data COM' : 'Data ex'}</span>
           <span className="text-[12px] text-white/80 tabular-nums">{fmtDate(row.ex_date)}</span>
         </div>
         <div>
@@ -89,12 +90,22 @@ function DividendCard({ row }: { row: DividendRow }) {
 }
 
 export function DesempenhoProventos() {
+  const [view, setView] = useState<'paid' | 'announced'>('paid')
+  return <div className="space-y-5">
+    <div role="group" aria-label="Situação dos proventos" className="flex flex-wrap gap-2">
+      {([['paid', 'Pagos'], ['announced', 'Anunciados / a receber']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)} className={`min-h-11 rounded-xl border border-white/15 px-4 text-sm ${view === value ? 'bg-nf-purple text-white' : 'text-white/60'}`}>{label}</button>)}
+    </div>
+    {view === 'paid' ? <PaidDividends /> : <AnnouncedDividends />}
+  </div>
+}
+
+function PaidDividends() {
   const [period, setPeriod] = useState<DividendPeriod>('1A')
   const [tickerFilter, setTickerFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
 
-  const { rows, isLoading, availableTypes } = useDividends(period)
+  const { rows, isLoading, isError, refetch, availableTypes } = useDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
@@ -125,7 +136,7 @@ export function DesempenhoProventos() {
   const visibleRows = filteredRows.slice(0, visibleCount)
 
   function exportCSV() {
-    const headers = ['Ticker', 'Tipo', 'Data com', 'Data pagamento', 'Valor/cota', 'Qtd', 'Total']
+    const headers = ['Ticker', 'Tipo', 'Data COM / ex', 'Data pagamento', 'Valor/cota', 'Qtd', 'Total']
     const csvRows = filteredRows.map((r) => [
       r.ticker,
       r.type,
@@ -155,8 +166,11 @@ export function DesempenhoProventos() {
     return `${MONTHS[m] ?? m}/${y?.slice(2)}`
   }
 
+  if (isError) return <div role="alert" className="rounded-xl border border-rose-400/30 p-5 text-sm text-rose-300">Não foi possível carregar os proventos. <button type="button" onClick={refetch} className="underline">Tentar novamente</button></div>
+
   return (
     <div className="flex flex-col gap-5">
+      <p className="text-xs text-white/50">O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Proventos</h2>
@@ -377,7 +391,7 @@ export function DesempenhoProventos() {
                   <tr className="bg-white/[0.04]">
                     <th className="px-3 py-2.5 text-left font-medium text-white/50">Ticker</th>
                     <th className="px-3 py-2.5 text-left font-medium text-white/50">Tipo</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Data com</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Data COM / ex</th>
                     <th className="px-3 py-2.5 text-right font-medium text-white/50">
                       Data pagamento
                     </th>
@@ -418,7 +432,7 @@ export function DesempenhoProventos() {
                         {row.quantity}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-nf-green">
-                        {fmtBRL(row.total_value)}
+                        <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
                       </td>
                     </tr>
                   ))}

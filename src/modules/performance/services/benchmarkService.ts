@@ -3,10 +3,9 @@ import { toIsoDate } from '../../../shared/utils/isoDate'
 import type { BenchmarkRow } from '../types'
 
 /**
- * Limite por fetch: 3 benchmarks × 365 dias = 1.095 linhas máximo.
- * Suficiente para o período "Tudo" com amostragem diária.
+ * Páginas abaixo do limite padrão do PostgREST, sem limitar o período total.
  */
-const BENCHMARKS_LIMIT = 3 * 365
+const PAGE_SIZE = 500
 
 const BENCHMARK_COLUMNS = 'name, date, value, source'
 
@@ -20,16 +19,21 @@ export const benchmarkService = {
   async listBenchmarks(since: string): Promise<BenchmarkRow[]> {
     const today = toIsoDate(new Date())
 
-    const { data, error } = await supabase
-      .from('benchmarks')
-      .select(BENCHMARK_COLUMNS)
-      .gte('date', since)
-      .lte('date', today)
-      .order('name', { ascending: true })
-      .order('date', { ascending: true })
-      .limit(BENCHMARKS_LIMIT)
+    const rows: BenchmarkRow[] = []
+    for (let start = 0; ; start += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('benchmarks')
+        .select(BENCHMARK_COLUMNS)
+        .gte('date', since)
+        .lte('date', today)
+        .order('name', { ascending: true })
+        .order('date', { ascending: true })
+        .range(start, start + PAGE_SIZE - 1)
 
-    if (error) throw error
-    return (data ?? []) as unknown as BenchmarkRow[]
+      if (error) throw error
+      const page = (data ?? []) as unknown as BenchmarkRow[]
+      rows.push(...page)
+      if (page.length < PAGE_SIZE) return rows
+    }
   },
 }

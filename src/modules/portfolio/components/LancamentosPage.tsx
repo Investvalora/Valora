@@ -7,6 +7,7 @@ import { useWallets } from '../hooks/useWallets'
 import { useDeleteTransaction } from '../hooks/useTransactions'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { AddTransactionModal } from './AddTransactionModal'
+import { QuickTransactionModal } from './QuickTransactionModal'
 import {
   ASSET_CLASS_LABEL,
   ASSET_CLASS_ORDER,
@@ -569,12 +570,9 @@ export function LancamentosPage() {
       </div>
 
       {/* Modal global de adicionar lançamento (sem ticker pré-selecionado) */}
-      <AddTransactionModal
+      <QuickTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        ticker=""
-        assetType={null}
-        assetName={null}
       />
     </div>
   )

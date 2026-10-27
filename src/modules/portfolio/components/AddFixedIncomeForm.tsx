@@ -27,7 +27,7 @@ const fiSchema = z.object({
   name: z.string().min(1, 'Informe um nome').max(100, 'Máximo 100 caracteres'),
   type: z.enum([
     'tesouro_selic', 'tesouro_ipca', 'tesouro_pre',
-    'cdb_cdi', 'cdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre',
+    'cdb_cdi', 'cdb_pre', 'rdb_cdi', 'rdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre',
   ] as const, { required_error: 'Selecione o tipo' }),
   rate: z
     .string()
@@ -141,6 +141,8 @@ export function AddFixedIncomeForm({ onSuccess, onCancel, onBusyChange }: Props)
             <option value="tesouro_pre">Tesouro Prefixado</option>
           </optgroup>
           <optgroup label="CDB">
+            <option value="rdb_cdi">RDB % CDI</option>
+            <option value="rdb_pre">RDB Prefixado</option>
             <option value="cdb_cdi">CDB % CDI</option>
             <option value="cdb_pre">CDB Prefixado</option>
           </optgroup>

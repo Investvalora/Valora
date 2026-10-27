@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 interface AuthLayoutProps {
   title: string
@@ -57,6 +58,11 @@ export function AuthLayout({ title, description, children, footer, prioritizeFor
             <div className="mt-5 text-center text-xs text-[#a0a2a6]">{footer}</div>
           </section>
         </div>
+        <nav aria-label="Informações do Valora" className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-[#a0a2a6]">
+          <Link to="/sobre" className="hover:text-white">Sobre o Valora</Link>
+          <Link to="/privacidade" className="hover:text-white">Política de Privacidade</Link>
+          <Link to="/termos" className="hover:text-white">Termos de Uso</Link>
+        </nav>
       </div>
     </main>
   )

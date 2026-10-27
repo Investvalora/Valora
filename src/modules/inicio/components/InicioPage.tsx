@@ -4,13 +4,14 @@ import { NavLink } from 'react-router-dom'
 import { KpiCard } from '../../../shared/components/KpiCard'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { EvolucaoChart } from './EvolucaoChart'
+import { WealthEvolution } from './WealthEvolution'
 import { AlertasRecentes } from './AlertasRecentes'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHome'
 import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
+import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -96,6 +97,7 @@ export function InicioPage() {
         />
       </div>
 
+      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} />
       {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">
@@ -104,22 +106,14 @@ export function InicioPage() {
       )}
 
       {/* ── Gráfico + Alertas ── */}
-      <div className="flex flex-col gap-5 md:flex-row">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]">
         {/* Evolução do patrimônio */}
-        <PanelCard className="flex-1" padding="p-5 md:p-6">
+        <PanelCard className="min-w-0" padding="p-5 md:p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15px] font-semibold text-white/80">
+            <h2 className="text-[18px] font-medium text-white/90 md:text-[20px]">
               Evolução do patrimônio
             </h2>
             <div className="flex items-center gap-3 md:gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-sm bg-[#33AA3B]/85" aria-hidden="true" />
-                <span className="text-[11px] text-[#8F8F8F]">Aplicado</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-sm bg-[#A9E0AC]/80" aria-hidden="true" />
-                <span className="text-[11px] text-[#8F8F8F]">Ganho</span>
-              </div>
               <NavLink
                 to="/desempenho"
                 className="flex items-center gap-1 text-[12px] font-medium text-nf-blue hover:underline"
@@ -129,7 +123,7 @@ export function InicioPage() {
               </NavLink>
             </div>
           </div>
-          <EvolucaoChart data={dashboard.monthlySeries} />
+          <WealthEvolution />
         </PanelCard>
 
         {/* Alertas recentes */}

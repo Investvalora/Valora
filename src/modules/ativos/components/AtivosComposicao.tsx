@@ -1,3 +1,6 @@
+import { AssetValuationNotice } from './AssetValuationNotice'
+import { AllocationTargets } from './AllocationTargets'
+import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
  * AtivosComposicao — sub-rota /ativos/composicao
  *
@@ -6,10 +9,6 @@
  */
 import { useMemo, useRef, useState } from 'react'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
-import { useUSDRate } from '../../../shared/hooks/useUSDRate'
-import { derivePositionRows } from '../../portfolio/positionRows'
 import { deriveComposition, assetClassColor, isInternationalClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
@@ -17,6 +16,8 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
+import { buildAssetSlices, type CompositionSlice } from '../utils/compositionSlices'
+import { useAssetFilters } from '../hooks/useAssetFilters'
 
 // ── Donut SVG com label central ────────────────────────────────────────────
 const CX = 100
@@ -53,7 +54,7 @@ function CompositionDonut({
   totalBRL,
   size = 200,
 }: {
-  slices: AssetClassSlice[]
+  slices: CompositionSlice[]
   totalBRL: number
   size?: number
 }) {
@@ -69,9 +70,10 @@ function CompositionDonut({
   let angle = 0
   const sectors = slices.map((s) => {
     const pct = (s.percent / total) * 100
-    const startDeg = angle + GAP_DEG / 2
     const sweep = (pct / 100) * 360
-    const endDeg = angle + sweep - GAP_DEG / 2
+    const gap = Math.min(GAP_DEG, sweep / 4)
+    const startDeg = angle + gap / 2
+    const endDeg = angle + sweep - gap / 2
     const midDeg = angle + sweep / 2
     angle += sweep
     return {
@@ -110,12 +112,14 @@ function CompositionDonut({
       {/* Fatias */}
       {sectors.map(({ slice, startDeg, endDeg }) => (
         <path
-          key={slice.type}
+          key={slice.id}
           d={sectorPath(startDeg, endDeg)}
-          fill={assetClassColor(slice.type)}
+          fill={slice.color}
           fillOpacity={0.88}
           aria-label={`${slice.label}: ${fmtPct(slice.percent)}`}
-        />
+        >
+          <title>{`${slice.label}: ${fmtMoney(slice.valueBRL)} (${fmtPct(slice.percent).replace('+', '')})`}</title>
+        </path>
       ))}
       {/* Labels externos de % — apenas fatias > 4% */}
       {sectors
@@ -124,12 +128,12 @@ function CompositionDonut({
           const pt = polar(CX, CY, LABEL_RADIUS, midDeg)
           return (
             <text
-              key={`lbl-${slice.type}`}
+              key={`lbl-${slice.id}`}
               x={pt.x.toFixed(2)}
               y={pt.y.toFixed(2)}
               textAnchor="middle"
               dominantBaseline="central"
-              fill={assetClassColor(slice.type)}
+              fill={slice.color}
               fontSize="9"
               fontWeight="600"
               fontFamily="inherit"
@@ -166,16 +170,16 @@ function CompositionDonut({
 }
 
 // ── Lista de classes ───────────────────────────────────────────────────────
-function ClassList({ slices }: { slices: AssetClassSlice[] }) {
+function ClassList({ slices }: { slices: CompositionSlice[] }) {
   return (
     <div className="flex flex-col gap-3">
       {slices.map((s) => {
-        const color = assetClassColor(s.type)
-        const isIntl = isInternationalClass(s.type)
+        const color = s.color
+        const isIntl = s.international
         const barWidth = Math.min(100, Math.max(0, s.percent))
 
         return (
-          <div key={s.type} className="flex flex-col gap-1.5">
+          <div key={s.id} className="flex flex-col gap-1.5">
             <div className="space-y-1.5 md:hidden">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
@@ -240,11 +244,8 @@ export function AtivosComposicao() {
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ─────────────────────────────────────────────────────────────────
-  const { data: positions = [], isLoading: posLoading } = usePositions(walletId)
-  const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
-  const { data: quotes = [], isLoading: quotesLoading } = useLatestQuotes(tickers)
-  const { data: usdRateData } = useUSDRate()
-  const usdRate = usdRateData?.rate ?? 5
+  const { positions, tickers, compositionRows, totalBRL, patrimonioBRL, valorInvestidoBRL, assetCount, isLoading, isError, complete } = useAtivosValuation(walletId)
+  const { query, types } = useAssetFilters()
 
   const quantityByTicker = useMemo(() => {
     const m = new Map<string, number>()
@@ -253,33 +254,13 @@ export function AtivosComposicao() {
   }, [positions])
 
   const dividendTotalsByTicker = useDividendTotals(tickers, quantityByTicker)
+  const composition = useMemo(() => deriveComposition(compositionRows, totalBRL), [compositionRows, totalBRL])
 
   // ── Derivação ─────────────────────────────────────────────────────────────
-  const { rows, totalBRL } = useMemo(
-    () => derivePositionRows({ positions, quotes, usdRate }),
-    [positions, quotes, usdRate],
-  )
-
-  const composition = useMemo(() => deriveComposition(rows, totalBRL), [rows, totalBRL])
-
-  // ── KPI values ────────────────────────────────────────────────────────────
-  const valorInvestidoBRL = useMemo(() => {
-    if (positions.length === 0) return null
-    let total = 0
-    for (const p of positions) {
-      const qty = Number(p.quantity)
-      const avgPrice = Number(p.average_price)
-      const currency = p.asset?.currency ?? 'BRL'
-      const rate = currency === 'USD' ? usdRate : 1
-      total += qty * avgPrice * rate
-    }
-    return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, usdRate])
-
   const ganhoCapitalBRL = useMemo(() => {
-    if (totalBRL <= 0 || valorInvestidoBRL === null) return null
-    return totalBRL - valorInvestidoBRL
-  }, [totalBRL, valorInvestidoBRL])
+    if (patrimonioBRL === null || valorInvestidoBRL === null) return null
+    return patrimonioBRL - valorInvestidoBRL
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
@@ -288,9 +269,9 @@ export function AtivosComposicao() {
   }, [dividendTotalsByTicker])
 
   const rentabilidadePct = useMemo(() => {
-    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || totalBRL <= 0) return null
-    return ((totalBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalBRL, valorInvestidoBRL])
+    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || patrimonioBRL === null) return null
+    return ((patrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   // ── Resumo popover ─────────────────────────────────────────────────────────
   const [isResumoOpen, setIsResumoOpen] = useState(false)
@@ -300,28 +281,31 @@ export function AtivosComposicao() {
   const [activeToggle, setActiveToggle] = useState<ToggleOption>('Tipo de ativos')
   const [showIdeal, setShowIdeal] = useState(false)
 
-  const isLoading = posLoading || quotesLoading
 
   // Filtrar slices pelo toggle ativo
   const visibleSlices = useMemo(() => {
-    if (activeToggle === 'Exposição ao exterior') {
-      return composition.slices.filter((s) => isInternationalClass(s.type))
-    }
-    return composition.slices
-  }, [composition.slices, activeToggle])
+    if (activeToggle === 'Ativos') return buildAssetSlices(compositionRows, totalBRL)
+    const slices = activeToggle === 'Exposição ao exterior'
+      ? composition.slices.filter((s) => isInternationalClass(s.type))
+      : composition.slices
+    return slices.map((slice: AssetClassSlice): CompositionSlice => ({
+      ...slice, id: slice.type, color: assetClassColor(slice.type), international: isInternationalClass(slice.type),
+    }))
+  }, [composition.slices, activeToggle, compositionRows, totalBRL])
 
   return (
     <div className="flex flex-col gap-5">
+      <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar ── */}
       <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
-          patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+          patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
           ganhoCapital={fmtMoney(ganhoCapitalBRL)}
           ganhoCapitalPositive={
             ganhoCapitalBRL === null ? null : ganhoCapitalBRL >= 0
           }
-          ativos={rows.length}
+          ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
           resumoBtnRef={resumoBtnRef}
         />
@@ -329,7 +313,7 @@ export function AtivosComposicao() {
         {isResumoOpen && (
           <ResumoCarteiraPopover
             anchorRef={resumoBtnRef}
-            patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+            patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
@@ -345,7 +329,7 @@ export function AtivosComposicao() {
         {/* Cabeçalho */}
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <h2 className="text-[14px] font-semibold text-white">
-            Composição por classe
+            {activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
           </h2>
 
           {/* Toggle segmentado */}
@@ -366,6 +350,7 @@ export function AtivosComposicao() {
                 <button
                   key={opt}
                   type="button"
+                  aria-pressed={activeToggle === opt}
                   onClick={() => setActiveToggle(opt)}
                   className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
                     activeToggle === opt
@@ -407,12 +392,12 @@ export function AtivosComposicao() {
           </div>
         ) : composition.slices.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center">
-            <p className="text-[13px] text-[#8F8F8F]">Nenhuma posição avaliada.</p>
+            <p className="text-[13px] text-[#8F8F8F]">{query || types.length ? 'Nenhum ativo corresponde aos filtros selecionados.' : 'Nenhuma posição avaliada.'}</p>
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-8 md:flex-row md:items-center">
+          <div className="flex flex-col items-start gap-8 md:flex-row">
             {/* Donut — 180px mobile, 200px desktop */}
-            <div className="shrink-0 self-center md:self-auto">
+            <div className="shrink-0 self-center md:sticky md:top-24 md:self-start">
               <div className="block md:hidden">
                 <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={180} />
               </div>
@@ -427,6 +412,7 @@ export function AtivosComposicao() {
             </div>
           </div>
         )}
+        {showIdeal && <AllocationTargets key={walletId} walletId={walletId} />}
       </PanelCard>
     </div>
   )

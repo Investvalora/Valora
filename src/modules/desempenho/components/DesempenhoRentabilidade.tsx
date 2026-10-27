@@ -4,13 +4,18 @@
  */
 import { lazy, Suspense, useState, useMemo } from 'react'
 import { Download, Info } from 'lucide-react'
+import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
 import { TabelaMensal } from './TabelaMensal'
 import { usePositions } from '../../portfolio/hooks/usePositions'
+import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
+import { useUSDRate } from '../../../shared/hooks/useUSDRate'
+import { derivePositionRows } from '../../portfolio/positionRows'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import type { PerformancePeriod } from '../../performance/types'
+import type { AssetType } from '../../portfolio/types'
 
 const PerformanceLineChart = lazy(
   () => import('../../performance/components/PerformanceLineChart'),
@@ -82,11 +87,19 @@ export function DesempenhoRentabilidade() {
   const [period, setPeriod] = useState<PerformancePeriod>('Tudo')
   const [typeFilter, setTypeFilter] = useState('Todos os tipos')
 
-  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading } =
-    usePerformance(period, walletId)
+  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete } =
+    usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
 
   // Positions para obter o type do ativo (classe)
-  const { data: positions = [] } = usePositions()
+  const { data: positions = [], isLoading: positionsLoading, isError: positionsError } = usePositions(walletId)
+  const tickers = useMemo(() => positions.map((position) => position.ticker), [positions])
+  const quotes = useLatestQuotes(tickers)
+  const needsUsd = positions.some((position) => position.asset?.currency === 'USD')
+  const usd = useUSDRate({ enabled: needsUsd })
+  const marketValues = useMemo(() => {
+    const rows = derivePositionRows({ positions, quotes: quotes.data ?? [], usdRate: usd.isError || usd.isLoading ? null : usd.data?.rate ?? null }).rows
+    return new Map(rows.map((row) => [row.ticker, positionsLoading || positionsError || quotes.isLoading || quotes.isError ? null : row.marketValueBRL]))
+  }, [positions, quotes.data, quotes.isLoading, quotes.isError, usd.data?.rate, usd.isLoading, usd.isError, positionsLoading, positionsError])
   const tickerTypeMap = useMemo(() => {
     const m = new Map<string, string>()
     for (const p of positions) {
@@ -106,13 +119,13 @@ export function DesempenhoRentabilidade() {
 
   // Tipos disponíveis para o dropdown
   const availableTypes = useMemo(() => {
-    const types = new Set<string>()
-    for (const r of assetRows) {
-      const t = tickerTypeMap.get(r.ticker)
+    const types = new Set<string>(typeFilter === 'Todos os tipos' ? [] : [typeFilter])
+    for (const position of positions) {
+      const t = position.asset?.type
       if (t && ASSET_CLASS_LABELS[t]) types.add(ASSET_CLASS_LABELS[t])
     }
     return ['Todos os tipos', ...Array.from(types).sort()]
-  }, [assetRows, tickerTypeMap])
+  }, [positions, typeFilter])
 
   // KPIs
   const rentPct = summary.portfolioReturnPct
@@ -127,7 +140,7 @@ export function DesempenhoRentabilidade() {
       const classeLabel = t ? (ASSET_CLASS_LABELS[t] ?? t) : '—'
       const vscdipp =
         r.totalReturnPct != null && summary.cdiReturnPct != null
-          ? ((r.totalReturnPct - summary.cdiReturnPct * 100) / 100).toFixed(2)
+          ? (r.totalReturnPct - summary.cdiReturnPct * 100).toFixed(2)
           : '—'
       return [r.ticker, r.name ?? '', classeLabel, r.totalReturnPct?.toFixed(2) ?? '—', vscdipp]
     })
@@ -143,6 +156,7 @@ export function DesempenhoRentabilidade() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ReturnHistoryNotice incomplete={historyIncomplete} />
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Rentabilidade</h2>
@@ -214,6 +228,7 @@ export function DesempenhoRentabilidade() {
           <div className="flex flex-wrap gap-2 mt-2">
             {/* Dropdown período */}
             <select
+              aria-label="Período da rentabilidade"
               value={period}
               onChange={(e) => setPeriod(e.target.value as PerformancePeriod)}
               className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
@@ -226,6 +241,7 @@ export function DesempenhoRentabilidade() {
             </select>
             {/* Dropdown tipo */}
             <select
+              aria-label="Tipo de ativo da rentabilidade"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="w-full sm:w-auto rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none"
@@ -408,10 +424,7 @@ export function DesempenhoRentabilidade() {
                         ? 'text-nf-green'
                         : 'text-nf-pink'
 
-                  // Posição para buscar valor de mercado
-                  const position = positions.find((p) => p.ticker === row.ticker)
-                  const qty = position?.quantity ?? 0
-                  const avgPrice = position?.average_price ?? 0
+                  const marketValue = marketValues.get(row.ticker) ?? null
 
                   // Barra de desempenho — escala relativa ao máximo absoluto
                   const maxRent = Math.max(
@@ -467,8 +480,8 @@ export function DesempenhoRentabilidade() {
                       </td>
                       {/* Valor atual */}
                       <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-white">
-                        {qty > 0 && avgPrice > 0
-                          ? fmtBRL(qty * avgPrice)
+                        {marketValue !== null
+                          ? fmtBRL(marketValue)
                           : '—'}
                       </td>
                       {/* Rentabilidade */}

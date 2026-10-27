@@ -64,26 +64,29 @@ export const wealthService = {
   /**
    * Histórico de preços dos tickers informados desde `since` até hoje.
    *
-   * Máximo 365 pontos por ticker (AD-11 / NFR-3): a consulta traz no máximo
-   * `tickers.length × 365` linhas — suficiente para o período "Tudo" com a
-   * amostragem diária exigida.
+   * Consulta paginada, sem limitar o histórico a 365 pontos por ticker.
    *
    * Sem cotação no período → array vazio para aquele ticker (lacuna total).
    */
   async listPriceHistory(tickers: string[], since: string): Promise<PriceHistoryRow[]> {
     if (tickers.length === 0) return []
 
-    const { data, error } = await supabase
-      .from('price_history')
-      .select(PRICE_HISTORY_COLUMNS)
-      .in('ticker', tickers)
-      .gte('date', since)
-      .order('date', { ascending: true })
-      .limit(tickers.length * 365)
-
-    if (error) throw error
-
-    return (data ?? []) as unknown as PriceHistoryRow[]
+    const rows: PriceHistoryRow[] = []
+    const pageSize = 500
+    for (let start = 0; ; start += pageSize) {
+      const { data, error } = await supabase
+        .from('price_history')
+        .select(PRICE_HISTORY_COLUMNS)
+        .in('ticker', tickers)
+        .gte('date', since)
+        .order('date', { ascending: true })
+        .order('ticker', { ascending: true })
+        .range(start, start + pageSize - 1)
+      if (error) throw error
+      const page = (data ?? []) as unknown as PriceHistoryRow[]
+      rows.push(...page)
+      if (page.length < pageSize) return rows
+    }
   },
 
   /**

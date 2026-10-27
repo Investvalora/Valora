@@ -6,11 +6,14 @@ import { SidebarNovo } from './SidebarNovo'
 import { TopBar } from '../components/TopBar'
 import { QuickTransactionModal } from '../../modules/portfolio/components/QuickTransactionModal'
 import { MobileNav } from './MobileNav'
+import { useSidebarPreference } from '../stores/useSidebarPreference'
+import { usePriceTargetMonitor } from '../../modules/alerts/hooks/usePriceTargetMonitor'
 
 export function AppShellNovo() {
+  usePriceTargetMonitor()
   const { data: alertCount = 0 } = useNewAlertsCount()
   const { user } = useAuth()
-  const [compact, setCompact] = useState(false)
+  const { compact, setCompact } = useSidebarPreference(user?.id)
   const [lancamentoOpen, setLancamentoOpen] = useState(false)
 
   const fullName = user?.user_metadata?.full_name
@@ -26,7 +29,7 @@ export function AppShellNovo() {
         accountName={accountName}
         alertCount={alertCount}
         compact={compact}
-        onToggle={() => setCompact((v) => !v)}
+        onToggle={() => setCompact(!compact)}
       />
 
       {/* ── Área principal ── */}

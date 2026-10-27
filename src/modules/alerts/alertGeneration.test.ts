@@ -48,8 +48,20 @@ const qt = (ticker: string, close: number) => ({ ticker, date: '2026-09-11', clo
 describe('findBazinAlertCandidates', () => {
   const MIN_DY = 0.06
 
+  it('descreve desconto sobre o teto, nunca acima de 100%', () => {
+    // A fórmula antiga exibia 118,8% abaixo: teto 87,52, preço 40.
+    const [alert] = findBazinAlertCandidates([pos('PETR4')], [div('PETR4', 5.2512)], [qt('PETR4', 40)])
+    expect(alert.description).toContain('54,3% abaixo')
+    expect(alert.description).not.toContain('118,8%')
+  })
+
+  it('calcula sobrepreço sobre o teto', () => {
+    const [alert] = findBazinAlertCandidates([pos('PETR4')], [div('PETR4', 2.4)], [qt('PETR4', 60)])
+    expect(alert.description).toContain('50,0% acima')
+  })
+
   it('oportunidade: margem > 15% → alerta opportunity', () => {
-    // teto = 2.40 / 0.06 = 40; cotação = 33; margem ≈ 21%
+    // teto = 2.40 / 0.06 = 40; cotação = 33; margem = 17,5%
     const candidates = findBazinAlertCandidates(
       [pos('PETR4')],
       [div('PETR4', 1.20), div('PETR4', 1.20)],
@@ -62,7 +74,7 @@ describe('findBazinAlertCandidates', () => {
   })
 
   it('sobrevalorizado: margem < -20% → alerta overvalued', () => {
-    // teto = 2.40 / 0.06 = 40; cotação = 52; margem ≈ -23%
+    // teto = 2.40 / 0.06 = 40; cotação = 52; margem = -30%
     const candidates = findBazinAlertCandidates(
       [pos('VALE3')],
       [div('VALE3', 1.20), div('VALE3', 1.20)],

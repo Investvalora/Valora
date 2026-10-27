@@ -7,6 +7,8 @@ import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
 import { useCalcFixedIncome } from '../hooks/useCalcFixedIncome'
 import { useTickerLatestPrice } from '../hooks/useAssetSearch'
+import { useQuery } from '@tanstack/react-query'
+import { positionService } from '../services/positionService'
 import type {
   AssetType,
   FixedIncomeIndexer,
@@ -69,7 +71,7 @@ type FormValues = z.infer<typeof schema>
 const rendaFixaSchema = z.object({
   emissor: z.string().min(1, 'Informe o emissor'),
   tipo_titulo: z.string().min(1, 'Selecione o tipo').refine(
-    (v) => ['cdb_cdi', 'cdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre'].includes(v),
+    (v) => ['cdb_cdi', 'cdb_pre', 'rdb_cdi', 'rdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre'].includes(v),
     { message: 'Selecione o tipo' },
   ),
   taxa: z
@@ -249,6 +251,8 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
             {...register('tipo_titulo')}
           >
             <option value="">Selecione</option>
+            <option value="rdb_cdi">RDB % CDI</option>
+            <option value="rdb_pre">RDB Prefixado</option>
             <option value="cdb_cdi">CDB CDI</option>
             <option value="cdb_pre">CDB Pré</option>
             <option value="lci_cdi">LCI CDI</option>
@@ -651,6 +655,12 @@ export function AddTransactionModal({
   const quantity = watch('quantity')
   const price = watch('price')
   const brokerageFee = watch('brokerage_fee') ?? 0
+  const { data: catalogAsset } = useQuery({
+    queryKey: ['portfolio', 'asset', ticker],
+    queryFn: () => positionService.findAssetByTicker(ticker),
+    enabled: isOpen && Boolean(ticker),
+  })
+  const currency = catalogAsset?.currency ?? (ticker.endsWith('-BRL') ? 'BRL' : assetType && ['crypto', 'stock_us', 'etf_us', 'reit'].includes(assetType) ? 'USD' : 'BRL')
   const latestPrice = useTickerLatestPrice(ticker)
 
   useEffect(() => {
@@ -666,7 +676,7 @@ export function AddTransactionModal({
 
   const brlFormatter = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
-    currency: 'BRL',
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -822,7 +832,7 @@ export function AddTransactionModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="txn-price" className={LABEL_CLASS}>
-                Preço
+                Preço ({currency})
               </label>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 font-medium">R$</span>

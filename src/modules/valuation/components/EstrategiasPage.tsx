@@ -108,7 +108,7 @@ function ExplicacaoCalculo({ insight }: { insight: InsightRecord }) {
             </div>
             <div className="flex justify-between gap-4 pt-0.5">
               <span className="text-gray-400">
-                Margem = ({formatBRL(teto)} − {formatBRL(cotacao)}) ÷ {formatBRL(cotacao)}
+                Margem = ({formatBRL(teto)} − {formatBRL(cotacao)}) ÷ {formatBRL(teto)} × 100
               </span>
               <MarginIndicator margin={margem} positiveLabel="abaixo do teto" negativeLabel="acima do teto" />
             </div>
@@ -169,7 +169,7 @@ function ExplicacaoCalculo({ insight }: { insight: InsightRecord }) {
           </div>
           <div className="flex justify-between gap-4 pt-0.5">
             <span className="text-gray-400">
-              Margem = ({formatBRL(justo)} − {formatBRL(cotacao)}) ÷ {formatBRL(cotacao)}
+              Margem = ({formatBRL(justo)} − {formatBRL(cotacao)}) ÷ {formatBRL(justo)} × 100
             </span>
             <MarginIndicator margin={margem} positiveLabel="abaixo do justo" negativeLabel="acima do justo" />
           </div>

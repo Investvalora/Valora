@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { signupSchema, SignupSchema } from '../schemas/signupSchema'
+import { PASSWORD_HELP } from '../schemas/passwordSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { useState } from 'react'
@@ -105,7 +106,14 @@ export function SignupForm() {
           <div>
             <label htmlFor="password" className={authLabel}>Senha</label>
             <input id="password" type="password" autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={authInput} placeholder="Mínimo 8 caracteres" />
+            <p className="mt-2 text-xs text-white/50">{PASSWORD_HELP}</p>
             {errors.password && <p id="signup-password-error" className={authFieldError}>{errors.password.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className={authLabel}>Confirmar senha</label>
+            <input id="confirmPassword" type="password" autoComplete="new-password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined} className={authInput} placeholder="Repita a senha" />
+            {errors.confirmPassword && <p id="signup-confirm-error" className={authFieldError}>{errors.confirmPassword.message}</p>}
           </div>
 
           {errorMessage && (

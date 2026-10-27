@@ -1,3 +1,6 @@
+import { AssetValuationNotice } from './AssetValuationNotice'
+import { FixedIncomePositions } from './FixedIncomePositions'
+import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
  * AtivosPosicoes — sub-rota /ativos/posicoes
  *
@@ -5,15 +8,20 @@
  * por classe de ativo com todas as colunas do Figma.
  */
 import { useMemo, useRef, useState } from 'react'
-import { Download, Filter } from 'lucide-react'
+import { Download, Columns3 } from 'lucide-react'
+import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
+import { AssetFilterButton } from './AssetFiltersPanel'
+import { useAssetFilters } from '../hooks/useAssetFilters'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { useAssetColumns } from '../hooks/useAssetColumns'
+import { AssetColumnEditor } from './AssetColumnEditor'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
+import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules'
+import { useScorePreferences, useUpsertScorePreferences } from '../../score/hooks/useScorePreferences'
+import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useBazin } from '../../valuation/hooks/useBazin'
-import { useUSDRate } from '../../../shared/hooks/useUSDRate'
-import { derivePositionRows } from '../../portfolio/positionRows'
 import { enrichPositionRows } from '../../portfolio/enrichPositionRows'
 import { groupRowsByClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
@@ -26,19 +34,18 @@ import type { AssetCurrency, AssetClassKey } from '../../portfolio/types'
 import type { FundamentalsRow } from '../../score/types'
 
 export function AtivosPosicoes() {
+  const { user } = useAuth()
+  const columnSettings = useAssetColumns(user?.id ?? 'guest')
+  const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false)
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
 
   // ── Dados ────────────────────────────────────────────────────────────────
 
-  const { data: positions = [], isLoading: posLoading } = usePositions(walletId)
-  const tickers = useMemo(() => positions.map((p) => p.ticker), [positions])
+  const { positions, tickers, rows: baseRows, fixedRows, totalBRL, patrimonioBRL, valorInvestidoBRL, assetCount, isLoading, isError, complete } = useAtivosValuation(walletId)
+  const { query, types } = useAssetFilters()
+  const hasFilters = Boolean(query || types.length)
 
-  const { data: quotes = [], isLoading: quotesLoading } = useLatestQuotes(tickers)
-  const { data: usdRateData } = useUSDRate()
-  const usdRate = usdRateData?.rate ?? 5
-
-  // DividendTotals requer Map<ticker, quantity>
   const quantityByTicker = useMemo(() => {
     const m = new Map<string, number>()
     for (const p of positions) m.set(p.ticker, Number(p.quantity))
@@ -48,6 +55,14 @@ export function AtivosPosicoes() {
   const dividendTotalsByTicker = useDividendTotals(tickers, quantityByTicker)
 
   const { data: fundamentalsRows = [] } = useFundamentals(tickers)
+  const rulesQuery = useScoreRules()
+  const preferencesQuery = useScorePreferences()
+  const saveScore = useUpsertScorePreferences()
+  const allRules = useMemo(() => rulesQuery.data ?? [], [rulesQuery.data])
+  const scoreNames = useMemo(() => Array.from(groupRulesByName(allRules).keys()).sort(), [allRules])
+  const activeScoreName = allRules.find((rule) => rule.id === preferencesQuery.data?.default_score_rule_id)?.name ?? ''
+  const activeRules = useMemo(() => allRules.filter((rule) => rule.name === activeScoreName), [allRules, activeScoreName])
+  const scoreByTicker = useCalculateScore(activeRules, fundamentalsRows)
   const fundamentalsByTicker = useMemo(() => {
     const m = new Map<string, FundamentalsRow>()
     for (const f of fundamentalsRows) m.set(f.ticker, f)
@@ -67,17 +82,7 @@ export function AtivosPosicoes() {
 
   // ── Derivação ─────────────────────────────────────────────────────────────
 
-  const { rows: baseRows, totalBRL } = useMemo(
-    () =>
-      derivePositionRows({
-        positions,
-        quotes,
-        usdRate,
-      }),
-    [positions, quotes, usdRate],
-  )
-
-  const enrichedRows = useMemo(
+  const enrichedBase = useMemo(
     () =>
       enrichPositionRows({
         rows: baseRows,
@@ -87,26 +92,16 @@ export function AtivosPosicoes() {
       }),
     [baseRows, fundamentalsByTicker, dividendTotalsByTicker, bazinByTicker],
   )
+  const enrichedRows = useMemo(() => enrichedBase.map((row) => ({ ...row,
+    score: activeScoreName ? scoreByTicker.get(row.ticker) ?? null : undefined,
+  })), [enrichedBase, activeScoreName, scoreByTicker])
 
   // ── KPI values ───────────────────────────────────────────────────────────
 
-  const valorInvestidoBRL = useMemo(() => {
-    if (positions.length === 0) return null
-    let total = 0
-    for (const p of positions) {
-      const qty = Number(p.quantity)
-      const avgPrice = Number(p.average_price)
-      const currency = p.asset?.currency ?? 'BRL'
-      const rate = currency === 'USD' ? usdRate : 1
-      total += qty * avgPrice * rate
-    }
-    return Number.isFinite(total) && total > 0 ? total : null
-  }, [positions, usdRate])
-
   const ganhoCapitalBRL = useMemo(() => {
-    if (totalBRL <= 0 || valorInvestidoBRL === null) return null
-    return totalBRL - valorInvestidoBRL
-  }, [totalBRL, valorInvestidoBRL])
+    if (patrimonioBRL === null || valorInvestidoBRL === null) return null
+    return patrimonioBRL - valorInvestidoBRL
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
@@ -115,9 +110,9 @@ export function AtivosPosicoes() {
   }, [dividendTotalsByTicker])
 
   const rentabilidadePct = useMemo(() => {
-    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || totalBRL <= 0) return null
-    return ((totalBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
-  }, [totalBRL, valorInvestidoBRL])
+    if (valorInvestidoBRL === null || valorInvestidoBRL <= 0 || patrimonioBRL === null) return null
+    return ((patrimonioBRL - valorInvestidoBRL) / valorInvestidoBRL) * 100
+  }, [patrimonioBRL, valorInvestidoBRL])
 
   // ── Resumo Popover ────────────────────────────────────────────────────────
 
@@ -146,20 +141,20 @@ export function AtivosPosicoes() {
     })
   }
 
-  const isLoading = posLoading || quotesLoading
 
   return (
     <div className="flex flex-col gap-5">
+      <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar com botão de resumo ── */}
       <div className="relative overflow-x-auto md:overflow-visible">
         <KpiBarAtivos
-          patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+          patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
           ganhoCapital={fmtMoney(ganhoCapitalBRL)}
           ganhoCapitalPositive={
             ganhoCapitalBRL === null ? null : ganhoCapitalBRL >= 0
           }
-          ativos={enrichedRows.length}
+          ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
           resumoBtnRef={resumoBtnRef}
         />
@@ -167,7 +162,7 @@ export function AtivosPosicoes() {
         {isResumoOpen && (
           <ResumoCarteiraPopover
             anchorRef={resumoBtnRef}
-            patrimonio={fmtMoney(totalBRL > 0 ? totalBRL : null)}
+            patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
@@ -179,31 +174,39 @@ export function AtivosPosicoes() {
       </div>
 
       {/* ── Tabela de posições — desktop ── */}
+      <div className="flex flex-wrap items-center gap-3 text-sm text-white/60">
+        <label>Meu score
+          <select aria-label="Score das posições" value={activeScoreName} disabled={rulesQuery.isLoading || preferencesQuery.isLoading || rulesQuery.isError || preferencesQuery.isError || saveScore.isPending}
+            onChange={(event) => saveScore.mutate({ default_score_rule_id: allRules.find((rule) => rule.name === event.target.value)?.id ?? null })}
+            className="ml-2 min-h-11 rounded-lg border border-white/15 bg-[#262626] px-3 text-white">
+            <option value="">Sem score</option>
+            {scoreNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+        {scoreNames.length === 0 && !rulesQuery.isLoading && <span>Crie suas regras na página Score.</span>}
+        {(rulesQuery.isError || preferencesQuery.isError || saveScore.isError) && <span role="alert" className="text-rose-300">Não foi possível carregar ou salvar o score. Tente novamente.</span>}
+        {activeScoreName && <span>Veja a coluna “Meu score” em Editar colunas. Sem fundamentos: —.</span>}
+      </div>
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
           <h2 className="text-[14px] font-semibold text-white">
-            Posições
+            Posições de renda variável
           </h2>
           <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
             {enrichedRows.length}
           </span>
 
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              className="
-                flex items-center gap-1.5 rounded-full
-                border border-white/[0.1] bg-transparent
-                px-3.5 py-1.5 text-[12px] font-medium text-white/60
-                transition-colors hover:bg-white/[0.06] hover:text-white
-              "
-            >
-              <Filter className="h-3 w-3" strokeWidth={1.8} aria-hidden="true" />
-              Filtrar
+            <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
+              <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
             </button>
+            <AssetFilterButton />
             <button
               type="button"
+              onClick={() => downloadPositionsCsv(baseRows)}
+              disabled={isLoading || baseRows.length === 0}
+              title="Exportar posições de renda variável filtradas com as colunas padrão do CSV"
               className="
                 flex items-center gap-1.5 rounded-full
                 border border-white/[0.1] bg-transparent
@@ -223,6 +226,8 @@ export function AtivosPosicoes() {
             rows={enrichedRows}
             totalBRL={totalBRL}
             isLoading={isLoading}
+            visibleColumns={columnSettings.columns}
+            emptyMessage={fixedRows.length ? 'As posições de renda fixa estão listadas abaixo.' : hasFilters ? 'Nenhum ativo corresponde aos filtros selecionados.' : undefined}
           />
         </div>
 
@@ -234,7 +239,7 @@ export function AtivosPosicoes() {
             </div>
           ) : groups.length === 0 ? (
             <div className="flex items-center justify-center py-10">
-              <p className="text-[13px] text-white/40">Nenhuma posição cadastrada.</p>
+              <p className="text-[13px] text-white/40">{fixedRows.length ? 'As posições de renda fixa estão listadas abaixo.' : hasFilters ? 'Nenhum ativo corresponde aos filtros selecionados.' : 'Nenhuma posição cadastrada.'}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2 p-3">
@@ -256,6 +261,8 @@ export function AtivosPosicoes() {
           )}
         </div>
       </PanelCard>
+      {!isLoading && <FixedIncomePositions rows={fixedRows} />}
+      {isColumnEditorOpen && <AssetColumnEditor columns={columnSettings.columns} onSave={columnSettings.save} onClose={() => setIsColumnEditorOpen(false)} />}
     </div>
   )
 }

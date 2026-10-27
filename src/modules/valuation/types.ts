@@ -18,7 +18,7 @@ export interface BazinResult {
    */
   currentPrice: number | null
   /**
-   * Margem de segurança: `((ceilingPrice − currentPrice) / currentPrice) × 100`.
+   * Margem de segurança: `((ceilingPrice − currentPrice) / ceilingPrice) × 100`.
    * Positiva = cotação abaixo do teto (oportunidade).
    * Negativa = cotação acima do teto (sobrevalorizado).
    * `null` quando `ceilingPrice` ou `currentPrice` são nulos.
@@ -47,7 +47,7 @@ export interface GrahamResult {
    */
   currentPrice: number | null
   /**
-   * Margem de segurança: `((grahamPrice − currentPrice) / currentPrice) × 100`.
+   * Margem de segurança: `((grahamPrice − currentPrice) / grahamPrice) × 100`.
    * Positiva = cotação abaixo do justo (oportunidade).
    * Negativa = cotação acima do justo (sobrevalorizado).
    * `null` quando `grahamPrice` ou `currentPrice` são nulos.

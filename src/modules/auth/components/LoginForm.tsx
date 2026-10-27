@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { loginSchema, LoginSchema } from '../schemas/loginSchema'
 import { authService } from '../services/authService'
@@ -25,10 +25,20 @@ function GoogleIcon() {
 
 export function LoginForm() {
   const navigate = useNavigate()
+  const location = useLocation()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
+  const callbackError = new URLSearchParams(location.search).get('error') ??
+    new URLSearchParams(location.hash.slice(1)).get('error')
+  const googleMutation = useMutation({
+    mutationFn: authService.loginWithGoogle,
+    onError: () => setErrorMessage('Não foi possível entrar com Google. Tente novamente ou use email e senha.'),
+  })
+  const oauthMessage = callbackError === 'access_denied'
+    ? 'Login com Google cancelado ou acesso não autorizado. Você pode tentar novamente.'
+    : callbackError ? 'Não foi possível concluir a autenticação. Tente novamente.' : ''
 
   const {
     register,
@@ -63,11 +73,6 @@ export function LoginForm() {
     },
   })
 
-  const googleLoginMutation = useMutation({
-    mutationFn: authService.loginWithGoogle,
-    onError: () => setErrorMessage('Não foi possível iniciar o login com Google. Tente novamente.'),
-  })
-
   const onSubmit = (data: LoginSchema) => {
     setErrorMessage('')
     loginMutation.mutate(data)
@@ -80,7 +85,6 @@ export function LoginForm() {
       description="Acesse sua carteira e suas análises."
       footer={<>
         <p>Ainda não tem uma conta? <Link to="/cadastro" className={authLink}>Criar conta</Link></p>
-        <p className="mt-3 text-[10px] leading-relaxed text-[#777a80]">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</p>
       </>}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -106,12 +110,11 @@ export function LoginForm() {
           <Link to="/recuperar-senha" className={authLink}>Esqueci minha senha</Link>
         </div>
 
-        {errorMessage && <p role="alert" className={authErrorBox}>{errorMessage}</p>}
+        {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
 
-        <button type="submit" disabled={loginMutation.isPending} className={authButton}>
+        <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className={authButton}>
           {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
         </button>
-
         <div className="flex items-center gap-3 py-1 text-xs text-[#777a80]" aria-hidden="true">
           <span className="h-px flex-1 bg-white/[0.12]" />
           ou
@@ -122,13 +125,13 @@ export function LoginForm() {
           type="button"
           onClick={() => {
             setErrorMessage('')
-            googleLoginMutation.mutate()
+            googleMutation.mutate()
           }}
-          disabled={googleLoginMutation.isPending}
+          disabled={googleMutation.isPending || loginMutation.isPending}
           className="flex min-h-12 w-full items-center justify-center gap-3 rounded-md border border-white/[0.28] bg-transparent px-4 text-base font-semibold text-white transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a9bdb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1b1b1d] disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-10 lg:text-sm"
         >
           <GoogleIcon />
-          {googleLoginMutation.isPending ? 'Redirecionando...' : 'Continuar com Google'}
+          {googleMutation.isPending ? 'Conectando ao Google...' : 'Continuar com Google'}
         </button>
       </form>
     </AuthLayout>

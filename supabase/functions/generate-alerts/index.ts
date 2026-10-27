@@ -50,7 +50,18 @@ async function insertAlert(userId: string, payload: Record<string, unknown>) {
     `alerts?user_id=eq.${userId}&type=eq.${payload.type}&ticker=eq.${payload.ticker}&status=neq.ignorado&select=id&limit=1`,
   )
   if (!existing.ok) throw new Error('Não foi possível consultar alertas existentes.')
-  if ((await existing.json()).length > 0) return false
+  const [previous] = await existing.json() as Array<{ id: string }>
+  if (previous) {
+    // Recalcular também a mensagem persistida; preservar status de leitura.
+    if (payload.type === 'opportunity' || payload.type === 'overvalued') {
+      const updated = await rest(`alerts?id=eq.${encodeURIComponent(previous.id)}&user_id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title: payload.title, description: payload.description }),
+      })
+      if (!updated.ok) throw new Error('Não foi possível atualizar o alerta.')
+    }
+    return false
+  }
 
   const created = await rest('alerts', {
     method: 'POST',

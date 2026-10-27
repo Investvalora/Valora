@@ -6,15 +6,15 @@ vi.mock('../../../shared/services/supabaseClient', () => ({
   supabase: {
     auth: {
       signUp: vi.fn(),
-      signInWithOAuth: vi.fn(),
       resetPasswordForEmail: vi.fn(),
+      signInWithOAuth: vi.fn(),
     },
   },
 }))
 
 const signupData = {
   email: 'teste@exemplo.com',
-  password: 'senha-segura-123',
+  password: 'Vento!Nuvem82',
   fullName: 'Teste Valora',
 }
 
@@ -60,13 +60,13 @@ it('pede o reset para a página da origem atual', async () => {
   })
 })
 
-it('inicia a autenticação Google retornando para a origem atual', async () => {
+it('inicia o login Google com retorno para a aplicação', async () => {
   vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'google', url: 'https://accounts.google.com' }, error: null })
-
   await authService.loginWithGoogle()
+  expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({ provider: 'google', options: { redirectTo: `${window.location.origin}/login` } })
+})
 
-  expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-    provider: 'google',
-    options: { redirectTo: `${window.location.origin}/inicio` },
-  })
+it('propaga falha ao iniciar OAuth', async () => {
+  vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'google', url: null }, error: new Error('provider disabled') } as Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>)
+  await expect(authService.loginWithGoogle()).rejects.toThrow('provider disabled')
 })

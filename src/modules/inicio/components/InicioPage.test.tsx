@@ -7,6 +7,7 @@ import { InicioPage } from './InicioPage'
 
 let walletId = 'wallet-a'
 let isMobile = false
+vi.mock('../../alerts/hooks/useAlerts', () => ({ useNewAlertsCount: () => ({ data: 12 }) }))
 const dashboardByWallet: Record<string, DashboardData> = {
   'wallet-a': {
     totalPatrimonioBRL: 4872,
@@ -88,6 +89,8 @@ describe('Início', () => {
     const { rerender } = render(<MemoryRouter><InicioPage /></MemoryRouter>)
 
     expect(screen.getByRole('heading', { name: 'Carteiras mobile' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abrir alertas (12 novos)' })).toHaveAttribute('href', '/alertas')
+    expect(screen.getByRole('link', { name: 'Abrir alertas (12 novos)' })).toHaveTextContent('9+')
     expect(screen.getByText('Patrimônio mobile: 4872')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).parentElement?.parentElement).toHaveClass('pb-20')
     expect(screen.getByRole('link', { name: /Ativos Ver ativos da carteira/ })).toBeInTheDocument()

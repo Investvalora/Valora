@@ -12,6 +12,8 @@ import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHom
 import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
+import { AlertBell } from '../../../shared/components/AlertBell'
+import { useNewAlertsCount } from '../../alerts/hooks/useAlerts'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -28,6 +30,7 @@ function percentage(value: number | null) {
 
 export function InicioPage() {
   const isMobile = useIsMobile()
+  const { data: alertCount = 0 } = useNewAlertsCount()
   const [isQuickTransactionOpen, setIsQuickTransactionOpen] = useState(false)
   const { user } = useAuth()
   const { selectedWallet } = useWallets()
@@ -47,8 +50,8 @@ export function InicioPage() {
   const content = (
     <div className="flex flex-col gap-5 px-4 md:px-0 md:pt-2">
       {/* ── Saudação ── */}
-      <div className="flex items-end pb-20 pt-5 md:py-8">
-        <div>
+      <div className="flex items-end justify-between gap-3 pb-20 pt-5 md:py-8">
+        <div className="min-w-0">
           {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
               maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
           <h1 className="text-[26px] font-medium leading-none text-white md:text-[32px]">
@@ -58,6 +61,7 @@ export function InicioPage() {
             {hoje} · {selectedWallet?.name ?? 'Sua carteira'}
           </p>
         </div>
+        {isMobile && <AlertBell count={alertCount} className="mr-6 self-start md:hidden" />}
       </div>
 
       {/* ── 4 KPIs ── */}

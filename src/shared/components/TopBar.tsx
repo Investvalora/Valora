@@ -1,5 +1,5 @@
-import { Bell, Plus } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
+import { AlertBell } from './AlertBell'
 import { WalletMorphSelector } from './WalletMorphSelector'
 
 type TopBarProps = {
@@ -30,32 +30,7 @@ export function TopBar({
       {/* ── Ações globais ── */}
       <div className="hidden items-center gap-3 md:flex">
         {/* Sino */}
-        <Link
-          to="/alertas"
-          aria-label={alertCount > 0 ? `Abrir alertas (${alertCount} novos)` : 'Abrir alertas'}
-          className="
-              relative grid h-9 w-9 place-items-center rounded-full
-              bg-[#393939]
-              transition-colors hover:bg-white/[0.12]
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple
-            "
-        >
-          <Bell className="h-4 w-4 text-white" strokeWidth={1.8} aria-hidden="true" />
-          {alertCount > 0 && (
-            <span
-              aria-hidden="true"
-              className="
-                  absolute -right-0.5 -top-0.5
-                  flex h-4 w-4 items-center justify-center
-                  rounded-full bg-[#F765A3]
-                  text-[9px] font-semibold text-white
-                  ring-[1.5px] ring-[#131313]
-                "
-            >
-              {alertCount > 9 ? '9+' : alertCount}
-            </span>
-          )}
-        </Link>
+        <AlertBell count={alertCount} />
 
         {/* Novo lançamento */}
         <button

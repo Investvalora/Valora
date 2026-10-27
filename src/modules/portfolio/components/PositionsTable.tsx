@@ -408,7 +408,7 @@ function PositionRow({
         <td className={`${CELL_CLASS} text-right`}>
           {row.grahamPrice !== null && row.grahamPrice !== undefined ? (
             <span className="flex flex-col items-end gap-0.5">
-              <span className="text-white">{formatBRL(row.grahamPrice)}</span>
+              <span className="text-white">{formatMoney(row.grahamPrice, row.currency)}</span>
               {Number.isFinite(row.quotePrice) && row.quotePrice > 0 && (
                 <span className={`text-xs ${row.quotePrice <= row.grahamPrice ? 'text-green-400' : 'text-red-400'}`}>
                   {row.quotePrice <= row.grahamPrice ? '▼ abaixo' : '▲ acima'}
@@ -424,7 +424,7 @@ function PositionRow({
         <td className={`${CELL_CLASS} text-right`}>
           {row.bazinCeiling !== null && row.bazinCeiling !== undefined ? (
             <span className="flex flex-col items-end gap-0.5">
-              <span className="text-white">{formatBRL(row.bazinCeiling)}</span>
+              <span className="text-white">{formatMoney(row.bazinCeiling, row.currency)}</span>
               {Number.isFinite(row.quotePrice) && row.quotePrice > 0 && (
                 <span className={`text-xs ${row.quotePrice <= row.bazinCeiling ? 'text-green-400' : 'text-red-400'}`}>
                   {row.quotePrice <= row.bazinCeiling ? '▼ abaixo' : '▲ acima'}

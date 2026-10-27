@@ -9,6 +9,7 @@ export type AlertType =
 export type AlertCondition = 'above' | 'below'
 
 export interface Alert {
+  ignored_at?: string | null
   id: string
   user_id: string
   type: AlertType
@@ -23,6 +24,13 @@ export interface Alert {
   condition: AlertCondition | null
   created_at: string
   updated_at: string
+}
+
+export interface EditAlertPayload {
+  title: string
+  description: string
+  targetPrice?: number
+  condition?: AlertCondition
 }
 
 /** Payload para criar um alerta de preço-alvo. */

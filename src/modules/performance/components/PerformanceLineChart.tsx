@@ -10,6 +10,7 @@ import {
   type TooltipProps,
 } from 'recharts'
 import type { PerformanceSeries } from '../types'
+import { comparisonChart } from '../utils/comparisonChart'
 
 interface PerformanceLineChartProps {
   series: PerformanceSeries[]
@@ -19,7 +20,8 @@ interface PerformanceLineChartProps {
  * Converte `YYYY-MM-DD` em `MMM/YY` em pt-BR para o eixo X.
  * Retorna o valor bruto se o formato for inesperado.
  */
-function formatAxisDate(value: string): string {
+function formatAxisDate(value: string | number): string {
+  if (typeof value === 'number') value = new Date(value).toISOString().slice(0, 10)
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value))
   if (!match) return String(value)
   const [, year, month] = match
@@ -46,7 +48,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       role="tooltip"
       className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm shadow-lg min-w-[160px]"
     >
-      <p className="text-gray-400 mb-2 text-xs">{formatAxisDate(String(label))}</p>
+      <p className="text-gray-400 mb-2 text-xs">{formatAxisDate(label as string | number)}</p>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 mb-0.5">
           <span className="flex items-center gap-1.5">
@@ -78,9 +80,8 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 export default function PerformanceLineChart({ series }: PerformanceLineChartProps) {
   // Unifica todas as séries em um único array de pontos para o Recharts,
   // indexado por data. Cada objeto: { date, [label]: normalized, ... }
-  const allDates = Array.from(
-    new Set(series.flatMap((s) => s.points.map((p) => p.date))),
-  ).sort()
+  const chart = comparisonChart(series)
+  const allDates = chart.dates
 
   if (allDates.length === 0) {
     return (
@@ -93,38 +94,32 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
     )
   }
 
-  // Constrói mapa de pontos por série
-  const pointsByLabel = new Map<string, Map<string, number | null>>()
-  for (const s of series) {
-    const m = new Map<string, number | null>()
-    for (const p of s.points) m.set(p.date, p.normalized ?? null)
-    pointsByLabel.set(s.label, m)
-  }
-
-  const data = allDates.map((date) => {
-    const entry: Record<string, string | number | null> = { date }
-    for (const s of series) {
-      entry[s.label] = pointsByLabel.get(s.label)?.get(date) ?? null
-    }
-    return entry
-  })
-
-  // Seleciona ~8 ticks igualmente espaçados para não poluir o eixo X
+  const timestamp = (date: string) => Date.parse(`${date}T12:00:00Z`)
   const tickInterval = Math.max(1, Math.floor(allDates.length / 8))
+  const ticks = allDates.filter((_, index) => index % tickInterval === 0).map(timestamp)
+  const shortPeriod = timestamp(allDates[allDates.length - 1]) - timestamp(allDates[0]) < 120 * 86400000
+  const unavailable = chart.series.filter((item) => item.label !== 'Carteira' && !item.points.some((point) => point.normalized !== null && Number.isFinite(point.normalized))).map((item) => item.label)
 
   return (
+    <div>
+    <p className="mb-3 text-xs text-white/50">Período com dados: {allDates[0].split('-').reverse().join('/')} a {allDates[allDates.length - 1].split('-').reverse().join('/')}{unavailable.length > 0 ? `. ${unavailable.join(', ')} sem dados nesse intervalo; comparação indisponível.` : ''}</p>
     <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+      <LineChart margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" vertical={false} />
         <XAxis
           dataKey="date"
-          tickFormatter={formatAxisDate}
+          type="number"
+          scale="time"
+          domain={[timestamp(allDates[0]), timestamp(allDates[allDates.length - 1])]}
+          ticks={ticks}
+          tickFormatter={(value: number) => shortPeriod ? new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) : formatAxisDate(value)}
           tick={{ fill: '#9ca3af', fontSize: 11 }}
           axisLine={false}
           tickLine={false}
-          interval={tickInterval}
+          interval="preserveStartEnd"
         />
         <YAxis
+          domain={chart.domain}
           tickFormatter={(v: number) =>
             new Intl.NumberFormat('pt-BR', {
               minimumFractionDigits: 0,
@@ -144,14 +139,16 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
             <span style={{ color: '#d1d5db' }}>{value}</span>
           )}
         />
-        {series.map((s) => (
+        {chart.series.map((s) => (
           <Line
             key={s.label}
             type="monotone"
-            dataKey={s.label}
+            data={s.points.map((point) => ({ date: timestamp(point.date), normalized: point.normalized }))}
+            dataKey="normalized"
+            name={s.label}
             stroke={s.color}
             strokeWidth={2}
-            dot={false}
+            dot={s.points.filter((point) => point.normalized !== null).length === 1 ? { r: 3 } : false}
             activeDot={{ r: 4, strokeWidth: 0 }}
             connectNulls={false}
             isAnimationActive={false}
@@ -159,5 +156,6 @@ export default function PerformanceLineChart({ series }: PerformanceLineChartPro
         ))}
       </LineChart>
     </ResponsiveContainer>
+    </div>
   )
 }

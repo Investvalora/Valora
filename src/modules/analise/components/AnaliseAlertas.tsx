@@ -4,6 +4,7 @@
  */
 import { useState } from 'react'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
+import { EditAlertButton } from '../../alerts/components/EditAlertButton'
 import {
   Bell, BellRing, Check, TrendingDown, TrendingUp, AlertTriangle, Clock, X, RefreshCw,
   type LucideIcon,
@@ -93,6 +94,7 @@ function AlertCard({ alert }: { alert: Alert }) {
           <p className="mt-1 text-[13px] font-semibold text-white">{alert.title}</p>
           <p className="mt-0.5 text-[12px] text-white/50">{alert.description}</p>
           <p className="mt-1 text-[11px] text-white/30">{fmtDate(alert.created_at)}</p>
+          <div className="mt-3"><EditAlertButton alert={alert} /></div>
         </div>
       </div>
 
@@ -156,6 +158,7 @@ export function AnaliseAlertas() {
 
   return (
     <div className="flex flex-col gap-5">
+      <p className="text-xs text-white/45">Alertas ignorados são excluídos automaticamente após 3 dias.</p>
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

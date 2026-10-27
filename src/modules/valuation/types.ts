@@ -12,6 +12,8 @@ export interface BazinResult {
    * `null` quando `annualDividend <= 0` ou `minDY <= 0` ou valores não finitos.
    */
   ceilingPrice: number | null
+  /** Teto na moeda da cotação, para comparação nas tabelas de posições. */
+  ceilingPriceLocal?: number | null
   /**
    * Preço de fechamento mais recente **em BRL** (ativos USD já convertidos).
    * `null` quando sem cotação disponível.

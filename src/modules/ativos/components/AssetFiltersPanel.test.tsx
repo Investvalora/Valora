@@ -28,6 +28,7 @@ vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ 
 vi.mock('../../score/hooks/useScoreRules', () => ({ useScoreRules: () => ({ data: scoreState.enabled ? [{ id: 'rule', name: 'Valor', metric: 'pl', operator: 'lt', threshold_min: 10, points: 5 }] : [] }), groupRulesByName: () => scoreState.enabled ? new Map([['Valor', []]]) : new Map() }))
 vi.mock('../../score/hooks/useScorePreferences', () => ({ useScorePreferences: () => ({ data: scoreState.enabled ? { default_score_rule_id: 'rule' } : null }), useUpsertScorePreferences: () => ({ mutate: vi.fn() }) }))
 vi.mock('../../valuation/hooks/useBazin', () => ({ useBazin: () => ({ bazinByTicker: new Map() }) }))
+vi.mock('../../valuation/hooks/useStrategies', () => ({ useStrategies: () => ({ strategies: [], isError: false }) }))
 
 beforeEach(() => { scoreState.enabled = false; fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
 
@@ -45,17 +46,17 @@ it('reaproveita score preferido, regras e fundamentos na coluna escolhida', asyn
   await user.click(screen.getByRole('button', { name: 'Editar colunas' }))
   await user.click(screen.getByRole('checkbox', { name: 'Meu score' }))
   await user.click(screen.getByRole('button', { name: /^Salvar$/ }))
-  const table = within(screen.getByRole('table', { name: 'Posições por classe de ativo' }))
+  const table = within(screen.getByRole('table', { name: 'Posições de Ações BR' }))
   expect(table.getByRole('columnheader', { name: 'Meu score' })).toBeInTheDocument()
   expect(table.getByRole('row', { name: /AAA3/ })).toHaveTextContent('5,00')
   const index = table.getAllByRole('columnheader').findIndex((header) => header.textContent === 'Meu score')
-  expect(within(table.getByRole('row', { name: /FII11/ })).getAllByRole('cell')[index]).toHaveTextContent('—')
+  expect(within(within(screen.getByRole('table', { name: 'Posições de FIIs' })).getByRole('row', { name: /FII11/ })).getAllByRole('cell')[index]).toHaveTextContent('—')
 })
 
 it('os dois botões abrem o painel; aplicar filtra tabela e composição, limpar restaura os dados', async () => {
   const user = userEvent.setup()
   show()
-  const table = within(screen.getByRole('table', { name: 'Posições por classe de ativo' }))
+  const table = screen
   expect(table.getByRole('link', { name: 'AAA3' })).toBeInTheDocument()
   expect(table.getByRole('link', { name: 'FII11' })).toBeInTheDocument()
   await user.click(screen.getAllByRole('button', { name: /^Filtrar/ })[1])

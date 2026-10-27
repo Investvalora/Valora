@@ -22,6 +22,7 @@ import { useScoreRules, groupRulesByName } from '../../score/hooks/useScoreRules
 import { useScorePreferences, useUpsertScorePreferences } from '../../score/hooks/useScorePreferences'
 import { useCalculateScore } from '../../score/hooks/useCalculateScore'
 import { useBazin } from '../../valuation/hooks/useBazin'
+import { useStrategies } from '../../valuation/hooks/useStrategies'
 import { enrichPositionRows } from '../../portfolio/enrichPositionRows'
 import { groupRowsByClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
@@ -35,6 +36,7 @@ import type { FundamentalsRow } from '../../score/types'
 
 export function AtivosPosicoes() {
   const { user } = useAuth()
+  const strategySettings = useStrategies()
   const columnSettings = useAssetColumns(user?.id ?? 'guest')
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false)
   const { selectedWallet } = useWallets()
@@ -78,7 +80,7 @@ export function AtivosPosicoes() {
     return m
   }, [positions])
 
-  const { bazinByTicker } = useBazin(tickers, 0.06, currencyByTicker)
+  const { bazinByTicker, isLoading: valuationLoading, isError: valuationError } = useBazin(tickers, 0.06, currencyByTicker)
 
   // ── Derivação ─────────────────────────────────────────────────────────────
 
@@ -144,6 +146,9 @@ export function AtivosPosicoes() {
 
   return (
     <div className="flex flex-col gap-5">
+      {strategySettings.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar suas estratégias. As referências personalizadas estão indisponíveis.</p>}
+      {valuationLoading && <p role="status" className="text-xs text-white/45">Carregando histórico de mercado de 12 meses para os preços de referência…</p>}
+      {valuationError && <p role="status" className="text-xs text-amber-300">Alguns históricos de proventos não puderam ser consultados. Os preços de referência afetados ficam indisponíveis; registros parciais não são usados como total anual.</p>}
       <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar com botão de resumo ── */}
       <div className="relative overflow-x-auto md:overflow-visible">
@@ -191,10 +196,10 @@ export function AtivosPosicoes() {
         {/* Cabeçalho do card */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
           <h2 className="text-[14px] font-semibold text-white">
-            Posições de renda variável
+            Meus ativos
           </h2>
           <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
-            {enrichedRows.length}
+            {assetCount}
           </span>
 
           <div className="ml-auto flex items-center gap-2">
@@ -222,13 +227,21 @@ export function AtivosPosicoes() {
 
         {/* Desktop: tabela completa */}
         <div className="hidden md:block">
-          <AtivosTable
+          {!isLoading && groups.length > 0 ? <div className="space-y-5">{groups.map(({ summary, rows: groupRows }) => <AtivosTable
+            key={summary.key}
+            strategies={strategySettings.strategies}
+            rows={groupRows}
+            totalBRL={totalBRL}
+            visibleColumns={columnSettings.columns}
+            tableLabel={`Posições de ${summary.label}`}
+          />)}</div> : <AtivosTable
+            strategies={strategySettings.strategies}
             rows={enrichedRows}
             totalBRL={totalBRL}
             isLoading={isLoading}
             visibleColumns={columnSettings.columns}
             emptyMessage={fixedRows.length ? 'As posições de renda fixa estão listadas abaixo.' : hasFilters ? 'Nenhum ativo corresponde aos filtros selecionados.' : undefined}
-          />
+          />}
         </div>
 
         {/* Mobile: lista de grupos colapsáveis */}
@@ -245,6 +258,7 @@ export function AtivosPosicoes() {
             <div className="flex flex-col gap-2 p-3">
               {groups.map(({ summary, rows: groupRows }) => (
                 <AssetGroupCard
+                  strategies={strategySettings.strategies}
                   key={summary.key}
                   type={summary.key}
                   label={summary.label}
@@ -260,8 +274,8 @@ export function AtivosPosicoes() {
             </div>
           )}
         </div>
+        {!isLoading && <FixedIncomePositions rows={fixedRows} />}
       </PanelCard>
-      {!isLoading && <FixedIncomePositions rows={fixedRows} />}
       {isColumnEditorOpen && <AssetColumnEditor columns={columnSettings.columns} onSave={columnSettings.save} onClose={() => setIsColumnEditorOpen(false)} />}
     </div>
   )

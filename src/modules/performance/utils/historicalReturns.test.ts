@@ -10,6 +10,13 @@ const trade = (date: string, qty = 1, type = 'buy', price = 100): ReturnTrade =>
 const price = (date: string, close = 100, ticker = 'AAA') => ({ date, close, ticker })
 const rates = { usd: [], macro: [] }
 
+it('uma divergência futura não apaga o histórico válido anterior ao lançamento afetado', () => {
+  const points = historicalReturns([position()], [trade('2026-01-02'), { ...trade('2026-01-04'), ticker: 'BBB' }], [price('2026-01-02'), price('2026-01-03', 110), price('2026-01-04', 110), price('2026-01-04', 100, 'BBB')], [], rates, '2026-01-04')
+  expect(points[0].returnPct).toBe(0)
+  expect(points[1].returnPct).toBeCloseTo(0.1)
+  expect(points[2].returnPct).toBeNull()
+})
+
 it('não transforma aporte em ganho: saldo dez vezes maior tem retorno zero com preço estável', () => {
   const points = historicalReturns([position('AAA', 10)], [trade('2026-01-02'), trade('2026-01-03', 9)], [price('2026-01-02'), price('2026-01-03')], [], rates, '2026-01-03')
   expect(points.map(p => p.value)).toEqual([100, 1000])

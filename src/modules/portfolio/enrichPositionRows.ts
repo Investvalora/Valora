@@ -72,11 +72,14 @@ export function enrichPositionRows({
     }
 
     // Graham = √(22,5 × LPA × VPA)
-    const grahamPrice = calcGrahamPrice(lpa, vpa)
+    const grahamPrice = row.type && ['stock_br', 'stock_us', 'bdr'].includes(row.type)
+      ? calcGrahamPrice(lpa, vpa)
+      : null
 
     // Bazin ceiling — vem do cálculo pré-computado pelo useBazin
     const bazinResult = bazinByTicker?.get(row.ticker) ?? null
-    const bazinCeiling = bazinResult?.ceilingPrice ?? null
+    const bazinCeiling = bazinResult?.ceilingPriceLocal
+      ?? (row.currency === 'BRL' ? bazinResult?.ceilingPrice ?? null : null)
 
     return {
       ...row,

@@ -114,6 +114,7 @@ export function AppRoutes() {
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
+            <Route path="estrategias" element={<EstrategiasPage />} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>
 

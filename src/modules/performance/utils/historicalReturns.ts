@@ -37,7 +37,8 @@ export function historicalReturns(
   for (const trade of ordered) finalQuantities.set(key(trade), (finalQuantities.get(key(trade)) ?? 0) + Number(trade.quantity) * (trade.type === 'sell' ? -1 : 1))
   const currentQuantities = new Map(positions.map(p => [key(p), Number(p.quantity)]))
   // Divergência significa razão incompleto. Não inventar um saldo inicial.
-  const inconsistent = [...finalQuantities].some(([k, qty]) => Math.abs(qty - (currentQuantities.get(k) ?? 0)) > 1e-7)
+  const inconsistentKeys = new Set([...finalQuantities].filter(([k, qty]) => Math.abs(qty - (currentQuantities.get(k) ?? 0)) > 1e-7).map(([k]) => k))
+  const inconsistentFrom = ordered.filter(trade => inconsistentKeys.has(key(trade))).map(trade => trade.transaction_date).sort()[0]
   let cursor = 0, priceCursor = 0
   let previous: number | null = 0
   const result: DailyReturn[] = []
@@ -58,7 +59,7 @@ export function historicalReturns(
       }
       return null
     }
-    let complete = !inconsistent, purchases = 0, withdrawals = 0, total = 0
+    let complete = !inconsistentFrom || date < inconsistentFrom, purchases = 0, withdrawals = 0, total = 0
     while (cursor < ordered.length && ordered[cursor].transaction_date <= date) {
       const trade = ordered[cursor++]
       const qty = Number(trade.quantity), price = Number(trade.price)

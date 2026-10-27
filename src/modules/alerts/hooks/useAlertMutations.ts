@@ -2,7 +2,19 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { alertsQueryKey } from './useAlerts'
 import { alertsService } from '../services/alertsService'
-import type { AlertCondition, AlertStatus } from '../types'
+import type { Alert, AlertCondition, AlertStatus, EditAlertPayload } from '../types'
+
+export function useEditAlert() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  return useMutation({
+    mutationFn: ({ alert, payload }: { alert: Alert; payload: EditAlertPayload }) => {
+      if (!user?.id) throw new Error('Sessão ausente. Entre novamente para editar o alerta.')
+      return alertsService.editAlert(user.id, alert, payload)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: alertsQueryKey(user?.id) }),
+  })
+}
 
 export function useGenerateAlerts() {
   const queryClient = useQueryClient()

@@ -22,7 +22,7 @@ describe('Navegação de Ativos no mobile', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('tablist')).toHaveClass('grid-cols-3')
+    expect(screen.getByRole('tablist')).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' })
     expect(screen.getByRole('tab', { name: 'Posições' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ transform: 'translateX(0%)' })
 
@@ -35,5 +35,19 @@ describe('Navegação de Ativos no mobile', () => {
     expect(screen.getByRole('tab', { name: 'Lançamentos' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ transform: 'translateX(200%)' })
     expect(screen.getByText('Lista de lançamentos')).toBeInTheDocument()
+  })
+
+  it('acomoda quatro abas com o indicador alinhado à quarta', () => {
+    const analysisTabs = [
+      { label: 'Visão geral', to: '/analise/visao-geral' },
+      { label: 'Score', to: '/analise/score' },
+      { label: 'Estratégias', to: '/analise/estrategias' },
+      { label: 'Alertas', to: '/analise/alertas' },
+    ]
+    render(<MemoryRouter initialEntries={['/analise/alertas']}><SubTabBar tabs={analysisTabs} mobileVariant="segmented" /></MemoryRouter>)
+    expect(screen.getByRole('tablist')).toHaveStyle({ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' })
+    expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ width: '25%', transform: 'translateX(300%)' })
+    fireEvent.click(screen.getByRole('tab', { name: 'Estratégias' }))
+    expect(screen.getByRole('tab', { name: 'Estratégias' })).toHaveAttribute('aria-selected', 'true')
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { TrendingDown, TrendingUp, Loader2, X, BookOpen, BarChart2 } from 'lucide-react'
+import { TrendingDown, TrendingUp, Loader2, BookOpen, BarChart2, ChevronDown, Search } from 'lucide-react'
+import { Modal } from '../../../shared/components/Modal'
 import { useAssetSearch, useTickerLatestPrice } from '../../portfolio/hooks/useAssetSearch'
 import { useFundamentals } from '../../score/hooks/useFundamentals'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
@@ -9,6 +10,7 @@ import { useCreateBazinInsight, useCreateGrahamInsight } from '../hooks/useInsig
 import { calcGrahamPrice, calcGrahamMargin } from '../utils/grahamCalculation'
 import type { Asset } from '../../portfolio/types'
 import type { InsightStrategy } from '../types'
+import { ValuationGuide } from './ValuationGuide'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +45,8 @@ function useDebouncedValue(value: string, ms: number) {
 
 function ResultRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-dark-border last:border-0">
-      <span className="text-sm text-gray-400">{label}</span>
+    <div className="flex justify-between items-center gap-3 py-2.5 border-b border-white/[0.06] last:border-0">
+      <span className="text-xs text-white/50">{label}</span>
       <span className={`text-sm font-semibold ${highlight ? 'text-white' : 'text-gray-200'}`}>
         {value}
       </span>
@@ -58,7 +60,7 @@ function MarginBadge({ margin }: { margin: number | null }) {
   }
   const isOpp = margin > 0
   return (
-    <span className={`inline-flex items-center gap-1 text-sm font-bold ${isOpp ? 'text-green-400' : 'text-red-400'}`}>
+    <span className={`inline-flex flex-wrap items-center justify-end gap-1 text-xs font-medium ${margin === 0 ? 'text-white/60' : isOpp ? 'text-nf-green' : 'text-[#f288ba]'}`}>
       {isOpp ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
       {fmtPct(Math.abs(margin))}
       <span className="text-xs font-normal ml-1">{isOpp ? 'abaixo do teto' : 'acima do teto'}</span>
@@ -70,11 +72,12 @@ function MarginBadge({ margin }: { margin: number | null }) {
 
 interface NovoInsightModalProps {
   onClose: () => void
+  initialStrategy?: InsightStrategy
 }
 
-export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
+export function NovoInsightModal({ onClose, initialStrategy = 'bazin' }: NovoInsightModalProps) {
   // ── estado do formulário ──────────────────────────────────────────────────
-  const [strategy, setStrategy] = useState<InsightStrategy>('bazin')
+  const [strategy, setStrategy] = useState<InsightStrategy>(initialStrategy)
   const [ticker, setTicker] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [minDYPct, setMinDYPct] = useState('6')
@@ -136,7 +139,8 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
   const grahamFund = fundamentalsData[0] ?? null
   const grahamLpa = grahamFund?.lpa ?? null
   const grahamVpa = grahamFund?.vpa ?? null
-  const grahamPriceLocal = calcGrahamPrice(grahamLpa, grahamVpa)
+  const grahamApplicable = selectedAsset !== null && ['stock_br', 'stock_us', 'bdr'].includes(selectedAsset.type)
+  const grahamPriceLocal = grahamApplicable ? calcGrahamPrice(grahamLpa, grahamVpa) : null
   const fx = selectedAsset?.currency === 'USD' ? usdRate : 1
   const grahamPrice = grahamPriceLocal !== null ? grahamPriceLocal * fx : null
   const grahamCurrentPrice = latestPrice !== null ? latestPrice * fx : null
@@ -146,7 +150,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
   const createGraham = useCreateGrahamInsight()
 
   // ── reset resultado Bazin quando muda estratégia ou ticker ────────────────
-  useEffect(() => { bazin.reset() }, [strategy, ticker]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { bazin.reset() }, [strategy, ticker, minDYPct]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── calcular Bazin ────────────────────────────────────────────────────────
   async function handleCalculateBazin() {
@@ -195,44 +199,25 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
   const isSaving = createBazin.isPending || createGraham.isPending
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="insight-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="w-full max-w-lg rounded-xl border border-dark-border bg-dark-surface shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-dark-border">
-          <h2 id="insight-modal-title" className="text-lg font-bold text-white">
-            Novo Insight
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="p-6 flex flex-col gap-5">
+    <Modal isOpen title="Novo Insight" onClose={onClose} dismissible={!isSaving} initialFocusSelector="#insight-ticker">
+        <div className="flex flex-col gap-5">
+          <p className="-mt-1 text-xs leading-relaxed text-white/45">Compare a cotação com uma referência de preço e salve a análise para consultar depois.</p>
 
           {/* Seletor de estratégia */}
           <div>
-            <span className="block text-sm font-medium text-gray-300 mb-2">Estratégia</span>
-            <div className="grid grid-cols-2 gap-2">
+            <span className="block text-xs font-medium text-white/60 mb-2">Método de análise</span>
+            <div className="grid grid-cols-2 gap-3">
               {(['bazin', 'graham'] as InsightStrategy[]).map((s) => (
                 <button
                   key={s}
                   type="button"
+                  aria-pressed={strategy === s}
+                  disabled={isSaving}
                   onClick={() => setStrategy(s)}
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff] ${
                     strategy === s
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-200'
-                      : 'border-dark-border text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                      ? s === 'bazin' ? 'border-[#797fff]/60 bg-[#797fff]/10 text-[#b6baff]' : 'border-[#e477a7]/60 bg-[#e477a7]/10 text-[#f29fc3]'
+                      : 'border-white/10 bg-[#1b1b1b] text-white/45 hover:border-white/25 hover:text-white'
                   }`}
                 >
                   {s === 'bazin'
@@ -242,7 +227,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${strategy === 'bazin' ? 'border-[#797fff]/25 bg-[#797fff]/[0.05] text-[#c2c5ff]' : 'border-[#e477a7]/25 bg-[#e477a7]/[0.05] text-[#efb9d1]'}`}>
               {strategy === 'bazin'
                 ? 'Preço-teto = Dividendo anual ÷ DY mínimo. Usa proventos reais via Yahoo Finance.'
                 : 'Preço justo = √(22,5 × LPA × VPA). Usa fundamentais da tabela do banco.'}
@@ -251,14 +236,16 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
 
           {/* Ticker com autocomplete */}
           <div>
-            <label htmlFor="insight-ticker" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="insight-ticker" className="block text-xs font-medium text-white/60 mb-2">
               Ativo
             </label>
             <div className="relative">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-white/35" />
               <input
                 id="insight-ticker"
                 ref={tickerInputRef}
                 type="text"
+                disabled={isSaving}
                 autoComplete="off"
                 role="combobox"
                 aria-expanded={isSuggestionsOpen}
@@ -279,7 +266,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
                 onBlur={() => setShowSuggestions(false)}
                 onKeyDown={handleTickerKeyDown}
                 placeholder="Ticker ou nome, ex.: MXRF11"
-                className="w-full rounded-lg border border-dark-border bg-dark-bg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="h-11 w-full rounded-lg border border-white/15 bg-[#222222] pl-10 pr-3 text-sm text-white placeholder-white/30 focus:border-[#9299ff] focus:outline-none focus:ring-1 focus:ring-[#9299ff]/30"
               />
 
               {isSuggestionsOpen && (
@@ -287,7 +274,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
                   id="insight-suggestions"
                   role="listbox"
                   aria-label="Ativos do catálogo"
-                  className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-lg border border-dark-border bg-dark-bg shadow-xl"
+                  className="absolute z-10 mt-2 max-h-52 w-full overflow-auto rounded-xl border border-white/15 bg-[#222222] py-1 shadow-xl"
                 >
                   {suggestions.map((asset, index) => (
                     <li
@@ -300,8 +287,8 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
                       onClick={() => selectAsset(asset)}
                       className={`flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 transition-colors ${
                         index === highlightedIndex
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-200 hover:bg-dark-border/30'
+                          ? 'bg-[#797fff]/20 text-white'
+                          : 'text-white/80 hover:bg-white/5'
                       }`}
                     >
                       <span className="font-semibold">{asset.ticker}</span>
@@ -323,7 +310,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
           {/* DY mínimo — só Bazin */}
           {strategy === 'bazin' && (
             <div>
-              <label htmlFor="insight-min-dy" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="insight-min-dy" className="block text-xs font-medium text-white/60 mb-2">
                 DY mínimo desejado (%)
               </label>
               <input
@@ -333,8 +320,9 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
                 max="100"
                 step="0.5"
                 value={minDYPct}
+                disabled={bazinCalculating || isSaving}
                 onChange={(e) => setMinDYPct(e.target.value)}
-                className="w-32 rounded-lg border border-dark-border bg-dark-bg px-3 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                className="h-11 w-full rounded-lg border border-white/15 bg-[#222222] px-3 text-sm text-white focus:border-[#9299ff] focus:outline-none focus:ring-1 focus:ring-[#9299ff]/30"
               />
             </div>
           )}
@@ -343,9 +331,9 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
           {strategy === 'bazin' && (
             <button
               type="button"
-              disabled={!selectedAsset || bazinCalculating}
+              disabled={!selectedAsset || bazinCalculating || isSaving}
               onClick={handleCalculateBazin}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#797fff]/35 bg-[#797fff]/10 px-4 py-2.5 text-xs font-medium text-[#c2c5ff] transition-colors hover:bg-[#797fff]/20 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {bazinCalculating
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Buscando proventos…</>
@@ -364,7 +352,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
 
           {/* Resultado Bazin */}
           {strategy === 'bazin' && bazinDone && bazin.result && (
-            <div className="rounded-xl border border-dark-border bg-dark-bg p-4">
+            <div className="rounded-xl border border-[#797fff]/25 bg-[#797fff]/[0.05] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
                 Resultado — {bazin.result.ticker}
                 {bazin.yahooData && (
@@ -390,18 +378,20 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
 
           {/* Resultado Graham — aparece ao selecionar ativo */}
           {strategy === 'graham' && selectedAsset && (
-            <div className="rounded-xl border border-dark-border bg-dark-bg p-4">
+            <div className="rounded-xl border border-[#e477a7]/25 bg-[#e477a7]/[0.05] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
                 Resultado — {selectedAsset.ticker}
               </p>
-              {fundamentalsData.length === 0 ? (
+              {!grahamApplicable ? (
+                <p className="text-sm text-amber-400">O número de Graham não é adequado a esta classe de ativo. Ele utiliza lucro e patrimônio por ação de empresas.</p>
+              ) : fundamentalsData.length === 0 ? (
                 <p className="text-sm text-amber-400">
                   Sem fundamentais (LPA/VPA) disponíveis para este ativo no banco.
                 </p>
               ) : (
                 <>
-                  <ResultRow label="LPA" value={grahamLpa !== null ? `R$ ${grahamLpa.toFixed(2)}` : '—'} />
-                  <ResultRow label="VPA" value={grahamVpa !== null ? `R$ ${grahamVpa.toFixed(2)}` : '—'} highlight />
+                  <ResultRow label={`LPA (${selectedAsset.currency})`} value={grahamLpa !== null ? grahamLpa.toFixed(2) : '—'} />
+                  <ResultRow label={`VPA (${selectedAsset.currency})`} value={grahamVpa !== null ? grahamVpa.toFixed(2) : '—'} highlight />
                   <ResultRow label="Cotação atual" value={fmt(grahamCurrentPrice)} />
                   <ResultRow label="Preço justo Graham" value={fmt(grahamPrice)} highlight />
                   <div className="flex justify-between items-center pt-2">
@@ -418,6 +408,10 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
             </div>
           )}
 
+          <details className="group rounded-xl border border-white/[0.08] bg-[#1b1b1b]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs text-white/60 [&::-webkit-details-marker]:hidden">Como funciona este método?<ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" /></summary>
+            <div className="px-3 pb-3"><ValuationGuide strategy={strategy} /></div>
+          </details>
           {/* Erro ao salvar */}
           {(createBazin.isError || createGraham.isError) && (
             <p className="text-sm text-red-300" role="alert">
@@ -426,11 +420,12 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
           )}
 
           {/* Ações */}
-          <div className="flex gap-3">
+          <div className="sticky -bottom-6 -mx-6 -mb-6 flex gap-3 border-t border-white/[0.08] bg-[#121212] px-6 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-dark-border px-4 py-2.5 text-sm text-gray-300 hover:bg-dark-border/20"
+              disabled={isSaving}
+              className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-xs text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
             >
               Cancelar
             </button>
@@ -438,7 +433,7 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
               type="button"
               disabled={!canSave || isSaving}
               onClick={handleSave}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/15 bg-[#393939] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#484848] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isSaving
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando…</>
@@ -446,7 +441,6 @@ export function NovoInsightModal({ onClose }: NovoInsightModalProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

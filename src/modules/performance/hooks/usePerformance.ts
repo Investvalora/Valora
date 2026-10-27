@@ -1,4 +1,5 @@
 import { useHistoricalReturns } from './useHistoricalReturns'
+import { returnChartSeries } from '../utils/returnChartSeries'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -172,9 +173,10 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const usdRateQuery = useUSDRate({ enabled: hasInternational })
 
   const portfolioMonthlyReturns = historical.monthly
-  const useIntramonthlyfallback = portfolioMonthlyReturns.size === 0
+  const useIntramonthlyfallback = portfolioMonthlyReturns.size === 0 || historical.incomplete
   const portfolioSeries = useMemo<PerformanceSeries>(() => {
-    if (historical.incomplete || historical.isLoading || historical.isError) return { label: 'Carteira', color: '#3b82f6', points: [] }
+    if (historical.isLoading || historical.isError) return { label: 'Carteira', color: '#3b82f6', points: [] }
+    if (historical.incomplete) return returnChartSeries(historical.points, historical.since)
     if (!useIntramonthlyfallback) return buildMonthlyAccumulatedSeries(portfolioMonthlyReturns, 'Carteira', '#3b82f6')
     if (historical.returnPct === null || !historical.startDate) return { label: 'Carteira', color: '#3b82f6', points: [] }
     let factor = 100

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { dividendService } from '../../dividends/services/dividendService'
+import { insightService } from '../services/insightService'
+import { marketDividendRows } from '../utils/marketDividendRows'
 import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
@@ -10,16 +11,8 @@ import { applyBazin } from '../utils/bazinCalculation'
 import type { AssetCurrency } from '../../portfolio/types'
 import type { BazinByTicker } from '../types'
 
-/** staleTime de 5 minutos — dividendos mudam com pouca frequência (seed trimestral). */
-const STALE_TIME_MS = 5 * 60 * 1000
-
-/**
- * Query key dos dividendos para o cálculo Bazin.
- * Inclui os tickers para que carteiras distintas nunca compartilhem a mesma entrada.
- */
-export function bazinDividendsQueryKey(userId: string | undefined, tickers: string[]) {
-  return ['valuation', 'bazin-dividends', userId, [...tickers].sort()] as const
-}
+/** Cache de uma hora para o histórico de mercado por ativo. */
+const STALE_TIME_MS = 60 * 60 * 1000
 
 export interface UseBazinResult {
   bazinByTicker: BazinByTicker
@@ -34,7 +27,7 @@ export interface UseBazinResult {
  * Hook de orquestração do cálculo Bazin.
  *
  * Combina:
- * 1. Dividendos dos últimos 12 meses (query ao banco)
+ * 1. Eventos de dividendos dos últimos 12 meses na fonte de mercado
  * 2. Cotações mais recentes via `useLatestQuotes`
  * 3. Taxa USD/BRL via `useUSDRate` — necessária para converter dividendos e
  *    cotações de ativos USD (NVDA, AMZN, GOOGL, AAPL, META etc.) para BRL.
@@ -61,14 +54,18 @@ export function useBazin(
   const since = shiftIsoDate(-365, new Date())
 
   // Query 1: dividendos dos últimos 12 meses para os tickers da carteira.
-  const dividendsQuery = useQuery({
-    queryKey: bazinDividendsQueryKey(userId, tickers),
-    queryFn: () => {
-      if (!userId) throw new Error('Sessão não encontrada')
-      return dividendService.listDividendsByTickers(tickers, since)
-    },
-    enabled: Boolean(userId) && tickers.length > 0,
-    staleTime: STALE_TIME_MS,
+  const historyQueries = useQueries({
+    queries: [...new Set(tickers)].filter((ticker) => !/-(BRL|USD|USDT)$/.test(ticker)).map((ticker) => ({
+      queryKey: ['valuation', 'market-dividends-12m', userId, ticker, currencyByTicker.get(ticker) ?? 'BRL', since],
+      queryFn: async () => {
+        const response = await insightService.fetchYahooDividends(ticker, currencyByTicker.get(ticker) ?? 'BRL')
+        return marketDividendRows(ticker, response, since, new Date().toISOString().slice(0, 10))
+      },
+      enabled: Boolean(userId),
+      staleTime: STALE_TIME_MS,
+      retry: 1,
+      throwOnError: false,
+    })),
   })
 
   // Query 2: cotações mais recentes (staleTime 60s, sem userId na key).
@@ -77,7 +74,7 @@ export function useBazin(
   // Query 3: taxa USD/BRL — só busca quando há ativos USD na carteira.
   const usdRateQuery = useUSDRate({ enabled: hasUSD })
 
-  const dividends = useMemo(() => dividendsQuery.data ?? [], [dividendsQuery.data])
+  const dividends = historyQueries.flatMap((query) => query.data ?? [])
   const quotes = useMemo(() => quotesQuery.data ?? [], [quotesQuery.data])
   const usdRate = usdRateQuery.data?.rate ?? USD_RATE_DEFAULT
   const isUSDRateFallback = usdRateQuery.data?.isFallback ?? true
@@ -96,14 +93,14 @@ export function useBazin(
   )
 
   const isLoading =
-    dividendsQuery.isLoading ||
+    historyQueries.some((query) => query.isLoading) ||
     quotesQuery.isLoading ||
     (hasUSD && usdRateQuery.isLoading)
 
-  const isError = dividendsQuery.isError || quotesQuery.isError
+  const isError = historyQueries.some((query) => query.isError) || quotesQuery.isError
 
   const refetch = () => {
-    void dividendsQuery.refetch()
+    historyQueries.forEach((query) => { void query.refetch() })
     void quotesQuery.refetch()
     if (hasUSD) void usdRateQuery.refetch()
   }

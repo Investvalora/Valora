@@ -30,7 +30,7 @@ export function PushNotificationsPrompt() {
       <BellRing size={24} aria-hidden="true" />
     </div>
     <p className="text-sm leading-relaxed text-nf-muted">Ative as notificações neste dispositivo para receber um aviso quando surgir um novo alerta no Valora, mesmo com o app fechado.</p>
-    <p className="mt-3 text-xs text-nf-muted">Você pode alterar essa escolha depois, na página Alertas.</p>
+    <p className="mt-3 text-xs text-nf-muted">Você pode gerenciar a permissão nas configurações de notificações do navegador.</p>
     {push.error && <p role="alert" className="mt-4 text-sm text-red-300">{push.error}</p>}
     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <button type="button" onClick={dismiss} disabled={push.busy} className="min-h-11 rounded-xl border border-white/15 px-5 text-sm text-white disabled:opacity-50">Agora não</button>

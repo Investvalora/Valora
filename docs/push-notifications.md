@@ -5,7 +5,8 @@ dispositivos compatíveis sem inscrição ativa. A permissão do navegador só �
 solicitada ao clicar em **Ativar notificações**. **Agora não**, Escape e fechar
 adiam o convite por sete dias neste navegador, por conta. Permissão bloqueada,
 ambiente sem chave pública e dispositivos incompatíveis não exibem o convite.
-O controle na página **Alertas** continua disponível para ativar ou desativar.
+O bloco de controle foi retirado da página **Alertas** a pedido do responsável.
+A permissão pode ser gerenciada nas configurações do navegador.
 Quando uma linha de
 `public.alerts` é criada com status `novo`, ou volta para `novo`, o trigger da
 migration `026_create_push_subscriptions.sql` chama `send-alert-push` via `pg_net`.

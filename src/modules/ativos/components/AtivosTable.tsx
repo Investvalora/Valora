@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { AssetActions } from './AssetActions'
 import { AssetTableHeader } from './AssetTableHeader'
 import type { PositionRow } from '../../portfolio/types'
 import { groupRowsByClass } from '../../portfolio/composition'
@@ -54,7 +55,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns 
   const strategyColumn = (strategy: ValuationStrategy) => ({ id: `strategy-${strategy.id}`, label: strategy.name, strategy })
   columns.splice(Math.max(2, priceIndex), 0, ...customColumns.filter((strategy) => strategy.method !== 'custom').map(strategyColumn))
   columns.push(...customColumns.filter((strategy) => strategy.method === 'custom').map(strategyColumn))
-  const columnCount = columns.length
+  const columnCount = columns.length + 1
   return (
     <div className="min-w-0 overflow-hidden rounded-xl border border-white/10">
     {!isLoading && groups.map(({ summary }) => <AssetTableHeader key={summary.key} label={summary.label} color={summary.color} count={summary.count} balance={summary.totalValueBRL} weight={summary.weightPercent} expanded={!collapsed.has(summary.key)} onToggle={() => setCollapsed((previous) => {
@@ -66,6 +67,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns 
       <table aria-label={tableLabel} className="w-full border-collapse" style={{ minWidth: Math.max(420, columnCount * 125) }}>
         <thead><tr className="bg-white/[0.04]">
           {columns.map((column) => <th key={column.id} scope="col" className={`whitespace-nowrap px-4 py-3 text-xs font-medium text-[#8F8F8F] ${column.id === 'ticker' ? 'sticky left-0 z-10 bg-[#252525] text-left' : column.id === 'name' ? 'text-left' : 'text-right'}`}>{column.label}</th>)}
+          <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-[#8F8F8F]">Opções</th>
         </tr></thead>
         <tbody>
           {isLoading && Array.from({ length: 6 }, (_, index) => <tr key={index}>{Array.from({ length: columnCount }, (_, column) => <td key={column} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-white/5" /></td>)}</tr>)}
@@ -75,6 +77,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns 
             return <Fragment key={summary.key}>
               {expanded && groupRows.map((row, index) => <tr key={row.id} className={`border-b border-white/5 hover:bg-white/[0.04] ${index % 2 ? 'bg-white/[0.015]' : ''}`}>
                 {columns.map((column) => <td key={column.id} className={`whitespace-nowrap px-4 py-4 text-xs tabular-nums text-white/70 ${column.id === 'ticker' ? 'sticky left-0 z-10 bg-[#1c1c1c] text-left' : column.id === 'name' ? 'text-left' : 'text-right'}`}>{column.strategy ? <StrategyValue strategy={column.strategy} row={row} /> : cell(column.id as AssetColumnId, row)}</td>)}
+                <td className="px-2 py-2 text-right"><AssetActions row={row} /></td>
               </tr>)}
             </Fragment>
           })}

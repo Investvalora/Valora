@@ -68,20 +68,24 @@ interface MacroRate {
 
 // ─── PostgREST helpers ────────────────────────────────────────────────────
 
-async function pgGetPositions(userId: string): Promise<FiPosition[]> {
+async function pgGetPositions(userId: string | null): Promise<FiPosition[]> {
+  const all: FiPosition[] = [];
+  for (let offset = 0; ; offset += 500) {
   const url =
     `${SUPABASE_URL}/rest/v1/fixed_income_positions` +
-    `?user_id=eq.${userId}&active=eq.true` +
+    `?active=eq.true${userId ? `&user_id=eq.${encodeURIComponent(userId)}` : ''}&order=id&limit=500&offset=${offset}` +
     `&select=id,user_id,type,indexer,rate,principal,application_date,maturity_date,updated_at,events:fixed_income_events(event_date,balance_after,seq)`;
   const r = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });
   if (!r.ok) throw new Error(`PostgREST GET positions ${r.status}`);
   const positions = await r.json() as (FiPosition & { events?: { event_date: string; balance_after: number; seq: number }[] })[];
-  return positions.map((position) => {
+  all.push(...positions.map((position) => {
     const latest = [...(position.events ?? [])].sort((a, b) => b.event_date.localeCompare(a.event_date) || b.seq - a.seq)[0];
     return latest ? { ...position, principal: Number(latest.balance_after), application_date: latest.event_date } : position;
-  });
+  }));
+  if (positions.length < 500) return all;
+  }
 }
 
 async function pgGetMacroRates(
@@ -233,6 +237,7 @@ async function calcularValor(pos: FiPosition): Promise<number> {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return new Response('Método não permitido', { status: 405, headers: CORS });
 
   // Extrai user_id do JWT (Supabase injeta automaticamente quando verify_jwt=true)
   const authHeader = req.headers.get('Authorization') ?? '';
@@ -244,13 +249,29 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // Somente a credencial interna exata permite o lote global do agendador.
+  // A credencial do Vault pode diferir da injetada no runtime.
+  let scheduled = token === SERVICE_KEY && Boolean(SERVICE_KEY);
+  if (!scheduled) {
+    try {
+      const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)))].map(b => b.toString(16).padStart(2, '0')).join('');
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/authorize_fixed_income_job`, {
+        method: 'POST', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token_digest: digest }), signal: AbortSignal.timeout(10000),
+      });
+      scheduled = response.ok && await response.json() === true;
+    } catch { /* Uma sessão comum continua restrita ao próprio sub. */ }
+  }
+
   // Decodifica o JWT para obter o sub (user_id) sem verificar assinatura
   // (a verificação já foi feita pelo runtime Supabase via verify_jwt=true)
-  let userId: string;
+  let userId: string | null = null;
   try {
+    if (!scheduled) {
     const payload = JSON.parse(atob(token.split('.')[1]));
     userId = payload.sub as string;
     if (!userId) throw new Error('sub ausente');
+    }
   } catch {
     return new Response(
       JSON.stringify({ error: 'JWT inválido.' }),

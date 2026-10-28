@@ -3,6 +3,8 @@
  * Exibido em AtivosPosicoes no breakpoint < 768px.
  */
 import { ChevronDown } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AssetActions } from './AssetActions'
 import type { PositionRow, AssetType } from '../../portfolio/types'
 import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { ValuationStrategy } from '../../valuation/hooks/useStrategies'
@@ -124,7 +126,7 @@ export function AssetGroupCard({
               >
                 {/* Ticker + nome abreviado */}
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[13px] font-bold text-white">{row.ticker}</span>
+                  <Link to={`/ativo/${encodeURIComponent(row.ticker.toLowerCase())}`} aria-label={`Ver resumo de ${row.ticker}`} className="inline-flex min-h-11 items-center text-[13px] font-bold text-white underline-offset-4 hover:underline">{row.ticker}</Link>
                   <span className="truncate text-[11px] text-white/40">
                     {row.name ?? shortLabel}
                   </span>
@@ -137,6 +139,7 @@ export function AssetGroupCard({
                   {fmtMoney(row.marketValueBRL)}
                 </span>
 
+                <AssetActions row={row} />
                 {/* Variação % */}
                 {row.changePercent !== null ? (
                   <span

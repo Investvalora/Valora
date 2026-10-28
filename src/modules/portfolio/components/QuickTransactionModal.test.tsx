@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Asset } from '../types'
 
@@ -14,6 +14,17 @@ vi.mock('../hooks/useFixedIncomePositions', () => ({ useAddFixedIncomePosition: 
 vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] }), useTickerLatestPrice: () => null }))
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
+
+it('abre novo aporte com o produto selecionado sem copiar valor nem data da aplicação antiga', () => {
+  cleanup()
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} initialFixedIncome={{ name: 'RDB Nubank', type: 'rdb_cdi', rate: 115 }} /></QueryClientProvider>)
+  expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('fixed_income')
+  expect(screen.getByLabelText('Emissor')).toHaveValue('RDB Nubank')
+  expect(screen.getByLabelText('Tipo de título')).toHaveValue('rdb_cdi')
+  expect(screen.getByLabelText('% do CDI (ex: 110)')).toHaveValue(115)
+  expect(screen.getByLabelText('Valor (R$)')).toHaveValue(null)
+  cleanup()
+})
 
 it('escolhe BRL para cripto e salva quantidade fracionária, preço e custos sem conversão', async () => {
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>

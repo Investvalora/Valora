@@ -1,0 +1,2 @@
+# Autorização explícita em yahooAuthorization.ts; somente chave interna exata.
+verify_jwt = false

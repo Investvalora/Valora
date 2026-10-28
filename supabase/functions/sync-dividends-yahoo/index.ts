@@ -1,3 +1,5 @@
+import { yahooCaller } from '../_shared/yahooAuthorization.ts'
+
 // Edge Function: sync-dividends-yahoo
 //
 // Sincroniza dividendos dos últimos 2 anos via Yahoo Finance para todos os
@@ -13,7 +15,8 @@
 //      — Sem body ou body vazio → processa TODOS os ativos ativos do catálogo.
 //   2. Manual (JWT de usuário):
 //      — Body { "tickers": ["MXRF11","BBAS3"] } → só esses tickers.
-//      — Body vazio → todos os ativos ativos (igual ao cron).
+//      — Body vazio → ativos das carteiras da conta autenticada.
+//      — Tickers explícitos precisam pertencer à conta autenticada.
 //
 // RESPONSE 200
 //   { "synced": 45, "inserted": 387, "tickers_processed": [...], "mode": "all" }
@@ -59,24 +62,6 @@ async function rest(path: string, init: RequestInit = {}) {
       ...(init.headers ?? {}),
     },
   })
-}
-
-/**
- * Verifica se a requisição veio autenticada (service role key ou JWT de usuário).
- * Retorna 'service' | 'user' | null.
- * - service role: pg_cron envia a service_role_key diretamente no Bearer.
- * - user JWT: frontend envia o JWT do usuário.
- */
-function authMode(request: Request): 'service' | 'user' | null {
-  const auth = request.headers.get('authorization')
-  if (!auth) return null
-  const token = auth.replace(/^Bearer\s+/i, '').trim()
-  if (!token) return null
-  // Service role key do projeto (não é JWT — não começa com "ey")
-  if (token === SERVICE_KEY) return 'service'
-  // JWT começa com "ey" (base64url de {"alg":...})
-  if (token.startsWith('ey')) return 'user'
-  return null
 }
 
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
@@ -200,8 +185,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405)
 
-  const mode = authMode(req)
-  if (!mode) return json({ error: 'Autenticação necessária.' }, 401)
+  const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY)
+  if (caller.kind === 'denied') return json({ error: 'Sessão inválida ou serviço de autenticação indisponível.' }, caller.status)
 
   // Parsear body (opcional)
   let requestedTickers: string[] | null = null
@@ -217,13 +202,22 @@ Deno.serve(async (req: Request) => {
   let tickers: Array<{ ticker: string; currency: string }> = []
   let syncMode: string
 
+  if (caller.kind === 'user') {
+    const owned = await rest(`positions?user_id=eq.${encodeURIComponent(caller.userId)}&select=ticker`)
+    if (!owned.ok) return json({ error: 'Não foi possível verificar os ativos da conta.' }, 503)
+    const rows = await owned.json() as Array<{ ticker: string }>
+    const allowed = new Set(rows.map(row => row.ticker))
+    if (requestedTickers?.some(ticker => !allowed.has(ticker))) return json({ error: 'Ativo fora das carteiras da conta.' }, 403)
+    requestedTickers = requestedTickers ?? [...allowed]
+    if (requestedTickers.length === 0) return json({ synced: 0, inserted: 0, tickers_processed: [], mode: 'portfolio' })
+  }
+
   if (requestedTickers && requestedTickers.length > 0) {
     // Tickers explícitos — buscar currency no catálogo
     const list = requestedTickers.map(encodeURIComponent).join(',')
     const r = await rest(`assets?ticker=in.(${list})&select=ticker,currency&active=eq.true`)
-    tickers = r.ok
-      ? (await r.json()) as Array<{ ticker: string; currency: string }>
-      : requestedTickers.map((t) => ({ ticker: t, currency: 'BRL' }))
+    if (!r.ok) return json({ error: 'Não foi possível verificar o catálogo.' }, 503)
+    tickers = (await r.json()) as Array<{ ticker: string; currency: string }>
     syncMode = 'explicit'
   } else {
     // Sem tickers explícitos → todos os ativos ativos do catálogo com dividendos

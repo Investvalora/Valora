@@ -22,8 +22,9 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
   const today = toIsoDate(new Date())
   const trades = useMemo(() => tradesQuery.data ?? [], [tradesQuery.data])
   const positions = useMemo(() => positionsQuery.data ?? [], [positionsQuery.data])
+  const incomeNeedsUsd = incomeQuery.rows.some(p => p.currency === 'USD')
   const data = useQuery({
-    queryKey: ['performance', 'historical-inputs', user?.id, walletId, tradesQuery.dataUpdatedAt, positionsQuery.dataUpdatedAt, fixedQuery.dataUpdatedAt, today],
+    queryKey: ['performance', 'historical-inputs', user?.id, walletId, tradesQuery.dataUpdatedAt, positionsQuery.dataUpdatedAt, fixedQuery.dataUpdatedAt, incomeNeedsUsd, today],
     queryFn: async () => {
       const tickers = [...new Set([...positions.map(p => p.ticker), ...trades.map(t => t.ticker)])].sort()
       const assets = await Promise.all(tickers.map(t => positionService.findAssetByTicker(t)))
@@ -34,7 +35,7 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
       if (!first) return { prices: [], usd: [], macro: [], metadata }
       const from = shiftIsoDate(-10, new Date(`${first}T12:00:00Z`))
       const quoteTickers = [...new Set(tickers.flatMap(t => t.endsWith('-BRL') ? [t, t.slice(0, -4)] : [t]))]
-      const needsUsd = assets.some(a => a?.currency === 'USD') || tickers.some(t => t.endsWith('-BRL'))
+      const needsUsd = [...metadata.values()].some(a => a.currency === 'USD') || tickers.some(t => t.endsWith('-BRL')) || incomeNeedsUsd
       const [prices, usd, macro] = await Promise.all([
         wealthService.listPriceHistory(quoteTickers, from),
         needsUsd ? historicalRatesService.usd(from, today) : Promise.resolve([]),

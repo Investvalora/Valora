@@ -1,5 +1,5 @@
 import { useHistoricalReturns } from './useHistoricalReturns'
-import { returnChartSeries } from '../utils/returnChartSeries'
+import { returnChartSeries, alignedBenchmarkSeries } from '../utils/returnChartSeries'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -9,12 +9,9 @@ import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { positionService } from '../../portfolio/services/positionService'
 import { dividendService } from '../../dividends/services/dividendService'
 import { benchmarkService } from '../services/benchmarkService'
-import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import {
   computeAssetRows,
-  computeMonthlyBenchmarkReturns,
-  buildMonthlyAccumulatedSeries,
-  buildIntramonthlyBenchmarkSeries,
   extractReturnPct,
   computeMonthlyTableData,
 } from '../utils/performanceCalculations'
@@ -28,18 +25,7 @@ import type { WealthPeriod } from '../../wealth/types'
 /** staleTime de 5 minutos — dados de baixa frequência. */
 const STALE_TIME_MS = 5 * 60 * 1000
 
-/**
- * Dias por período — mesma tabela de `useWealthHistory`.
- * "Tudo" usa a primeira aquisição, sem teto de um ano.
- */
-const PERIOD_DAYS: Record<Exclude<PerformancePeriod, 'Tudo'>, number> = {
-  '1M': 30,
-  '3M': 90,
-  '6M': 180,
-  '1A': 365,
-}
-
-/** Configuração dos benchmarks: nome na tabela, rótulo no UI e cor da linha. */
+/** Referências comparadas no mesmo calendário da carteira. */
 const BENCHMARK_CONFIG = [
   { name: 'CDI',  label: 'CDI',  color: '#22c55e' },
   { name: 'IBOV', label: 'IBOV', color: '#eab308' },
@@ -51,10 +37,11 @@ export function performanceQueryKey(userId: string | undefined, period: Performa
 }
 
 export interface UsePerformanceResult {
+  historyIssues?: string[]
   historyIncomplete?: boolean
-  /** Série da carteira (acumulada mês a mês, base 100). */
+  /** Série diária da carteira, base 100, com lacunas preservadas. */
   portfolioSeries: PerformanceSeries
-  /** Séries dos benchmarks (acumuladas mês a mês, base 100). */
+  /** Índices nas mesmas datas e bases da carteira. */
   benchmarkSeries: PerformanceSeries[]
   /** Resumo de retornos para os cards. */
   summary: PerformanceSummary
@@ -89,13 +76,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   // 1. Série de patrimônio diário + posições snapshot + USD rate
   const wealth = useWealthHistory(period as WealthPeriod, effectiveWalletId, undefined, assetType)
 
-  // Piso do período selecionado
-  const periodFloor = useMemo(
-    () => shiftIsoDate(period === 'Tudo' ? 0 : -PERIOD_DAYS[period]),
-    [period],
-  )
-
-  // `since` efetivo: nunca antes da primeira compra
+  // Janela já definida pelo histórico da carteira e período selecionado.
   const since = historical.since
 
   const positionsQuery = useQuery<PositionWithAsset[]>({
@@ -149,8 +130,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     const prevMonth = month === 1
       ? `${year - 1}-12-01`
       : `${year}-${String(month - 1).padStart(2, '0')}-01`
-    return period === 'Tudo' ? prevMonth : prevMonth < periodFloor ? periodFloor : prevMonth
-  }, [since, periodFloor, period])
+    return prevMonth
+  }, [since])
 
   const benchmarksQuery = useQuery({
     queryKey: ['benchmarks', period, benchmarkSince],
@@ -173,59 +154,25 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const usdRateQuery = useUSDRate({ enabled: hasInternational })
 
   const portfolioMonthlyReturns = historical.monthly
-  const useIntramonthlyfallback = portfolioMonthlyReturns.size === 0 || historical.incomplete
   const portfolioSeries = useMemo<PerformanceSeries>(() => {
     if (historical.isLoading || historical.isError) return { label: 'Carteira', color: '#3b82f6', points: [] }
-    if (historical.incomplete) return returnChartSeries(historical.points, historical.since)
-    if (!useIntramonthlyfallback) return buildMonthlyAccumulatedSeries(portfolioMonthlyReturns, 'Carteira', '#3b82f6')
-    if (historical.returnPct === null || !historical.startDate) return { label: 'Carteira', color: '#3b82f6', points: [] }
-    let factor = 100
-    const points = [{ date: historical.startDate, normalized: 100 }]
-    for (const point of historical.points.filter(p => p.date >= historical.since)) {
-      if (point.returnPct === null) return { label: 'Carteira', color: '#3b82f6', points: [] }
-      factor *= 1 + point.returnPct
-      points.push({ date: point.date, normalized: factor })
-    }
-    return { label: 'Carteira', color: '#3b82f6', points }
-  }, [historical.incomplete, historical.isLoading, historical.isError, historical.returnPct, historical.startDate, historical.points, historical.since, useIntramonthlyfallback, portfolioMonthlyReturns])
+    const month = toIsoDate(new Date()).slice(0, 7)
+    const selected = historical.points.filter(p => p.date >= historical.since)
+    const closed = selected.filter(p => p.date.slice(0, 7) < month)
+    return returnChartSeries(closed.length ? closed : selected, historical.since)
+  }, [historical.isLoading, historical.isError, historical.points, historical.since])
   const portfolioReturnPct = historical.returnPct
-  const portfolioStartDate = historical.startDate
 
-  const benchmarkSeries = useMemo<PerformanceSeries[]>(() => {
-    const rows = benchmarksQuery.data ?? []
-
-    return BENCHMARK_CONFIG.map(({ name, label, color }) => {
-      if (useIntramonthlyfallback) {
-        // Fallback: série diária normalizada a partir de portfolioStartDate
-        return buildIntramonthlyBenchmarkSeries(
-          rows as Array<{ date: string; name: string; value: number }>,
-          name,
-          label,
-          color,
-          portfolioStartDate ?? since,
-        )
-      }
-
-      // Cálculo MoM alinhado pelos meses da carteira
-      const nameRows = rows
-        .filter((r) => r.name === name)
-        .map((r) => ({ date: r.date, value: Number(r.value) }))
-
-      const monthlyReturns = computeMonthlyBenchmarkReturns(nameRows)
-      const portfolioMonths = new Set(portfolioMonthlyReturns.keys())
-      const alignedReturns = new Map<string, number>()
-      for (const [month, ret] of monthlyReturns) {
-        if (portfolioMonths.has(month)) alignedReturns.set(month, ret)
-      }
-      return buildMonthlyAccumulatedSeries(alignedReturns, label, color)
-    })
-  }, [benchmarksQuery.data, useIntramonthlyfallback, portfolioMonthlyReturns, portfolioStartDate, since])
+  const benchmarkSeries = useMemo<PerformanceSeries[]>(() => BENCHMARK_CONFIG.map(({ name, label, color }) =>
+    alignedBenchmarkSeries(portfolioSeries, (benchmarksQuery.data ?? []).filter(r => r.name === name), label, color)
+  ), [benchmarksQuery.data, portfolioSeries])
 
   // Resumo para os cards
   const summary = useMemo<PerformanceSummary>(() => {
     const [cdiSeries, ibovSeries, ifixSeries] = benchmarkSeries
 
-    const toReturn = (s: PerformanceSeries): number | null => extractReturnPct(s)
+    // Após lacuna, a linha é um trecho local; não publicar seu valor como total.
+    const toReturn = (s: PerformanceSeries): number | null => historical.incomplete ? null : extractReturnPct(s)
 
     const cdiReturnPct  = cdiSeries  ? toReturn(cdiSeries)  : null
     const ibovReturnPct = ibovSeries ? toReturn(ibovSeries) : null
@@ -237,7 +184,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
         : null
 
     return { portfolioReturnPct, cdiReturnPct, ibovReturnPct, ifixReturnPct, vscdipPp }
-  }, [portfolioReturnPct, benchmarkSeries])
+  }, [portfolioReturnPct, benchmarkSeries, historical.incomplete])
 
   // Tabela de rentabilidade por ativo
   const assetRows = useMemo<AssetReturnRow[]>(() => {
@@ -290,6 +237,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   }
 
   return {
+    historyIssues: historical.issues,
     historyIncomplete: historical.incomplete,
     portfolioSeries,
     benchmarkSeries,

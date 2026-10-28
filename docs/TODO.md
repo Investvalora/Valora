@@ -1,0 +1,26 @@
+# TODO do Valora
+
+## Rentabilidade e histórico
+
+- [x] **Investigar e resolver o histórico incompleto da rentabilidade comparada.** Corrigidas as causas identificadas e retestadas localmente as carteiras “Investidor10” e “Minha Carteira”, sem aviso de histórico incompleto no período desde o início. As alterações do frontend ainda precisam ser publicadas.
+  - Mensagem observada: “Histórico incompleto: faltam preços, câmbio ou movimentações suficientes. O gráfico mostra os trechos disponíveis, com interrupções nas lacunas. Cada trecho da carteira reinicia em 0%; não representa o acumulado do período inteiro nem permite comparação direta com os índices ao longo dessas lacunas.”
+  - Validar a continuidade e o cálculo da rentabilidade acumulada com movimentações e câmbio, além do alinhamento das datas e bases de comparação com os índices.
+  - Critério de conclusão: histórico suficiente apresenta o acumulado correto e comparável no período; lacunas reais continuam identificadas, sem inventar dados, ligar trechos indevidamente ou apenas ocultar o aviso.
+
+### Correção e reteste — 28/10/2026
+
+- Banco: adicionados 11.982 fechamentos públicos Yahoo ausentes, de 25/10/2024 em diante, sem sobrescrever preços existentes. Limite de carga: 27/10/2026. Pares cripto BRL sem histórico direto usam cotação USD e câmbio histórico; não são convertidos pelo câmbio atual.
+- Comparadores: carregados CDI real do BCB/SGS 12 (501 pontos), IBOV do Yahoo (498) e IFIX oficial B3 (498). Seeds remanescentes, inclusive registros fictícios em feriados, permanecem armazenados mas não entram na comparação. Conferido zero ponto real de índice posterior a 28/10/2026.
+- Movimentações: excluída somente a compra de teste de 0,00061788 BTC em 10/03/2026 da “Minha Carteira”, após confirmação específica do usuário. Consulta posterior confirmou zero divergências entre quantidades das movimentações e posições. Nenhum outro lançamento foi alterado.
+- Cálculo: gráfico diário inclui o retorno do primeiro dia e a base no fechamento anterior; índices usam o mesmo calendário e início/fim da carteira. Resumo, gráfico e tabela respeitam os meses encerrados; carteira iniciada no mês atual mantém resultado parcial. Lacunas continuam interrompendo séries e invalidando o acumulado, com motivos exibidos por ativo quando disponíveis.
+- Verificação local: 102 testes passaram; build de produção/PWA passou. Conferidas troca de carteira e filtros. Na janela desde o início até setembro/2026: Investidor10 +27,92% e Minha Carteira -1,12%, usando as movimentações cadastradas e a convenção diária informada no app. Não é conciliação com extrato de corretora.
+- Reprodução da carga: `scripts/prepare-return-history.mjs` consulta fontes públicas e gera SQL para revisão, sem credenciais nem escrita automática no banco. Novas importações anteriores à cobertura disponível podem exigir nova carga; o aviso permanece para esses casos. Não foi criado agendamento de backfill.
+- Evidências locais: `output/return-history/` (fora do commit).
+
+## Adiado por decisão do responsável
+
+- Entrega dos emails/SendGrid e redução de spam: manter a configuração atual enquanto não houver domínio próprio, conforme combinado.
+
+## Segurança
+
+Registro específico em [TODO-seguranca.md](TODO-seguranca.md).

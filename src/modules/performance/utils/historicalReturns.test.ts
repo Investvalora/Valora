@@ -96,3 +96,19 @@ it('não perpetua preço antigo para esconder uma lacuna longa', () => {
   expect(points[points.length - 1].value).toBeNull()
   expect(points[points.length - 1].returnPct).toBeNull()
 })
+
+it('par BRL com preço vencido usa USD recente com câmbio histórico e identifica falha sem câmbio', () => {
+  const p = { ...position('BTC-BRL'), acquisition_date: '2026-01-20', average_price: 500 }
+  const prices = [price('2026-01-01', 450, 'BTC-BRL'), price('2026-01-20', 100, 'BTC')]
+  const points = historicalReturns([p], [], prices, [], { usd: [{ date: '2026-01-20', value: 5 }], macro: [] }, '2026-01-20')
+  expect(points[0].value).toBe(500)
+  expect(points[0].returnPct).toBe(0)
+  const missing = historicalReturns([p], [], prices, [], rates, '2026-01-20')
+  expect(missing[0].value).toBeNull()
+  expect(missing[0].issues).toContain('Preço histórico indisponível: BTC-BRL')
+})
+
+it('explica divergência do razão sem inventar movimento para completar saldo', () => {
+  const points = historicalReturns([position('AAA', 2)], [trade('2026-01-02')], [price('2026-01-02')], [], rates, '2026-01-02')
+  expect(summarizeHistoricalReturns(points, '2026-01-01', '2026-02-01').issues).toContain('Movimentações divergentes da posição: AAA')
+})

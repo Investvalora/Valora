@@ -1,3 +1,4 @@
+import { PushNotificationsPrompt } from '../../modules/alerts/components/PushNotificationsPrompt'
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useNewAlertsCount } from '../../modules/alerts/hooks/useAlerts'
@@ -43,6 +44,8 @@ export function AppShellNovo() {
           <Outlet />
         </main>
       </div>
+
+      <PushNotificationsPrompt />
 
       <MobileNav alertCount={alertCount} onNovoLancamento={() => setLancamentoOpen(true)} />
 

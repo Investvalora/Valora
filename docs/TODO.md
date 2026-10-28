@@ -21,6 +21,16 @@
 
 - Entrega dos emails/SendGrid e redução de spam: manter a configuração atual enquanto não houver domínio próprio, conforme combinado.
 
+## Alertas — diagnóstico de 28/10/2026
+
+- [x] **Concluir o teste de entrega push no dispositivo.** Infraestrutura aplicada em 28/10/2026, função `send-alert-push` v3 e variável `VITE_VAPID_PUBLIC_KEY` configuradas em produção. Após habilitar o serviço de mensagens push do Google no Brave, a inscrição foi salva e o teste retornou HTTP 200 (`sent:1,failed:0`). O responsável confirmou a exibição de “Novo alerta no Valora” no computador. Alerta temporário removido; inscrição preservada. Monitoramento automático de preços com app fechado continua no item separado abaixo. Detalhes em [push-notifications.md](push-notifications.md).
+- [ ] **Atualizar lista e sino quando o servidor mudar alertas.** As consultas não têm polling nem assinatura Realtime. O monitor invalida o cache quando sua própria verificação dispara alertas; alterações externas podem permanecer fora da tela. Implementar atualização e validar dois clientes autenticados da mesma conta.
+- [ ] **Corrigir o retorno ao app e apresentar falhas do monitor.** `usePriceTargetMonitor` não sobrescreve `refetchOnWindowFocus: false` do QueryClient, apesar do comentário prometer verificação ao recuperar foco. Seu erro também não é apresentado no AppShell. Testar foco, indisponibilidade e recuperação.
+- [ ] **Revisar elegibilidade, moeda e validade dos alertas Bazin.** A tela ainda mostra alerta Bazin para ETH e o gerador não filtra a classe de ativo; textos usam `R$` fixo, inclusive para ativos USD. Alertas existentes podem persistir quando deixam de ser candidatos. Corrigir sem apagar ou substituir edições e decisões do usuário indiscriminadamente.
+- [ ] **Definir e implementar monitoramento com app fechado.** O banco não possui agendamento de geração/verificação de preços-alvo; o único job de alertas encontrado é a limpeza dos ignorados. Push por si só não executa a avaliação de preços. Validar geração e entrega com a aba fechada e isolamento entre contas.
+
+Escopo do diagnóstico inicial: código, consulta do banco e leitura da tela publicada, sem alterações. A lista e o sino carregaram na sessão conferida (um alerta novo); não foi reproduzida uma divergência de contador nessa sessão. Na etapa posterior, autorizada pelo responsável, a infraestrutura push foi aplicada e testada conforme o item acima; somente um alerta temporário de teste foi criado e removido. Os demais itens de alertas continuam abertos.
+
 ## Segurança
 
 Registro específico em [TODO-seguranca.md](TODO-seguranca.md).

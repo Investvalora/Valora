@@ -58,7 +58,7 @@ export function DesempenhoVisaoGeral() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
 
-  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading, historyIncomplete } =
+  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading, historyIncomplete, historyIssues } =
     usePerformance('1A', walletId)
 
   const dashboard = useDashboard(walletId)
@@ -100,7 +100,7 @@ export function DesempenhoVisaoGeral() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ReturnHistoryNotice incomplete={historyIncomplete} />
+      <ReturnHistoryNotice incomplete={historyIncomplete} issues={historyIssues} />
       {/* ── Cabeçalho ── */}
       <h2 className="text-[18px] font-semibold text-white">Visão Geral</h2>
 

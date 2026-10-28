@@ -101,7 +101,7 @@ export function InicioPage() {
         />
       </div>
 
-      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} />
+      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} />
       {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">

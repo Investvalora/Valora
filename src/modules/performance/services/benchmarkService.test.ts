@@ -9,6 +9,12 @@ import { dividendService } from '../../dividends/services/dividendService'
 
 beforeEach(resetSupabaseMock)
 
+it('preserva índices reais e não mistura simulação de seed na comparação', async () => {
+  const real = { name: 'CDI', date: '2026-01-02', value: 100, source: 'bcb_sgs12' }
+  supabaseMock.on('benchmarks', () => ({ data: [real, { ...real, date: '2026-01-03', source: 'seed' }, { ...real, date: '2026-01-04', source: 'synthetic' }], error: null }))
+  expect(await benchmarkService.listBenchmarks('2026-01-01')).toEqual([real])
+})
+
 it('busca benchmarks além de mil registros sem perder o fim do período', async () => {
   const rows = Array.from({ length: 1001 }, (_, value) => ({ name: 'CDI', date: `date-${value}`, value, source: 'test' }))
   supabaseMock.on('benchmarks', ({ calls }) => {

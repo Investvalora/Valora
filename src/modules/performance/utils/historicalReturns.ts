@@ -6,7 +6,7 @@ import type { HistoricalFixedIncome, HistoricalValuation } from '../../dashboard
 import type { DividendRow } from '../../dividends/types'
 
 export type ReturnTrade = Pick<Transaction, 'wallet_id' | 'ticker' | 'transaction_date' | 'seq' | 'type' | 'quantity' | 'price'> & Partial<Pick<Transaction, 'brokerage_fee' | 'tax'>> & { currency: AssetCurrency | null }
-export interface DailyReturn { date: string; value: number | null; returnPct: number | null }
+export interface DailyReturn { date: string; value: number | null; returnPct: number | null; issues?: string[] }
 const key = (row: { wallet_id?: string; ticker: string }) => `${row.wallet_id}:${row.ticker}`
 const nextDay = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
 
@@ -53,48 +53,50 @@ export function historicalReturns(
       const row = quotes.get(ticker)
       if (row && (Date.parse(date) - Date.parse(row.date)) / 86400000 <= 10) return row.close
       // Par BRL pode usar história USD apenas com câmbio histórico da mesma data.
-      if (!row && ticker.endsWith('-BRL')) {
+      if (ticker.endsWith('-BRL')) {
         const usd = quotes.get(ticker.slice(0, -4))
         if (usd && fx !== null && (Date.parse(date) - Date.parse(usd.date)) / 86400000 <= 10) return usd.close * fx
       }
       return null
     }
+    const issues = new Set<string>()
+    for (const trade of ordered) if (inconsistentKeys.has(key(trade)) && trade.transaction_date <= date) issues.add(`Movimentações divergentes da posição: ${trade.ticker}`)
     let complete = !inconsistentFrom || date < inconsistentFrom, purchases = 0, withdrawals = 0, total = 0
     while (cursor < ordered.length && ordered[cursor].transaction_date <= date) {
       const trade = ordered[cursor++]
       const qty = Number(trade.quantity), price = Number(trade.price)
       const rate = convert(trade.currency)
       const fees = Number(trade.brokerage_fee ?? 0) + Number(trade.tax ?? 0)
-      if (rate === null || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0 || !Number.isFinite(fees)) complete = false
+      if (rate === null || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0 || !Number.isFinite(fees)) { complete = false; issues.add(`Movimentação ou câmbio indisponível: ${trade.ticker}`) }
       const state = holdings.get(key(trade)) ?? { ticker: trade.ticker, currency: trade.currency, quantity: 0 }
       if (trade.type === 'buy') { state.quantity += qty; purchases += (qty * price + fees) * (rate ?? 0) }
       else { state.quantity -= qty; withdrawals += (qty * price - fees) * (rate ?? 0) }
-      if (state.quantity < -1e-7) complete = false
+      if (state.quantity < -1e-7) { complete = false; issues.add(`Venda sem saldo suficiente: ${trade.ticker}`) }
       holdings.set(key(trade), state)
     }
     for (const state of holdings.values()) {
       if (state.quantity <= 1e-10) continue
       const close = quoteAt(state.ticker), rate = convert(state.currency)
-      if (close === null || rate === null) complete = false
+      if (close === null || rate === null) { complete = false; issues.add(`${close === null ? 'Preço histórico' : 'Câmbio histórico'} indisponível: ${state.ticker}`) }
       else total += state.quantity * close * rate
     }
     for (const position of fixed) {
       if (position.application_date > date) continue
       if (position.application_date === date) purchases += Number(position.principal)
       const value = fixedIncomeAt(position, date, rates.macro)
-      if (value === null || !Number.isFinite(value)) complete = false
+      if (value === null || !Number.isFinite(value)) { complete = false; issues.add('Renda fixa sem taxas ou eventos suficientes') }
       else total += value
       withdrawals += (position.events ?? []).filter(e => e.event_date === date).reduce((sum, e) => sum + Number(e.amount), 0)
     }
     for (const payment of income.filter(p => p.payment_date === date)) {
       const rate = convert(payment.currency ?? 'BRL')
-      if (rate === null || !Number.isFinite(Number(payment.total_value))) complete = false
+      if (rate === null || !Number.isFinite(Number(payment.total_value))) { complete = false; issues.add(`Provento ou câmbio indisponível: ${payment.ticker}`) }
       else withdrawals += Number(payment.total_value) * rate
     }
     const denominator = previous === null ? null : previous + purchases
     const daily = complete && denominator !== null && denominator > 0 ? (total + withdrawals) / denominator - 1
       : complete && previous === 0 && purchases === 0 && total === 0 ? 0 : null
-    result.push({ date, value: complete ? total : null, returnPct: daily !== null && Number.isFinite(daily) && daily >= -1 ? daily : null })
+    result.push({ date, value: complete ? total : null, returnPct: daily !== null && Number.isFinite(daily) && daily >= -1 ? daily : null, issues: [...issues] })
     previous = complete ? total : null
   }
   return result
@@ -120,7 +122,10 @@ export function summarizeHistoricalReturns(points: DailyReturn[], since: string,
   // Carteira iniciada no mês corrente: permite apenas o retorno diário disponível.
   const fallback = selected.length === 0 ? points.filter(p => p.date >= since && p.date <= today) : []
   const fallbackComplete = fallback.length > 0 && fallback.every(p => p.returnPct !== null)
+  const relevant = selected.length ? selected : fallback
+  const issues = [...new Set(relevant.flatMap(p => p.issues ?? []))]
   return { monthly, missingMonths, incomplete: incomplete || (fallback.length > 0 && !fallbackComplete),
+    issues,
     returnPct: selected.length ? incomplete ? null : factor - 1
       : fallbackComplete ? fallback.reduce((f, p) => f * (1 + p.returnPct!), 1) - 1 : null,
     startDate: (selected[0] ?? fallback[0])?.date ?? null }

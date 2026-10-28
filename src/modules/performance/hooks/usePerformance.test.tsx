@@ -15,7 +15,7 @@ vi.mock('./useHistoricalReturns', () => ({ useHistoricalReturns: (period: string
   const value = type === 'stock_br' ? 1 : type === 'fii' ? 0 : 0.5
   const active = wallet === 'w1' && period === 'Tudo'
   return { monthly: active ? new Map([['2020-01', value]]) : new Map(), returnPct: active ? value : null,
-    since: '2020-01-01', startDate: '2020-01-01', points: [], missingMonths: new Set(), incomplete: false,
+    since: '2020-01-01', startDate: '2020-01-01', points: active ? [{ date: '2020-01-01', value: 100 * (1 + value), returnPct: value }, { date: '2020-01-31', value: 100 * (1 + value), returnPct: 0 }] : [], missingMonths: new Set(), incomplete: false,
     isLoading: false, isError: false, refetch: vi.fn() }
 } }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: { rate: 5 }, isLoading: false }) }))

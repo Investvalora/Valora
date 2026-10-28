@@ -32,7 +32,9 @@ export const benchmarkService = {
 
       if (error) throw error
       const page = (data ?? []) as unknown as BenchmarkRow[]
-      rows.push(...page)
+      // Seeds de demonstração não são observações de mercado, inclusive em
+      // feriados nos quais o seed criou pontos que não existem na fonte real.
+      rows.push(...page.filter(row => row.source !== 'seed' && row.source !== 'synthetic'))
       if (page.length < PAGE_SIZE) return rows
     }
   },

@@ -21,7 +21,7 @@ it('adiciona apenas as estratégias marcadas à tabela e remove a coluna ao ocul
   expect(screen.queryByRole('columnheader', { name: 'Minha renda' })).not.toBeInTheDocument()
 })
 it('mostra as mesmas referências nos cards do PWA', () => {
-  render(<AssetGroupCard type="stock_us" label="Stocks" color="#00ff00" rows={[row]} totalBRL={100} variationPct={0} portfolioPct={100} isExpanded onToggle={() => {}} strategies={strategies} />)
+  render(<MemoryRouter><AssetGroupCard type="stock_us" label="Stocks" color="#00ff00" rows={[row]} totalBRL={100} variationPct={0} portfolioPct={100} isExpanded onToggle={() => {}} strategies={strategies} /></MemoryRouter>)
   expect(screen.getByText('Minha renda: $30.00')).toBeInTheDocument()
   expect(screen.queryByText(/Estratégia oculta/)).not.toBeInTheDocument()
 })

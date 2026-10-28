@@ -14,6 +14,7 @@ import type { Asset, AssetType, FixedIncomeType, NewFixedIncomePosition } from '
 interface QuickTransactionModalProps {
   isOpen: boolean
   onClose: () => void
+  initialFixedIncome?: { name: string; type: FixedIncomeType; rate: number }
 }
 
 type FormCategory = AssetType | 'tesouro_direto'
@@ -71,7 +72,7 @@ const RF_TYPES: { value: FixedIncomeType; label: string }[] = [
   { value: 'lca_pre', label: 'LCA Pré' },
 ]
 
-export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModalProps) {
+export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: QuickTransactionModalProps) {
   const { selectedWallet } = useWallets()
   const { data: positions = [] } = usePositions(selectedWallet?.id ?? '')
   const addTransaction = useAddTransaction()
@@ -175,6 +176,19 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
     setTdAtivo(''); setTdTaxa(''); setTdDate(new Date().toISOString().slice(0, 10))
     setTdMaturity(''); setTdQty(''); setTdPrice(''); setTdOther('')
   }
+
+  useEffect(() => {
+    if (!isOpen || !initialFixedIncome) return
+    setAssetClass('fixed_income')
+    setType('buy')
+    setRfEmissor(initialFixedIncome.name)
+    setRfTipo(initialFixedIncome.type)
+    setRfTaxa(String(initialFixedIncome.rate))
+    setRfValor('')
+    setRfDate(new Date().toISOString().slice(0, 10))
+    setRfMaturity('')
+    setError('')
+  }, [isOpen, initialFixedIncome])
 
   function selectAsset(asset: Asset) {
     setTicker(asset.ticker)

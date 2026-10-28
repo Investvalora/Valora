@@ -1,3 +1,5 @@
+import { yahooCaller } from '../_shared/yahooAuthorization.ts'
+
 // Edge Function: sync-yahoo-fundamentals
 //
 // Sincroniza indicadores fundamentalistas via Yahoo Finance para todos os
@@ -60,15 +62,7 @@ async function rest(path: string, init: RequestInit = {}) {
   })
 }
 
-function authMode(request: Request): 'service' | 'user' | null {
-  const auth = request.headers.get('authorization')
-  if (!auth) return null
-  const token = auth.replace(/^Bearer\s+/i, '').trim()
-  if (!token) return null
-  if (token === SERVICE_KEY) return 'service'
-  if (token.startsWith('ey')) return 'user'
-  return null
-}
+
 
 function needsSaSuffix(ticker: string): boolean {
   if (ticker.includes('.')) return false
@@ -263,8 +257,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return jsonResp({ error: 'Método não permitido.' }, 405)
 
-  const mode = authMode(req)
-  if (!mode) return jsonResp({ error: 'Autenticação necessária.' }, 401)
+  const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY)
+  if (caller.kind === 'denied') return jsonResp({ error: 'Sessão inválida ou serviço de autenticação indisponível.' }, caller.status)
+  if (caller.kind !== 'service') return jsonResp({ error: 'Sincronização restrita ao serviço interno.' }, 403)
 
   // Buscar todos os ativos ativos do catálogo
   const assetsResp = await rest(

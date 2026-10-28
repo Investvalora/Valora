@@ -1,0 +1,2 @@
+# Autorização explícita em yahooAuthorization.ts; aceita o job e sessões validadas.
+verify_jwt = false

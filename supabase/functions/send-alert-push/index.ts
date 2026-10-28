@@ -1,6 +1,7 @@
 // Chamado apenas pelo trigger de alerts, com a service role key do Vault.
 // Envia uma mensagem genérica para não expor dados da carteira na tela bloqueada.
 import webpush from 'npm:web-push@3.6.7'
+import { authorizePush } from './authorization.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -40,7 +41,15 @@ function isPushEndpoint(endpoint: string): boolean {
 
 Deno.serve(async (request) => {
   if (request.method !== 'POST') return Response.json({ error: 'Método não permitido.' }, { status: 405 })
-  if (!serviceKey || request.headers.get('authorization') !== `Bearer ${serviceKey}`) {
+  const authorization = request.headers.get('authorization')
+  const authorized = await authorizePush(authorization, serviceKey, async digest => {
+    const result = await rest('rpc/authorize_alert_push', {
+      method: 'POST', body: JSON.stringify({ token_digest: digest }), signal: AbortSignal.timeout(10000),
+    })
+    return result.ok && await result.json() === true
+  })
+  if (!authorized) {
+    console.warn(JSON.stringify({ event: 'push_auth_denied' }))
     return Response.json({ error: 'Não autorizado.' }, { status: 401 })
   }
   if (!supabaseUrl || !vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
@@ -88,7 +97,7 @@ Deno.serve(async (request) => {
         await webpush.sendNotification({
           endpoint: subscription.endpoint,
           keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-        }, payload)
+        }, payload, { timeout: 10000 })
         sent++
       } catch (error) {
         const status = (error as { statusCode?: number }).statusCode

@@ -1,10 +1,25 @@
 # Notificações push do Valora
 
-O navegador se inscreve pelo botão na página **Alertas**. Quando uma linha de
+Após o login, desktop e PWA mostram o convite **Receba seus alertas** para
+dispositivos compatíveis sem inscrição ativa. A permissão do navegador só é
+solicitada ao clicar em **Ativar notificações**. **Agora não**, Escape e fechar
+adiam o convite por sete dias neste navegador, por conta. Permissão bloqueada,
+ambiente sem chave pública e dispositivos incompatíveis não exibem o convite.
+O controle na página **Alertas** continua disponível para ativar ou desativar.
+Quando uma linha de
 `public.alerts` é criada com status `novo`, ou volta para `novo`, o trigger da
 migration `026_create_push_subscriptions.sql` chama `send-alert-push` via `pg_net`.
 A Edge Function envia uma mensagem genérica aos navegadores inscritos daquele
 usuário. O service worker abre `/alertas` ao clicar na notificação.
+
+## Integração aplicada em 28/10/2026
+
+- Estrutura da migration `026_create_push_subscriptions.sql` aplicada: inscrições com RLS e triggers para alertas novos e mudanças para `novo`.
+- `send-alert-push` v3 mantém a verificação JWT do gateway e autoriza a chave interna exata do runtime ou a chave exata do agendador no Vault. A migration `20261028150726_authorize_alert_push_vault.sql` permite somente ao backend validar SHA-256 da credencial, sem devolver o segredo e sem confiar em claims de usuário.
+- A variável pública da Vercel foi corrigida de `VAPID_PUBLIC_KEY` para `VITE_VAPID_PUBLIC_KEY`, mantendo o valor e os ambientes Production/Preview. O hash confere com o secret público do Supabase; a chave privada não foi revelada nem alterada.
+- Redeploy de produção do mesmo commit já publicado (`d2f52d3`), sem merge de PR: deployment `C5p9Fqm34hKGgsXLnKo8zhoLv2vw`. A tela de Alertas passou a habilitar “Ativar push”.
+- Teste banco → trigger → função retornou HTTP 200 e `{sent:0,failed:0}` sem navegadores inscritos. Alerta temporário de teste removido ao concluir. Testes SQL com rollback validaram inscrição/leitura/exclusão da própria conta e bloqueio entre contas; quatro testes de autorização, TypeScript e Deno passaram.
+- Entrega real confirmada pelo responsável no Brave em 28/10/2026, após habilitar o serviço de mensagens push do Google: HTTP 200, `sent:1,failed:0`, com exibição da notificação. Alerta temporário removido. A integração não cria monitoramento automático de preços com o app fechado.
 
 ## Configuração
 

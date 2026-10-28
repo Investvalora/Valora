@@ -13,7 +13,6 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import type { Asset } from '../../portfolio/types'
 import type { Alert, AlertCondition, AlertType } from '../types'
-import { PushNotificationsControl } from './PushNotificationsControl'
 import { EditAlertButton } from './EditAlertButton'
 
 // ─── Formatadores ────────────────────────────────────────────────────────────
@@ -604,7 +603,6 @@ export function AlertsPage() {
         </div>
       </header>
 
-      <PushNotificationsControl />
 
       <div className="mb-4 flex items-center gap-2 md:hidden">
         <div role="tablist" aria-label="Filtrar alertas" className="grid min-w-0 flex-1 grid-cols-3 rounded-full bg-[#393939] p-0.5">

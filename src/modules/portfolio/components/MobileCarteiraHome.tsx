@@ -191,8 +191,21 @@ export function MobileCarteiraHome({
   const cardWidth = Math.min(viewportSize.width - 64, 368)
   const openCardLeft = (viewportSize.width - cardWidth) / 2
 
+  const swipeZoneRef = useRef<HTMLDivElement | null>(null)
+
   function onTouchStart(event: React.TouchEvent<HTMLElement>) {
     if (event.touches.length !== 1 || showWalletForm) return
+
+    // só inicia o gesto se o toque começou na zona de swipe (cards de carteira)
+    // ou se a tela de carteiras já está aberta (qualquer lugar pode fechar)
+    if (!showWallets && swipeZoneRef.current) {
+      const zone = swipeZoneRef.current.getBoundingClientRect()
+      const touchX = event.touches[0].clientX
+      const touchY = event.touches[0].clientY
+      if (touchX < zone.left || touchX > zone.right || touchY < zone.top || touchY > zone.bottom) {
+        return
+      }
+    }
 
     swipeGesture.current = {
       startX: event.touches[0].clientX,
@@ -275,7 +288,7 @@ export function MobileCarteiraHome({
   return (
     <section
       ref={pageRef}
-      className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#121212] pb-28 text-white touch-pan-y"
+      className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#121212] pb-28 text-white"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -286,6 +299,14 @@ export function MobileCarteiraHome({
           : undefined,
       }}
     >
+      {/* Zona de swipe restrita à área dos cards de carteira (canto direito) */}
+      {!showWallets && (
+        <div
+          ref={swipeZoneRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 z-30 w-24 h-48"
+        />
+      )}
       <div className="relative z-20 mx-auto max-w-md px-6 pt-6">
         <header className="flex items-center justify-between">
           <Link

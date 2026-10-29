@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Info, ChevronLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { SubTabBar } from '../../ativos/components/SubTabBar'
-import { ANALISE_TABS } from '../../analise/analiseTabs'
+import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { useInsights, useDeleteInsight } from '../hooks/useInsights'
 import { NovoInsightModal } from './NovoInsightModal'
 import { ValuationGuide } from './ValuationGuide'
@@ -347,29 +344,22 @@ export function EstrategiasPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-5 px-4 pt-4 md:px-0 md:pt-2">
+    <div className="flex w-full flex-col gap-5 md:pt-2">
 
-      {/* Cabeçalho */}
-      <header>
-      <Link to="/analise/visao-geral" className="mb-3 inline-flex items-center gap-1 text-xs text-white/45 hover:text-white"><ChevronLeft className="h-3 w-3" />Análise</Link>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="mb-1 text-[26px] font-medium tracking-tight text-white">Estratégias</h1>
-          <p className="text-xs leading-relaxed text-white/45">
-            Crie seus critérios de análise ou compare referências de preço com Bazin e Graham.
-          </p>
-        </div>
+      {/* Intro: subtítulo + ação */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-white/45">
+          Crie seus critérios de análise ou compare referências de preço com Bazin e Graham.
+        </p>
         <button
           type="button"
           onClick={() => openInsight('bazin')}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#393939] px-4 py-2 text-xs text-white transition-colors hover:bg-[#484848] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff]"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-[#393939] px-4 py-2 text-xs text-white transition-colors hover:bg-[#484848] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff]"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Novo Insight
         </button>
       </div>
-      <SubTabBar tabs={ANALISE_TABS} mobileVariant="segmented" />
-      </header>
 
       <StrategyManager key={strategyPreset?.key ?? 'default'} initialDraft={strategyPreset?.draft} />
       <ValuationGuide onCalculate={openInsight} />

@@ -203,8 +203,8 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
       to={to}
       className="
         group flex flex-1 items-center gap-3.5 rounded-xl
-        border border-[#909090]/45 px-[18px] py-4
-        transition-colors hover:border-white/20 hover:bg-white/[0.03]
+        bg-white/[0.08] px-[18px] py-4
+        transition-colors hover:border-white/20 hover:bg-white/[0.1]
       "
     >
       {/* Ícone */}
@@ -235,3 +235,4 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
     </NavLink>
   )
 }
+  

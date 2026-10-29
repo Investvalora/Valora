@@ -12,8 +12,8 @@ import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHom
 import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
-import { AlertBell } from '../../../shared/components/AlertBell'
 import { useNewAlertsCount } from '../../alerts/hooks/useAlerts'
+import { walletPalette } from '../../portfolio/walletPalette'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -50,18 +50,26 @@ export function InicioPage() {
   const content = (
     <div className="flex flex-col gap-5 px-4 md:px-0 md:pt-2">
       {/* ── Saudação ── */}
-      <div className="flex items-end justify-between gap-3 pb-20 pt-5 md:py-8">
+      <div className="pb-20 pt-5 md:py-8">
         <div className="min-w-0">
           {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
               maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
           <h1 className="text-[26px] font-medium leading-none text-white md:text-[32px]">
             Olá, {firstName}
           </h1>
-          <p className="mt-3 text-[13px] text-[#8F8F8F]">
-            {hoje} · {selectedWallet?.name ?? 'Sua carteira'}
+          <p className="mt-3 text-[14px] font-medium text-[#B8B8B8]">
+            {hoje}
           </p>
+          {selectedWallet && (
+            <p className="mt-1.5 flex items-center gap-1.5 font-nunito text-[12px] font-semibold text-[#8F8F8F]">
+              <span
+                className="inline-block h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: walletPalette[selectedWallet.color].color }}
+              />
+              {selectedWallet.name}
+            </p>
+          )}
         </div>
-        {isMobile && <AlertBell count={alertCount} className="mr-6 self-start md:hidden" />}
       </div>
 
       {/* ── 4 KPIs ── */}
@@ -167,6 +175,7 @@ export function InicioPage() {
     <>
       <MobileCarteiraHome
         dashboard={dashboard}
+        alertCount={alertCount}
         onAddTransaction={() => setIsQuickTransactionOpen(true)}
       >
         {content}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Settings } from 'lucide-react'
+import { AlertBell } from '../../../shared/components/AlertBell'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import { assetClassColor } from '../composition'
@@ -124,10 +125,12 @@ function CompositionDonut({ slices }: { slices: DashboardData['compositionSlices
 export function MobileCarteiraHome({
   dashboard,
   onAddTransaction,
+  alertCount = 0,
   children,
 }: {
   dashboard: DashboardData
   onAddTransaction: () => void
+  alertCount?: number
   children?: ReactNode
 }) {
   const { user } = useAuth()
@@ -283,23 +286,26 @@ export function MobileCarteiraHome({
           : undefined,
       }}
     >
-      <div className="relative z-20 mx-auto max-w-md px-4 pt-6">
+      <div className="relative z-20 mx-auto max-w-md px-6 pt-6">
         <header className="flex items-center justify-between">
           <Link
             to="/conta"
             aria-label="Abrir minha conta"
-            className="grid h-8 w-8 place-items-center rounded-full bg-purple-500 text-sm font-semibold"
+            className="grid h-9 w-9 place-items-center rounded-full bg-purple-500 text-sm font-semibold"
           >
             {initial}
           </Link>
-          {(!children || showWallets) && <button
-              key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
-              type="button"
-              onClick={handleHeaderAction}
-              className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
-            >
-              {showWallets ? '+ Carteira' : '+ Lançamento'}
-            </button>}
+          {children && !showWallets
+            ? <AlertBell count={alertCount} />
+            : (!children || showWallets) && <button
+                key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
+                type="button"
+                onClick={handleHeaderAction}
+                className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
+              >
+                {showWallets ? '+ Carteira' : '+ Lançamento'}
+              </button>
+          }
         </header>
       </div>
 

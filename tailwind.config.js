@@ -28,6 +28,9 @@ export default {
           purple:    '#C084FC',
         },
       },
+      fontFamily: {
+        nunito: ['Nunito', 'system-ui', 'sans-serif'],
+      },
       fontSize: {
         '2xs': ['10px', { lineHeight: '14px' }],
       },

@@ -8,6 +8,7 @@ import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { ResendConfirmation } from './ResendConfirmation'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
@@ -81,7 +82,7 @@ export function SignupForm() {
               Verifique a caixa de entrada de <span className="font-medium text-white">{confirmationEmail}</span> e confirme seu endereço para continuar.
             </p>
           </div>
-          <button type="button" disabled className={`${authButton} mt-5`}>Criar conta</button>
+          <ResendConfirmation email={confirmationEmail} />
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -99,7 +100,8 @@ export function SignupForm() {
 
           <div>
             <label htmlFor="phone" className={authLabel}>Telefone <span className="font-normal text-white/35">(opcional)</span></label>
-            <input id="phone" type="tel" autoComplete="tel" {...register('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'signup-phone-error' : undefined} className={authInput} placeholder="(00) 00000-0000" />
+            <input id="phone" type="tel" autoComplete="tel" maxLength={30} {...register('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'signup-phone-error' : 'signup-phone-help'} className={authInput} placeholder="(11) 99999-9999" />
+            <p id="signup-phone-help" className="mt-1 text-xs text-white/45">DDD + número. Para outro país, use +DDI.</p>
             {errors.phone && <p id="signup-phone-error" className={authFieldError}>{errors.phone.message}</p>}
           </div>
 

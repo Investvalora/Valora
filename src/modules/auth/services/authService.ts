@@ -2,6 +2,8 @@ import { supabase } from '../../../shared/services/supabaseClient'
 import { LoginFormData, SignupFormData, UserProfile } from '../types'
 import { authRedirect } from './authRedirect'
 import { passwordSchema } from '../schemas/passwordSchema'
+import { phoneSchema, profileSchema } from '../schemas/profileSchema'
+import { z } from 'zod'
 
 export const authService = {
   async signup(data: SignupFormData) {
@@ -17,7 +19,7 @@ export const authService = {
         emailRedirectTo: authRedirect('/login'),
         data: {
           full_name: fullName,
-          phone: data.phone || null,
+          phone: phoneSchema.parse(data.phone ?? '') || null,
         },
       },
     })
@@ -50,6 +52,26 @@ export const authService = {
     })
     if (error) throw error
     return data
+  },
+
+  async resendConfirmation(email: string) {
+    const address = z.string().trim().email('Informe um email válido').parse(email)
+    const { error } = await supabase.auth.resend({ type: 'signup', email: address, options: { emailRedirectTo: authRedirect('/login') } })
+    if (error) throw error
+  },
+
+  async updateProfile(input: { fullName: string; phone: string }) {
+    const values = profileSchema.parse(input)
+    const { data, error } = await supabase.auth.updateUser({ data: { full_name: values.fullName, phone: values.phone || null } })
+    if (error) throw error
+    return data.user
+  },
+
+  async requestEmailChange(email: string) {
+    const address = z.string().trim().email('Informe um email válido').parse(email)
+    const { data, error } = await supabase.auth.updateUser({ email: address }, { emailRedirectTo: authRedirect('/login') })
+    if (error) throw error
+    return data.user
   },
 
   async logout() {

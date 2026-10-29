@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useInsights, useDeleteInsight } from '../hooks/useInsights'
-import { NovoInsightModal } from './NovoInsightModal'
 import { ValuationGuide } from './ValuationGuide'
 import { StrategyManager } from './StrategyManager'
 import { InvestmentCalculators } from './InvestmentCalculators'
-import type { StrategyInput } from '../hooks/useStrategies'
 import type { InsightRecord, InsightStrategy } from '../types'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
@@ -335,42 +334,45 @@ function InsightsList() {
 // ─── página principal ─────────────────────────────────────────────────────────
 
 export function EstrategiasPage() {
-  const [showInsightModal, setShowInsightModal] = useState(false)
-  const [insightMethod, setInsightMethod] = useState<InsightStrategy>('bazin')
-  const [strategyPreset, setStrategyPreset] = useState<{ key: number; draft: StrategyInput } | null>(null)
+  const navigate = useNavigate()
+
   function openInsight(method: InsightStrategy) {
-    setInsightMethod(method)
-    setShowInsightModal(true)
+    navigate(`/analise/estrategias/novo?metodo=${method}`)
+  }
+
+  function openNovaEstrategiaFii(yieldRate: number, parameters: Record<string, number>) {
+    const params = new URLSearchParams({
+      method: 'fii',
+      name: 'Preço-teto de FIIs',
+      min_dy: String(yieldRate),
+      ...Object.fromEntries(Object.entries(parameters).map(([k, v]) => [k, String(v)])),
+    })
+    navigate(`/analise/estrategias/nova?${params.toString()}`)
   }
 
   return (
     <div className="flex w-full flex-col gap-5 md:pt-2">
 
       {/* Intro: subtítulo + ação */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-white/45">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-[13px] leading-relaxed text-white/45">
           Crie seus critérios de análise ou compare referências de preço com Bazin e Graham.
         </p>
         <button
           type="button"
           onClick={() => openInsight('bazin')}
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-[#393939] px-4 py-2 text-xs text-white transition-colors hover:bg-[#484848] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff]"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.08] px-3.5 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/[0.14] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff]"
         >
-          <Plus className="h-4 w-4" aria-hidden="true" />
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           Novo Insight
         </button>
       </div>
 
-      <StrategyManager key={strategyPreset?.key ?? 'default'} initialDraft={strategyPreset?.draft} />
+      <StrategyManager />
       <ValuationGuide onCalculate={openInsight} />
-      <InvestmentCalculators onUseYield={(yieldRate, parameters) => setStrategyPreset({ key: Date.now(), draft: { name: 'Preço-teto de FIIs', method: 'fii', min_dy: yieldRate, safety_discount: 0, show_in_assets: true, ...parameters } })} />
+      <InvestmentCalculators onUseYield={(yieldRate, parameters) => openNovaEstrategiaFii(yieldRate, parameters as Record<string, number>)} />
       {/* Lista de insights */}
       <InsightsList />
-
-      {/* Modal */}
-      {showInsightModal && (
-        <NovoInsightModal initialStrategy={insightMethod} onClose={() => setShowInsightModal(false)} />
-      )}
     </div>
   )
 }

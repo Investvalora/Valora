@@ -13,6 +13,8 @@ import { ProventosPage } from './modules/dividends/components/ProventosPage'
 import { RentabilidadePage } from './modules/performance/components/RentabilidadePage'
 import { ScorePage } from './modules/score/components/ScorePage'
 import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
+import { NovoInsightPage } from './modules/valuation/components/NovoInsightPage'
+import { NovaEstrategiaPage } from './modules/valuation/components/NovaEstrategiaPage'
 import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
 import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
 import { AccountPage } from './modules/preferences/components/AccountPage'
@@ -121,6 +123,10 @@ export function AppRoutes() {
           {/* Rotas de score sem tabs de Análise */}
           <Route path="analise/score/nova"          element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
           <Route path="analise/score/:id/editar"    element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
+          {/* Rota de novo insight — tela dedicada (mobile) ou painel lateral (desktop) */}
+          <Route path="analise/estrategias/novo"    element={<NovoInsightPage />} />
+          {/* Rota de nova estratégia — tela dedicada (mobile) ou painel lateral (desktop) */}
+          <Route path="analise/estrategias/nova"    element={<NovaEstrategiaPage />} />
         </Route>
       </Route>
     </Routes>

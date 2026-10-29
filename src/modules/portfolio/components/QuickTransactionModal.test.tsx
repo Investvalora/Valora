@@ -15,6 +15,22 @@ vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] })
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
 
+it('abre como painel inferior e organiza os campos em uma coluna no celular', () => {
+  render(<QueryClientProvider client={new QueryClient()}>
+    <QuickTransactionModal isOpen onClose={vi.fn()} />
+  </QueryClientProvider>)
+
+  const dialog = screen.getByRole('dialog', { name: 'Adicionar Lançamento' })
+  const date = screen.getByLabelText('Data da transação')
+  expect(dialog).toHaveClass('transaction-modal-panel')
+  expect(dialog.parentElement).toHaveClass('transaction-modal-overlay')
+  expect(date.closest('.grid')).toHaveClass('grid-cols-1', 'sm:grid-cols-2')
+  expect(date).toHaveClass('text-base')
+  const footer = screen.getByRole('button', { name: 'Salvar' }).parentElement?.parentElement
+  expect(footer).toBe(dialog.lastElementChild)
+  expect(screen.getByRole('button', { name: 'Salvar' })).toHaveAttribute('form', 'quick-transaction-form')
+})
+
 it('escolhe BRL para cripto e salva quantidade fracionária, preço e custos sem conversão', async () => {
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <QuickTransactionModal isOpen onClose={vi.fn()} />

@@ -27,6 +27,26 @@ body {
   min-height: 100dvh;
 }
 
+/* O WebKit do PWA pode iniciar com 100dvh 59px menor que a tela física. */
+html.ios-standalone body {
+  position: relative;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+html.ios-standalone #root,
+html.ios-standalone .app-shell-novo {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+html.ios-standalone .mobile-navigation,
+html.ios-standalone .transaction-modal-overlay,
+html.ios-standalone .wallet-modal-overlay {
+  position: absolute;
+}
+
 .login-page__glow {
   position: absolute;
   inset: 0;
@@ -231,6 +251,12 @@ body {
 @keyframes wallet-drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes wallet-drawer-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
 
+.transaction-modal-overlay { animation: wallet-overlay-in 240ms ease-out both; }
+
+@media (max-width: 767px) {
+  .transaction-modal-panel { animation: wallet-sheet-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+
 .wallet-modal-overlay { animation: wallet-overlay-in 300ms ease-out both; }
 .wallet-modal-overlay[data-closing='true'] { animation: wallet-overlay-out 300ms ease-in both; }
 
@@ -249,6 +275,8 @@ body {
   .wallet-modal-panel,
   .wallet-modal-overlay[data-closing='true'],
   .wallet-modal-overlay[data-closing='true'] .wallet-modal-panel { animation: none; }
+  .transaction-modal-overlay,
+  .transaction-modal-panel { animation: none; }
 }
 
 .wallet-selector-scroll {

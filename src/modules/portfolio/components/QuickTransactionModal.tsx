@@ -319,7 +319,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
   }
 
   const inputClass =
-    'w-full rounded-xl border border-white/[0.12] bg-[#2A2A2A] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/[0.3]'
+    'w-full min-w-0 rounded-xl border border-white/[0.12] bg-[#2A2A2A] px-3 py-3 text-base text-white placeholder:text-white/30 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30'
   const labelClass = 'block text-xs text-white/50 mb-1'
 
   return (
@@ -328,8 +328,22 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
       title="Adicionar Lançamento"
       onClose={handleClose}
       dismissible={!isSaving}
+      variant="transaction"
+      footer={
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={handleClose} disabled={isSaving}
+            className="min-h-11 flex-1 rounded-xl px-4 py-2 text-base font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50">
+            Cancelar
+          </button>
+          <button type="submit" form="quick-transaction-form"
+            disabled={isSaving || changingCurrency || !selectedWallet}
+            className="min-h-11 flex-[1.5] rounded-xl bg-blue-600 px-6 py-2 text-base font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50">
+            {isSaving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={submit} className="space-y-5">
+      <form id="quick-transaction-form" onSubmit={submit} className="space-y-5">
 
         {/* Toggle Compra / Venda — apenas renda variável */}
         {isVariavel && (
@@ -352,8 +366,8 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
           </div>
         )}
 
-        {/* Grid 2 colunas — igual ao original */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Uma coluna nos celulares evita que campos nativos de data invadam o campo vizinho. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
 
           {/* Linha 1: Tipo de ativo */}
           <div>
@@ -460,7 +474,7 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
           {isVariavel && (
             <>
               {assetClass === 'crypto' && (
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label htmlFor="qt-crypto-currency" className={labelClass}>Moeda do lançamento</label>
                   <select id="qt-crypto-currency" value={quoteCurrency} disabled={!catalogAsset || changingCurrency}
                     className={inputClass} onChange={event => { void changeCryptoCurrency(event.target.value) }}>
@@ -570,19 +584,6 @@ export function QuickTransactionModal({ isOpen, onClose }: QuickTransactionModal
         )}
 
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-
-        <div className="flex items-center justify-end gap-3 pt-1">
-          <button type="button" onClick={handleClose} className="px-4 py-2 text-sm text-white/60 transition-colors hover:text-white">
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={isSaving || changingCurrency || !selectedWallet}
-            className="rounded-full bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
-          >
-            {isSaving ? 'Salvando…' : 'Salvar'}
-          </button>
-        </div>
 
       </form>
     </Modal>

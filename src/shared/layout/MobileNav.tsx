@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { Home, Wallet, TrendingUp, Target } from 'lucide-react'
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
@@ -17,10 +19,41 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
-  return (
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    let baseline = { width: window.innerWidth, height: window.innerHeight }
+    const sync = () => {
+      if (Math.abs(window.innerWidth - baseline.width) > 1) {
+        baseline = { width: window.innerWidth, height: window.innerHeight }
+      } else if (window.innerHeight > baseline.height) {
+        baseline.height = window.innerHeight
+      }
+      // o Safari pode parar em 793px após um início de 852px no iphone 16 ou dispositivos com a tela nesse tamanho ou aproximado.
+      // uma diferença pequena assim já é teclado fechado; não aguardamos altura idêntica.
+      const keyboard = viewport.height < baseline.height - 120
+      setKeyboardOpen(keyboard)
+    }
+    sync()
+    viewport.addEventListener('resize', sync)
+    viewport.addEventListener('scroll', sync)
+    window.addEventListener('resize', sync)
+    window.addEventListener('scroll', sync)
+    return () => {
+      viewport.removeEventListener('resize', sync)
+      viewport.removeEventListener('scroll', sync)
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('scroll', sync)
+    }
+  }, [])
+
+  return createPortal(
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-30 md:hidden"
+      className={`mobile-navigation fixed inset-x-0 bottom-0 z-30 md:hidden ${keyboardOpen ? 'hidden' : ''}`}
+      style={{ bottom: 0 }}
     >
       {/* ── Barra ── */}
       <div className="flex h-14 items-center bg-[#1e1e1e]">
@@ -115,6 +148,7 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
           <path d="M11 4V18M4 11H18" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
       </button>
-    </nav>
+    </nav>,
+    document.body,
   )
 }

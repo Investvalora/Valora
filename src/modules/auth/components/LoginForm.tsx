@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ResendConfirmation } from './ResendConfirmation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -17,6 +18,7 @@ export function LoginForm() {
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
   const callbackError = new URLSearchParams(location.search).get('error') ??
     new URLSearchParams(location.hash.slice(1)).get('error')
   const googleMutation = useMutation({
@@ -42,7 +44,7 @@ export function LoginForm() {
       setSession(data.session)
       navigate('/inicio')
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
       console.error('Login error:', error)
 
       const message = error.message?.toLowerCase() ?? ''
@@ -54,6 +56,7 @@ export function LoginForm() {
         setErrorMessage('Email ou senha incorretos')
       } else if (message.includes('email not confirmed')) {
         setErrorMessage('Confirme seu email antes de entrar. Verifique sua caixa de entrada.')
+        setPendingEmail(variables.email)
       } else {
         setErrorMessage('Email ou senha incorretos')
       }
@@ -62,6 +65,7 @@ export function LoginForm() {
 
   const onSubmit = (data: LoginSchema) => {
     setErrorMessage('')
+    setPendingEmail('')
     loginMutation.mutate(data)
   }
 
@@ -98,6 +102,7 @@ export function LoginForm() {
         </div>
 
         {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
+        {pendingEmail && <ResendConfirmation key={pendingEmail} email={pendingEmail} />}
 
         <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className={authButton}>
           {loginMutation.isPending ? 'Entrando...' : 'Entrar'}

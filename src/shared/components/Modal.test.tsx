@@ -256,6 +256,88 @@ describe('Modal — dismissible=false', () => {
 })
 
 describe('Modal — estrutura', () => {
+  it('bloqueia o arrasto da página sem alterar overflow no painel mobile', () => {
+    vi.stubGlobal('innerWidth', 393)
+    try {
+      renderModal({ variant: 'transaction' })
+      expect(document.body.style.overflow).toBe('')
+
+      const touchEvent = (type: string, clientY: number) => {
+        const event = new Event(type, { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'touches', { value: [{ clientY }] })
+        return event
+      }
+      document.body.dispatchEvent(touchEvent('touchstart', 200))
+      const move = touchEvent('touchmove', 100)
+      document.body.dispatchEvent(move)
+      expect(move.defaultPrevented).toBe(true)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('limita a altura do painel sem deslocar o overlay quando o teclado abre', () => {
+    const viewport = Object.assign(new EventTarget(), { height: 852, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', viewport)
+    vi.stubGlobal('innerWidth', 393)
+    const originalClientHeight = Object.getOwnPropertyDescriptor(document.documentElement, 'clientHeight')
+    Object.defineProperty(document.documentElement, 'clientHeight', { configurable: true, get: () => 793 })
+    try {
+      renderModal({ variant: 'transaction' })
+      const dialog = screen.getByRole('dialog')
+      const overlay = dialog.parentElement as HTMLElement
+      expect(dialog.style.maxHeight).toContain('852px')
+
+      viewport.height = 476
+      viewport.offsetTop = 83
+      viewport.dispatchEvent(new Event('resize'))
+      expect(dialog.style.maxHeight).toContain('476px')
+      expect(overlay.style.bottom).toBe('234px')
+      expect(overlay.style.top).toBe('')
+      expect(overlay.style.height).toBe('')
+
+      viewport.height = 793
+      viewport.offsetTop = 0
+      vi.stubGlobal('innerHeight', 793)
+      viewport.dispatchEvent(new Event('resize'))
+      expect(dialog.style.maxHeight).toContain('793px')
+      expect(overlay.style.bottom).toBe('0px')
+    } finally {
+      if (originalClientHeight) Object.defineProperty(document.documentElement, 'clientHeight', originalClientHeight)
+      else delete (document.documentElement as unknown as { clientHeight?: number }).clientHeight
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('usa a altura completa do PWA mesmo quando o WebKit informa 793px', () => {
+    const viewport = Object.assign(new EventTarget(), { height: 793, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', viewport)
+    vi.stubGlobal('innerWidth', 393)
+    vi.spyOn(document.body, 'getBoundingClientRect').mockReturnValue({ height: 852 } as DOMRect)
+    document.documentElement.classList.add('ios-standalone')
+    try {
+      renderModal({ variant: 'transaction' })
+      const dialog = screen.getByRole('dialog')
+      const overlay = dialog.parentElement as HTMLElement
+      expect(dialog.style.maxHeight).toContain('852px')
+      expect(overlay.style.bottom).toBe('0px')
+
+      viewport.height = 476
+      viewport.dispatchEvent(new Event('resize'))
+      expect(dialog.style.maxHeight).toContain('476px')
+      expect(overlay.style.bottom).toBe('376px')
+
+      viewport.height = 793
+      viewport.dispatchEvent(new Event('resize'))
+      expect(dialog.style.maxHeight).toContain('852px')
+      expect(overlay.style.bottom).toBe('0px')
+    } finally {
+      document.documentElement.classList.remove('ios-standalone')
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
+  })
+
   it('não renderiza nada quando fechado', () => {
     render(
       <Modal isOpen={false} title="Adicionar posição" onClose={vi.fn()}>

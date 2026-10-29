@@ -7,6 +7,7 @@ import { SidebarNovo } from './SidebarNovo'
 import { TopBar } from '../components/TopBar'
 import { QuickTransactionModal } from '../../modules/portfolio/components/QuickTransactionModal'
 import { MobileNav } from './MobileNav'
+import { ViewportProbe } from '../components/ViewportProbe'
 import { useSidebarPreference } from '../stores/useSidebarPreference'
 import { usePriceTargetMonitor } from '../../modules/alerts/hooks/usePriceTargetMonitor'
 
@@ -24,7 +25,7 @@ export function AppShellNovo() {
       : (user?.email?.split('@')[0] ?? 'Samuel')
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#131313] text-white">
+    <div className="app-shell-novo flex h-dvh overflow-hidden bg-[#131313] text-white">
       {/* ── Sidebar desktop ── */}
       <SidebarNovo
         accountName={accountName}
@@ -48,6 +49,7 @@ export function AppShellNovo() {
       <PushNotificationsPrompt />
 
       <MobileNav alertCount={alertCount} onNovoLancamento={() => setLancamentoOpen(true)} />
+      <ViewportProbe />
 
       {/* ── Modal de lançamento rápido (global, disponível em todas as rotas) ── */}
       <QuickTransactionModal

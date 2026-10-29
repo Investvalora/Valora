@@ -82,7 +82,7 @@ const TYPE_BADGE_LABEL: Record<AssetType, string> = {
 // ── Filtros de período ─────────────────────────────────────────────────────
 const PERIOD_OPTIONS = [
   { label: '1A', months: 12 },
-  { label: '2Anos', months: 24 },
+  { label: '2A', months: 24 },
   { label: '5A', months: 60 },
   { label: 'Tudo', months: 0 },
 ] as const

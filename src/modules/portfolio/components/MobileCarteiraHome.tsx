@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Settings } from 'lucide-react'
+import { AlertBell } from '../../../shared/components/AlertBell'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import { assetClassColor } from '../composition'
@@ -124,10 +125,12 @@ function CompositionDonut({ slices }: { slices: DashboardData['compositionSlices
 export function MobileCarteiraHome({
   dashboard,
   onAddTransaction,
+  alertCount = 0,
   children,
 }: {
   dashboard: DashboardData
   onAddTransaction: () => void
+  alertCount?: number
   children?: ReactNode
 }) {
   const { user } = useAuth()
@@ -188,8 +191,21 @@ export function MobileCarteiraHome({
   const cardWidth = Math.min(viewportSize.width - 64, 368)
   const openCardLeft = (viewportSize.width - cardWidth) / 2
 
+  const swipeZoneRef = useRef<HTMLDivElement | null>(null)
+
   function onTouchStart(event: React.TouchEvent<HTMLElement>) {
     if (event.touches.length !== 1 || showWalletForm) return
+
+    // só inicia o gesto se o toque começou na zona de swipe (cards de carteira)
+    // ou se a tela de carteiras já está aberta (qualquer lugar pode fechar)
+    if (!showWallets && swipeZoneRef.current) {
+      const zone = swipeZoneRef.current.getBoundingClientRect()
+      const touchX = event.touches[0].clientX
+      const touchY = event.touches[0].clientY
+      if (touchX < zone.left || touchX > zone.right || touchY < zone.top || touchY > zone.bottom) {
+        return
+      }
+    }
 
     swipeGesture.current = {
       startX: event.touches[0].clientX,
@@ -272,7 +288,7 @@ export function MobileCarteiraHome({
   return (
     <section
       ref={pageRef}
-      className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#121212] pb-28 text-white touch-pan-y"
+      className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#121212] pb-28 text-white"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -283,23 +299,34 @@ export function MobileCarteiraHome({
           : undefined,
       }}
     >
-      <div className="relative z-20 mx-auto max-w-md px-4 pt-6">
+      {/* Zona de swipe restrita à área dos cards de carteira (canto direito) */}
+      {!showWallets && (
+        <div
+          ref={swipeZoneRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 z-30 w-24 h-48"
+        />
+      )}
+      <div className="relative z-20 mx-auto max-w-md px-6 pt-6">
         <header className="flex items-center justify-between">
           <Link
             to="/conta"
             aria-label="Abrir minha conta"
-            className="grid h-8 w-8 place-items-center rounded-full bg-purple-500 text-sm font-semibold"
+            className="grid h-9 w-9 place-items-center rounded-full bg-purple-500 text-sm font-semibold"
           >
             {initial}
           </Link>
-          {(!children || showWallets) && <button
-              key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
-              type="button"
-              onClick={handleHeaderAction}
-              className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
-            >
-              {showWallets ? '+ Carteira' : '+ Lançamento'}
-            </button>}
+          {children && !showWallets
+            ? <AlertBell count={alertCount} />
+            : (!children || showWallets) && <button
+                key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
+                type="button"
+                onClick={handleHeaderAction}
+                className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
+              >
+                {showWallets ? '+ Carteira' : '+ Lançamento'}
+              </button>
+          }
         </header>
       </div>
 

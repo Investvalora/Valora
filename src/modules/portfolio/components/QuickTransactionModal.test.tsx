@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Asset } from '../types'
 
@@ -15,15 +15,29 @@ vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] })
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
 
+it('abre como painel inferior e organiza os campos em uma coluna no celular', () => {
+  render(<QueryClientProvider client={new QueryClient()}>
+    <QuickTransactionModal isOpen onClose={vi.fn()} />
+  </QueryClientProvider>)
+
+  const dialog = screen.getByRole('dialog', { name: 'Adicionar Lançamento' })
+  const date = screen.getByLabelText('Data da transação')
+  expect(dialog).toHaveClass('transaction-modal-panel')
+  expect(dialog.parentElement).toHaveClass('transaction-modal-overlay')
+  expect(date.closest('.grid')).toHaveClass('grid-cols-1', 'sm:grid-cols-2')
+  expect(date).toHaveClass('text-base')
+  const footer = screen.getByRole('button', { name: 'Salvar' }).parentElement?.parentElement
+  expect(footer).toBe(dialog.lastElementChild)
+  expect(screen.getByRole('button', { name: 'Salvar' })).toHaveAttribute('form', 'quick-transaction-form')
+})
+
 it('abre novo aporte com o produto selecionado sem copiar valor nem data da aplicação antiga', () => {
-  cleanup()
   render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} initialFixedIncome={{ name: 'RDB Nubank', type: 'rdb_cdi', rate: 115 }} /></QueryClientProvider>)
   expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('fixed_income')
   expect(screen.getByLabelText('Emissor')).toHaveValue('RDB Nubank')
   expect(screen.getByLabelText('Tipo de título')).toHaveValue('rdb_cdi')
   expect(screen.getByLabelText('% do CDI (ex: 110)')).toHaveValue(115)
   expect(screen.getByLabelText('Valor (R$)')).toHaveValue(null)
-  cleanup()
 })
 
 it('escolhe BRL para cripto e salva quantidade fracionária, preço e custos sem conversão', async () => {

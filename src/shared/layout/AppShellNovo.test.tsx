@@ -38,6 +38,7 @@ describe('Shell do fluxo atual', () => {
     )
     expect(mobileNavLink).toBeDefined()
     expect(mobileNavLink).toHaveAttribute('href', '/inicio')
+    expect(document.querySelector('.mobile-navigation')?.parentElement).toBe(document.body)
 
     expect(screen.getByRole('banner')).toHaveClass('hidden', 'md:flex')
     expect(screen.getByRole('main')).toHaveClass('md:px-10')

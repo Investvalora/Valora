@@ -137,7 +137,7 @@ const TD_NAME: Record<TesouroDiretoAtivo, string> = {
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+  'w-full min-w-0 rounded-xl border border-white/15 bg-[#242424] px-3 py-3 text-base text-white placeholder-gray-400 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30'
 
 const LABEL_CLASS = 'block text-xs font-medium text-gray-400 mb-1'
 
@@ -711,6 +711,7 @@ export function AddTransactionModal({
       title="Adicionar Lançamento"
       onClose={onClose}
       dismissible={!isSaving}
+      variant="transaction"
     >
       {/* Category selector — only when ticker is empty */}
       {ticker === '' && (

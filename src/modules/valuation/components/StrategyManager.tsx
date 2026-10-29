@@ -6,7 +6,7 @@ import { useStrategies, type ValuationStrategy } from '../hooks/useStrategies'
 import { StrategyForm } from './StrategyForm'
 import { CUSTOM_METRICS } from '../utils/customStrategy'
 
-export function StrategyManager({ initialDraft }: { initialDraft?: import('../hooks/useStrategies').StrategyInput } = {}) {
+export function StrategyManager(_props: { initialDraft?: import('../hooks/useStrategies').StrategyInput } = {}) {
   const navigate = useNavigate()
   const { strategies, isLoading, isError, save, remove } = useStrategies()
   const [deleting, setDeleting] = useState<ValuationStrategy | null>(null)

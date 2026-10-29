@@ -78,68 +78,6 @@ export function StrategyForm({
     (draft.asset_types?.length ?? 1) > 0 &&
     !(draft.method === 'custom' && !validCustomRules(draft.custom_rules ?? []))
 
-  const actionBar = (
-    <div
-      className={
-        fixedActions
-          ? 'fixed bottom-0 left-0 right-0 z-10 flex gap-3 border-t border-white/[0.08] bg-[#1C1C1C] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 md:hidden'
-          : 'hidden'
-      }
-    >
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={save.isPending}
-        className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
-      >
-        Cancelar
-      </button>
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {save.isPending ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Salvando…
-          </>
-        ) : isCreating ? (
-          'Criar estratégia'
-        ) : (
-          'Salvar estratégia'
-        )}
-      </button>
-    </div>
-  )
-
-  const desktopActionBar = (
-    <div className="flex gap-3 md:flex hidden">
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={save.isPending}
-        className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
-      >
-        Cancelar
-      </button>
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {save.isPending ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Salvando…
-          </>
-        ) : isCreating ? (
-          'Criar estratégia'
-        ) : (
-          'Salvar estratégia'
-        )}
-      </button>
-    </div>
-  )
-
   return (
     <form
       onSubmit={submit}

@@ -8,7 +8,7 @@ import { useAssetFilters } from '../hooks/useAssetFilters'
 export function AssetFilterButton() {
   const { query, types, open } = useAssetFilters()
   const count = types.length + (query ? 1 : 0)
-  return <button type="button" onClick={open} className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors hover:bg-white/10 ${count ? 'border-nf-blue/60 text-nf-blue' : 'border-white/10 text-white/70'}`}>
+  return <button type="button" onClick={open} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${count ? 'bg-nf-blue/20 text-nf-blue hover:bg-nf-blue/30' : 'bg-white/[0.08] text-white/70 hover:bg-white/[0.12] hover:text-white'}`}>
     <Filter className="h-3.5 w-3.5" aria-hidden="true" />Filtrar{count > 0 && <span aria-label={`${count} filtros ativos`}>({count})</span>}
   </button>
 }

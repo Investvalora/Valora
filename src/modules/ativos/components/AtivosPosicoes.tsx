@@ -194,15 +194,19 @@ export function AtivosPosicoes() {
       </div>
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="text-[14px] font-semibold text-white">
-            Meus ativos
-          </h2>
-          <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
-            {assetCount}
-          </span>
+        <div className="flex flex-col gap-2 px-5 py-4 border-b border-white/[0.06] md:flex-row md:items-center md:gap-3 md:px-6">
+          {/* Linha 1: título + contador */}
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-[14px] font-semibold text-white">
+              Meus ativos
+            </h2>
+            <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
+              {assetCount}
+            </span>
+          </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          {/* Linha 2 (mobile) / direita (desktop): botões de ação */}
+          <div className="flex items-center gap-2 md:ml-auto">
             <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
               <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
             </button>
@@ -214,9 +218,10 @@ export function AtivosPosicoes() {
               title="Exportar posições de renda variável filtradas com as colunas padrão do CSV"
               className="
                 flex items-center gap-1.5 rounded-full
-                border border-white/[0.1] bg-transparent
-                px-3.5 py-1.5 text-[12px] font-medium text-white/60
-                transition-colors hover:bg-white/[0.06] hover:text-white
+                bg-white/[0.08]
+                px-3.5 py-1.5 text-[12px] font-medium text-white/70
+                transition-colors hover:bg-white/[0.12] hover:text-white
+                disabled:opacity-40
               "
             >
               <Download className="h-3 w-3" strokeWidth={1.8} aria-hidden="true" />

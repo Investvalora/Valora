@@ -8,6 +8,9 @@ import { usePerformance } from './usePerformance'
 import { wealthService } from '../../wealth/services/wealthService'
 import { dividendService } from '../../dividends/services/dividendService'
 import { benchmarkService } from '../services/benchmarkService'
+import type { DailyReturn } from '../utils/historicalReturns'
+
+const historyFixture = vi.hoisted(() => ({ points: null as DailyReturn[] | null }))
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' } }) }))
@@ -15,7 +18,7 @@ vi.mock('./useHistoricalReturns', () => ({ useHistoricalReturns: (period: string
   const value = type === 'stock_br' ? 1 : type === 'fii' ? 0 : 0.5
   const active = wallet === 'w1' && period === 'Tudo'
   return { monthly: active ? new Map([['2020-01', value]]) : new Map(), returnPct: active ? value : null,
-    since: '2020-01-01', startDate: '2020-01-01', points: active ? [{ date: '2020-01-01', value: 100 * (1 + value), returnPct: value }, { date: '2020-01-31', value: 100 * (1 + value), returnPct: 0 }] : [], missingMonths: new Set(), incomplete: false,
+    since: '2020-01-01', startDate: '2020-01-01', points: historyFixture.points ?? (active ? [{ date: '2020-01-01', value: 100 * (1 + value), returnPct: value }, { date: '2020-01-31', value: 100 * (1 + value), returnPct: 0 }] : []), missingMonths: new Set(), incomplete: false,
     isLoading: false, isError: false, refetch: vi.fn() }
 } }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: { rate: 5 }, isLoading: false }) }))
@@ -34,12 +37,41 @@ const prices = [
 ]
 
 beforeEach(() => {
+  historyFixture.points = null
   vi.clearAllMocks()
   vi.mocked(wealthService.listPositionsSnapshot).mockImplementation(async (_, wallet) => wallet === 'w2' ? [] : positions.map((p) => ({ ticker: p.ticker, quantity: p.quantity, currency: 'BRL', type: p.asset!.type, acquisitionDate: p.acquisition_date })))
   vi.mocked(wealthService.listPriceHistory).mockImplementation(async (tickers, since) => prices.filter((p) => tickers.includes(p.ticker) && p.date >= since))
   vi.mocked(wealthService.listLatestPrices).mockImplementation(async (tickers) => prices.filter((p) => tickers.includes(p.ticker)))
   vi.mocked(dividendService.listDividendsByTickers).mockResolvedValue([])
   vi.mocked(benchmarkService.listBenchmarks).mockResolvedValue([])
+})
+
+it('exclui o mês aberto quando existem fechamentos anteriores', async () => {
+  const today = new Date()
+  const current = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  const previous = new Date(today.getFullYear(), today.getMonth() - 1, 15)
+  const closed = `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, '0')}-15`
+  historyFixture.points = [
+    { date: closed, value: 100, returnPct: 0 },
+    { date: current, value: 150, returnPct: 0.5 },
+  ]
+  const { result } = show()
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  expect(result.current.portfolioSeries.points[result.current.portfolioSeries.points.length - 1]).toEqual({ date: closed, normalized: 100 })
+  expect(result.current.portfolioSeries.points.some(point => point.date === current)).toBe(false)
+})
+
+it('exibe o parcial da carteira iniciada no mês atual em vez de gráfico vazio', async () => {
+  const today = new Date()
+  const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  historyFixture.points = [
+    { date: `${month}-01`, value: 100, returnPct: 0 },
+    { date: `${month}-02`, value: 105, returnPct: 0.05 },
+  ]
+  const { result } = show()
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  expect(result.current.portfolioSeries.points[result.current.portfolioSeries.points.length - 1]).toEqual({ date: `${month}-02`, normalized: 105 })
+  expect(result.current.portfolioSeries.points.some(point => point.date === `${month}-01`)).toBe(true)
 })
 
 function show() {

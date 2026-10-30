@@ -2,7 +2,7 @@
 
 **Aplicada em produção em 30/10/2026 às 14:58 de Brasília**, após autorização do responsável. Versão registrada pelo Supabase: `20261030175828`. Arquivo alinhado ao registro: `supabase/migrations/20261030175828_validate_movement_dates_and_distinct_price_alerts.sql`. A migration 018 permanece intocada. Não reaplicar neste projeto.
 
-Pós-aplicação: três triggers habilitados; dois índices únicos e válidos, com os predicados esperados; função SECURITY INVOKER, search_path vazio e sem EXECUTE para anon/authenticated; RLS habilitado nas quatro tabelas. Advisors de segurança mantiveram os mesmos avisos anteriores. Nenhum lançamento ou alerta existente foi alterado/excluído. O frontend da PR ainda aguarda merge e publicação pelo responsável.
+Pós-aplicação: três triggers habilitados; dois índices únicos e válidos, com os predicados esperados; função SECURITY INVOKER, search_path vazio e sem EXECUTE para anon/authenticated; RLS habilitado nas quatro tabelas. Advisors de segurança mantiveram os mesmos avisos anteriores. Nenhum lançamento ou alerta existente foi alterado/excluído. O responsável integrou a PR #95 e o frontend publicado foi retestado; resultados e limites no [registro de correções](correcoes-segunda-bateria-2026-10-30.md).
 
 ## Pré-condições
 

@@ -6,21 +6,20 @@ import { useStrategies, type ValuationStrategy } from '../hooks/useStrategies'
 import { StrategyForm } from './StrategyForm'
 import { CUSTOM_METRICS } from '../utils/customStrategy'
 
-export function StrategyManager(_props: { initialDraft?: import('../hooks/useStrategies').StrategyInput } = {}) {
+export function StrategyManager() {
   const navigate = useNavigate()
   const { strategies, isLoading, isError, save, remove } = useStrategies()
   const [deleting, setDeleting] = useState<ValuationStrategy | null>(null)
   const [editing, setEditing] = useState<ValuationStrategy | null>(null)
   const [deleteError, setDeleteError] = useState('')
-
-  // Se initialDraft foi passado (via InvestmentCalculators), abre a rota de nova estratégia
-  // com os params pré-preenchidos — isso é tratado na EstrategiasPage
+  const [toggleError, setToggleError] = useState('')
 
   async function toggle(strategy: ValuationStrategy) {
+    setToggleError('')
     try {
       await save.mutateAsync({ ...strategy, show_in_assets: !strategy.show_in_assets })
     } catch {
-      // silencia — erro de toggle não precisa de alerta global
+      setToggleError('Não foi possível alterar a exibição. Tente novamente.')
     }
   }
 
@@ -137,6 +136,7 @@ export function StrategyManager(_props: { initialDraft?: import('../hooks/useStr
         ))}
       </div>
 
+      {toggleError && <p role="alert" className="text-sm text-red-300">{toggleError}</p>}
       {deleteError && <p role="alert" className="text-sm text-red-300">{deleteError}</p>}
 
       {/* Modal de confirmação de exclusão */}

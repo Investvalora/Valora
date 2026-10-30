@@ -1,6 +1,6 @@
 # Correções da segunda bateria — 30/10/2026
 
-Estado: **migration aplicada em produção; frontend ainda aguarda merge/publicação**. O lote cobre SB-01 a SB-08. As melhorias de escopo REQ/UX, investigações restantes, pendências anteriores de alertas e QA-01 continuam separadas. Nenhum lançamento existente foi alterado ou excluído.
+Estado: **migration e frontend publicados; reteste de produção registrado abaixo**. PR #95 integrada pelo responsável em 30/10/2026 às 15:01 de Brasília, commit `163ec2f`. O lote cobre SB-01 a SB-08. As melhorias de escopo REQ/UX, investigações restantes, pendências anteriores de alertas e QA-01 continuam separadas. Nenhum lançamento existente foi alterado ou excluído.
 
 | Item | Mudança |
 | --- | --- |
@@ -23,11 +23,11 @@ Estado: **migration aplicada em produção; frontend ainda aguarda merge/publica
 
 ## Integração e publicação pendentes
 
-- [ ] Revisar e integrar a PR pelo responsável; não há merge automático.
+- [x] PR #95 integrada pelo responsável; não houve merge automático pelo agente.
 - [x] Aplicada e conferida em produção a migration `20261030175828_validate_movement_dates_and_distinct_price_alerts.sql`, em 30/10 às 14:58 de Brasília. Triggers, índices, permissões e RLS conferidos. Não modifica a migration 018 excluída do escopo.
-- [ ] Publicar frontend/PWA e retestar os oito casos no ambiente publicado, incluindo uma operação futura recusada e dois alertas distintos do mesmo ativo em conta de teste.
+- [x] Frontend publicado e retestado no recorte disponível: interface autenticada e teste transacional de alertas/datas no banco. Limites de SB-03/SB-08 e PWA físico descritos abaixo.
 
-O servidor agora aplica as novas restrições de datas e unicidade. O frontend publicado ainda depende do merge/publicação da PR #95. A aplicação foi autorizada separadamente após os testes locais; nenhuma conta/sessão de teste foi criada por esta etapa.
+O servidor aplica as novas restrições e o frontend novo foi observado após recarregar a sessão publicada. A migration foi autorizada separadamente após os testes locais. O reteste posterior usou perfis sintéticos somente dentro de transação revertida, sem criar sessão ou enviar email.
 
 Procedimento e consultas de pré/pós-aplicação preparados em [aplicacao-migration-segunda-bateria.md](aplicacao-migration-segunda-bateria.md).
 
@@ -50,3 +50,54 @@ A inspeção visual identificou que faltava destacar a origem selecionada dos pr
 Regressão final local: **808 aprovados e 11 falhas conhecidas em 106 arquivos**, sem novas falhas em relação à base. Log `output/auditoria-segunda-bateria/reteste-local-regressao.log`. As 18 verificações SQL isoladas também foram repetidas com sucesso.
 
 Limites do ensaio: não foi desativada a confirmação de email para produzir sessão imediata no cadastro; não foi provocado erro real de provedor nem testada a nova unicidade de alertas contra produção. Esses pontos dependem dos testes automatizados/isolados e da homologação após a migration. Não é teste de PWA instalado em aparelho físico.
+
+## Homologação em produção após merge — 30/10/2026
+
+Sessão existente em `https://investvalora.vercel.app`, recarregada antes do teste. A presença da nova separação de recebimentos/histórico e da validação de data confirmou o frontend atualizado no domínio público. Não se usou a URL de preview para estes testes.
+
+| Caso | Resultado observado |
+| --- | --- |
+| SB-01 / interface | Operação de 31/10 rejeitada em renda variável, renda fixa, Tesouro e no formulário pelo ativo. Modais cancelados sem gravação. |
+| SB-01 / servidor | INSERT com amanhã rejeitado pela mensagem específica da função de validação, em transação revertida. |
+| SB-02 e SB-05 | Card e tabela exibiram recebimentos importados com quantidades históricas e datas civis; histórico público permaneceu separado. |
+| SB-04 | `/pagina-inexistente` exibiu página de recuperação; `/carteira` autenticada redirecionou para `/ativos/posicoes`. |
+| SB-06 / servidor | Duas condições distintas coexistiram para o mesmo usuário/ticker; configuração idêntica e alerta automático duplicado foram bloqueados; outro usuário pôde ter a mesma configuração. |
+| SB-07 | Visão geral e tabela mensal exibiram percentuais com vírgula decimal. |
+
+O teste de banco está em [second_battery_transactional_retest.sql](../supabase/tests/second_battery_transactional_retest.sql). Cria fixtures sintéticas, verifica constraints reais e executa rollback. A consulta posterior confirmou **zero perfis e zero alertas de teste restantes**. Alertas foram inseridos como monitorando (`lido`), sem invocar o verificador ou disparar notificações.
+
+Não foram forçados em produção o cadastro que devolve sessão imediata (SB-03), a indisponibilidade de provedor (SB-08), o disparo de notificações nem o ciclo de criar/editar alertas pela interface. Não foi alterada a política de email ou provocada indisponibilidade para concluir esses cenários. O PWA instalado em aparelho físico também não foi homologado neste ensaio. As 11 falhas anteriores da suíte permanecem em QA-01.
+
+Observação de apresentação restante: o comparativo “vs CDI” no detalhe ainda usa ponto decimal em pontos percentuais; a correção SB-07 entregue cobriu Visão geral e tabela mensal. Registrado como UX-03, sem alterar fórmulas durante a homologação.
+
+
+## Continuação local: qualidade e investigações — 30/10/2026
+
+- Recuperados os quatro arquivos de teste: contexto de Router e formulário real no fluxo de estratégias; cor da carteira e tipo do título nas fixtures; geometria explícita da zona de início do gesto no ambiente jsdom. As asserções de criação, percentuais, classes, exclusão, KPIs e navegação foram preservadas.
+- Corrigido defeito real: a falha ao alterar a exibição de uma estratégia era silenciosa. Agora apresenta aviso local e permite nova tentativa, também coberta por teste. A opção legada `initialDraft`, ignorada pelo gerenciador, foi retirada da assinatura; o formulário continua aceitando e testando o preenchimento inicial.
+- Acrescentados casos negativos de gesto fora da região lateral e de rolagem vertical. A lógica de gesto do produto permaneceu igual; foi acrescentado somente identificador da região para o teste.
+- INV-02: três novos testes confirmam mensagens para duplicidade, ativo fora do catálogo e falha inesperada, sem expor mensagem interna nem perder campos ao tentar novamente. Não provam a causa do relato original sem ticker/massa.
+- INV-03: regra de meses encerrados e parcial inicial confirmada no código; cobertura existente de primeiro mês, âncora e lacunas preservada. A massa original continua necessária para concluir a investigação.
+
+Validação: regressão completa com **820 testes aprovados em 106 arquivos**, sem falhas (`output/auditoria-segunda-bateria/reteste-qualidade-completo.log`). Os três testes novos de `PriceAlertForm` passaram em execução separada (`reteste-formulario-alerta.log`); o teste de recuperação da estratégia foi repetido após a última asserção (`reteste-estrategia-final.log`, cinco aprovados). Build TypeScript/Vite/PWA e lint de todos os arquivos de código alterados aprovados. Não houve nova migration, publicação ou merge nesta continuação. Homologação de gesto em PWA físico permanece pendente.
+
+## Testes complementares e interface responsiva — 30/10/2026
+
+Navegador Brave na origem local `http://127.0.0.1:5174`, com sessão já existente. A largura foi temporariamente ajustada para 390 × 844 e depois restaurada. Isso é ensaio responsivo, não execução de PWA instalado nem gesto de toque em aparelho físico.
+
+| Caso | Resultado |
+| --- | --- |
+| Início móvel | Sino de alertas visível, com contador; cards e identificação da carteira apresentados. |
+| Seleção de carteira pelo botão lateral | Lista abriu e a seleção de Minha Carteira atualizou Ativos para essa carteira. Investidor10 foi restaurada ao final. |
+| Abrir ativo no celular | Link de MXRF11 abriu o resumo com quantidade, preço médio, saldo, cotação e abas. |
+| Criar alerta pelo ativo | Ticker MXRF11 pré-preenchido. Envio sem preço mostrou “Informe um preço-alvo válido.”; formulário cancelado sem criar alerta. |
+| Rentabilidade de Minha Carteira | Gráfico e tabela preenchidos. Período disponível terminou em 30/09/2026; outubro ainda aberto ficou sem percentual mensal. Não reproduzido gráfico vazio nessa carteira. |
+
+Cobertura nova, executada separadamente da regressão completa anterior:
+
+- `ProviderFailure.test.tsx`: dois testes nas telas legadas de rentabilidade e proventos. Erro técnico simulado resulta em mensagem segura; “Tentar novamente” chama o refetch e o estado pode retornar ao carregamento. Nenhum provedor real foi derrubado.
+- `usePerformance.test.tsx`: quatro testes aprovados, incluindo dois novos que executam a regra do hook para excluir o mês aberto quando há histórico anterior e mostrar parcial quando só existem pontos do mês atual.
+
+São **quatro casos novos aprovados** nesta continuação, além dos três testes de alerta e da regressão de 820 casos já registrados. Não representam nova execução integral de 827 testes. INV-02/03 continuam dependentes da massa original para atribuir causa histórica. Não foram gravados lançamentos nem novos alertas neste ensaio de interface.
+
+Execução final conjunta dos dois arquivos complementares: **seis testes aprovados**, incluindo os dois casos preexistentes do hook (`output/auditoria-segunda-bateria/reteste-complementar-performance.log`). Build TypeScript/Vite/PWA e lint dos dois arquivos aprovados após adaptar as asserções à versão JavaScript configurada no projeto (`build-testes-complementares.log`). Nenhum código funcional foi alterado nesta etapa de testes complementares.

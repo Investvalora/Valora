@@ -7,7 +7,7 @@ import { AtivosPosicoes } from './AtivosPosicoes'
 import { AtivosComposicao } from './AtivosComposicao'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
 import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
-const fixedState = vi.hoisted(() => ({ data: [] as { id: string; name: string; principal: number; remaining_principal: number; current_value: number }[], isLoading: false, isError: false }))
+const fixedState = vi.hoisted(() => ({ data: [] as { id: string; name: string; type: string; principal: number; remaining_principal: number; current_value: number }[], isLoading: false, isError: false }))
 const scoreState = vi.hoisted(() => ({ enabled: false }))
 
 vi.mock('../../portfolio/export/positionsCsv', () => ({ downloadPositionsCsv: vi.fn() }))
@@ -103,7 +103,7 @@ it('combina classes por OU e busca por E, ignorando acentos e caixa', () => {
 })
 
 it('inclui renda fixa nos KPIs, tabela e composição e respeita filtro por classe e nome', async () => {
-  fixedState.data = [{ id: 'f', name: 'Tesouro IPCA', principal: 150, remaining_principal: 100, current_value: 120 }]
+  fixedState.data = [{ id: 'f', name: 'Tesouro IPCA', type: 'tesouro_ipca', principal: 150, remaining_principal: 100, current_value: 120 }]
   const user = userEvent.setup()
   show()
   expect(screen.getByRole('table', { name: 'Posições de renda fixa' })).toHaveTextContent('Tesouro IPCA')

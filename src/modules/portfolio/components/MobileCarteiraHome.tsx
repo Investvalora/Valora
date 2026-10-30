@@ -303,6 +303,7 @@ export function MobileCarteiraHome({
       {!showWallets && (
         <div
           ref={swipeZoneRef}
+          data-testid="wallet-swipe-zone"
           aria-hidden="true"
           className="pointer-events-none absolute right-0 top-0 z-30 w-24 h-48"
         />

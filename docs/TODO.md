@@ -1,8 +1,42 @@
 # TODO do Valora
 
+## Segunda bateria — revisão de 30/10/2026
+
+Triagem completa, fontes e critérios de aceite em [TODO-segunda-bateria.md](TODO-segunda-bateria.md). Duplicatas foram consolidadas; correções já integradas não foram reabertas como trabalho novo.
+
+### Defeitos confirmados
+
+SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e conferida em produção, frontend ainda aguarda merge/publicação. [Registro e validação](correcoes-segunda-bateria-2026-10-30.md).
+
+- [ ] **Publicar o frontend:** integração pelo responsável e homologação em produção. Nova migration já aplicada; a migration 018 permanece intocada.
+
+- [x] **Alta — SB-01:** impedir que compras com data futura alterem a carteira atual nos fluxos de lançamento manual/rápido.
+- [x] **Alta — SB-02:** corrigir o card de proventos do detalhe, que multiplica histórico público pela quantidade atual e pode incluir eventos anteriores à compra.
+- [x] **Média — SB-03:** corrigir o redirecionamento para `/carteira` após cadastro com sessão imediata.
+- [x] **Média — SB-04:** tratar rotas inexistentes e o endereço legado `/carteira` sem tela vazia.
+- [x] **Média — SB-05:** corrigir datas exibidas um dia antes no detalhe do ativo.
+- [x] **Média — SB-06:** permitir alertas de preço distintos para o mesmo ativo, preservando a deduplicação dos automáticos.
+- [x] **Baixa — SB-07:** padronizar vírgula decimal nos percentuais visíveis.
+- [x] **Baixa — SB-08:** substituir mensagens técnicas de falha do provedor por orientação compreensível.
+
+### Investigações e qualidade
+
+- [x] **INV-01 — Encerrado na versão atual:** Início e Ativos concordaram no reteste em produção de Minha Carteira e Investidor10; 14 testes locais passaram. Retirado das pendências ativas após alinhamento com o responsável em 30/10. A causa exata da captura antiga não foi determinada. [Investigação](investigacao-patrimonio-segunda-bateria.md).
+- [ ] **Média — INV-02/03:** identificar a causa do erro de criação de alerta sem massa completa e conferir o relato de gráfico vazio sob a regra de meses fechados.
+- [ ] **Média — QA-01:** recuperar a suíte de regressão: 798 testes passaram e 11 falharam em quatro arquivos; há fixtures/contextos desatualizados e três casos de gesto móvel a retestar. Não são 11 defeitos de produto comprovados.
+
+### Funcionalidades e melhorias para validar escopo
+
+- [ ] Busca global de ativos para consulta; favoritos; período 5A no detalhe; painel de fundamentos.
+- [ ] Detalhamento do score por critério e score médio ponderado da carteira.
+- [ ] Alertas configuráveis de indicador/evento; edição de lançamentos; composição por setor; exclusão de carteira.
+- [ ] Mostrar/ocultar senha no cadastro e definir a regra para nomes exclusivamente numéricos.
+
+Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas conforme decisão do responsável. Não alterar o método de rentabilidade acordado para atender comparações entre medidas diferentes.
+
 ## Rentabilidade e histórico
 
-- [x] **Investigar e resolver o histórico incompleto da rentabilidade comparada.** Corrigidas as causas identificadas e retestadas localmente as carteiras “Investidor10” e “Minha Carteira”, sem aviso de histórico incompleto no período desde o início. As alterações do frontend ainda precisam ser publicadas.
+- [x] **Investigar e resolver o histórico incompleto da rentabilidade comparada.** Corrigidas as causas identificadas e retestadas localmente as carteiras “Investidor10” e “Minha Carteira”, sem aviso de histórico incompleto no período desde o início. Correções integradas na PR #88; a antiga pendência de integração do frontend não se aplica à main revisada em 30/10.
   - Mensagem observada: “Histórico incompleto: faltam preços, câmbio ou movimentações suficientes. O gráfico mostra os trechos disponíveis, com interrupções nas lacunas. Cada trecho da carteira reinicia em 0%; não representa o acumulado do período inteiro nem permite comparação direta com os índices ao longo dessas lacunas.”
   - Validar a continuidade e o cálculo da rentabilidade acumulada com movimentações e câmbio, além do alinhamento das datas e bases de comparação com os índices.
   - Critério de conclusão: histórico suficiente apresenta o acumulado correto e comparável no período; lacunas reais continuam identificadas, sem inventar dados, ligar trechos indevidamente ou apenas ocultar o aviso.

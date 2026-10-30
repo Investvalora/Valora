@@ -31,8 +31,13 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
         condition,
       })
       onClose()
-    } catch {
-      setError('Erro ao criar alerta. Tente novamente.')
+    } catch (cause) {
+      const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : null
+      setError(code === '23505'
+        ? 'Já existe um alerta ativo com esse preço e condição. Edite o alerta existente ou escolha outra condição.'
+        : code === '23503'
+        ? 'Ativo não encontrado no catálogo. Confira o ticker.'
+        : 'Erro ao criar alerta. Tente novamente.')
     }
   }
 

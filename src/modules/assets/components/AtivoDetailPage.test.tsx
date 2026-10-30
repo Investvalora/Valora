@@ -8,13 +8,18 @@ import type { FixedIncomePosition, LatestQuote, PositionWithAsset } from '../../
 
 const create = vi.hoisted(() => vi.fn())
 const valuation = vi.hoisted(() => vi.fn())
+const received = vi.hoisted(() => vi.fn())
+const marketDividends = vi.hoisted(() => vi.fn())
+beforeEach(() => marketDividends.mockReturnValue({ data: [] }))
+beforeEach(() => received.mockReturnValue({ rows: [], isLoading: false, isError: false }))
+vi.mock('../../dividends/hooks/useDividends', () => ({ useDividends: () => received() }))
 beforeEach(() => valuation.mockReturnValue({ positions: [], rows: [], isLoading: false, isError: false }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' } }) }))
 vi.mock('../../ativos/hooks/useAtivosValuation', () => ({ useAtivosValuation: (...args: unknown[]) => valuation(...args) }))
 vi.mock('../hooks/useDailyChange', () => ({ useDailyChange: () => -2.5 }))
 vi.mock('../hooks/useAssetDetail', () => ({ useAssetDetail: () => ({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } }) }))
 vi.mock('../hooks/usePriceHistory', () => ({ usePriceHistory: () => ({ data: [] }) }))
-vi.mock('../hooks/useAssetDividends', () => ({ useAssetDividends: () => ({ data: [] }) }))
+vi.mock('../hooks/useAssetDividends', () => ({ useAssetDividends: () => marketDividends() }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [] }) }))
 vi.mock('../../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({ data: [] }) }))
 vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: () => new Map() }))
@@ -48,6 +53,29 @@ it('abre lançamento preenchido e cria alerta com o ticker do detalhe, permitind
   expect(create).toHaveBeenLastCalledWith({ ticker: 'PETR4', targetPrice: 25, condition: 'below' })
   expect(screen.queryByRole('dialog', { name: 'Criar alerta' })).not.toBeInTheDocument()
   expect(screen.getByRole('tab', { name: 'Alertas' })).toHaveAttribute('aria-selected', 'true')
+})
+
+it('mostra recebimentos históricos elegíveis e preserva o histórico público separado', async () => {
+  marketDividends.mockReturnValue({ data: [{ ticker: 'PETR4', ex_date: '2025-12-15', payment_date: '2025-12-30', type: 'dividend', value_per_share: 1 }] })
+  received.mockReturnValue({ rows: [
+    { ticker: 'PETR4', ex_date: '2026-01-05', payment_date: '2026-01-15', quantity: 3, value_per_share: 1, total_value: 3, currency: 'BRL' },
+    { ticker: 'PETR4', ex_date: '2026-02-05', payment_date: '2026-02-15', quantity: 10, value_per_share: 0.33, total_value: 3.29, currency: 'BRL', source: 'imported' },
+    { ticker: 'OUTRO', payment_date: '2026-02-15', quantity: 100, value_per_share: 1, total_value: 100 },
+  ], isLoading: false, isError: false })
+  render(<MemoryRouter initialEntries={['/ativo/PETR4']}><Routes><Route path="/ativo/:ticker" element={<AtivoDetailPage />} /></Routes></MemoryRouter>)
+  expect(screen.getByText('15/01/2026')).toBeInTheDocument()
+  expect(screen.getByText('15/02/2026')).toBeInTheDocument()
+  expect(screen.getByText(/× 3$/)).toBeInTheDocument()
+  expect(screen.getByText('Líquido importado')).toBeInTheDocument()
+  expect(screen.getByText(/= R\$\s*3,29/)).toBeInTheDocument()
+  expect(screen.queryByText(/= R\$\s*100,00/)).not.toBeInTheDocument()
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('tab', { name: /^Proventos$/ }))
+  expect(screen.getByRole('columnheader', { name: 'Quantidade histórica' })).toBeInTheDocument()
+  expect(screen.getByText(/3,29/)).toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Histórico do ativo' }))
+  expect(screen.getByText('15/12/2025')).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Total recebido' })).not.toBeInTheDocument()
 })
 
 it('mostra peso sobre BRL, USD e renda fixa da carteira selecionada e separa variação diária do custo', () => {

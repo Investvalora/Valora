@@ -18,6 +18,8 @@ import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
 import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
+import { useDividends } from '../../dividends/hooks/useDividends'
+import { parseIsoDate } from '../../../shared/utils/isoDate'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
 import { useDailyChange } from '../hooks/useDailyChange'
@@ -49,7 +51,8 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' })
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return MISSING
-  const d = new Date(iso)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? parseIsoDate(iso) : new Date(iso)
+  if (!d) return iso
   return Number.isNaN(d.getTime()) ? iso : dateFormatter.format(d)
 }
 
@@ -544,10 +547,11 @@ interface AssetDividendPreviewProps {
   navigate: (path: string) => void
 }
 
-function AssetDividendPreview({ ticker, quantity, currency, navigate }: AssetDividendPreviewProps) {
-  const { data: dividends = [], isLoading } = useAssetDividends(ticker)
+function AssetDividendPreview({ ticker, currency, navigate }: AssetDividendPreviewProps) {
+  const { rows: dividends, isLoading, isError, refetch } = useDividends('Tudo')
 
-  const recent = useMemo(() => dividends.slice(0, 4), [dividends])
+  const recent = useMemo(() => dividends.filter(row => row.ticker === ticker)
+    .sort((a, b) => (b.payment_date ?? '').localeCompare(a.payment_date ?? '')).slice(0, 4), [dividends, ticker])
 
   return (
     <PanelCard>
@@ -564,20 +568,22 @@ function AssetDividendPreview({ ticker, quantity, currency, navigate }: AssetDiv
 
       {isLoading ? (
         <p className="text-xs text-[#8f8f8f] animate-pulse">Carregando…</p>
+      ) : isError ? (
+        <div role="alert"><p>Não foi possível carregar seus recebimentos.</p><button type="button" onClick={refetch}>Tentar novamente</button></div>
       ) : recent.length === 0 ? (
-        <p className="text-xs text-[#8f8f8f]">Sem proventos registrados.</p>
+        <p className="text-xs text-[#8f8f8f]">Sem proventos recebidos nesta carteira.</p>
       ) : (
         <div className="space-y-2">
           {recent.map((div, i) => {
-            const total = Number(div.value_per_share) * quantity
+            const rowCurrency = div.currency === 'USD' ? 'USD' : div.currency === 'BRL' ? 'BRL' : currency
             return (
               <div key={`${div.ex_date}-${i}`} className="flex items-center justify-between gap-2">
-                <span className="text-[12px] text-[#8f8f8f]">{fmtDate(div.ex_date)}</span>
+                <span className="text-[12px] text-[#8f8f8f]">{fmtDate(div.payment_date)}</span>
                 <span className="text-[12px] text-[#8f8f8f]">
-                  {fmtMoney(Number(div.value_per_share), currency)} × {quantity}
+                  {div.source === 'imported' ? 'Líquido importado' : `${fmtMoney(Number(div.value_per_share), rowCurrency)} × ${div.quantity.toLocaleString('pt-BR')}`}
                 </span>
                 <span className="text-sm font-semibold text-nf-green tabular-nums">
-                  = {fmtMoney(total, currency)}
+                  = {fmtMoney(div.total_value, rowCurrency)}
                 </span>
               </div>
             )
@@ -782,13 +788,35 @@ interface TabProventosProps {
   currency: AssetCurrency
 }
 
-function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
+function TabProventos({ ticker, currency }: TabProventosProps) {
   const { data: dividends = [], isLoading, isError, refetch } = useAssetDividends(ticker)
+  const received = useDividends('Tudo')
+  const [view, setView] = useState<'received' | 'market'>('received')
+  const payments = received.rows.filter(row => row.ticker === ticker)
 
   return (
     <PanelCard>
       <h3 className="text-sm font-semibold text-white mb-4">Proventos — {ticker}</h3>
-      {isLoading ? (
+      <div className="mb-4 flex gap-3" role="tablist" aria-label="Origem dos proventos">
+        <button type="button" role="tab" aria-selected={view === 'received'} className={`rounded-lg px-3 py-2 text-sm ${view === 'received' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'}`} onClick={() => setView('received')}>Recebidos na carteira</button>
+        <button type="button" role="tab" aria-selected={view === 'market'} className={`rounded-lg px-3 py-2 text-sm ${view === 'market' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'}`} onClick={() => setView('market')}>Histórico do ativo</button>
+      </div>
+      {view === 'received' ? (
+        received.isLoading ? <p>Carregando recebimentos…</p> : received.isError ? (
+          <div role="alert"><p>Não foi possível carregar seus recebimentos.</p><button type="button" onClick={received.refetch}>Tentar novamente</button></div>
+        ) : payments.length === 0 ? <p>Sem proventos recebidos nesta carteira.</p> : (
+          <div className="overflow-x-auto"><table className="w-full text-sm">
+            <thead><tr><th className="text-left">Pagamento</th><th className="text-left">Tipo</th><th className="text-right">Quantidade histórica</th><th className="text-right">Total recebido</th></tr></thead>
+            <tbody>{payments.map((row, index) => (
+              <tr key={`${row.payment_date}-${index}`} className="border-b border-white/[0.04]">
+                <td className="py-2">{fmtDate(row.payment_date)}</td><td>{row.type}{row.source === 'imported' ? ' · Líquido importado' : ' · Estimado'}</td>
+                <td className="text-right">{row.quantity.toLocaleString('pt-BR')}</td>
+                <td className="text-right tabular-nums">{fmtMoney(row.total_value, row.currency === 'BRL' ? 'BRL' : row.currency === 'USD' ? 'USD' : currency)}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )
+      ) : isLoading ? (
         <p className="text-sm text-[#8f8f8f] animate-pulse">Carregando…</p>
       ) : isError ? (
         <div>
@@ -804,10 +832,9 @@ function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.08]">
-                <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Data COM</th>
+                <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Data ex</th>
                 <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Tipo</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Por cota</th>
-                <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Total recebido</th>
               </tr>
             </thead>
             <tbody>
@@ -816,9 +843,6 @@ function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
                   <td className="py-2 text-[#8f8f8f]">{fmtDate(d.ex_date)}</td>
                   <td className="py-2 text-[#8f8f8f] uppercase text-xs">{d.type}</td>
                   <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(d.value_per_share), currency)}</td>
-                  <td className="py-2 text-right text-nf-green tabular-nums font-medium">
-                    {fmtMoney(Number(d.value_per_share) * quantity, currency)}
-                  </td>
                 </tr>
               ))}
             </tbody>

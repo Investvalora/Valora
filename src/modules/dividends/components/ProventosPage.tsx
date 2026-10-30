@@ -118,7 +118,7 @@ export function ProventosPage() {
   const isMobile = useIsMobile()
   const { user } = useAuth()
   const { hasPositions, isLoading: isPositionsLoading } = useHasPositions()
-  const { rows, isLoading, isError, error, refetch, availableTypes } = useDividends(period)
+  const { rows, isLoading, isError, refetch, availableTypes } = useDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
@@ -185,9 +185,7 @@ export function ProventosPage() {
           className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col gap-3"
         >
           <p className="text-red-400 font-medium">Erro ao carregar proventos</p>
-          {error && (
-            <p className="text-red-300/70 text-sm font-mono">{error.message}</p>
-          )}
+          <p className="text-red-300/70 text-sm">Não foi possível consultar os dados agora. Tente novamente em instantes.</p>
           <button
             type="button"
             onClick={refetch}

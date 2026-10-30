@@ -17,7 +17,7 @@ function fmtPct(v: number | null | undefined): string {
   // valores chegam em decimal (0.05 = 5%)
   const pct = v * 100
   const sign = pct > 0 ? '+' : ''
-  return `${sign}${pct.toFixed(2)}%`
+  return `${sign}${pct.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 
 function cellColor(v: number | null | undefined): string {

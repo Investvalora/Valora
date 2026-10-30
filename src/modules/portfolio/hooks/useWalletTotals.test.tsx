@@ -9,6 +9,8 @@ import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { useWalletTotals } from './useWalletTotals'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import type { WealthChartFilters } from '../../dashboard/hooks/useDashboard'
+import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
+import { useAssetFilters } from '../../ativos/hooks/useAssetFilters'
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
 vi.mock('../../performance/hooks/useHistoricalReturns', () => ({ useHistoricalReturns: (period: string) => ({
@@ -41,6 +43,7 @@ let annualHistory: typeof history | undefined
 
 beforeEach(() => {
   vi.clearAllMocks()
+  useAssetFilters.getState().clear()
   close = 11524.60
   history = []
   annualHistory = undefined
@@ -57,8 +60,70 @@ beforeEach(() => {
 function show(filters?: WealthChartFilters) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  return { ...renderHook(() => ({ selector: useWalletTotals(), dashboard: useDashboard('w1', filters) }), { wrapper }), client }
+  return { ...renderHook(() => ({ selector: useWalletTotals(), dashboard: useDashboard('w1', filters), assets: useAtivosValuation('w1') }), { wrapper }), client }
 }
+
+it('concilia Início e Ativos para carteira mista após compra, resgate parcial e nova cotação', async () => {
+  const { result, client } = show()
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(12524.60))
+  expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(result.current.assets.patrimonioBRL!)
+
+  // Representa os dados retornados depois de uma nova compra e de um resgate.
+  const purchased = { ...positions[0], quantity: 2 }
+  const redeemed = { ...fixed[0], principal: 450, remaining_principal: 450, current_value: 500 }
+  vi.mocked(positionService.listAllPositions).mockResolvedValue([purchased, positions[1]])
+  vi.mocked(positionService.listPositions).mockResolvedValue([purchased])
+  vi.mocked(fixedIncomeService.listPositions).mockResolvedValue([redeemed])
+  close = 11575.73
+  await act(async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ['portfolio', 'positions', 'user'] }),
+      client.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', 'user'] }),
+      client.invalidateQueries({ queryKey: ['portfolio', 'quotes'] }),
+    ])
+  })
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(23651.46))
+  await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(23651.46))
+  expect(result.current.selector.totals.get('w2')).toBe(100)
+})
+
+it('distingue subtotal filtrado em Ativos do patrimônio completo e volta a conciliar ao limpar', async () => {
+  const { result } = show()
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(12524.60))
+  act(() => useAssetFilters.getState().apply({ query: '', types: ['stock_br'] }))
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(11524.60))
+  expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(12524.60)
+  act(() => useAssetFilters.getState().clear())
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(result.current.dashboard.totalPatrimonioBRL!))
+})
+
+it('não transforma ausência de cotação em patrimônio parcial em nenhuma das duas telas', async () => {
+  vi.mocked(positionService.listLatestQuotes).mockResolvedValue([])
+  const { result } = show()
+  await waitFor(() => expect(result.current.assets.isLoading).toBe(false))
+  await waitFor(() => expect(result.current.selector.isLoading).toBe(false))
+  expect(result.current.assets.patrimonioBRL).toBeNull()
+  expect(result.current.dashboard.totalPatrimonioBRL).toBeNull()
+})
+
+it('concilia a composição persistida da massa do relatório com as cotações de 30/10', async () => {
+  // Snapshot de conferência; não é reconstrução das cotações da captura de 29/10.
+  const reportedPositions = [
+    { ...positions[0], id: 'petr', ticker: 'PETR4', quantity: 10, average_price: 50 },
+    { ...positions[0], id: 'klbn', ticker: 'KLBN4', quantity: 31, average_price: 3 },
+  ]
+  const reportedFixed = [{ ...fixed[0], principal: 1600, current_value: 1600 }]
+  vi.mocked(positionService.listAllPositions).mockResolvedValue(reportedPositions)
+  vi.mocked(positionService.listPositions).mockResolvedValue(reportedPositions)
+  vi.mocked(fixedIncomeService.listPositions).mockResolvedValue(reportedFixed)
+  vi.mocked(positionService.listLatestQuotes).mockResolvedValue([
+    { ticker: 'PETR4', close: 53.20, date: '2026-10-30' },
+    { ticker: 'KLBN4', close: 3.38, date: '2026-10-30' },
+  ] as Awaited<ReturnType<typeof positionService.listLatestQuotes>>)
+  const { result } = show()
+  await waitFor(() => expect(result.current.assets.patrimonioBRL).toBeCloseTo(2236.78))
+  await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(2236.78))
+})
 
 it('mantém resumo e seletor iguais mesmo com cache histórico antigo e isola carteiras', async () => {
   const { result, client } = show()

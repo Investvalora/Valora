@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { movementDateSchema } from '../schemas/movementDateSchema'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import { useQuery } from '@tanstack/react-query'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
@@ -85,7 +87,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   // Campos renda variável
   const [type, setType]             = useState<'buy' | 'sell'>('buy')
   const [ticker, setTicker]         = useState('')
-  const [date, setDate]             = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate]             = useState(toIsoDate(new Date()))
   const [quantity, setQuantity]     = useState('')
   const [price, setPrice]           = useState('')
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false)
@@ -99,13 +101,13 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const [rfTipo, setRfTipo]         = useState<FixedIncomeType | ''>('')
   const [rfTaxa, setRfTaxa]         = useState('')
   const [rfValor, setRfValor]       = useState('')
-  const [rfDate, setRfDate]         = useState(new Date().toISOString().slice(0, 10))
+  const [rfDate, setRfDate]         = useState(toIsoDate(new Date()))
   const [rfMaturity, setRfMaturity] = useState('')
 
   // Campos tesouro direto
   const [tdAtivo, setTdAtivo]           = useState<TesouroDiretoAtivo | ''>('')
   const [tdTaxa, setTdTaxa]             = useState('')
-  const [tdDate, setTdDate]             = useState(new Date().toISOString().slice(0, 10))
+  const [tdDate, setTdDate]             = useState(toIsoDate(new Date()))
   const [tdMaturity, setTdMaturity]     = useState('')
   const [tdQty, setTdQty]               = useState('')
   const [tdPrice, setTdPrice]           = useState('')
@@ -168,12 +170,12 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
 
   function resetFields() {
     setError('')
-    setType('buy'); setTicker(''); setDate(new Date().toISOString().slice(0, 10))
+    setType('buy'); setTicker(''); setDate(toIsoDate(new Date()))
     setQuantity(''); setPrice(''); setPriceManuallyEdited(false); setOtherCosts('')
     setShowAssetSuggestions(false); setHighlightedAssetIndex(-1); setSelectedAsset(null)
     setRfEmissor(''); setRfTipo(''); setRfTaxa('')
-    setRfValor(''); setRfDate(new Date().toISOString().slice(0, 10)); setRfMaturity('')
-    setTdAtivo(''); setTdTaxa(''); setTdDate(new Date().toISOString().slice(0, 10))
+    setRfValor(''); setRfDate(toIsoDate(new Date())); setRfMaturity('')
+    setTdAtivo(''); setTdTaxa(''); setTdDate(toIsoDate(new Date()))
     setTdMaturity(''); setTdQty(''); setTdPrice(''); setTdOther('')
   }
 
@@ -185,7 +187,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
     setRfTipo(initialFixedIncome.type)
     setRfTaxa(String(initialFixedIncome.rate))
     setRfValor('')
-    setRfDate(new Date().toISOString().slice(0, 10))
+    setRfDate(toIsoDate(new Date()))
     setRfMaturity('')
     setError('')
   }, [isOpen, initialFixedIncome])
@@ -250,6 +252,12 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const movementDate = isRendaFixa ? rfDate : isTesouroDireto ? tdDate : date
+    const validation = movementDateSchema.safeParse(movementDate)
+    if (!validation.success) {
+      setError(validation.error.issues[0].message)
+      return
+    }
     setError('')
 
     // ── Renda Fixa ────────────────────────────────────────────────────────

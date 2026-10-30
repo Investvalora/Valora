@@ -82,6 +82,7 @@ export function AppRoutes() {
 
           {/* Novo fluxo */}
           <Route path="inicio" element={<HomeRoute />} />
+          <Route path="carteira" element={<Navigate to="/ativos/posicoes" replace />} />
           <Route path="carteiras" element={<WalletsPage />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
@@ -129,6 +130,13 @@ export function AppRoutes() {
           <Route path="analise/estrategias/nova"    element={<NovaEstrategiaPage />} />
         </Route>
       </Route>
+      <Route path="*" element={
+        <main className="mx-auto max-w-lg px-6 py-20 text-center text-white">
+          <h1 className="text-2xl font-semibold">Página não encontrada</h1>
+          <p className="mt-3 text-white/60">O endereço pode ter mudado. Acesse o início para continuar.</p>
+          <a href="/inicio" className="mt-6 inline-block rounded-xl bg-white px-5 py-3 font-semibold text-zinc-950">Ir para o início</a>
+        </main>
+      } />
     </Routes>
   )
 }

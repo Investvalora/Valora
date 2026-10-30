@@ -1,5 +1,6 @@
 import { supabase } from '../../../shared/services/supabaseClient'
 import { parseDecimalPtBr } from '../schemas/positionSchema'
+import { movementDateSchema } from '../schemas/movementDateSchema'
 import type { NewTransaction } from '../types'
 import type { CsvImportError, ParsedTransactionRow } from '../csv/csvParser'
 
@@ -75,6 +76,7 @@ export const transactionsService = {
     }))
 
     if (payload.length === 0) return 0
+    for (const transaction of payload) movementDateSchema.parse(transaction.transaction_date)
     const { error } = await supabase.from('transactions').insert(
       payload.map((transaction) => ({
         ...transaction,
@@ -115,6 +117,7 @@ export const transactionsService = {
 
   /** Insere uma transação manual (buy ou sell). */
   async addManualTransaction(userId: string, payload: NewManualTransaction): Promise<Transaction> {
+    movementDateSchema.parse(payload.transaction_date)
     const { data, error } = await supabase
       .from('transactions')
       .insert({

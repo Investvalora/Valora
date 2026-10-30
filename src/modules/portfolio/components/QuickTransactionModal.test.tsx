@@ -15,6 +15,18 @@ vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] })
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
 
+it.each(['stock_br', 'fixed_income', 'tesouro_direto'])('recusa data futura antes de salvar %s', (category) => {
+  mocks.save.mockClear()
+  const close = vi.fn()
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={close} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Tipo de ativo'), { target: { value: category } })
+  fireEvent.change(screen.getByLabelText('Data da transação'), { target: { value: '2999-12-31' } })
+  fireEvent.submit(document.getElementById('quick-transaction-form')!)
+  expect(screen.getByText('Informe uma data válida, até hoje.')).toBeInTheDocument()
+  expect(mocks.save).not.toHaveBeenCalled()
+  expect(close).not.toHaveBeenCalled()
+})
+
 it('abre como painel inferior e organiza os campos em uma coluna no celular', () => {
   render(<QueryClientProvider client={new QueryClient()}>
     <QuickTransactionModal isOpen onClose={vi.fn()} />

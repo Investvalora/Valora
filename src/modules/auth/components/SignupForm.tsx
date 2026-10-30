@@ -38,7 +38,7 @@ export function SignupForm() {
 
       setUser(data.user)
       setSession(data.session)
-      navigate('/carteira')
+      navigate('/inicio', { replace: true })
     },
     onError: (error: Error) => {
       console.error('Signup error:', error)

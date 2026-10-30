@@ -126,7 +126,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const debouncedTicker = useDebouncedValue(ticker, 250)
   const { data: assetSuggestions = [], isFetching: isSearchingAssets } = useAssetSearch(debouncedTicker)
   const suggestionsReady = debouncedTicker.trim() === ticker.trim()
-  const filteredAssetSuggestions = suggestionsReady ? [...assetSuggestions].sort((a, b) => Number(b.type === assetClass) - Number(a.type === assetClass)) : []
+  const filteredAssetSuggestions = suggestionsReady ? assetSuggestions.filter(asset => asset.type === assetClass) : []
   const latestPrice = useTickerLatestPrice(isOpen && isVariavel ? selectedAsset?.ticker ?? '' : '')
   const { data: catalogAsset } = useQuery({
     queryKey: ['portfolio', 'asset', ticker],
@@ -169,10 +169,11 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const tdTaxaLabel = tdIndexer ? FIXED_INCOME_RATE_LABEL[tdIndexer] : 'Taxa'
 
   const defaultCurrency = ['stock_us', 'etf_us', 'reit', 'crypto'].includes(assetClass) ? 'USD' : 'BRL'
-  const quoteCurrency = isVariavel ? (selectedAsset?.currency ?? catalogAsset?.currency ?? defaultCurrency) : 'BRL'
+  const quoteCurrency = isVariavel ? (selectedAsset?.currency ?? (catalogAsset?.type === assetClass ? catalogAsset.currency : defaultCurrency)) : 'BRL'
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: quoteCurrency })
 
   function resetFields() {
+    externalAsset.reset()
     setError('')
     setType('buy'); setTicker(''); setDate(toIsoDate(new Date()))
     setQuantity(''); setPrice(''); setPriceManuallyEdited(false); setOtherCosts('')
@@ -197,7 +198,8 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   }, [isOpen, initialFixedIncome])
 
   function selectAsset(asset: Asset) {
-    setAssetClass(asset.type)
+    if (asset.type !== assetClass) { setError('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.'); return }
+    setError('')
     if (selectedAsset?.ticker !== asset.ticker) setPrice('')
     setTicker(asset.ticker)
     setSelectedAsset(asset)
@@ -334,6 +336,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
         ? selectedAsset
         : await positionService.findAssetByTicker(norm)) ?? await externalAsset.lookup(norm)
       if (!asset) { setError('Ativo não encontrado no catálogo.'); return }
+      if (asset.type !== assetClass) { setError('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.'); return }
       await addTransaction.mutateAsync({
         ticker: norm, type, transaction_date: date,
         quantity: parsedQty, price: parsedPrice, brokerage_fee: parsedOther,
@@ -452,12 +455,9 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
                     {!isSearchingAssets && suggestionsReady && filteredAssetSuggestions.length === 0 && (
                       <div className="px-3 py-2 text-xs text-white/50">
                         <p>Nenhum ativo encontrado no catálogo. Digite o ticker para buscar na fonte externa.</p>
-                        {catalogAsset?.ticker === ticker.trim().toUpperCase() ? <button type="button" className="mt-2 text-blue-300 underline" onClick={() => {
-                          setAssetClass(catalogAsset.type)
-                          selectAsset(catalogAsset)
-                        }}>Selecionar {catalogAsset.ticker} em {ASSET_TYPES.find(([type]) => type === catalogAsset.type)?.[1]}</button> : <button type="button" disabled={externalAsset.state.status === 'loading'} className="mt-2 text-blue-300 underline" onClick={async () => {
+                        {catalogAsset?.ticker === ticker.trim().toUpperCase() && catalogAsset.type !== assetClass ? <p className="mt-2">Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.</p> : <button type="button" disabled={externalAsset.state.status === 'loading'} className="mt-2 text-blue-300 underline" onClick={async () => {
                           const asset = await externalAsset.lookup(ticker)
-                          if (asset) { setAssetClass(asset.type); selectAsset(asset) }
+                          if (asset) selectAsset(asset)
                         }}>{externalAsset.state.status === 'loading' ? 'Buscando…' : 'Buscar ticker na fonte externa'}</button>}
                       </div>
                     )}

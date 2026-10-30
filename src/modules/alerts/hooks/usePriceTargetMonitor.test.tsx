@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -35,4 +35,17 @@ it('não consulta sem sessão', async () => {
   expect(alertsService.checkPriceTargets).not.toHaveBeenCalled()
   unmount()
   client.clear()
+})
+
+it('verifica ao recuperar foco mesmo com refetch global desabilitado', async () => {
+  vi.useFakeTimers()
+  vi.mocked(alertsService.checkPriceTargets).mockResolvedValue({ triggered: 0 })
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+  const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  const { unmount } = renderHook(() => usePriceTargetMonitor(), { wrapper })
+  await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+  focusManager.setFocused(false)
+  await act(async () => { focusManager.setFocused(true); await vi.advanceTimersByTimeAsync(10) })
+  expect(alertsService.checkPriceTargets).toHaveBeenCalledTimes(2)
+  unmount(); client.clear(); focusManager.setFocused(undefined)
 })

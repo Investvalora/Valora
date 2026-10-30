@@ -47,14 +47,14 @@ async function authenticatedUser(request: Request) {
 
 async function insertAlert(userId: string, payload: Record<string, unknown>) {
   const existing = await rest(
-    `alerts?user_id=eq.${userId}&type=eq.${payload.type}&ticker=eq.${payload.ticker}&status=neq.ignorado&select=id&limit=1`,
+    `alerts?user_id=eq.${userId}&type=eq.${payload.type}&ticker=eq.${payload.ticker}&select=id,auto_managed,status&order=created_at.desc&limit=1`,
   )
   if (!existing.ok) throw new Error('Não foi possível consultar alertas existentes.')
-  const [previous] = await existing.json() as Array<{ id: string }>
-  if (previous) {
+  const [previous] = await existing.json() as Array<{ id: string; auto_managed: boolean; status: string }>
+  if (previous && (previous.status !== 'ignorado' || !previous.auto_managed)) {
     // Recalcular também a mensagem persistida; preservar status de leitura.
-    if (payload.type === 'opportunity' || payload.type === 'overvalued') {
-      const updated = await rest(`alerts?id=eq.${encodeURIComponent(previous.id)}&user_id=eq.${userId}`, {
+    if (previous.auto_managed && (payload.type === 'opportunity' || payload.type === 'overvalued')) {
+      const updated = await rest(`alerts?id=eq.${encodeURIComponent(previous.id)}&user_id=eq.${userId}&auto_managed=eq.true&status=neq.ignorado`, {
         method: 'PATCH',
         body: JSON.stringify({ title: payload.title, description: payload.description }),
       })
@@ -66,7 +66,7 @@ async function insertAlert(userId: string, payload: Record<string, unknown>) {
   const created = await rest('alerts', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ user_id: userId, ...payload }),
+    body: JSON.stringify({ user_id: userId, ...payload, auto_managed: true }),
   })
   if (created.ok) return true
   if (created.status === 409) return false
@@ -144,16 +144,16 @@ Deno.serve(async (request) => {
   if (!userId) return response({ error: 'Autenticação necessária.' }, 401)
 
   try {
-    const positionsResponse = await rest(`positions?user_id=eq.${userId}&select=ticker,assets(currency)`)
+    const positionsResponse = await rest(`positions?user_id=eq.${userId}&select=ticker,assets(currency,type)`)
     const transactionsResponse = await rest(`transactions?user_id=eq.${userId}&select=ticker`)
     if (!positionsResponse.ok || !transactionsResponse.ok) throw new Error('Falha ao ler a carteira.')
 
     const positionsRaw = (await positionsResponse.json()) as Array<{
       ticker: string
-      assets: { currency: string } | null
+      assets: { currency: string; type: string } | null
     }>
     const transactions = (await transactionsResponse.json()) as Array<{ ticker: string }>
-    const positions = positionsRaw.map((p) => ({ ticker: p.ticker }))
+    const positions = [...new Map(positionsRaw.map(p => [p.ticker, { ticker: p.ticker, currency: p.assets?.currency, type: p.assets?.type }])).values()]
     const currencyByTicker = new Map(positionsRaw.map((p) => [p.ticker, p.assets?.currency ?? 'BRL']))
 
     const quotes: Array<{ ticker: string; date: string; close: number }> = []
@@ -174,7 +174,8 @@ Deno.serve(async (request) => {
     const dividends: Array<{ ticker: string; value_per_share: number }> = []
 
     for (let i = 0; i < positions.length; i++) {
-      const { ticker } = positions[i]
+      const { ticker, type } = positions[i]
+      if (!type || !['stock_br', 'stock_us', 'fii', 'reit', 'bdr', 'etf_br', 'etf_us'].includes(type)) continue
       const currency = currencyByTicker.get(ticker) ?? 'BRL'
       const tickerDividends = await fetchYahooDividendsForBazin(ticker, currency)
       dividends.push(...tickerDividends)
@@ -192,6 +193,18 @@ Deno.serve(async (request) => {
           status: 'novo',
         }),
       )
+    }
+
+    const managed = await rest(`alerts?user_id=eq.${userId}&auto_managed=eq.true&type=in.(opportunity,overvalued)&status=neq.ignorado&select=id,type,ticker`)
+    if (!managed.ok) throw new Error('Falha ao conferir alertas automaticos.')
+    const activeKeys = new Set(bazinCandidates.map(candidate => `${candidate.type}:${candidate.ticker}`))
+    for (const old of await managed.json() as Array<{ id: string; type: string; ticker: string }>) {
+      if (!activeKeys.has(`${old.type}:${old.ticker}`)) {
+        // Skip assets whose dividend provider failed; missing data is not resolution.
+        if (positions.some(position => position.ticker === old.ticker) && !dividends.some(dividend => dividend.ticker === old.ticker)) continue
+        const retired = await rest(`alerts?id=eq.${old.id}&user_id=eq.${userId}&auto_managed=eq.true&status=neq.ignorado`, { method: 'PATCH', body: JSON.stringify({ status: 'ignorado' }) })
+        if (!retired.ok) throw new Error('Falha ao encerrar alerta automatico.')
+      }
     }
 
     return response({ created, positions: positions.length })

@@ -113,3 +113,21 @@ PR #96 integrada pelo responsável no commit `a1874f0`. Conferência no domínio
 - Início móvel apresentou sino; botão lateral abriu as cinco carteiras e “Voltar” retornou ao início. Carteira selecionada permaneceu Investidor10; tamanho original do navegador restaurado.
 
 Não foram alterados lançamentos, alertas ou estratégias por este ensaio. O caminho de falha ao salvar a exibição de estratégia não foi provocado em produção; permanece coberto pelo teste local. Também não foram provocadas falhas reais de provedor ou testado gesto em PWA físico. INV-02/03 não são encerradas pela ausência de reprodução nesta massa.
+
+## Reteste publicado da PR #97 ? 30/10/2026
+
+- Sessao autenticada no dominio de producao, carteira Investidor10 preservada.
+- Novo lancamento: GOOGLE retornou GOGL34, GOOG e GOOGL com nome, classe e moeda. Preco vazio antes da selecao; GOOGL selecionado mudou para Stocks US/USD e preencheu 277,47. Alterar o texto para RADL3 limpou o preco anterior. Formulario cancelado sem gravar.
+- Menu de RADL3: Atualizar dados de mercado apresentou estado de sincronizacao e terminou sem aviso de falha ou indisponibilidade na lista. Os fundamentos de RADL3 estavam visiveis. Isto verifica a acao manual autenticada; nao comprova sozinho o gatilho depois de salvar compra.
+- Detalhe RADL3 abriu normalmente; opcao 5A selecionada carregou grafico preenchido. vs CDI exibiu -13,16 p.p., com virgula decimal.
+- Nenhum lancamento financeiro foi criado ou excluido neste reteste. O gatilho automatico apos compra continua coberto pelos testes locais, mas ainda sem nova compra de homologacao em producao. Controle de senha no cadastro nao foi retestado nesta sessao autenticada.
+## Correção local do filtro de classe — 30/10/2026
+
+O autocomplete do lançamento priorizava a classe selecionada, mas incluía as demais. Agora lista apenas ativos do tipo escolhido, mantém a moeda da classe quando o ticker é incompatível e bloqueia o salvamento de ativo de outra classe. A busca externa permanece disponível; resultado incompatível orienta alterar o tipo, sem trocá-lo automaticamente. Trocar o tipo também cancela resultados externos pendentes.
+
+Regressão cobre BTC em Ações BR e MXRF11 em ETFs BR, além de seleção válida, preço manual e criptomoedas em BRL. Correção local, ainda não publicada.
+## Pendências técnicas preparadas — 30/10/2026
+
+Implementações locais para atualização de lista/sino, retorno ao foco, falhas do monitor, elegibilidade/moeda Bazin, preservação de edições, fundamentos parciais e validação interna pelo Vault. Migration nova prepara monitoramento SQL por minuto e reutiliza os triggers de push existentes. Nenhuma alteração na migration 018.
+
+Regressão completa: **855/855 testes em 116 arquivos**, lint e build TypeScript/Vite/PWA aprovados. Após confirmação explícita, migration `20261030225247` aplicada e quatro funções publicadas. Chamada interna retornou HTTP 200 com cinco fundamentos gravados; job por minuto conferido com três execuções bem-sucedidas. Condições do monitor testadas em tabelas temporárias sem push. O ensaio com alertas fictícios em contas reais foi rejeitado pela aprovação automática e não executado. Nenhuma compra fictícia foi criada; teste após compra e entrega push com app fechado permanecem pendentes. Frontend aguarda merge pelo responsável. Evidências em [aplicacao-pendencias-tecnicas.md](aplicacao-pendencias-tecnicas.md).

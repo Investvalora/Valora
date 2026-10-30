@@ -6,6 +6,7 @@ import {
 } from '../services/transactionsService'
 import { positionService } from '../services/positionService'
 import { useWallets } from './useWallets'
+import { syncAssetData } from '../services/assetDataSync'
 
 const STALE_TIME_MS = 5 * 60 * 1000
 
@@ -52,6 +53,7 @@ export function useAddTransaction() {
       })
     },
     onSuccess: (_, payload) => {
+      if (payload.type === 'buy' && userId) void syncAssetData(queryClient, userId, payload.ticker)
       queryClient.invalidateQueries({
         queryKey: transactionsByTickerQueryKey(userId, payload.ticker),
       })

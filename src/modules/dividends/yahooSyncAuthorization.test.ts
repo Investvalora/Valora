@@ -60,6 +60,14 @@ it('fundamentos rejeita usuário comum mesmo com sessão válida', async () => {
   expect((await test.invoke('session')).status).toBe(403)
   expect(test.fetchMock).toHaveBeenCalledTimes(1)
 })
+it('serviço de fundamentos limita a consulta ao ticker pedido e rejeita lista vazia', async () => {
+  const test = await handler('fundamentals', false)
+  expect((await test.invoke('service', { tickers: ['RADL3'] })).status).toBe(200)
+  expect(test.fetchMock.mock.calls[0][0]).toContain('ticker=in.(RADL3)')
+  const calls = test.fetchMock.mock.calls.length
+  expect((await test.invoke('service', { tickers: [] })).status).toBe(400)
+  expect(test.fetchMock.mock.calls).toHaveLength(calls)
+})
 it('sincronização manual nega ticker fora da conta e não processa catálogo global', async () => {
   const test = await handler('dividends', true, ['MXRF11'])
   expect((await test.invoke('session', { tickers: ['PETR4'] })).status).toBe(403)

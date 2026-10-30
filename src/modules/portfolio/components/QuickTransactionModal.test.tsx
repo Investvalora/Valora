@@ -1,9 +1,18 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Asset } from '../types'
+import { positionService } from '../services/positionService'
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(async () => ({})) }))
+afterEach(() => vi.restoreAllMocks())
+
+const mocks = vi.hoisted(() => ({ save: vi.fn(async () => ({})), suggestions: [] as Asset[], prices: {} as Record<string, number>, latest: vi.fn() }))
+beforeEach(() => {
+  mocks.save.mockClear()
+  mocks.suggestions = []
+  mocks.prices = {}
+  mocks.latest.mockReset().mockImplementation((ticker: string) => mocks.prices[ticker] ?? null)
+})
 const usd: Asset = { ticker: 'BTC', name: 'Bitcoin', type: 'crypto', currency: 'USD' }
 const brl: Asset = { ...usd, ticker: 'BTC-BRL', currency: 'BRL' }
 vi.mock('../hooks/useTransactions', () => ({ useAddTransaction: () => ({ mutateAsync: mocks.save, isPending: false }) }))
@@ -11,9 +20,52 @@ vi.mock('../hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { i
 vi.mock('../hooks/usePositions', () => ({ usePositions: () => ({ data: [] }) }))
 vi.mock('../hooks/useCalcFixedIncome', () => ({ useCalcFixedIncome: () => ({ calc: vi.fn() }) }))
 vi.mock('../hooks/useFixedIncomePositions', () => ({ useAddFixedIncomePosition: () => ({ isPending: false }) }))
-vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] }), useTickerLatestPrice: () => null }))
+vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: mocks.suggestions }), useTickerLatestPrice: mocks.latest }))
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
+
+it('mostra nome/classe/moeda e só preenche preço após selecionar; trocar a busca limpa cotação anterior', async () => {
+  vi.spyOn(positionService, 'findAssetByTicker').mockResolvedValue(null)
+  mocks.suggestions = [{ ticker: 'GOOGL', name: 'Alphabet Inc Class A', type: 'stock_us', currency: 'USD' }]
+  mocks.prices.GOOGL = 277.47
+  const { rerender } = render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'GOOGLE' } })
+  const suggestion = await screen.findByRole('button', { name: 'GOOGL Alphabet Inc Class A Stocks US · USD' })
+  expect(screen.getByLabelText('Preço (BRL)')).toHaveValue(null)
+  expect(mocks.latest.mock.calls.every(([ticker]) => ticker === '')).toBe(true)
+  fireEvent.click(suggestion)
+  expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('stock_us')
+  await waitFor(() => expect(screen.getByLabelText('Preço (USD)')).toHaveValue(277.47))
+  expect(screen.getByText('Alphabet Inc Class A · GOOGL · USD')).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Preço (USD)'), { target: { value: '300' } })
+  mocks.prices.GOOGL = 280
+  rerender(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  expect(screen.getByLabelText('Preço (USD)')).toHaveValue(300)
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'FAST' } })
+  expect(screen.getByLabelText('Preço (USD)')).toHaveValue(null)
+  expect(mocks.latest).not.toHaveBeenCalledWith('FAST')
+  expect(screen.queryByText('Alphabet Inc Class A · GOOGL · USD')).not.toBeInTheDocument()
+})
+
+it('não transforma preço vazio em compra a preço zero', () => {
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'RADL3' } })
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '1' } })
+  fireEvent.submit(document.getElementById('quick-transaction-form')!)
+  expect(screen.getByText('Preencha ativo, data, quantidade e preço válidos.')).toBeInTheDocument()
+  expect(mocks.save).not.toHaveBeenCalled()
+})
+
+it('oferece a classe correta ao digitar RADL3 uma vez mesmo quando o formulário inicia em FIIs', async () => {
+  vi.spyOn(positionService, 'findAssetByTicker').mockResolvedValue({ ticker: 'RADL3', name: 'Raia Drogasil', type: 'stock_br', currency: 'BRL' })
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'RADL3' } })
+  fireEvent.click(await screen.findByRole('button', { name: 'Selecionar RADL3 em Ações BR' }))
+  expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('stock_br')
+  expect(screen.getByLabelText('Ativo')).toHaveValue('RADL3')
+  expect(screen.queryByText('Nenhum ativo encontrado nesta classe.')).not.toBeInTheDocument()
+  expect(mocks.save).not.toHaveBeenCalled()
+})
 
 it.each(['stock_br', 'fixed_income', 'tesouro_direto'])('recusa data futura antes de salvar %s', (category) => {
   mocks.save.mockClear()

@@ -124,7 +124,6 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     handleSubmit,
     watch,
     setValue,
-    setFocus,
     setError,
     clearErrors,
     formState: { errors },
@@ -260,31 +259,13 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
     }
 
     if (!asset) {
-      // Não encontrou no catálogo local.
-      // Se o lookup externo já terminou com resultado, usa-o para prosseguir.
-      if (externalLookup.status === 'found') {
-        // O ativo foi inserido no catálogo pela EF — prossegue direto.
-        addPosition.mutate(payload, {
-          onSuccess: () => onSuccess(payload.ticker),
-          onError: (error) => {
-            console.error('Add position error:', error)
-            setErrorMessage(describeInsertError(error, payload.ticker))
-          },
-        })
+      setIsCheckingTicker(true)
+      asset = await lookupExternal(payload.ticker)
+      setIsCheckingTicker(false)
+      if (!asset) {
+        setError('ticker', { message: 'Ativo indisponível. Confira o ticker ou tente novamente.' })
         return
       }
-
-      // Lookup externo em andamento ou ainda não iniciado — aguarda.
-      setNotFoundTicker(payload.ticker)
-      setShowSuggestions(false)
-      setFocus('ticker')
-      // Se por algum motivo o efeito automático não disparou, força agora.
-      if (externalLookup.status === 'idle') {
-        lookupExternal(payload.ticker)
-      }
-      // Exibe erro no campo para que o texto 'Ativo não encontrado' apareça.
-      setError('ticker', { message: 'Ativo não encontrado' })
-      return
     }
 
     addPosition.mutate(payload, {

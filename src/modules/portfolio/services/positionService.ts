@@ -216,7 +216,7 @@ export const positionService = {
       .from('assets')
       .select(ASSET_COLUMNS)
       .eq('active', true)
-      .or(`ticker.ilike.%${sanitized}%,name.ilike.%${sanitized}%`)
+      .or(`ticker.ilike.%${sanitized}%,name.ilike.%${sanitized}%${sanitized.toUpperCase() === 'GOOGLE' ? ',name.ilike.%Alphabet%' : ''}`)
       .order('ticker', { ascending: true })
       .limit(ASSET_SEARCH_LIMIT)
 

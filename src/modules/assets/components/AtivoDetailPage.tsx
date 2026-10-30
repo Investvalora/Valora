@@ -36,12 +36,12 @@ import { usePerformance } from '../../performance/hooks/usePerformance'
 import { assetClassColor, assetClassLabel } from '../../portfolio/composition'
 import { fmtMoney, fmtPct } from '../../ativos/utils/fmt'
 import type { AssetCurrency } from '../../portfolio/types'
-import type { WealthPeriod } from '../../wealth/types'
+import type { PriceHistoryPeriod } from '../hooks/usePriceHistory'
 import type { PricePoint } from '../types'
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
-const PRICE_PERIODS: WealthPeriod[] = ['1M', '3M', '6M', '1A', 'Tudo']
+const PRICE_PERIODS: PriceHistoryPeriod[] = ['1M', '3M', '6M', '1A', '5A', 'Tudo']
 
 const MISSING = '—'
 
@@ -455,7 +455,7 @@ function AssetPositionResult({
     },
     {
       label: 'vs CDI',
-      value: vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(2)} p.p.` : MISSING,
+      value: vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} p.p.` : MISSING,
       color: vscdipp != null && vscdipp >= 0 ? 'text-nf-green' : 'text-nf-pink',
     },
   ]
@@ -860,8 +860,8 @@ interface TabRentabilidadeProps {
   priceHistory: PricePoint[]
   avgPrice: number | null
   currency: AssetCurrency
-  period: WealthPeriod
-  onPeriodChange: (p: WealthPeriod) => void
+  period: PriceHistoryPeriod
+  onPeriodChange: (p: PriceHistoryPeriod) => void
   valorInvestido: number | null
   ganhoCapital: number | null
   proventos12m: number | null
@@ -1054,8 +1054,8 @@ interface VisaoGeralProps {
   currentPrice: number | null
   currency: AssetCurrency
   priceHistory: PricePoint[]
-  period: WealthPeriod
-  onPeriodChange: (p: WealthPeriod) => void
+  period: PriceHistoryPeriod
+  onPeriodChange: (p: PriceHistoryPeriod) => void
   portfolioWeight: number | null
   dy: number | null
   changeVsAvg: number | null
@@ -1163,7 +1163,7 @@ export function AtivoDetailPage() {
   const ticker = rawTicker.toUpperCase()
 
   const [activeTab, setActiveTab] = useState<AtivoTab>('visao-geral')
-  const [period, setPeriod] = useState<WealthPeriod>('1A')
+  const [period, setPeriod] = useState<PriceHistoryPeriod>('1A')
 
   // ── Dados do ativo ──────────────────────────────────────────────────────────
   const { data: asset, isLoading: assetLoading } = useAssetDetail(ticker)

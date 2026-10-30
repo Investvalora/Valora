@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../shared/services/supabaseClient'
 import { Asset } from '../types'
@@ -34,10 +34,12 @@ export type LookupState =
 export function useLookupExternalAsset() {
   const [state, setState] = useState<LookupState>({ status: 'idle' })
   const queryClient = useQueryClient()
+  const requestId = useRef(0)
 
   const lookup = useCallback(async (ticker: string) => {
     const normalized = ticker.trim().toUpperCase()
-    if (!normalized) return
+    if (!normalized) return null
+    const id = ++requestId.current
 
     setState({ status: 'loading' })
 
@@ -59,18 +61,21 @@ export function useLookupExternalAsset() {
         },
       )
 
+      if (id !== requestId.current) return null
+
       if (response.status === 404) {
         setState({ status: 'not_found', ticker: normalized })
-        return
+        return null
       }
 
       if (!response.ok) {
         const err = await response.json() as LookupError
         setState({ status: 'error', message: err.message ?? 'Erro ao buscar ativo.' })
-        return
+        return null
       }
 
       const data = await response.json() as LookupResult
+      if (id !== requestId.current) return null
 
       const asset: Asset = {
         ticker: data.ticker,
@@ -88,12 +93,14 @@ export function useLookupExternalAsset() {
       queryClient.invalidateQueries({ queryKey: ['portfolio', 'assets'] })
 
       setState({ status: 'found', asset, created: data.created })
+      return asset
     } catch {
-      setState({ status: 'error', message: 'Não foi possível conectar à API. Tente novamente.' })
+      if (id === requestId.current) setState({ status: 'error', message: 'Não foi possível conectar à API. Tente novamente.' })
+      return null
     }
   }, [queryClient])
 
-  const reset = useCallback(() => setState({ status: 'idle' }), [])
+  const reset = useCallback(() => { requestId.current++; setState({ status: 'idle' }) }, [])
 
   return { state, lookup, reset }
 }

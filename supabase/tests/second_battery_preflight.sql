@@ -1,7 +1,7 @@
 -- Read-only. Run against the intended target immediately before applying
--- 20261030171736_validate_movement_dates_and_distinct_price_alerts.sql.
+-- 20261030175828_validate_movement_dates_and_distinct_price_alerts.sql.
 select
-  exists(select 1 from supabase_migrations.schema_migrations where version = '20261030171736') as already_applied,
+  exists(select 1 from supabase_migrations.schema_migrations where version = '20261030175828') as already_applied,
   to_regprocedure('public.validate_movement_date()') is not null as function_exists,
   to_regclass('public.alerts_active_price_condition_idx') is not null as new_index_exists;
 

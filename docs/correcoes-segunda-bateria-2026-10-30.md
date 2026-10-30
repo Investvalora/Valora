@@ -1,6 +1,6 @@
 # Correções da segunda bateria — 30/10/2026
 
-Estado: **implementadas localmente, ainda não publicadas**. O lote cobre SB-01 a SB-08. As melhorias de escopo REQ/UX, investigações restantes, pendências anteriores de alertas e QA-01 continuam separadas. Nenhum lançamento existente foi alterado ou excluído.
+Estado: **migration aplicada em produção; frontend ainda aguarda merge/publicação**. O lote cobre SB-01 a SB-08. As melhorias de escopo REQ/UX, investigações restantes, pendências anteriores de alertas e QA-01 continuam separadas. Nenhum lançamento existente foi alterado ou excluído.
 
 | Item | Mudança |
 | --- | --- |
@@ -24,10 +24,10 @@ Estado: **implementadas localmente, ainda não publicadas**. O lote cobre SB-01 
 ## Integração e publicação pendentes
 
 - [ ] Revisar e integrar a PR pelo responsável; não há merge automático.
-- [ ] Aplicar `20261030171736_validate_movement_dates_and_distinct_price_alerts.sql` no ambiente de destino e conferir as restrições. Não modifica a migration 018 excluída do escopo.
+- [x] Aplicada e conferida em produção a migration `20261030175828_validate_movement_dates_and_distinct_price_alerts.sql`, em 30/10 às 14:58 de Brasília. Triggers, índices, permissões e RLS conferidos. Não modifica a migration 018 excluída do escopo.
 - [ ] Publicar frontend/PWA e retestar os oito casos no ambiente publicado, incluindo uma operação futura recusada e dois alertas distintos do mesmo ativo em conta de teste.
 
-Até a aplicação da migration, o servidor publicado mantém o comportamento anterior de datas e unicidade; testes locais não significam mudança em produção. Não foi aplicada DDL nem criada conta/sessão de teste no servidor durante este lote.
+O servidor agora aplica as novas restrições de datas e unicidade. O frontend publicado ainda depende do merge/publicação da PR #95. A aplicação foi autorizada separadamente após os testes locais; nenhuma conta/sessão de teste foi criada por esta etapa.
 
 Procedimento e consultas de pré/pós-aplicação preparados em [aplicacao-migration-segunda-bateria.md](aplicacao-migration-segunda-bateria.md).
 

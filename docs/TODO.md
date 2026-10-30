@@ -6,9 +6,9 @@ Triagem completa, fontes e critérios de aceite em [TODO-segunda-bateria.md](TOD
 
 ### Defeitos confirmados
 
-SB-01 a SB-08 implementados e testados **localmente** em 30/10; ainda não publicados. [Registro e validação](correcoes-segunda-bateria-2026-10-30.md).
+SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e conferida em produção, frontend ainda aguarda merge/publicação. [Registro e validação](correcoes-segunda-bateria-2026-10-30.md).
 
-- [ ] **Publicar o lote:** integração pelo responsável, aplicação da nova migration e homologação em produção. A migration 018 permanece intocada.
+- [ ] **Publicar o frontend:** integração pelo responsável e homologação em produção. Nova migration já aplicada; a migration 018 permanece intocada.
 
 - [x] **Alta — SB-01:** impedir que compras com data futura alterem a carteira atual nos fluxos de lançamento manual/rápido.
 - [x] **Alta — SB-02:** corrigir o card de proventos do detalhe, que multiplica histórico público pela quantidade atual e pode incluir eventos anteriores à compra.

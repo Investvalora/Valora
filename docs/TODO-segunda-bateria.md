@@ -21,11 +21,12 @@ As referências à ERS nos relatórios não tornam toda ausência um erro de fun
 
 ## Defeitos confirmados no código — corrigir
 
-**Atualização de 30/10:** SB-01 a SB-08 implementados e testados localmente. Os comportamentos abaixo descrevem a origem dos defeitos; as soluções e verificações estão no [registro de correções](correcoes-segunda-bateria-2026-10-30.md). As marcações concluídas referem-se à implementação local, sem declarar alteração em produção.
+**Atualização de 30/10:** SB-01 a SB-08 implementados e testados localmente, com a migration já aplicada em produção. Os comportamentos abaixo descrevem a origem dos defeitos; as soluções e verificações estão no [registro de correções](correcoes-segunda-bateria-2026-10-30.md). O frontend ainda aguarda merge e publicação; as marcações não significam homologação completa do frontend publicado.
 
 Reteste posterior no navegador local autenticado confirmou rejeição de datas futuras, recebimentos com quantidades históricas, histórico público separado, rotas e percentuais. Regressão final: 808 aprovados e as 11 falhas anteriores. Limites e casos que aguardam publicação estão no mesmo registro.
 
-- [ ] **Integrar, aplicar a nova migration e publicar o lote**, seguido de reteste em produção. A migration 018 não foi alterada.
+- [x] **Aplicar a nova migration:** versão `20261030175828` aplicada em produção em 30/10 às 14:58 de Brasília; conferidos triggers, índices, permissões e RLS. A migration 018 não foi alterada.
+- [ ] **Integrar e publicar o frontend**, seguido de reteste em produção.
 
 ### Prioridade alta
 

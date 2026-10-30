@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShellNovo } from './AppShellNovo'
-vi.mock('../../modules/alerts/hooks/usePriceTargetMonitor', () => ({ usePriceTargetMonitor: () => ({}) }))
+const monitor = vi.hoisted(() => ({ isError: false, isFetching: false, refetch: vi.fn() }))
+vi.mock('../../modules/alerts/hooks/usePriceTargetMonitor', () => ({ usePriceTargetMonitor: () => monitor }))
 
 vi.mock('../../modules/auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1', email: 'teste@valora.local', user_metadata: {} } }),
@@ -43,4 +44,15 @@ describe('Shell do fluxo atual', () => {
     expect(screen.getByRole('banner')).toHaveClass('hidden', 'md:flex')
     expect(screen.getByRole('main')).toHaveClass('md:px-10')
   })
+})
+
+it('mostra falha do monitor e permite tentar novamente sem bloquear a pagina', () => {
+  monitor.isError = true
+  const { rerender } = render(<MemoryRouter><AppShellNovo /></MemoryRouter>)
+  expect(screen.getByRole('status', { name: 'Verificação de alertas' })).toHaveTextContent('Seus alertas existentes foram mantidos.')
+  fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+  expect(monitor.refetch).toHaveBeenCalledOnce()
+  monitor.isError = false
+  rerender(<MemoryRouter><AppShellNovo /></MemoryRouter>)
+  expect(screen.queryByRole('status', { name: 'Verificação de alertas' })).not.toBeInTheDocument()
 })

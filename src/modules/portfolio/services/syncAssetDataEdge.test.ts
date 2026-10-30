@@ -5,6 +5,7 @@ async function setup(owned: boolean, valid = true, chartSuccess = false) {
   let handler!: (request: Request) => Promise<Response>
   vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://db.test' : 'service' }, serve: (value: typeof handler) => { handler = value } })
   const fetcher = vi.fn(async (input: string, init?: RequestInit) => {
+    if (input.endsWith('/rpc/authorize_market_job')) return new Response('false')
     if (input.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'owner' }), { status: valid ? 200 : 401 })
     if (input.includes('/positions?')) { expect(input).toContain('user_id=eq.owner'); return new Response(owned ? '[{"ticker":"RADL3"}]' : '[]') }
     if (input.includes('/assets?')) return new Response('[{"ticker":"RADL3","type":"stock_br","currency":"BRL"}]')
@@ -31,7 +32,7 @@ async function setup(owned: boolean, valid = true, chartSuccess = false) {
 it('nega sessão inválida e ticker de outra conta antes de acessar fontes ou gravar', async () => {
   let test = await setup(true, false)
   expect((await test.invoke()).status).toBe(401)
-  expect(test.fetcher).toHaveBeenCalledTimes(1)
+  expect(test.fetcher).toHaveBeenCalledTimes(2)
   vi.resetModules()
   test = await setup(false)
   expect((await test.invoke()).status).toBe(403)

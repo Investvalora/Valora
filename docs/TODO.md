@@ -4,9 +4,10 @@
 
 - [x] Investigar RADL3 e completar histórico, eventos públicos e fundamentos disponíveis sem alterar lançamentos.
 - [x] Implementar sincronização após compras/importação, atualização pontual pelo menu e correção da primeira busca/classe incorreta; testes e backend publicados.
-- [ ] Integrar/publicar o frontend da branch `codex/sincronizacao-novos-ativos`; conferir automação após compra em massa de teste.
-- [ ] Revisar suporte a fundamentos parciais: MCD tem VPA negativo; CPTS11, GARE11, VGHF11 e XPSF11 não retornam VPA/P/VP na fonte gratuita consultada. Não inventar métricas nem aplicar Graham em dados incompatíveis.
-- [ ] Investigar HTTP 401 na chamada interna pelo Vault/pg_net; chamada autenticada pelo usuário funcionou. Não revogar conexões em uso.
+- [x] Integrar/publicar frontend: PR #97 mergeada; autocomplete, atualização manual, 5A e CDI conferidos em produção.
+- [ ] Conferir automação após compra em massa de teste; nenhuma compra fictícia foi gravada em produção.
+- [x] Fundamentos parciais: migration aplicada e backend publicado. Fonte real gravou cinco registros (MCD e quatro FIIs), mantendo ausências como NULL e VPA negativo real; Graham continua incompatível com VPA não positivo.
+- [x] HTTP 401 Vault/pg_net: validação do digest no banco publicada; chamada interna retornou HTTP 200 e gravou cinco registros, sem trocar/revogar credenciais.
 
 Detalhes: [sincronizacao-ativos-2026-10-30.md](sincronizacao-ativos-2026-10-30.md).
 
@@ -38,10 +39,10 @@ SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e
 
 ### Funcionalidades e melhorias para validar escopo
 
-- [ ] Busca global de ativos para consulta; favoritos; período 5A no detalhe; painel de fundamentos.
+- [ ] Busca global de ativos para consulta; favoritos; painel de fundamentos. Período 5A já publicado na PR #97.
 - [ ] Detalhamento do score por critério e score médio ponderado da carteira.
 - [ ] Alertas configuráveis de indicador/evento; edição de lançamentos; composição por setor; exclusão de carteira.
-- [ ] Mostrar/ocultar senha no cadastro e definir a regra para nomes exclusivamente numéricos.
+- [ ] Definir a regra para nomes exclusivamente numéricos. Mostrar/ocultar senha implementado na PR #97; reteste do cadastro publicado ainda pendente.
 
 Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas conforme decisão do responsável. Não alterar o método de rentabilidade acordado para atender comparações entre medidas diferentes.
 
@@ -79,6 +80,12 @@ Escopo do diagnóstico inicial: código, consulta do banco e leitura da tela pub
 ## Segurança
 
 Registro específico em [TODO-seguranca.md](TODO-seguranca.md).
+
+## Pendências técnicas — implementação local posterior à PR #97
+
+Lista/sino: polling de 30 segundos enquanto o app está visível e atualização ao recuperar foco. Monitor: verifica ao recuperar foco, apresenta falha segura e permite tentar novamente. Bazin: exige classe/moeda compatíveis; novas mensagens USD usam US$; registros legados não são assumidos como automáticos, e edições/decisões do usuário são preservadas. Agendamento de preços-alvo: SQL preparado para verificar a cada minuto e aproveitar o trigger de push existente.
+
+**Backend aplicado em produção após confirmação explícita do responsável.** Migration `20261030225247`, quatro funções publicadas, chamada interna bem-sucedida e três execuções do job conferidas. Frontend aguarda PR/merge; entrega push com app fechado ainda não homologada nesta etapa. A lógica SQL foi testada em tabelas temporárias, pois o ensaio com alertas fictícios em contas reais foi rejeitado pela aprovação automática e não executado. Evidências em [aplicacao-pendencias-tecnicas.md](aplicacao-pendencias-tecnicas.md). Os itens de alertas acima permanecem abertos até publicação e homologação.
 # Complemento local — 30/10/2026
 
 - [x] REQ-03: opção 5A no gráfico de cotação do detalhe, mantendo Tudo e os demais períodos. A consulta usa cinco anos de calendário e trata 29/02.

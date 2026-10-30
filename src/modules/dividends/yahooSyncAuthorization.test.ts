@@ -40,6 +40,7 @@ async function handler(slug: string, responseUser: boolean, owned: string[] = []
   let invoke!: (request: Request) => Promise<Response>
   vi.stubGlobal('Deno', { env: { get: (key: string) => key === 'SUPABASE_URL' ? 'https://auth' : 'service' }, serve: (callback: typeof invoke) => { invoke = callback } })
   const fetchMock = vi.fn(async (url: string) => {
+    if (url.endsWith('/rpc/authorize_market_job')) return new Response('false')
     if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'owner' }), { status: responseUser ? 200 : 401 })
     if (url.includes('/positions?')) { expect(url).toContain('user_id=eq.owner'); return new Response(JSON.stringify(owned.map(ticker => ({ ticker })))) }
     if (url.includes('/assets?')) return new Response('[]')
@@ -53,7 +54,7 @@ async function handler(slug: string, responseUser: boolean, owned: string[] = []
 it.each(['dividends', 'fundamentals'])('bloqueia token falso antes do catálogo ou gravação: %s', async (slug) => {
   const test = await handler(slug, false)
   expect((await test.invoke('ey-falso')).status).toBe(401)
-  expect(test.fetchMock).toHaveBeenCalledTimes(1)
+  expect(test.fetchMock).toHaveBeenCalledTimes(2)
 })
 it('fundamentos rejeita usuário comum mesmo com sessão válida', async () => {
   const test = await handler('fundamentals', true)
@@ -83,4 +84,14 @@ it.each(['dividends', 'fundamentals'])('job autenticado continua alcançando cat
   expect((await test.invoke('service')).status).toBe(200)
   expect(test.fetchMock).toHaveBeenCalledTimes(1)
   expect(test.fetchMock.mock.calls[0][0]).toContain('/assets?active=eq.true')
+})
+
+it('aceita credencial do Vault somente quando o banco confirma seu digest', async () => {
+  const fetchMock = vi.fn().mockResolvedValueOnce(new Response('{}', { status: 401 })).mockResolvedValueOnce(new Response('true'))
+  vi.stubGlobal('fetch', fetchMock)
+  expect(await yahooCaller(new Request('https://test', { headers: { authorization: 'Bearer vault-secret-example' } }), 'https://auth', 'service')).toEqual({ kind: 'service' })
+  const [url, init] = fetchMock.mock.calls[1]
+  expect(url).toBe('https://auth/rest/v1/rpc/authorize_market_job')
+  expect(init.body).toMatch(/"token_digest":"[a-f0-9]{64}"/)
+  expect(init.body).not.toContain('vault-secret-example')
 })

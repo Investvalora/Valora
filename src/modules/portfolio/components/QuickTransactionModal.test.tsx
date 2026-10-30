@@ -29,9 +29,10 @@ it('mostra nome/classe/moeda e só preenche preço após selecionar; trocar a bu
   mocks.suggestions = [{ ticker: 'GOOGL', name: 'Alphabet Inc Class A', type: 'stock_us', currency: 'USD' }]
   mocks.prices.GOOGL = 277.47
   const { rerender } = render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Tipo de ativo'), { target: { value: 'stock_us' } })
   fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'GOOGLE' } })
   const suggestion = await screen.findByRole('button', { name: 'GOOGL Alphabet Inc Class A Stocks US · USD' })
-  expect(screen.getByLabelText('Preço (BRL)')).toHaveValue(null)
+  expect(screen.getByLabelText('Preço (USD)')).toHaveValue(null)
   expect(mocks.latest.mock.calls.every(([ticker]) => ticker === '')).toBe(true)
   fireEvent.click(suggestion)
   expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('stock_us')
@@ -56,14 +57,22 @@ it('não transforma preço vazio em compra a preço zero', () => {
   expect(mocks.save).not.toHaveBeenCalled()
 })
 
-it('oferece a classe correta ao digitar RADL3 uma vez mesmo quando o formulário inicia em FIIs', async () => {
-  vi.spyOn(positionService, 'findAssetByTicker').mockResolvedValue({ ticker: 'RADL3', name: 'Raia Drogasil', type: 'stock_br', currency: 'BRL' })
+it.each([
+  ['stock_br', 'BTC', { ticker: 'BTC', name: 'Bitcoin', type: 'crypto', currency: 'USD' }],
+  ['etf_br', 'MXRF11', { ticker: 'MXRF11', name: 'Maxi Renda', type: 'fii', currency: 'BRL' }],
+])('filtra sugestoes e bloqueia salvar ativo de outra classe em %s', async (category, ticker, asset) => {
+  vi.spyOn(positionService, 'findAssetByTicker').mockResolvedValue(asset as Asset)
+  mocks.suggestions = [asset as Asset]
   render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
-  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: 'RADL3' } })
-  fireEvent.click(await screen.findByRole('button', { name: 'Selecionar RADL3 em Ações BR' }))
-  expect(screen.getByLabelText('Tipo de ativo')).toHaveValue('stock_br')
-  expect(screen.getByLabelText('Ativo')).toHaveValue('RADL3')
-  expect(screen.queryByText('Nenhum ativo encontrado nesta classe.')).not.toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Tipo de ativo'), { target: { value: category } })
+  fireEvent.change(screen.getByLabelText('Ativo'), { target: { value: ticker } })
+  await screen.findByText('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.')
+  expect(screen.queryByRole('button', { name: new RegExp(asset.name) })).not.toBeInTheDocument()
+  expect(screen.getByLabelText('Preço (BRL)')).toHaveValue(null)
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '1' } })
+  fireEvent.change(screen.getByLabelText('Preço (BRL)'), { target: { value: '10' } })
+  fireEvent.submit(document.getElementById('quick-transaction-form')!)
+  await waitFor(() => expect(screen.getAllByText('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.').length).toBeGreaterThan(0))
   expect(mocks.save).not.toHaveBeenCalled()
 })
 

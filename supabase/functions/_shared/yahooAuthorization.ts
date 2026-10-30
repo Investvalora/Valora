@@ -10,7 +10,17 @@ export async function yahooCaller(request: Request, url: string, serviceKey: str
   const timer = setTimeout(() => controller.abort(), 10000)
   try {
     const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: serviceKey, Authorization: `Bearer ${token}` }, signal: controller.signal })
-    if (!response.ok) return { kind: 'denied', status: response.status >= 500 ? 503 : 401 }
+    if (!response.ok) {
+      if (response.status >= 500) return { kind: 'denied', status: 503 }
+      // Scheduled jobs may use the legacy service credential kept in Vault.
+      // Verify its digest in the database; decoded JWT claims are never trusted.
+      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))), byte => byte.toString(16).padStart(2, '0')).join('')
+      const job = await fetch(`${url}/rest/v1/rpc/authorize_market_job`, {
+        method: 'POST', headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token_digest: digest }), signal: controller.signal,
+      })
+      return job.ok && await job.json() === true ? { kind: 'service' } : { kind: 'denied', status: 401 }
+    }
     const user = await response.json()
     return typeof user?.id === 'string' && user.id && !user.is_anonymous
       ? { kind: 'user', userId: user.id }

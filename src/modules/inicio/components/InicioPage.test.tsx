@@ -1,3 +1,4 @@
+import { AlertBell } from '../../../shared/components/AlertBell'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
@@ -43,15 +44,16 @@ vi.mock('../../auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { email: 'kaue@example.com', user_metadata: { full_name: 'Kauê Cardoso' } } }),
 }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({
-  useWallets: () => ({ selectedWallet: { id: walletId, name: walletId === 'wallet-a' ? 'Minha Carteira' : 'Reserva' } }),
+  useWallets: () => ({ selectedWallet: { color: 'gold', id: walletId, name: walletId === 'wallet-a' ? 'Minha Carteira' : 'Reserva' } }),
 }))
 vi.mock('../../dashboard/hooks/useDashboard', () => ({
   useDashboard: (id: string) => dashboardByWallet[id],
 }))
 vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => isMobile }))
 vi.mock('../../portfolio/components/MobileCarteiraHome', () => ({
-  MobileCarteiraHome: ({ dashboard, onAddTransaction, children }: { dashboard: DashboardData; onAddTransaction: () => void; children: ReactNode }) => (
+  MobileCarteiraHome: ({ dashboard, onAddTransaction, children, alertCount }: { alertCount: number; dashboard: DashboardData; onAddTransaction: () => void; children: ReactNode }) => (
     <section>
+      <AlertBell count={alertCount} />
       <h1>Carteiras mobile</h1>
       <p>Patrimônio mobile: {dashboard.totalPatrimonioBRL}</p>
       <button type="button" onClick={onAddTransaction}>+ Lançamento</button>

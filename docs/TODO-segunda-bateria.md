@@ -21,12 +21,12 @@ As referências à ERS nos relatórios não tornam toda ausência um erro de fun
 
 ## Defeitos confirmados no código — corrigir
 
-**Atualização de 30/10:** SB-01 a SB-08 implementados e testados localmente, com a migration já aplicada em produção. Os comportamentos abaixo descrevem a origem dos defeitos; as soluções e verificações estão no [registro de correções](correcoes-segunda-bateria-2026-10-30.md). O frontend ainda aguarda merge e publicação; as marcações não significam homologação completa do frontend publicado.
+**Atualização de 30/10:** SB-01 a SB-08 implementados; migration aplicada e PR #95 integrada pelo responsável. Frontend publicado e retestado na sessão autenticada, com testes transacionais de datas/alertas no servidor e rollback. Os comportamentos abaixo descrevem a origem dos defeitos; soluções, resultados e limites dos cenários não forçados estão no [registro de correções](correcoes-segunda-bateria-2026-10-30.md).
 
 Reteste posterior no navegador local autenticado confirmou rejeição de datas futuras, recebimentos com quantidades históricas, histórico público separado, rotas e percentuais. Regressão final: 808 aprovados e as 11 falhas anteriores. Limites e casos que aguardam publicação estão no mesmo registro.
 
 - [x] **Aplicar a nova migration:** versão `20261030175828` aplicada em produção em 30/10 às 14:58 de Brasília; conferidos triggers, índices, permissões e RLS. A migration 018 não foi alterada.
-- [ ] **Integrar e publicar o frontend**, seguido de reteste em produção.
+- [x] **Integrar e publicar o frontend:** PR #95 integrada pelo responsável; reteste de produção concluído no recorte documentado. Não foram forçados SB-03/SB-08 nem homologado PWA físico.
 
 ### Prioridade alta
 
@@ -48,13 +48,16 @@ Reteste posterior no navegador local autenticado confirmou rejeição de datas f
 ## Investigações — ainda não chamar de defeito confirmado
 
 - [x] **INV-01 — Diferença entre Início e Ativos: encerrada na versão atual.** D/DEF02: captura antiga de R$ 523,60 contra R$ 2.230,86. Reteste em produção em 30/10 confirmou valores coincidentes nas duas telas para Minha Carteira e Investidor10. Composição persistida do relatório conferida separadamente; dois hooks concordaram. Testados localmente compra, resgate parcial, filtros e atualização de cotação; 14 testes passaram. Após alinhamento com o responsável, o item sai das pendências ativas. A causa histórica exata e a correção específica responsável não foram determinadas; reabrir somente com nova reprodução. [Evidências](investigacao-patrimonio-segunda-bateria.md).
-- [ ] **INV-02 — Identificar a causa exata do erro de alerta do relatório E.** Solicitar/reproduzir ticker válido e configuração, verificar primeiro alerta versus segundo, resposta e restrição envolvida. Se for a unicidade de SB-06, encerrar como duplicata; caso contrário, manter achado separado. Não atribuir a falha automaticamente ao preço baixo.
-- [ ] **INV-03 — Conferir a alegação de gráfico sem dados no relatório F/DEF03.** A regra acordada usa meses encerrados; carteira iniciada no mês atual pode mostrar parcial. Verificar lançamentos e cobertura de preços/câmbio na massa original antes de concluir erro. Não inventar histórico nem remover avisos legítimos.
+- [ ] **INV-02 — Identificar a causa exata do erro de alerta do relatório E.** O relato não informa ticker nem estado anterior. A unicidade foi corrigida em SB-06 e conferida no servidor. Em 30/10, três testes do formulário confirmaram mensagens específicas para duplicidade/ativo inexistente, mensagem segura para falha inesperada e nova tentativa sem perder campos. A massa original ainda é necessária para atribuir a causa; não atribuir automaticamente ao preço baixo.
+- [ ] **INV-03 — Conferir a alegação de gráfico sem dados no relatório F/DEF03.** Revisão de 30/10 confirmou em `usePerformance` o uso de meses encerrados e o parcial quando não existem pontos anteriores ao mês atual. Há cobertura automatizada para primeiro mês fechado, âncora da linha, lacunas e ausência de câmbio. Ainda faltam lançamentos e cobertura histórica da massa original para concluir defeito. Não inventar histórico nem remover avisos legítimos.
 - [x] **INV-04 — Executar e classificar inicialmente a suíte atual.** A relata 11 falhas em 788 testes numa versão anterior. Nesta revisão: **798 passaram e 11 falharam, em 105 arquivos**. Detalhes abaixo; recuperação da cobertura permanece em QA-01. Não são 11 defeitos do produto comprovados.
 
 ### Qualidade e cobertura — prioridade média
 
-- [ ] **QA-01 — Recuperar os quatro arquivos de teste que falham e retestar gesto em aparelho.** `StrategyManager.test.tsx`: cinco falhas por ausência de Router; os testes também esperam modal onde o fluxo atual navega para página. `InicioPage.test.tsx`: duas falhas porque a carteira simulada não informa `color`, usado pela paleta. `AssetFiltersPanel.test.tsx`: uma falha porque o lote simulado não informa `type`, usado por `FixedIncomeActions`. `MobileCarteiraHome.test.tsx`: três falhas de gesto/transformação; o componente passou a restringir a zona de início do gesto, mas a massa não prepara sua geometria. Atualizar fixtures/contextos preservando as asserções de comportamento e conferir o gesto real no PWA antes de decidir entre regressão e expectativa desatualizada. Não simplesmente remover testes ou funcionalidades para deixá-los verdes.
+- [x] **QA-01a — Recuperar os quatro arquivos de teste que falhavam.** Router/formulário atual nas estratégias, carteira com cor, lote com tipo e geometria da zona de gesto corrigidos nos testes, preservando os comportamentos verificados. Corrigida também falha real de feedback ao alterar a exibição da estratégia. Regressão: **820/820 testes em 106 arquivos**, mais três novos testes de mensagens/recuperação do formulário de alerta executados separadamente; build/PWA e lint dos arquivos alterados aprovados.
+- [ ] **QA-01b — Retestar gesto no PWA instalado em aparelho físico.** Testes automatizados cobrem abertura, arrasto, seleção, retorno, gesto fora da área e rolagem vertical; não substituem a homologação em aparelho. Nenhuma alteração de comportamento do gesto foi necessária nesta revisão.
+
+Complemento de 30/10: interface local em 390 × 844 conferida para sino, seleção de carteira pelo botão lateral, abertura de MXRF11 e validação de alerta sem preço. Gráfico de Minha Carteira preenchido até setembro; sem reprodução de tela vazia. Dois novos testes do hook confirmam meses encerrados/parcial inicial e dois testes das telas legadas confirmam erro de provedor seguro com nova tentativa. O gesto físico, o cadastro real com sessão imediata e indisponibilidade real de provedor não foram forçados. [Registro](correcoes-segunda-bateria-2026-10-30.md).
 
 ## Funcionalidades ausentes / melhorias — validar escopo
 
@@ -72,6 +75,7 @@ Ausência confirmada no fluxo não significa cálculo errado. Os identificadores
 - [ ] **REQ-10 — Excluir carteira pela interface.** D/DEF01. `WalletsPage.tsx` oferece criar, selecionar e editar. Incluir como funcionalidade solicitada, com regra para carteira principal e dados vinculados antes de implementar exclusão.
 - [ ] **UX-01 — Mostrar/ocultar senha no cadastro e confirmação.** G/DF57. O login já tem o controle. É melhoria de usabilidade; não vulnerabilidade por si só.
 - [ ] **UX-02 — Definir validação de nome com ao menos uma letra.** G/DF56. `profileSchema` limita tamanho, mas aceita `123456`. É qualidade cadastral, sem comprovação de impacto em autenticação. Se adotado, respeitar letras Unicode, nomes diversos e manter a regra alinhada ao perfil e cadastro; não aplicar uma lista restritiva de nomes.
+- [ ] **UX-03 — Padronizar pontos percentuais no detalhe.** Observado na homologação de 30/10: “vs CDI” ainda usa ponto decimal em `AtivoDetailPage.tsx`. Aplicar formatação pt-BR sem alterar o cálculo; é complemento de apresentação fora das duas telas cobertas por SB-07.
 
 ## Já corrigidos — não duplicar na TODO de implementação
 

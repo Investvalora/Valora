@@ -6,9 +6,9 @@ Triagem completa, fontes e critérios de aceite em [TODO-segunda-bateria.md](TOD
 
 ### Defeitos confirmados
 
-SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e conferida em produção, frontend ainda aguarda merge/publicação. [Registro e validação](correcoes-segunda-bateria-2026-10-30.md).
+SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e PR #95 integrada pelo responsável. Frontend publicado e retestado no recorte documentado, com cenários não forçados explicitados. [Registro e validação](correcoes-segunda-bateria-2026-10-30.md).
 
-- [ ] **Publicar o frontend:** integração pelo responsável e homologação em produção. Nova migration já aplicada; a migration 018 permanece intocada.
+- [x] **Publicar o frontend e retestar o recorte disponível:** versão publicada conferida na sessão autenticada; validação de datas/alertas no servidor testada com rollback. Cenários não forçados e PWA físico registrados no relatório. A migration 018 permanece intocada.
 
 - [x] **Alta — SB-01:** impedir que compras com data futura alterem a carteira atual nos fluxos de lançamento manual/rápido.
 - [x] **Alta — SB-02:** corrigir o card de proventos do detalhe, que multiplica histórico público pela quantidade atual e pode incluir eventos anteriores à compra.
@@ -23,7 +23,8 @@ SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e
 
 - [x] **INV-01 — Encerrado na versão atual:** Início e Ativos concordaram no reteste em produção de Minha Carteira e Investidor10; 14 testes locais passaram. Retirado das pendências ativas após alinhamento com o responsável em 30/10. A causa exata da captura antiga não foi determinada. [Investigação](investigacao-patrimonio-segunda-bateria.md).
 - [ ] **Média — INV-02/03:** identificar a causa do erro de criação de alerta sem massa completa e conferir o relato de gráfico vazio sob a regra de meses fechados.
-- [ ] **Média — QA-01:** recuperar a suíte de regressão: 798 testes passaram e 11 falharam em quatro arquivos; há fixtures/contextos desatualizados e três casos de gesto móvel a retestar. Não são 11 defeitos de produto comprovados.
+- [x] **QA-01a:** suíte recuperada: 820/820 testes aprovados em 106 arquivos, mais três novos testes de alerta aprovados separadamente. Build/PWA e lint aprovados. Restaurado aviso de falha na exibição de estratégias.
+- [ ] **Média — QA-01b:** homologar gesto no PWA instalado em aparelho físico; casos automatizados de abertura/arrasto e gestos negativos passaram.
 
 ### Funcionalidades e melhorias para validar escopo
 

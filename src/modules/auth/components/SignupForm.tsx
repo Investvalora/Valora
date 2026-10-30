@@ -7,7 +7,7 @@ import { PASSWORD_HELP } from '../schemas/passwordSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Eye, EyeOff } from 'lucide-react'
 import { ResendConfirmation } from './ResendConfirmation'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
@@ -19,6 +19,8 @@ export function SignupForm() {
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [existingEmail, setExistingEmail] = useState(false)
   const [confirmationEmail, setConfirmationEmail] = useState<string>('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const {
     register,
@@ -107,14 +109,24 @@ export function SignupForm() {
 
           <div>
             <label htmlFor="password" className={authLabel}>Senha</label>
-            <input id="password" type="password" autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={authInput} placeholder="Mínimo 8 caracteres" />
+            <div className="relative">
+              <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={`${authInput} pr-12`} placeholder="Mínimo 8 caracteres" />
+              <button type="button" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9b9ca1] hover:text-white">
+                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
             <p className="mt-2 text-xs text-white/50">{PASSWORD_HELP}</p>
             {errors.password && <p id="signup-password-error" className={authFieldError}>{errors.password.message}</p>}
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className={authLabel}>Confirmar senha</label>
-            <input id="confirmPassword" type="password" autoComplete="new-password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined} className={authInput} placeholder="Repita a senha" />
+            <div className="relative">
+              <input id="confirmPassword" type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined} className={`${authInput} pr-12`} placeholder="Repita a senha" />
+              <button type="button" aria-label={showConfirmation ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'} aria-pressed={showConfirmation} onClick={() => setShowConfirmation(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9b9ca1] hover:text-white">
+                {showConfirmation ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
             {errors.confirmPassword && <p id="signup-confirm-error" className={authFieldError}>{errors.confirmPassword.message}</p>}
           </div>
 

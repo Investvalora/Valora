@@ -1,4 +1,5 @@
 import { AssetValuationNotice } from './AssetValuationNotice'
+import { AssetDataSyncNotice } from '../../portfolio/components/AssetDataSyncNotice'
 import { FixedIncomePositions } from './FixedIncomePositions'
 import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
@@ -146,6 +147,7 @@ export function AtivosPosicoes() {
 
   return (
     <div className="flex flex-col gap-5">
+      <AssetDataSyncNotice tickers={tickers} />
       {strategySettings.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar suas estratégias. As referências personalizadas estão indisponíveis.</p>}
       {valuationLoading && <p role="status" className="text-xs text-white/45">Carregando histórico de mercado de 12 meses para os preços de referência…</p>}
       {valuationError && <p role="status" className="text-xs text-amber-300">Alguns históricos de proventos não puderam ser consultados. Os preços de referência afetados ficam indisponíveis; registros parciais não são usados como total anual.</p>}

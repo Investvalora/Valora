@@ -1,0 +1,2 @@
+# Auth and portfolio ownership are checked inside the handler.
+verify_jwt = false

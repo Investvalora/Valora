@@ -6,6 +6,7 @@ import { AtivoDetailPage } from './AtivoDetailPage'
 import { valueAssets } from '../../ativos/assetValuation'
 import type { FixedIncomePosition, LatestQuote, PositionWithAsset } from '../../portfolio/types'
 
+const history = vi.hoisted(() => vi.fn())
 const create = vi.hoisted(() => vi.fn())
 const valuation = vi.hoisted(() => vi.fn())
 const received = vi.hoisted(() => vi.fn())
@@ -18,10 +19,10 @@ vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ select
 vi.mock('../../ativos/hooks/useAtivosValuation', () => ({ useAtivosValuation: (...args: unknown[]) => valuation(...args) }))
 vi.mock('../hooks/useDailyChange', () => ({ useDailyChange: () => -2.5 }))
 vi.mock('../hooks/useAssetDetail', () => ({ useAssetDetail: () => ({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } }) }))
-vi.mock('../hooks/usePriceHistory', () => ({ usePriceHistory: () => ({ data: [] }) }))
+vi.mock('../hooks/usePriceHistory', () => ({ usePriceHistory: (...args: unknown[]) => { history(...args); return { data: [] } } }))
 vi.mock('../hooks/useAssetDividends', () => ({ useAssetDividends: () => marketDividends() }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [] }) }))
-vi.mock('../../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({ data: [] }) }))
+vi.mock('../../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({ data: [{ ticker: 'PETR4', close: 20 }] }) }))
 vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: () => new Map() }))
 vi.mock('../../portfolio/hooks/useTransactions', () => ({ useAllTransactions: () => ({ data: [] }) }))
 vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ data: [] }) }))
@@ -31,7 +32,7 @@ vi.mock('../../score/hooks/useCalculateScore', () => ({ useCalculateScore: () =>
 vi.mock('../../valuation/hooks/useBazin', () => ({ useBazin: () => ({ bazinByTicker: new Map() }) }))
 vi.mock('../../alerts/hooks/useAlerts', () => ({ useAlerts: () => ({ data: [] }) }))
 vi.mock('../../alerts/hooks/useAlertMutations', () => ({ useCreatePriceTargetAlert: () => ({ mutateAsync: create, isPending: false }) }))
-vi.mock('../../performance/hooks/usePerformance', () => ({ usePerformance: () => ({ summary: {} }) }))
+vi.mock('../../performance/hooks/usePerformance', () => ({ usePerformance: () => ({ summary: { cdiReturnPct: 0.1 } }) }))
 vi.mock('../../portfolio/components/AddTransactionModal', () => ({ AddTransactionModal: ({ isOpen, ticker, assetName, assetType, onClose }: { isOpen: boolean; ticker: string; assetName: string; assetType: string; onClose: () => void }) => isOpen ? <div role="dialog" aria-label="Lançamento"><p>{ticker} {assetName} {assetType}</p><button onClick={onClose}>Cancelar lançamento</button></div> : null }))
 
 it('abre lançamento preenchido e cria alerta com o ticker do detalhe, permitindo corrigir uma falha', async () => {
@@ -78,7 +79,7 @@ it('mostra recebimentos históricos elegíveis e preserva o histórico público 
   expect(screen.queryByRole('columnheader', { name: 'Total recebido' })).not.toBeInTheDocument()
 })
 
-it('mostra peso sobre BRL, USD e renda fixa da carteira selecionada e separa variação diária do custo', () => {
+it('mostra peso sobre BRL, USD e renda fixa da carteira selecionada e separa variação diária do custo', async () => {
   const positions = [
     { id: 'a', ticker: 'PETR4', quantity: 10, average_price: 10, asset: { currency: 'BRL', type: 'stock_br' } },
     { id: 'b', ticker: 'AAPL', quantity: 1, average_price: 20, asset: { currency: 'USD', type: 'stock_us' } },
@@ -89,4 +90,15 @@ it('mostra peso sobre BRL, USD e renda fixa da carteira selecionada e separa var
   expect(valuation).toHaveBeenCalledWith('w1', true)
   expect(screen.getByText('+50,00%')).toBeInTheDocument()
   expect(screen.getByText('-2,50% no último fechamento')).toBeInTheDocument()
+  await userEvent.setup().click(screen.getByRole('tab', { name: 'Rentab.' }))
+  expect(screen.getByText('+90,00 p.p.')).toBeInTheDocument()
+})
+
+it('seleciona cinco anos sem substituir Tudo', async () => {
+  render(<MemoryRouter initialEntries={['/ativo/PETR4']}><Routes><Route path="/ativo/:ticker" element={<AtivoDetailPage />} /></Routes></MemoryRouter>)
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: '5A' }))
+  expect(history).toHaveBeenLastCalledWith('PETR4', '5A')
+  await user.click(screen.getByRole('button', { name: 'Tudo' }))
+  expect(history).toHaveBeenLastCalledWith('PETR4', 'Tudo')
 })

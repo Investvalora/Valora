@@ -1,5 +1,15 @@
 # TODO do Valora
 
+## Cadastro e sincronização de ativos — 30/10/2026
+
+- [x] Investigar RADL3 e completar histórico, eventos públicos e fundamentos disponíveis sem alterar lançamentos.
+- [x] Implementar sincronização após compras/importação, atualização pontual pelo menu e correção da primeira busca/classe incorreta; testes e backend publicados.
+- [ ] Integrar/publicar o frontend da branch `codex/sincronizacao-novos-ativos`; conferir automação após compra em massa de teste.
+- [ ] Revisar suporte a fundamentos parciais: MCD tem VPA negativo; CPTS11, GARE11, VGHF11 e XPSF11 não retornam VPA/P/VP na fonte gratuita consultada. Não inventar métricas nem aplicar Graham em dados incompatíveis.
+- [ ] Investigar HTTP 401 na chamada interna pelo Vault/pg_net; chamada autenticada pelo usuário funcionou. Não revogar conexões em uso.
+
+Detalhes: [sincronizacao-ativos-2026-10-30.md](sincronizacao-ativos-2026-10-30.md).
+
 ## Segunda bateria — revisão de 30/10/2026
 
 Triagem completa, fontes e critérios de aceite em [TODO-segunda-bateria.md](TODO-segunda-bateria.md). Duplicatas foram consolidadas; correções já integradas não foram reabertas como trabalho novo.
@@ -69,3 +79,10 @@ Escopo do diagnóstico inicial: código, consulta do banco e leitura da tela pub
 ## Segurança
 
 Registro específico em [TODO-seguranca.md](TODO-seguranca.md).
+# Complemento local — 30/10/2026
+
+- [x] REQ-03: opção 5A no gráfico de cotação do detalhe, mantendo Tudo e os demais períodos. A consulta usa cinco anos de calendário e trata 29/02.
+- [x] UX-01: mostrar/ocultar senha e confirmação no cadastro, com controles independentes.
+- [x] UX-03: comparação vs CDI no detalhe com vírgula decimal e duas casas, preservando o cálculo.
+
+Esses três itens foram implementados na branch `codex/sincronizacao-novos-ativos`; aguardam publicação. Validação local: sete testes aprovados entre cadastro, consulta histórica e detalhe do ativo; lint dos arquivos envolvidos e build de produção aprovados. Nenhuma migration ou escrita financeira foi realizada neste complemento.

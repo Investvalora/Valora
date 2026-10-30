@@ -261,9 +261,21 @@ Deno.serve(async (req: Request) => {
   if (caller.kind === 'denied') return jsonResp({ error: 'Sessão inválida ou serviço de autenticação indisponível.' }, caller.status)
   if (caller.kind !== 'service') return jsonResp({ error: 'Sincronização restrita ao serviço interno.' }, 403)
 
+  let requested: string[] | undefined
+  try {
+    const rawBody = await req.text()
+    const body = rawBody.trim() ? JSON.parse(rawBody) : {}
+    if (body.tickers !== undefined) {
+      if (!Array.isArray(body.tickers) || !body.tickers.length || body.tickers.length > 20 || body.tickers.some((ticker: unknown) => typeof ticker !== 'string' || !/^[A-Z0-9][A-Z0-9.\-]{0,19}$/.test(ticker))) {
+        return jsonResp({ error: 'Tickers inválidos.' }, 400)
+      }
+      requested = [...new Set(body.tickers as string[])]
+    }
+  } catch { return jsonResp({ error: 'Body inválido.' }, 400) }
+
   // Buscar todos os ativos ativos do catálogo
   const assetsResp = await rest(
-    `assets?active=eq.true&type=in.(${FUNDAMENTAL_ASSET_TYPES})&select=ticker,currency`,
+    `assets?active=eq.true&type=in.(${FUNDAMENTAL_ASSET_TYPES})&select=ticker,currency${requested ? `&ticker=in.(${requested.map(encodeURIComponent).join(',')})` : ''}`,
   )
   if (!assetsResp.ok) return jsonResp({ error: 'Falha ao ler catálogo de ativos.' }, 500)
   const assets = (await assetsResp.json()) as Array<{ ticker: string; currency: string }>

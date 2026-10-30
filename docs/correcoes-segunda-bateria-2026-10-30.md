@@ -101,3 +101,15 @@ Cobertura nova, executada separadamente da regressão completa anterior:
 São **quatro casos novos aprovados** nesta continuação, além dos três testes de alerta e da regressão de 820 casos já registrados. Não representam nova execução integral de 827 testes. INV-02/03 continuam dependentes da massa original para atribuir causa histórica. Não foram gravados lançamentos nem novos alertas neste ensaio de interface.
 
 Execução final conjunta dos dois arquivos complementares: **seis testes aprovados**, incluindo os dois casos preexistentes do hook (`output/auditoria-segunda-bateria/reteste-complementar-performance.log`). Build TypeScript/Vite/PWA e lint dos dois arquivos aprovados após adaptar as asserções à versão JavaScript configurada no projeto (`build-testes-complementares.log`). Nenhum código funcional foi alterado nesta etapa de testes complementares.
+
+## Conferência em produção após PR #96 — 30/10/2026
+
+PR #96 integrada pelo responsável no commit `a1874f0`. Conferência no domínio `https://investvalora.vercel.app`, em sessão autenticada, com carteira Investidor10. A consulta de deployments do GitHub para esse SHA não retornou registro; os checks anteriores da Vercel eram bem-sucedidos, mas não comprovam isoladamente a promoção desse commit para produção. A verificação abaixo comprova os fluxos observados no domínio público, sem atribuir um SHA ao bundle.
+
+- Estratégias carregaram; “Nova estratégia” abriu `/analise/estrategias/nova` com formulário do zero, seleção de classes e botão de criar desabilitado sem os dados necessários. Cancelado sem salvar.
+- Rentabilidade comparada apresentou carteira e índices, com período até 30/09/2026. Outubro permaneceu sem resultado na tabela de meses encerrados.
+- Em largura 390 × 844, MXRF11 abriu pelo link da lista de ativos e apresentou resumo, cotação, posição, recebimentos e abas.
+- “Criar alerta” no ativo trouxe MXRF11 preenchido. Envio sem preço foi rejeitado com “Informe um preço-alvo válido.”; cancelado sem criar alerta.
+- Início móvel apresentou sino; botão lateral abriu as cinco carteiras e “Voltar” retornou ao início. Carteira selecionada permaneceu Investidor10; tamanho original do navegador restaurado.
+
+Não foram alterados lançamentos, alertas ou estratégias por este ensaio. O caminho de falha ao salvar a exibição de estratégia não foi provocado em produção; permanece coberto pelo teste local. Também não foram provocadas falhas reais de provedor ou testado gesto em PWA físico. INV-02/03 não são encerradas pela ausência de reprodução nesta massa.

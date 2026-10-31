@@ -297,4 +297,15 @@ describe('Carteira inicial no celular', () => {
     expect(track.style.transform).toContain('0%')
     expect(screen.getByRole('heading', { name: 'Olá, Samuel' })).toBeInTheDocument()
   })
+
+  it('restaura a posição ao cancelar o arrasto e permite abrir pela área lateral', () => {
+    renderHome()
+    const page = screen.getByTestId('wallet-slide-track').closest('section')!
+    fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
+    fireEvent.touchMove(page, { touches: [{ clientX: 180, clientY: 150 }] })
+    fireEvent.touchCancel(page)
+    expect(screen.getByTestId('wallet-slide-track').style.transform).toContain('0%')
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carteiras' }))
+    expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
+  })
 })

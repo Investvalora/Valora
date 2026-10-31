@@ -125,9 +125,27 @@ Não foram alterados lançamentos, alertas ou estratégias por este ensaio. O ca
 
 O autocomplete do lançamento priorizava a classe selecionada, mas incluía as demais. Agora lista apenas ativos do tipo escolhido, mantém a moeda da classe quando o ticker é incompatível e bloqueia o salvamento de ativo de outra classe. A busca externa permanece disponível; resultado incompatível orienta alterar o tipo, sem trocá-lo automaticamente. Trocar o tipo também cancela resultados externos pendentes.
 
-Regressão cobre BTC em Ações BR e MXRF11 em ETFs BR, além de seleção válida, preço manual e criptomoedas em BRL. Correção local, ainda não publicada.
+Regressão cobre BTC em Ações BR e MXRF11 em ETFs BR, além de seleção válida, preço manual e criptomoedas em BRL. Publicada na PR #98 e conferida na conta real após o merge.
 ## Pendências técnicas preparadas — 30/10/2026
 
 Implementações locais para atualização de lista/sino, retorno ao foco, falhas do monitor, elegibilidade/moeda Bazin, preservação de edições, fundamentos parciais e validação interna pelo Vault. Migration nova prepara monitoramento SQL por minuto e reutiliza os triggers de push existentes. Nenhuma alteração na migration 018.
 
 Regressão completa: **855/855 testes em 116 arquivos**, lint e build TypeScript/Vite/PWA aprovados. Após confirmação explícita, migration `20261030225247` aplicada e quatro funções publicadas. Chamada interna retornou HTTP 200 com cinco fundamentos gravados; job por minuto conferido com três execuções bem-sucedidas. Condições do monitor testadas em tabelas temporárias sem push. O ensaio com alertas fictícios em contas reais foi rejeitado pela aprovação automática e não executado. Nenhuma compra fictícia foi criada; teste após compra e entrega push com app fechado permanecem pendentes. Frontend aguarda merge pelo responsável. Evidências em [aplicacao-pendencias-tecnicas.md](aplicacao-pendencias-tecnicas.md).
+
+## Homologação após merge — 31/10/2026
+
+PR #98 integrada e deploy do commit conferido. Após autorização para testar na conta do responsável, o alerta temporário disparou pelo cron às 12h49 de Brasília com a página fora do app. Push retornou quatro envios aceitos, zero falhas; exibição confirmada pelo responsável. Lista e sino mostraram o novo alerta; alteração externa posterior apareceu sem reload. Teste encerrado como Ignorado, com retenção normal de três dias. Investimentos e lançamentos preservados. O teste de compra e homologação física de PWA específico permanecem separados. Detalhes no roteiro de aplicação acima.
+
+### Continuação de 31/10 — pendências técnicas
+
+Teste de sincronização após compra concluído em carteira temporária, com criação e limpeza especificamente autorizadas: 1 FAST fictício, um salvamento, carga automática de 1.255 preços e um fundamento; eventos públicos passaram de oito a 21. Limpeza conferida com zero carteira/transação/posição temporária, sem alterar as carteiras existentes. Dados públicos mantidos e Investidor10 restaurada.
+
+Cadastro publicado conferido em origem separada do mesmo deployment: senha e confirmação têm controles independentes; nenhum cadastro enviado. Lote legado de 25 alertas Bazin encerrado como Ignorado após confirmação específica, sem sobrescrever textos ou gerar pushes. A tentativa inicial com contagem incorreta de 24 foi abortada sem alterações.
+
+Registrado novo ajuste de apresentação: moeda do valor de lançamentos USD no detalhe. Não alterado neste reteste; não é mudança no valor cadastrado. PWA físico continua dependente de aparelho. Resultados detalhados em `aplicacao-pendencias-tecnicas.md`.
+
+### Reteste e ajuste local da moeda — 31/10
+
+Corrigidas somente as chamadas de formatação de preço/total na prévia e aba de lançamentos do detalhe: recebem a moeda do ativo. Valores e fórmulas preservados, sem conversão cambial. Seis testes do detalhe passaram, incluindo BRL/USD; lint e build TypeScript/Vite/PWA aprovados.
+
+No navegador local autenticado, em 390 × 844, AAPL mostrou preço $302.60 e total $20.00, com largura de página igual ao viewport. BBAS3 manteve R$ 16,27 e total R$ 244,05 para quantidade 15. Viewport original restaurado. Nenhum lançamento criado, alterado ou excluído neste ensaio. Correção local aguardando PR/publicação; gestos e notificações em PWA físico continuam fora desta validação responsiva.

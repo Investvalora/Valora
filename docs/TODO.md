@@ -5,7 +5,7 @@
 - [x] Investigar RADL3 e completar histórico, eventos públicos e fundamentos disponíveis sem alterar lançamentos.
 - [x] Implementar sincronização após compras/importação, atualização pontual pelo menu e correção da primeira busca/classe incorreta; testes e backend publicados.
 - [x] Integrar/publicar frontend: PR #97 mergeada; autocomplete, atualização manual, 5A e CDI conferidos em produção.
-- [ ] Conferir automação após compra em massa de teste; nenhuma compra fictícia foi gravada em produção.
+- [x] Conferir automação após compra: em 31/10, um lançamento fictício de 1 FAST na carteira temporária autorizada iniciou sincronização sem ação manual. Preços 0→1.255, fundamentos 0→1, eventos públicos 8→21. Carteira, transação e posição de teste removidas com autorização; Investidor10 restaurada.
 - [x] Fundamentos parciais: migration aplicada e backend publicado. Fonte real gravou cinco registros (MCD e quatro FIIs), mantendo ausências como NULL e VPA negativo real; Graham continua incompatível com VPA não positivo.
 - [x] HTTP 401 Vault/pg_net: validação do digest no banco publicada; chamada interna retornou HTTP 200 e gravou cinco registros, sem trocar/revogar credenciais.
 
@@ -42,7 +42,7 @@ SB-01 a SB-08 implementados e testados localmente em 30/10; migration aplicada e
 - [ ] Busca global de ativos para consulta; favoritos; painel de fundamentos. Período 5A já publicado na PR #97.
 - [ ] Detalhamento do score por critério e score médio ponderado da carteira.
 - [ ] Alertas configuráveis de indicador/evento; edição de lançamentos; composição por setor; exclusão de carteira.
-- [ ] Definir a regra para nomes exclusivamente numéricos. Mostrar/ocultar senha implementado na PR #97; reteste do cadastro publicado ainda pendente.
+- [ ] Definir a regra para nomes exclusivamente numéricos. Mostrar/ocultar senha e confirmação conferidos em 31/10 no deployment publicado, sem criar conta nem encerrar sessão real.
 
 Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas conforme decisão do responsável. Não alterar o método de rentabilidade acordado para atender comparações entre medidas diferentes.
 
@@ -70,16 +70,26 @@ Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas con
 ## Alertas — diagnóstico de 28/10/2026
 
 - [x] **Concluir o teste de entrega push no dispositivo.** Infraestrutura aplicada em 28/10/2026, função `send-alert-push` v3 e variável `VITE_VAPID_PUBLIC_KEY` configuradas em produção. Após habilitar o serviço de mensagens push do Google no Brave, a inscrição foi salva e o teste retornou HTTP 200 (`sent:1,failed:0`). O responsável confirmou a exibição de “Novo alerta no Valora” no computador. Alerta temporário removido; inscrição preservada. Monitoramento automático de preços com app fechado continua no item separado abaixo. Detalhes em [push-notifications.md](push-notifications.md).
-- [ ] **Atualizar lista e sino quando o servidor mudar alertas.** As consultas não têm polling nem assinatura Realtime. O monitor invalida o cache quando sua própria verificação dispara alertas; alterações externas podem permanecer fora da tela. Implementar atualização e validar dois clientes autenticados da mesma conta.
-- [ ] **Corrigir o retorno ao app e apresentar falhas do monitor.** `usePriceTargetMonitor` não sobrescreve `refetchOnWindowFocus: false` do QueryClient, apesar do comentário prometer verificação ao recuperar foco. Seu erro também não é apresentado no AppShell. Testar foco, indisponibilidade e recuperação.
-- [ ] **Revisar elegibilidade, moeda e validade dos alertas Bazin.** A tela ainda mostra alerta Bazin para ETH e o gerador não filtra a classe de ativo; textos usam `R$` fixo, inclusive para ativos USD. Alertas existentes podem persistir quando deixam de ser candidatos. Corrigir sem apagar ou substituir edições e decisões do usuário indiscriminadamente.
-- [ ] **Definir e implementar monitoramento com app fechado.** O banco não possui agendamento de geração/verificação de preços-alvo; o único job de alertas encontrado é a limpeza dos ignorados. Push por si só não executa a avaliação de preços. Validar geração e entrega com a aba fechada e isolamento entre contas.
+- [x] **Atualizar lista e sino quando o servidor mudar alertas.** PR #98 integrada. Em 31/10, alteração externa do alerta temporário apareceu na conta real sem recarregar; sino mostrou 1 novo e voltou a zero após encerramento. Dois clientes cobertos por teste automatizado.
+- [x] **Corrigir o retorno ao app e apresentar falhas do monitor.** PR #98: foco explícito, mensagem segura e nova tentativa. Foco e falha/recuperação cobertos por testes; retorno ao app real mostrou o alerta disparado. Não foi provocada indisponibilidade real do provedor.
+- [x] **Revisar alertas Bazin legados.** Em 31/10, lote exato de 25 registros de 27/10 encerrado como Ignorado após confirmação específica do responsável. Textos preservados, sem novos pushes; retenção normal de três dias. A primeira tentativa, com contagem incorreta de 24, foi abortada antes de modificar dados. PR #98 mantém a proteção de edições e a elegibilidade/moeda dos novos alertas.
+- [x] **Monitoramento de preços-alvo com app fechado.** Em 31/10, sem aba do Valora aberta no app, job disparou o alerta temporário às 12h49 (Brasília), com HTTP 200, quatro envios aceitos e zero falhas. Responsável confirmou a notificação. Isolamento/status/datas cobertos por SQL em tabelas temporárias. Alerta de teste encerrado como ignorado; limpeza normal após três dias. PWA em aparelho específico não foi testado separadamente.
 
 Escopo do diagnóstico inicial: código, consulta do banco e leitura da tela publicada, sem alterações. A lista e o sino carregaram na sessão conferida (um alerta novo); não foi reproduzida uma divergência de contador nessa sessão. Na etapa posterior, autorizada pelo responsável, a infraestrutura push foi aplicada e testada conforme o item acima; somente um alerta temporário de teste foi criado e removido. Os demais itens de alertas continuam abertos.
 
 ## Segurança
 
 Registro específico em [TODO-seguranca.md](TODO-seguranca.md).
+
+## Achado complementar no reteste de 31/10
+
+- [x] **Contas antigas sem perfil interno:** proteção aplicada em produção em 31/10 pela migration `20261031171016`. Perfil ausente recuperado a partir do Auth no login ou antes de criar carteira; perfis existentes preservados e RLS mantido. Testes com rollback cobriram recuperação, idempotência, carteira padrão, cliente já conectado, bloqueio entre contas e acesso anônimo. Zero perfis pendentes e zero fixtures após o teste. [Detalhes](recuperacao-perfil-carteiras.md).
+
+- [ ] **Publicar e retestar — gráfico com poucos meses:** correção local concluída e conferida no Chrome do emulador: coluna 1M visível sem arrastar, inclusive ao filtrar Ações BR. Largura proporcional e reinício da rolagem ao trocar filtros/carteira; valores e cálculo preservados. [Investigação](reteste-pwa-emulador-2026-10-31.md).
+- [ ] **Publicar e retestar — abertura pelo push:** foco/navegação com fallback implementados e testados. Aviso local autorizado abriu `/alertas` no emulador com o app em segundo plano, sem criar alerta no banco. Transporte FCM em produção já validado separadamente (cinco envios aceitos). Falta reteste da correção publicada no PWA instalado.
+- [ ] **Publicar e retestar — gesto lento:** correção local passou com arrasto de 1.100 ms, retorno à carteira e rolagem vertical. Área lateral aceita toque e usa pan-y sem bloquear rolagem horizontal dos gráficos. Homologação física e gesto da borda nativa continuam separados.
+
+- [x] Correção local da moeda na prévia e na aba de lançamentos do detalhe: moeda do ativo passada ao formatador, sem conversão ou mudança de valores. Seis testes aprovados, lint e build/PWA aprovados. Interface local conferida com AAPL em USD e BBAS3 em BRL; viewport 390 × 844 sem alargamento da página. Aguarda PR/publicação; não equivale a teste em PWA físico.
 
 ## Pendências técnicas — implementação local posterior à PR #97
 

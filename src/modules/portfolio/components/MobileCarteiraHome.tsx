@@ -191,7 +191,7 @@ export function MobileCarteiraHome({
   const cardWidth = Math.min(viewportSize.width - 64, 368)
   const openCardLeft = (viewportSize.width - cardWidth) / 2
 
-  const swipeZoneRef = useRef<HTMLDivElement | null>(null)
+  const swipeZoneRef = useRef<HTMLButtonElement | null>(null)
 
   function onTouchStart(event: React.TouchEvent<HTMLElement>) {
     if (event.touches.length !== 1 || showWalletForm) return
@@ -301,11 +301,13 @@ export function MobileCarteiraHome({
     >
       {/* Zona de swipe restrita à área dos cards de carteira (canto direito) */}
       {!showWallets && (
-        <div
+        <button
+          type="button"
           ref={swipeZoneRef}
           data-testid="wallet-swipe-zone"
-          aria-hidden="true"
-          className="pointer-events-none absolute right-0 top-0 z-30 w-24 h-48"
+          aria-label="Abrir carteiras"
+          onClick={() => setShowWallets(true)}
+          className="absolute right-0 top-20 z-30 h-48 w-24 touch-pan-y rounded-l-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
         />
       )}
       <div className="relative z-20 mx-auto max-w-md px-6 pt-6">
@@ -402,7 +404,7 @@ export function MobileCarteiraHome({
           ref={(node) => {
             if (node) node.inert = !showWallets
           }}
-          className="absolute left-full top-0 max-h-[calc(100dvh-9rem)] w-full overflow-y-auto"
+          className="absolute left-full top-0 max-h-[calc(100dvh-9rem)] w-full overflow-y-auto touch-pan-y"
         >
           <div className="mx-auto max-w-md px-8 pb-10 pt-8">
             <div className="mb-5 flex items-center justify-between">
@@ -450,6 +452,7 @@ export function MobileCarteiraHome({
               boxShadow: `0 0 ${Math.round(revealProgress * 16)}px ${color}55`,
               pointerEvents: index >= closedStackCount && !showWallets ? 'none' : 'auto',
               transitionDuration: isDragging ? '0ms' : undefined,
+              touchAction: 'pan-y',
             }}
             aria-hidden={!showWallets && index > 0}
           >

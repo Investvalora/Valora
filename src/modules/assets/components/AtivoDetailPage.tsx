@@ -479,10 +479,11 @@ function AssetPositionResult({
 
 interface AssetTransactionPreviewProps {
   ticker: string
+  currency: AssetCurrency
   navigate: (path: string) => void
 }
 
-function AssetTransactionPreview({ ticker, navigate }: AssetTransactionPreviewProps) {
+function AssetTransactionPreview({ ticker, currency, navigate }: AssetTransactionPreviewProps) {
   const { data: allTxns = [], isLoading } = useAllTransactions()
 
   const recent = useMemo(
@@ -527,7 +528,7 @@ function AssetTransactionPreview({ ticker, navigate }: AssetTransactionPreviewPr
                   {txn.type === 'buy' ? 'Compra' : 'Venda'}
                 </span>
                 <span className="text-sm font-semibold text-white tabular-nums">
-                  {fmtMoney(total)}
+                  {fmtMoney(total, currency)}
                 </span>
               </div>
             )
@@ -713,10 +714,11 @@ function AssetScoreAlerts({
 
 interface TabLancamentosProps {
   ticker: string
+  currency: AssetCurrency
   navigate: (path: string) => void
 }
 
-function TabLancamentos({ ticker, navigate }: TabLancamentosProps) {
+function TabLancamentos({ ticker, currency, navigate }: TabLancamentosProps) {
   const { data: allTxns = [], isLoading } = useAllTransactions()
 
   const txns = useMemo(
@@ -766,9 +768,9 @@ function TabLancamentos({ ticker, navigate }: TabLancamentosProps) {
                     </span>
                   </td>
                   <td className="py-2 text-right text-white tabular-nums">{Number(txn.quantity).toLocaleString('pt-BR')}</td>
-                  <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(txn.price))}</td>
+                  <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(txn.price), currency)}</td>
                   <td className="py-2 text-right text-white tabular-nums font-medium">
-                    {fmtMoney(Number(txn.quantity) * Number(txn.price))}
+                    {fmtMoney(Number(txn.quantity) * Number(txn.price), currency)}
                   </td>
                 </tr>
               ))}
@@ -1139,7 +1141,7 @@ function VisaoGeral({
 
       {/* Bottom section — desktop: 3 colunas; mobile: stack */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <AssetTransactionPreview ticker={ticker} navigate={navigate} />
+        <AssetTransactionPreview ticker={ticker} currency={currency} navigate={navigate} />
         <AssetDividendPreview ticker={ticker} quantity={quantity} currency={currency} navigate={navigate} />
         <AssetScoreAlerts
           ticker={ticker}
@@ -1349,7 +1351,7 @@ export function AtivoDetailPage() {
       )}
 
       {activeTab === 'lancamentos' && (
-        <TabLancamentos ticker={ticker} navigate={navigate} />
+        <TabLancamentos ticker={ticker} currency={currency} navigate={navigate} />
       )}
 
       {activeTab === 'proventos' && (

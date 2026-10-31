@@ -6,11 +6,17 @@ import { AtivoDetailPage } from './AtivoDetailPage'
 import { valueAssets } from '../../ativos/assetValuation'
 import type { FixedIncomePosition, LatestQuote, PositionWithAsset } from '../../portfolio/types'
 
+const assetDetail = vi.hoisted(() => vi.fn())
+const transactions = vi.hoisted(() => vi.fn())
 const history = vi.hoisted(() => vi.fn())
 const create = vi.hoisted(() => vi.fn())
 const valuation = vi.hoisted(() => vi.fn())
 const received = vi.hoisted(() => vi.fn())
 const marketDividends = vi.hoisted(() => vi.fn())
+beforeEach(() => {
+  assetDetail.mockReturnValue({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } })
+  transactions.mockReturnValue({ data: [] })
+})
 beforeEach(() => marketDividends.mockReturnValue({ data: [] }))
 beforeEach(() => received.mockReturnValue({ rows: [], isLoading: false, isError: false }))
 vi.mock('../../dividends/hooks/useDividends', () => ({ useDividends: () => received() }))
@@ -18,13 +24,13 @@ beforeEach(() => valuation.mockReturnValue({ positions: [], rows: [], isLoading:
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' } }) }))
 vi.mock('../../ativos/hooks/useAtivosValuation', () => ({ useAtivosValuation: (...args: unknown[]) => valuation(...args) }))
 vi.mock('../hooks/useDailyChange', () => ({ useDailyChange: () => -2.5 }))
-vi.mock('../hooks/useAssetDetail', () => ({ useAssetDetail: () => ({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } }) }))
+vi.mock('../hooks/useAssetDetail', () => ({ useAssetDetail: () => assetDetail() }))
 vi.mock('../hooks/usePriceHistory', () => ({ usePriceHistory: (...args: unknown[]) => { history(...args); return { data: [] } } }))
 vi.mock('../hooks/useAssetDividends', () => ({ useAssetDividends: () => marketDividends() }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [] }) }))
 vi.mock('../../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({ data: [{ ticker: 'PETR4', close: 20 }] }) }))
 vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: () => new Map() }))
-vi.mock('../../portfolio/hooks/useTransactions', () => ({ useAllTransactions: () => ({ data: [] }) }))
+vi.mock('../../portfolio/hooks/useTransactions', () => ({ useAllTransactions: () => transactions() }))
 vi.mock('../../score/hooks/useFundamentals', () => ({ useFundamentals: () => ({ data: [] }) }))
 vi.mock('../../score/hooks/useScoreRules', () => ({ useScoreRules: () => ({ data: [] }) }))
 vi.mock('../../score/hooks/useScorePreferences', () => ({ useScorePreferences: () => ({ data: null }) }))
@@ -101,4 +107,17 @@ it('seleciona cinco anos sem substituir Tudo', async () => {
   expect(history).toHaveBeenLastCalledWith('PETR4', '5A')
   await user.click(screen.getByRole('button', { name: 'Tudo' }))
   expect(history).toHaveBeenLastCalledWith('PETR4', 'Tudo')
+})
+
+it.each([
+  ['USD', '$51.91', '$103.82'],
+  ['BRL', 'R$ 51,91', 'R$ 103,82'],
+])('preserva valores e moeda %s na previa e aba de lancamentos', async (currency, price, total) => {
+  assetDetail.mockReturnValue({ data: { ticker: 'PETR4', name: 'Ativo de teste', type: currency === 'USD' ? 'stock_us' : 'stock_br', currency } })
+  transactions.mockReturnValue({ data: [{ id: 'txn', ticker: 'PETR4', type: 'buy', quantity: 2, price: 51.91, transaction_date: '2026-10-30' }] })
+  render(<MemoryRouter initialEntries={['/ativo/PETR4']}><Routes><Route path="/ativo/:ticker" element={<AtivoDetailPage />} /></Routes></MemoryRouter>)
+  expect(screen.getByText(total)).toBeInTheDocument()
+  await userEvent.setup().click(screen.getByRole('tab', { name: 'Lançam.' }))
+  expect(within(screen.getByRole('table')).getByText(price)).toBeInTheDocument()
+  expect(within(screen.getByRole('table')).getByText(total)).toBeInTheDocument()
 })

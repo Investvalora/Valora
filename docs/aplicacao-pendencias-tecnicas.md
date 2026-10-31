@@ -43,3 +43,29 @@ A sintaxe da migration foi executada em transação com rollback antes da tentat
 - Condições satisfeita/não satisfeita, ignorados, fechamento repetido, cotação antiga/futura e contas distintas passaram em tabelas temporárias com cópia do corpo da função, revertidas no final. Nenhum alerta fictício foi inserido em contas reais.
 - O ensaio com alertas fictícios em contas reais foi rejeitado pela aprovação automática por possível entrega externa de push e não foi executado. O teste isolado substitui a validação da lógica; não comprova entrega push fim a fim com app fechado.
 - Frontend, teste após compra e entrega push com app fechado ainda aguardam homologação. Alertas Bazin legados são preservados.
+
+## Homologação posterior à PR #98 — 31/10/2026
+
+PR #98 integrada pelo responsável, commit `e7a9ea0`; check Vercel do commit integrado bem-sucedido. Filtros BTC/Ações BR e MXRF11/ETFs BR passaram na conta real durante o ensaio iniciado em 30/10. Fundamentos parciais estavam visíveis na tabela; Graham de MCD permaneceu indisponível.
+
+O alerta identificado como `TESTE Valora PR98 — temporário`, autorizado para a conta do responsável, permaneceu monitorando enquanto a condição não era atingida. Em 31/10 a única aba de produção foi retirada do app (`about:blank`); não havia outras abas do Valora no navegador observado. Somente a condição desse teste foi alterada para ser atingida.
+
+Às **12h49 de Brasília**, a atualização do alerta coincidiu com a execução bem-sucedida do cron: status novo e fechamento de 30/10. O envio pg_net nº 209 retornou **HTTP 200, sent=4, failed=0**. O responsável confirmou que a notificação apareceu. Isso confirma entrega real com a página do app fora de execução; não equivale a teste físico separado de todas as plataformas PWA.
+
+Ao retornar, a interface mostrou o teste Novo e o sino com 1 novo. O botão Fechar alerta encerrou somente o teste como Ignorado; o sino voltou a zero. Uma alteração externa posterior na descrição apareceu automaticamente na lista sem recarregar, confirmando o polling publicado. O teste permanece ignorado e seguirá a retenção normal de três dias, sem exclusão manual permanente.
+
+Nenhuma compra, venda, posição ou carteira foi criada/alterada neste ensaio. O gatilho de sincronização após uma compra continua pendente de ensaio específico. Alertas Bazin legados foram preservados.
+
+## Complemento autorizado — sincronização e legados, 31/10/2026
+
+Depois de autorização explícita para criar e limpar uma massa isolada, foi criada a carteira “Teste de sincronização — temporária”. O lançamento fictício de 1 FAST, em Stocks US/USD, usou preço retornado de US$ 51,91 e data de 31/10. Não representa ordem em corretora ou movimentação de dinheiro.
+
+Antes do teste, FAST tinha zero preços, zero fundamentos e oito eventos públicos. Um único salvamento no formulário disparou a sincronização sem clicar em Atualizar: 1.255 preços, um registro de fundamentos e 21 eventos públicos passaram a existir. A linha de FAST apresentou quantidade, preço e indicadores; o detalhe carregou. Não houve aviso de falha observado.
+
+Investidor10 foi restaurada. A limpeza conferiu o nome/ID da carteira, usuário, ticker e quantidade antes de excluir somente os registros autorizados. Consulta posterior confirmou zero carteiras, transações e posições para o identificador da carteira temporária. Dados públicos válidos de FAST foram mantidos.
+
+A revisão dos legados encontrou 25 alertas Bazin, não 24 como contado inicialmente. A conferência abortou a primeira operação antes de qualquer alteração. Após nova confirmação específica, os 25 foram marcados como Ignorados, mantendo textos e sem gerar novos pushes. Seguem a retenção automática de três dias.
+
+O cadastro foi testado na origem do deployment `investvalora-qhrr6e9y0-investvalora.vercel.app`, identificado no painel Vercel como Production do commit `e7a9ea0`. Senha/confirmacão alternaram independentemente entre password/text; campos fictícios foram limpos e nenhuma conta foi criada. A sessão autenticada na origem principal foi preservada.
+
+Achado complementar: a prévia de lançamento no detalhe usou R$ em valor USD de FAST. A causa está nas chamadas de `fmtMoney` sem moeda na prévia/aba de lançamentos; registrado separadamente na TODO, sem alteração de código neste ensaio. PWA físico e os relatos que dependem da massa original continuam pendentes.

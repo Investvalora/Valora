@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 
 type MonthlySeries = DashboardData['monthlySeries']
@@ -19,13 +19,26 @@ function labelForMonth(month: string) {
 export function EvolucaoChart({ data }: { data: MonthlySeries }) {
   const chartId = useId()
   const [activeMonth, setActiveMonth] = useState<string | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [width, setWidth] = useState(320)
   const points = data
+
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const measure = () => setWidth(svg.getBoundingClientRect().width || 320)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(svg)
+    return () => observer.disconnect()
+  }, [points.length])
 
   if (points.length === 0) {
     return <p className="py-16 text-center text-sm text-[#8F8F8F]">Sem dados para o período e tipo selecionados.</p>
   }
 
-  const totalW = Math.max(960, points.length * 64 + PAD_L)
+  const minWidth = Math.max(320, points.length * 80 + PAD_L)
+  const totalW = Math.max(width, minWidth)
   const maxValue = Math.max(1, ...points.map((point) => point.totalBRL ?? 0))
   const step = Math.pow(10, Math.floor(Math.log10(maxValue / 6)))
   const gridStep = Math.ceil(maxValue / (6 * step)) * step
@@ -40,7 +53,7 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
   const tooltipX = Math.min(totalW - 228, Math.max(PAD_L, PAD_L + activeIndex * colW + colW / 2 - 112))
 
   return (
-    <svg viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} className="block w-full min-w-[960px] md:min-w-0" aria-label="Gráfico de evolução do patrimônio" role="group" onPointerLeave={() => setActiveMonth(null)}>
+    <svg ref={svgRef} viewBox={`0 0 ${totalW} ${baseline + PAD_B}`} style={{ minWidth }} className="block w-full" aria-label="Gráfico de evolução do patrimônio" role="group" onPointerLeave={() => setActiveMonth(null)}>
       {Array.from({ length: gridCount + 1 }, (_, index) => index).map((index) => {
         const value = index * gridStep
         const y = toY(value)

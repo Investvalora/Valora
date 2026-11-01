@@ -15,6 +15,7 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAssetDetail } from '../hooks/useAssetDetail'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
+import { EditTransactionButton } from '../../portfolio/components/EditTransactionButton'
 import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
@@ -752,6 +753,7 @@ function TabLancamentos({ ticker, currency, navigate }: TabLancamentosProps) {
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Qtd</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Preço</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Total</th>
+                <th className="pb-2 pl-3 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Opções</th>
               </tr>
             </thead>
             <tbody>
@@ -772,6 +774,7 @@ function TabLancamentos({ ticker, currency, navigate }: TabLancamentosProps) {
                   <td className="py-2 text-right text-white tabular-nums font-medium">
                     {fmtMoney(Number(txn.quantity) * Number(txn.price), currency)}
                   </td>
+                  <td className="py-2 pl-3 text-right"><EditTransactionButton transaction={txn} /></td>
                 </tr>
               ))}
             </tbody>
@@ -799,21 +802,22 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
   return (
     <PanelCard>
       <h3 className="text-sm font-semibold text-white mb-4">Proventos — {ticker}</h3>
-      <div className="mb-4 flex gap-3" role="tablist" aria-label="Origem dos proventos">
-        <button type="button" role="tab" aria-selected={view === 'received'} className={`rounded-lg px-3 py-2 text-sm ${view === 'received' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'}`} onClick={() => setView('received')}>Recebidos na carteira</button>
-        <button type="button" role="tab" aria-selected={view === 'market'} className={`rounded-lg px-3 py-2 text-sm ${view === 'market' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'}`} onClick={() => setView('market')}>Histórico do ativo</button>
+      <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1 md:flex" role="tablist" aria-label="Origem dos proventos">
+        <button type="button" role="tab" aria-selected={view === 'received'} className={`min-h-11 rounded-lg px-3 py-2 text-sm leading-snug ${view === 'received' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white'}`} onClick={() => setView('received')}>Recebidos na carteira</button>
+        <button type="button" role="tab" aria-selected={view === 'market'} className={`min-h-11 rounded-lg px-3 py-2 text-sm leading-snug ${view === 'market' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white'}`} onClick={() => setView('market')}>Histórico do ativo</button>
       </div>
       {view === 'received' ? (
         received.isLoading ? <p>Carregando recebimentos…</p> : received.isError ? (
           <div role="alert"><p>Não foi possível carregar seus recebimentos.</p><button type="button" onClick={received.refetch}>Tentar novamente</button></div>
         ) : payments.length === 0 ? <p>Sem proventos recebidos nesta carteira.</p> : (
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead><tr><th className="text-left">Pagamento</th><th className="text-left">Tipo</th><th className="text-right">Quantidade histórica</th><th className="text-right">Total recebido</th></tr></thead>
-            <tbody>{payments.map((row, index) => (
-              <tr key={`${row.payment_date}-${index}`} className="border-b border-white/[0.04]">
-                <td className="py-2">{fmtDate(row.payment_date)}</td><td>{row.type}{row.source === 'imported' ? ' · Líquido importado' : ' · Estimado'}</td>
-                <td className="text-right">{row.quantity.toLocaleString('pt-BR')}</td>
-                <td className="text-right tabular-nums">{fmtMoney(row.total_value, row.currency === 'BRL' ? 'BRL' : row.currency === 'USD' ? 'USD' : currency)}</td>
+          <div className="md:overflow-x-auto"><table className="block w-full text-sm md:table">
+            <thead className="sr-only md:not-sr-only md:table-header-group"><tr><th className="pb-3 pr-4 text-left text-white/70">Pagamento</th><th className="pb-3 pr-4 text-left text-white/70">Tipo</th><th className="pb-3 pr-4 text-right text-white/70">Quantidade histórica</th><th className="pb-3 text-right text-white/70">Total recebido</th></tr></thead>
+            <tbody className="grid gap-3 md:table-row-group">{payments.map((row, index) => (
+              <tr key={`${row.payment_date}-${index}`} className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 md:table-row md:rounded-none md:border-0 md:border-b md:border-white/[0.04] md:bg-transparent md:p-0">
+                <td className="block md:table-cell md:whitespace-nowrap md:py-3 md:pr-4"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Pagamento</span><span className="tabular-nums">{fmtDate(row.payment_date)}</span></td>
+                <td className="block min-w-0 md:table-cell md:py-3 md:pr-4"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Tipo</span><span className="block break-words">{({ dividend: 'Dividendo', jcp: 'JCP', interest: 'Juros', distribution: 'Rendimento' } as Record<string, string>)[row.type] ?? row.type}</span><span className="mt-1 block text-xs text-white/60">{row.source === 'imported' ? 'Líquido importado' : 'Estimado'}</span></td>
+                <td className="block md:table-cell md:py-3 md:pr-4 md:text-right"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Quantidade histórica</span><span className="tabular-nums">{row.quantity.toLocaleString('pt-BR')}</span></td>
+                <td className="block md:table-cell md:py-3 md:text-right"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Total recebido</span><span className="text-base font-semibold tabular-nums md:text-sm">{fmtMoney(row.total_value, row.currency === 'BRL' ? 'BRL' : row.currency === 'USD' ? 'USD' : currency)}</span></td>
               </tr>
             ))}</tbody>
           </table></div>

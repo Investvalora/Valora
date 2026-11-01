@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useCreatePriceTargetAlert } from '../hooks/useAlertMutations'
 import type { AlertCondition } from '../types'
+import { AlertAssetField, AlertTargetPriceField } from './AlertPriceFields'
+import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
 
 export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () => void; initialTicker?: string }) {
   const [ticker, setTicker] = useState(initialTicker)
@@ -9,6 +11,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
   const [error, setError] = useState('')
 
   const createAlert = useCreatePriceTargetAlert()
+  const fields = useAlertPriceFields({ ticker, price: targetPrice, onTickerChange: setTicker, onPriceChange: setTargetPrice, initialTicker })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -45,21 +48,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
     <div className="rounded-[14px] border border-nf-blue/20 bg-[#1B1B1B] p-5">
       <h3 className="mb-4 text-[14px] font-semibold text-white">Novo alerta de preço</h3>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end" noValidate>
-        {/* Ativo */}
-        <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
-          <label htmlFor="alert-ticker" className="text-[11px] text-white/50">
-            Ativo (ticker)
-          </label>
-          <input
-            id="alert-ticker"
-            type="text"
-            placeholder="Ex: PETR4"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-2 text-[13px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-nf-blue/40"
-            maxLength={10}
-          />
-        </div>
+        <AlertAssetField model={fields} />
 
         {/* Condição */}
         <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
@@ -90,22 +79,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
           </div>
         </div>
 
-        {/* Preço-alvo */}
-        <div className="flex flex-col gap-1 w-full md:min-w-[140px] md:w-auto">
-          <label htmlFor="alert-price" className="text-[11px] text-white/50">
-            Preço-alvo (R$)
-          </label>
-          <input
-            id="alert-price"
-            type="number"
-            min="0.01"
-            step="0.01"
-            placeholder="Ex: 28.50"
-            value={targetPrice}
-            onChange={(e) => setTargetPrice(e.target.value)}
-            className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-2 text-[13px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-nf-blue/40"
-          />
-        </div>
+        <AlertTargetPriceField model={fields} />
 
         {/* Botões */}
         <div className="flex items-center gap-2 w-full md:w-auto">

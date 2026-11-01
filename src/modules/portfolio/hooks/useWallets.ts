@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { walletService, type WalletColor } from '../services/walletService'
+import { walletService, type Wallet, type WalletColor } from '../services/walletService'
 import { useWalletStore } from '../walletStore'
 
 export function walletsQueryKey(userId: string | undefined) {
@@ -77,6 +77,29 @@ export function useUpdateWallet() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: walletsQueryKey(userId) })
+    },
+  })
+}
+
+export function useDeleteWallet() {
+  const { user } = useAuth()
+  const userId = user?.id
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ walletId, confirmationName }: { walletId: string; confirmationName: string }) => {
+      if (!userId) throw new Error('Sessão não encontrada.')
+      return walletService.remove(walletId, confirmationName)
+    },
+    onSuccess: async (_, { walletId }) => {
+      const remaining = (queryClient.getQueryData<Wallet[]>(walletsQueryKey(userId)) ?? []).filter(wallet => wallet.id !== walletId)
+      queryClient.setQueryData(walletsQueryKey(userId), remaining)
+      const store = useWalletStore.getState()
+      const fallback = remaining.find(wallet => wallet.is_default) ?? remaining[0]
+      if (userId && fallback && store.selectedByUser[userId] === walletId) {
+        store.selectWallet(userId, fallback.id)
+      }
+      // Portfolio totals, receipts and history can span more than one wallet.
+      await queryClient.invalidateQueries()
     },
   })
 }

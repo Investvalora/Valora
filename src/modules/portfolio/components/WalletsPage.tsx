@@ -1,16 +1,18 @@
-import { Check, Pencil, Plus } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useWallets } from '../hooks/useWallets'
 import type { Wallet } from '../services/walletService'
 import { walletPalette } from '../walletPalette'
 import { WalletEditorDialog } from './WalletEditorDialog'
+import { DeleteWalletDialog } from './DeleteWalletDialog'
 
 export function WalletsPage() {
   const { wallets, selectedWallet, selectWallet, isLoading, isError, refetch } = useWallets()
   const [searchParams, setSearchParams] = useSearchParams()
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [editingOpen, setEditingOpen] = useState(false)
+  const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null)
   const creating = searchParams.get('nova') === '1'
 
   function openCreate() {
@@ -80,7 +82,7 @@ export function WalletsPage() {
                   <span className="text-xs font-medium opacity-75">{wallet.is_default ? 'Carteira principal' : 'Carteira'}</span>
                   <h2 className="break-words text-lg font-semibold">{wallet.name}</h2>
                 </div>
-                <div className="flex items-center justify-between gap-2 p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2">
                   <button
                     type="button"
                     onClick={() => selectWallet(wallet.id)}
@@ -104,6 +106,9 @@ export function WalletsPage() {
                     <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                     Editar
                   </button>
+                  {!wallet.is_default && <button type="button" onClick={() => setDeletingWallet(wallet)} aria-label={`Excluir ${wallet.name}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-red-300 hover:bg-red-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />Excluir
+                  </button>}
                 </div>
               </article>
             )
@@ -116,6 +121,7 @@ export function WalletsPage() {
         wallet={creating ? null : editingWallet}
         onClose={closeEditor}
       />
+      {deletingWallet && <DeleteWalletDialog key={deletingWallet.id} wallet={deletingWallet} onClose={() => setDeletingWallet(null)} />}
     </div>
   )
 }

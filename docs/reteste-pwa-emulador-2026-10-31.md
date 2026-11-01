@@ -21,7 +21,21 @@ Ambiente: Android Emulator, 1080 × 2400, Chrome, Valora publicado em `investval
 - **Push em segundo plano: aprovado neste Android.** Chrome informa notificações permitidas para a origem. Às 13h57 de Brasília foi criado um único alerta temporário, após autorização específica do responsável. Resposta HTTP 200, `sent:5,failed:0`; central do Android exibiu “Novo alerta no Valora” com texto genérico. Alerta `d7462011-4239-45aa-8232-db4349e37456` encerrado como Ignorado às 13h58, preservando a retenção normal de três dias. Não houve novo envio no encerramento. Não foram expostos endpoints nem chaves.
 - Toque na notificação retirou a central, mas a tela observada permaneceu no launcher; abertura de `/alertas` pelo push não foi confirmada. Investigar navegação/foco do service worker separadamente da entrega, que foi comprovada.
 
-## Ainda não homologado
+## Complemento: produção após PR #99 em 31/10
+
+Deployment confirmado para o merge `1397bbacf5691e73c9273be1d641c4c0de82d0c9`. PWA instalado no emulador Android, sem barra de endereço, autenticado pelo responsável.
+
+- Arrasto de 1.100 ms abriu o seletor; retorno à Investidor10 e rolagem vertical aprovados.
+- Coluna 1M/Todos os tipos visível sem arrastar, R$ 18.717,36. Valor observado, sem conciliação financeira.
+- Push real autorizado: um alerta temporário criado às 18h57 de Brasília, com app em segundo plano. HTTP 200, cinco envios aceitos e uma falha sem motivo individual informado. Notificação exibida; toque abriu Alertas dentro do PWA instalado. Alerta `1322d4d7-4f58-4432-b874-6f16f89525b1` encerrado como Ignorado às 18h58, confirmado no banco; retenção normal de três dias. Nenhum lançamento ou posição alterado. Cinco inscrições restantes, compatível com remoção de inscrição expirada, sem confirmação da causa individual.
+- AAPL abriu pelo card. Aba Lançamentos exibiu preço $302.60 e total $20.00. Filtro temporário removido ao terminar. Prévia e BRL cobertos localmente, não repetidos neste recorte.
+- Backend: zero perfis internos ausentes, dois triggers ativos, migration registrada uma vez e execução direta por authenticated bloqueada. Migration não reaplicada.
+
+Evidências fora do commit: `output/android-pwa/prod-1m.png`, `prod-push-pr99.png`, `prod-push-destino-pr99.png`, `prod-aapl-lancamentos.png`.
+
+Permanecem aparelho físico/iOS e processo do navegador encerrado. Nesta etapa, somente documentação atualizada, sem alteração de código ou nova publicação. As referências abaixo a publicação pendente descrevem a etapa local anterior a este complemento.
+
+## Ainda não homologado na etapa anterior
 
 ### Correções locais posteriores
 

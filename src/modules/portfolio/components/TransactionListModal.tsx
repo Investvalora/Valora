@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Modal } from '../../../shared/components/Modal'
 import { useTransactionsByTicker, useDeleteTransaction } from '../hooks/useTransactions'
 import type { Transaction } from '../services/transactionsService'
+import { EditTransactionButton } from './EditTransactionButton'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ function TransactionRow({
       </td>
       {/* Ações */}
       <td className="px-4 py-3 text-sm text-right">
+        <EditTransactionButton transaction={txn} />
         {confirming ? (
           <span className="inline-flex items-center gap-2">
             <span className="text-xs text-gray-400">Excluir?</span>

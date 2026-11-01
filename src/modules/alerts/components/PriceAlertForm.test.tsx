@@ -4,6 +4,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { PriceAlertForm } from './PriceAlertForm'
 
 const create = vi.hoisted(() => vi.fn())
+vi.mock('../../portfolio/hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] }) }))
+vi.mock('../services/alertQuoteService', () => ({ alertQuoteService: { resolveAsset: async () => null } }))
 vi.mock('../hooks/useAlertMutations', () => ({
   useCreatePriceTargetAlert: () => ({ mutateAsync: create, isPending: false }),
 }))

@@ -20,6 +20,7 @@ import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
 import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
+import { EditTransactionButton } from '../../portfolio/components/EditTransactionButton'
 import {
   ASSET_CLASS_LABEL,
   ASSET_CLASS_ORDER,
@@ -191,6 +192,7 @@ function TransactionCard({
           <span className="tabular-nums">{fmtDate(txn.transaction_date)}</span>
           <span className="rounded border border-white/[0.14] px-1.5 py-0.5">Manual</span>
           <div className="ml-auto flex items-center gap-1">
+            <EditTransactionButton transaction={txn} />
             {confirmDelete ? (
               <>
                 <span className="text-[11px] text-white/40">Excluir?</span>
@@ -328,6 +330,7 @@ function TxnRow({
 
         {/* Opções */}
         <td className="px-4 py-3 text-right">
+          <EditTransactionButton transaction={txn} />
           {confirmDelete ? (
             <span className="inline-flex items-center gap-1.5">
               <span className="text-xs text-gray-400">Excluir?</span>

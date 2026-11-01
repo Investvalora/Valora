@@ -3,12 +3,30 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import {
   transactionsService,
   type NewManualTransaction,
+  type TransactionEdit,
 } from '../services/transactionsService'
 import { positionService } from '../services/positionService'
 import { useWallets } from './useWallets'
 import { syncAssetData } from '../services/assetDataSync'
 
 const STALE_TIME_MS = 5 * 60 * 1000
+
+export function useEditTransaction() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ original, changes }: { original: Transaction; changes: TransactionEdit }) => {
+      if (!user?.id || original.user_id !== user.id) throw new Error('Sessão não encontrada.')
+      return transactionsService.editTransaction(original, changes)
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    onError: (cause) => {
+      if (typeof cause === 'object' && cause !== null && 'code' in cause && cause.code === '40001') {
+        return queryClient.invalidateQueries()
+      }
+    },
+  })
+}
 
 export function transactionsByTickerQueryKey(userId: string | undefined, ticker: string) {
   return ['portfolio', 'transactions', userId, ticker.toUpperCase()] as const

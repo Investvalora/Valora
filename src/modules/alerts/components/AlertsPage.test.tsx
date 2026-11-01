@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   checkPrices: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
+  createError: null as null | { code: string; message: string },
 }))
 
 vi.mock('../../auth/hooks/useAuth', () => ({
@@ -30,7 +31,7 @@ vi.mock('../hooks/useAlerts', () => ({
 vi.mock('../hooks/useAlertMutations', () => ({
   useGenerateAlerts: () => ({ isError: false, isPending: false, mutate: mocks.generate }),
   useCheckPriceTargets: () => ({ isError: false, isSuccess: false, isPending: false, mutate: mocks.checkPrices }),
-  useCreatePriceTargetAlert: () => ({ isError: false, isPending: false, mutate: mocks.create }),
+  useCreatePriceTargetAlert: () => ({ isError: Boolean(mocks.createError), error: mocks.createError, isPending: false, mutate: mocks.create }),
   useUpdateAlertStatus: () => ({ isError: false, isPending: false, mutate: mocks.update }),
 }))
 
@@ -57,6 +58,7 @@ describe('AlertsPage', () => {
     mocks.generate.mockReset()
     mocks.checkPrices.mockReset()
     mocks.create.mockReset()
+    mocks.createError = null
     mocks.update.mockReset()
   })
 
@@ -190,5 +192,42 @@ describe('AlertsPage', () => {
       { ticker: 'PETR4', targetPrice: 42.5, condition: 'above' },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     )
+  })
+
+  it.each([false, true])('bloqueia ticker vazio e preço inválido no formulário atual (mobile=%s)', (mobile) => {
+    mocks.mobile = mobile
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    const form = screen.getByRole('dialog').querySelector('form')!
+    fireEvent.submit(form)
+    expect(mocks.create).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MXRF11' } })
+    fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '0' } })
+    fireEvent.submit(form)
+    expect(mocks.create).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it.each([
+    [false, '23503', 'Ativo não encontrado no catálogo'],
+    [false, '23505', 'Já existe um alerta ativo com esse preço e condição'],
+    [false, 'unexpected', 'Não foi possível criar o alerta. Tente novamente.'],
+    [true, '23503', 'Ativo não encontrado no catálogo'],
+    [true, '23505', 'Já existe um alerta ativo com esse preço e condição'],
+    [true, 'unexpected', 'Não foi possível criar o alerta. Tente novamente.'],
+  ])('orienta falha %s/%s e preserva campos para nova tentativa', (mobile, code, message) => {
+    mocks.mobile = mobile as boolean
+    mocks.createError = { code: code as string, message: 'detalhe interno' }
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MXRF11' } })
+    fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Criar alerta' }))
+    expect(screen.getByRole('alert')).toHaveTextContent(message as string)
+    expect(screen.queryByText(/detalhe interno/)).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toHaveValue('MXRF11')
+    expect(screen.getByLabelText('Preço-alvo (R$)')).toHaveValue(9)
+    fireEvent.click(screen.getByRole('button', { name: 'Criar alerta' }))
+    expect(mocks.create).toHaveBeenCalledTimes(2)
   })
 })

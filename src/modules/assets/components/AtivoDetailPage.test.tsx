@@ -13,6 +13,8 @@ const create = vi.hoisted(() => vi.fn())
 const valuation = vi.hoisted(() => vi.fn())
 const received = vi.hoisted(() => vi.fn())
 const marketDividends = vi.hoisted(() => vi.fn())
+vi.mock('../../portfolio/hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [] }) }))
+vi.mock('../../alerts/services/alertQuoteService', () => ({ alertQuoteService: { resolveAsset: async () => null } }))
 beforeEach(() => {
   assetDetail.mockReturnValue({ data: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' } })
   transactions.mockReturnValue({ data: [] })

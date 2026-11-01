@@ -6,6 +6,7 @@ import { Outlet } from 'react-router-dom'
 import { AssetFilterButton, AssetFiltersPanel, ActiveAssetFilters } from './AssetFiltersPanel'
 import { SubTabBar } from './SubTabBar'
 import { AssetCatalogSearch } from './AssetCatalogSearch'
+import { FavoritesList } from '../../assets/components/FavoritesList'
 
 const ATIVOS_TABS = [
   { label: 'Posições', to: '/ativos/posicoes' },
@@ -22,6 +23,7 @@ export function AtivosPage() {
           <h1 className="text-[22px] font-semibold text-white">Ativos</h1>
           <div className="ml-auto flex items-center gap-2">
             <AssetCatalogSearch />
+            <FavoritesList />
             <AssetFilterButton />
           </div>
         </div>

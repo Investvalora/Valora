@@ -52,11 +52,12 @@ Complemento de 31/10: [investigação no navegador local](investigacoes-alertas-
 ### Funcionalidades e melhorias para validar escopo
 
 - [x] **Implementação local — busca global de ativos:** botão Buscar no topo de Ativos, consulta por ticker/nome no catálogo, nome/classe/moeda nos resultados e abertura do resumo sem posição. Filtro da carteira preservado. Três testes aprovados e fluxo real com Microsoft/MSFT conferido no Brave local, incluindo 320 px sem alargamento. Até oito resultados por consulta; não inclui descoberta automática fora do catálogo. Aguarda PR/publicação.
-- [ ] Favoritos; painel de fundamentos. Período 5A já publicado na PR #97.
+- [x] **Favoritos — implementação local:** marcar/desmarcar no resumo e lista por conta em Ativos, persistência com RLS e testes de isolamento aprovados. Migration e publicação pendentes. Ver [favoritos-2026-11-01.md](favoritos-2026-11-01.md).
+- [ ] Painel de fundamentos. Período 5A já publicado na PR #97.
 - [ ] Detalhamento do score por critério e score médio ponderado da carteira.
 - [ ] Alertas configuráveis de indicador/evento; composição por setor.
-- [x] **Implementação local — edição de lançamentos com recálculo:** compras/vendas editáveis com identidade fixa, validação de saldo histórico, bloqueio de sobrescrita concorrente e recálculo pelo servidor. 25 testes direcionados, SQL com rollback, lint, build/PWA e visual local aprovados; resumo da regressão geral com 894 aprovados. Migration preparada; aplicação/publicação e reteste físico pendentes. [Detalhes](edicao-lancamentos-2026-10-31.md).
-- [x] **Implementação local — exclusão de carteira:** confirmação pelo nome, principal protegida no servidor, remoção transacional dos registros vinculados e retorno à principal após sucesso. Nove testes de frontend, SQL com rollback, lint e build aprovados; diálogo conferido no navegador local em 390 px. Migration preparada, ainda não aplicada; frontend não publicado. [Detalhes e publicação](exclusao-carteiras-2026-10-31.md).
+- [x] **Implementação local — edição de lançamentos com recálculo:** compras/vendas editáveis com identidade fixa, validação de saldo histórico, bloqueio de sobrescrita concorrente e recálculo pelo servidor. 25 testes direcionados, SQL com rollback, lint, build/PWA e visual local aprovados; resumo da regressão geral com 894 aprovados. Frontend publicado na PR #100; migration aplicada em 01/11 e testes SQL pós-aplicação aprovados. Ver aplicacao-pr100-2026-11-01.md. [Detalhes](edicao-lancamentos-2026-10-31.md).
+- [x] **Implementação local — exclusão de carteira:** confirmação pelo nome, principal protegida no servidor, remoção transacional dos registros vinculados e retorno à principal após sucesso. Nove testes de frontend, SQL com rollback, lint e build aprovados; diálogo conferido no navegador local em 390 px. Frontend publicado na PR #100; migration aplicada em 01/11 e testes SQL pós-aplicação aprovados. [Detalhes e publicação](exclusao-carteiras-2026-10-31.md).
 - [ ] Definir a regra para nomes exclusivamente numéricos. Mostrar/ocultar senha e confirmação conferidos em 31/10 no deployment publicado, sem criar conta nem encerrar sessão real.
 
 Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas conforme decisão do responsável. Não alterar o método de rentabilidade acordado para atender comparações entre medidas diferentes.
@@ -80,7 +81,7 @@ Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas con
 
 ## Adiado por decisão do responsável
 
-- Homologação no iOS: adiada em 31/10. Os cenários informados pelo responsável no Android físico foram aprovados; não considerar iOS validado.
+- [x] Homologação no iOS: responsável informou em 01/11 que realizou os testes e está tudo correto. Resultado informado pelo usuário; aparelho/versão e cenários individuais não detalhados.
 
 - Entrega dos emails/SendGrid e redução de spam: manter a configuração atual enquanto não houver domínio próprio, conforme combinado.
 

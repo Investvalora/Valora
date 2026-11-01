@@ -16,6 +16,7 @@ import { useAssetDetail } from '../hooks/useAssetDetail'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
 import { EditTransactionButton } from '../../portfolio/components/EditTransactionButton'
+import { FavoriteButton } from './FavoriteButton'
 import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
@@ -213,7 +214,8 @@ function AssetDetailHero({
         </div>
 
         {/* Botões de ação — pushed to right on desktop */}
-        <div className="flex gap-2 md:ml-auto">
+        <div className="flex flex-wrap gap-2 md:ml-auto">
+          <FavoriteButton ticker={ticker} />
           <button
             type="button"
             onClick={onTransaction}

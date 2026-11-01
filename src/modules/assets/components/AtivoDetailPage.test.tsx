@@ -123,3 +123,4 @@ it.each([
   expect(within(screen.getByRole('table')).getByText(price)).toBeInTheDocument()
   expect(within(screen.getByRole('table')).getByText(total)).toBeInTheDocument()
 })
+vi.mock('./FavoriteButton', () => ({ FavoriteButton: () => null }))

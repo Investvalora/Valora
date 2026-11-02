@@ -65,7 +65,7 @@ export function SidebarNovo({
                 <stop offset="1" stopColor="#3f7dff" />
               </linearGradient>
             </defs>
-            <rect x="8" y="8" width="112" height="112" rx="28" fill="#101822" stroke="#2a3746" strokeWidth="2" />
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#101822" />
             <path
               d="M32 76L52 52L70 68L96 36"
               fill="none"

@@ -55,14 +55,112 @@ html.ios-standalone textarea {
   font-size: max(16px, 1em) !important;
 }
 
-.login-page__glow {
+.auth-scene {
+  --blue-x: 0vw;
+  --blue-y: 0vh;
+  --green-x: 0vw;
+  --green-y: 0vh;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #070a0a;
+}
+
+html.ios-standalone .auth-scene {
+  min-height: 100vh;
+}
+
+.auth-scene[data-auth-view='signup'] {
+  --blue-x: 55vw;
+  --blue-y: 40vh;
+  --green-x: -55vw;
+  --green-y: -40vh;
+}
+
+.auth-scene[data-auth-view='recovery'] {
+  --blue-x: 19vw;
+  --blue-y: 25vh;
+  --green-x: -17vw;
+  --green-y: 13vh;
+}
+
+.auth-scene__blue,
+.auth-scene__green {
+  position: absolute;
+  /* Reserva largura para os deslocamentos de rota, sem expor uma borda reta. */
+  inset: -60vh -80%;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 620ms ease;
+}
+
+.auth-scene[data-auth-view='recovery'] .auth-scene__blue,
+.auth-scene[data-auth-view='recovery'] .auth-scene__green {
+  opacity: 1;
+}
+
+.auth-scene__blue {
+  background:
+    radial-gradient(ellipse 38% 58% at 38% 29%, rgba(38, 104, 209, 0.52), rgba(22, 67, 149, 0.23) 43%, transparent 82%),
+    radial-gradient(ellipse 40% 67% at 56% 76%, rgba(22, 68, 136, 0.19), transparent 79%),
+    linear-gradient(128deg, rgba(20, 60, 128, 0.13), transparent 70%);
+  transform: translate3d(var(--blue-x), var(--blue-y), 0);
+}
+
+.auth-scene__green {
+  background:
+    radial-gradient(ellipse 40% 63% at 63% 70%, rgba(19, 125, 78, 0.43), rgba(14, 75, 52, 0.2) 45%, transparent 84%),
+    radial-gradient(ellipse 36% 55% at 40% 28%, rgba(17, 83, 63, 0.14), transparent 80%);
+  transform: translate3d(var(--green-x), var(--green-y), 0);
+}
+
+.auth-scene__shade {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 10% 78%, rgba(22, 126, 53, 0.52), transparent 30%),
-    radial-gradient(circle at 34% 32%, rgba(40, 70, 120, 0.36), transparent 32%),
-    linear-gradient(115deg, rgba(4, 44, 24, 0.42), transparent 52%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), transparent 38%, rgba(0, 0, 0, 0.28));
+}
+
+.auth-scene__content {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-form-enter {
+  animation: auth-form-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes auth-form-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 767px) {
+  .auth-scene[data-auth-view='recovery'] {
+    --blue-x: 28vw;
+    --blue-y: 48vh;
+    --green-x: -39vw;
+    --green-y: -9vh;
+  }
+
+  .auth-scene__blue {
+    background:
+      radial-gradient(ellipse 38% 58% at 38% 29%, rgba(38, 104, 209, 0.39), rgba(22, 67, 149, 0.15) 43%, transparent 82%),
+      radial-gradient(ellipse 40% 67% at 56% 76%, rgba(22, 68, 136, 0.12), transparent 79%);
+  }
+
+  .auth-scene__green {
+    background:
+      radial-gradient(ellipse 40% 63% at 63% 70%, rgba(19, 125, 78, 0.32), rgba(14, 75, 52, 0.13) 45%, transparent 84%),
+      radial-gradient(ellipse 36% 55% at 40% 28%, rgba(17, 83, 63, 0.1), transparent 80%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-scene__blue,
+  .auth-scene__green { transition: none; }
+  .auth-form-enter { animation: none; }
 }
 
 .login-input {
@@ -314,8 +412,8 @@ html.ios-standalone textarea {
 }
 
 .wallet-selector-fade {
-  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 14px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 14px), transparent 100%);
 }
 
 /* Barra nativa de apoio; o controle superior permanece visível em tabelas longas. */

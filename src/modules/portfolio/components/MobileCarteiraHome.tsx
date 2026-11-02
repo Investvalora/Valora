@@ -307,7 +307,7 @@ export function MobileCarteiraHome({
           className="pointer-events-none absolute right-0 top-0 z-30 w-24 h-48"
         />
       )}
-      <div className="relative z-20 mx-auto max-w-md px-6 pt-6">
+      <div className="relative z-20 mx-auto w-full max-w-md px-4 pt-6">
         <header className="flex items-center justify-between">
           <Link
             to="/conta"
@@ -344,7 +344,7 @@ export function MobileCarteiraHome({
             if (node) node.inert = showWallets
           }}
         >
-          {children ?? <div className="relative mx-auto max-w-md px-8 pt-9">
+          {children ?? <div className="relative mx-auto w-full max-w-md px-4 pt-9">
             <h1 className="text-2xl font-medium">Olá, {firstName}</h1>
             <p className="mt-1 text-xs text-zinc-500">{selectedWallet?.name ?? 'Sua carteira'}</p>
 

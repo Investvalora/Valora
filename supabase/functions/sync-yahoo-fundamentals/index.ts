@@ -192,16 +192,16 @@ async function fetchYahooFundamentals(
 
     if (data.quoteSummary.error || !data.quoteSummary.result?.[0]) return null
 
-    const ks = data.quoteSummary.result[0].defaultKeyStatistics
-    const sd = data.quoteSummary.result[0].summaryDetail
-    const fd = data.quoteSummary.result[0].financialData
+    const ks = data.quoteSummary.result[0].defaultKeyStatistics ?? {}
+    const sd = data.quoteSummary.result[0].summaryDetail ?? {}
+    const fd = data.quoteSummary.result[0].financialData ?? {}
 
     const rawLpa         = finite(ks.trailingEps?.raw)
-    const rawVpa         = pos(ks.bookValue?.raw)
+    const rawVpa         = finite(ks.bookValue?.raw)
     const rawPl          = nonNeg(sd.trailingPE?.raw)
     const rawPvp         = pos(ks.priceToBook?.raw)
     // DY vem como decimal (0.13 = 13%) → converter para %
-    const rawDy          = nonNeg((sd.dividendYield?.raw ?? 0) * 100)
+    const rawDy          = sd.dividendYield?.raw == null ? null : nonNeg(sd.dividendYield.raw * 100)
     // ROE vem como decimal → converter para % e clampar em [-100, 100]
     const rawRoe         = clamp((fd.returnOnEquity?.raw ?? null) !== null ? (fd.returnOnEquity!.raw! * 100) : null, -100, 100)
     // Net margin vem como decimal → converter para % e clampar
@@ -227,17 +227,9 @@ async function fetchYahooFundamentals(
 
 // ─── Upsert no banco ──────────────────────────────────────────────────────────
 
-interface FundamentalsRow {
+type FundamentalsRow = YahooFundamentals & {
   ticker: string
   reference_date: string
-  pl: number
-  pvp: number
-  roe: number
-  dy: number
-  debt_equity: number
-  net_margin: number
-  lpa: number
-  vpa: number
   source: string
 }
 
@@ -261,9 +253,21 @@ Deno.serve(async (req: Request) => {
   if (caller.kind === 'denied') return jsonResp({ error: 'Sessão inválida ou serviço de autenticação indisponível.' }, caller.status)
   if (caller.kind !== 'service') return jsonResp({ error: 'Sincronização restrita ao serviço interno.' }, 403)
 
+  let requested: string[] | undefined
+  try {
+    const rawBody = await req.text()
+    const body = rawBody.trim() ? JSON.parse(rawBody) : {}
+    if (body.tickers !== undefined) {
+      if (!Array.isArray(body.tickers) || !body.tickers.length || body.tickers.length > 20 || body.tickers.some((ticker: unknown) => typeof ticker !== 'string' || !/^[A-Z0-9][A-Z0-9.\-]{0,19}$/.test(ticker))) {
+        return jsonResp({ error: 'Tickers inválidos.' }, 400)
+      }
+      requested = [...new Set(body.tickers as string[])]
+    }
+  } catch { return jsonResp({ error: 'Body inválido.' }, 400) }
+
   // Buscar todos os ativos ativos do catálogo
   const assetsResp = await rest(
-    `assets?active=eq.true&type=in.(${FUNDAMENTAL_ASSET_TYPES})&select=ticker,currency`,
+    `assets?active=eq.true&type=in.(${FUNDAMENTAL_ASSET_TYPES})&select=ticker,currency${requested ? `&ticker=in.(${requested.map(encodeURIComponent).join(',')})` : ''}`,
   )
   if (!assetsResp.ok) return jsonResp({ error: 'Falha ao ler catálogo de ativos.' }, 500)
   const assets = (await assetsResp.json()) as Array<{ ticker: string; currency: string }>
@@ -287,27 +291,8 @@ Deno.serve(async (req: Request) => {
     const { ticker, currency } = assets[i]
     const fund = await fetchYahooFundamentals(ticker, currency, session)
 
-    if (
-      fund &&
-      fund.vpa !== null &&
-      fund.pvp !== null &&
-      fund.roe !== null &&
-      fund.dy !== null
-    ) {
-      // Campos com fallback para FIIs e ETFs que não têm todos os indicadores
-      rows.push({
-        ticker,
-        reference_date: today,
-        pl:           fund.pl          ?? 0,      // FIIs sem P/L definido usam 0
-        pvp:          fund.pvp,
-        roe:          fund.roe,
-        dy:           fund.dy,
-        debt_equity:  fund.debt_equity ?? 0,      // FIIs sem D/E usam 0
-        net_margin:   fund.net_margin  ?? 0,      // FIIs sem margem usam 0
-        lpa:          fund.lpa         ?? 0,      // FIIs sem EPS usam 0
-        vpa:          fund.vpa,
-        source: 'yahoo',
-      })
+    if (fund && Object.values(fund).some(value => value !== null)) {
+      rows.push({ ...fund, ticker, reference_date: today, source: 'yahoo' })
       processados++
     } else {
       falhas++

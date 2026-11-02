@@ -26,6 +26,13 @@ const validRow: ParsedTransactionRow = {
 beforeEach(() => resetSupabaseMock())
 
 describe('transactionsService', () => {
+  it('rejeita operação futura antes de escrever, inclusive em lote', async () => {
+    await expect(transactionsService.addManualTransaction(USER_ID, {
+      ticker: 'PETR4', type: 'buy', quantity: 1, price: 50, transaction_date: '2999-12-31',
+    })).rejects.toThrow('Informe uma data válida')
+    await expect(transactionsService.importTransactions(USER_ID, [{ ...validRow, date: '2999-12-31' }])).rejects.toThrow()
+    expect(supabaseMock.insertPayloads('transactions')).toEqual([])
+  })
   it('marca ticker fora do catálogo com erro localizado', async () => {
     supabaseMock.on('assets', () => ({ data: [{ ticker: 'PETR4' }], error: null }))
 

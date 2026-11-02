@@ -14,6 +14,9 @@ export function useAlerts() {
     queryKey: alertsQueryKey(userId),
     queryFn: () => alertsService.listAlerts(userId as string),
     enabled: Boolean(userId),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: 'always',
   })
 
   return { ...query, isLoading: query.isLoading || loading }
@@ -26,6 +29,9 @@ export function useNewAlertsCount() {
     queryKey: [...alertsQueryKey(userId), 'new-count'],
     queryFn: () => alertsService.countNewAlerts(userId as string),
     enabled: Boolean(userId),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: 'always',
   })
 
   return { ...query, isLoading: query.isLoading || loading }

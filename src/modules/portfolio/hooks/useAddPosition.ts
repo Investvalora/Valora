@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { positionService } from '../services/positionService'
 import type { NewPosition, Position } from '../types'
+import { syncAssetData } from '../services/assetDataSync'
 
 /**
  * Código sintético da sessão ausente, no mesmo formato dos SQLSTATE que o
@@ -36,8 +37,9 @@ export function useAddPosition() {
       if (!userId) throw new MissingSessionError()
       return positionService.addPosition(userId, position)
     },
-    onSuccess: () => {
+    onSuccess: (_, payload) => {
       queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
+      if (userId) void syncAssetData(queryClient, userId, payload.ticker)
     },
   })
 }

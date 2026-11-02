@@ -12,7 +12,7 @@ import { useSidebarPreference } from '../stores/useSidebarPreference'
 import { usePriceTargetMonitor } from '../../modules/alerts/hooks/usePriceTargetMonitor'
 
 export function AppShellNovo() {
-  usePriceTargetMonitor()
+  const alertMonitor = usePriceTargetMonitor()
   const { data: alertCount = 0 } = useNewAlertsCount()
   const { user } = useAuth()
   const { compact, setCompact } = useSidebarPreference(user?.id)
@@ -42,6 +42,10 @@ export function AppShellNovo() {
         />
 
         <main className="min-w-0 flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:px-10 md:pb-10 md:pt-0">
+          {alertMonitor.isError && <div role="status" aria-label="Verificação de alertas" className="m-4 rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">
+            Não foi possível verificar novos alertas. Seus alertas existentes foram mantidos.
+            <button type="button" className="ml-3 underline" disabled={alertMonitor.isFetching} onClick={() => void alertMonitor.refetch()}>Tentar novamente</button>
+          </div>}
           <Outlet />
         </main>
       </div>

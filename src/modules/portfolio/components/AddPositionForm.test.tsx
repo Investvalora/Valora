@@ -11,7 +11,7 @@ import type { Session, User } from '@supabase/supabase-js'
 // é o que permite afirmar de onde vem o `user_id`.
 vi.mock('../../../shared/services/supabaseClient', async () => {
   const { supabaseMock } = await import('../../../test/supabaseMock')
-  return { supabase: supabaseMock.client }
+  return { supabase: { ...supabaseMock.client, auth: { getSession: async () => ({ data: { session: { access_token: 'test-session' } } }) } } }
 })
 
 import { resetSupabaseMock, supabaseMock } from '../../../test/supabaseMock'
@@ -98,6 +98,7 @@ async function fillAndSubmit(ticker: string) {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })))
   resetSupabaseMock()
   useAuthStore.setState({ user: null, session: null, loading: false })
   // A mensagem de diagnóstico do componente vai para o console, nunca à tela.
@@ -202,7 +203,18 @@ describe('AddPositionForm — posição duplicada (linha da matriz)', () => {
 })
 
 describe('AddPositionForm — ticker fora do catálogo (linha da matriz)', () => {
+  it('resolve o ticker externo e salva na primeira tentativa', async () => {
+    signIn(SESSION_USER_ID)
+    catalogReturns(null)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify({ ...CATALOG_ASSET, ticker: 'RADL3', created: true }), { status: 201 })))
+    supabaseMock.on('positions', () => ({ data: { id: 'position', ticker: 'RADL3', user_id: SESSION_USER_ID }, error: null }))
+    const { onSuccess } = renderForm(createQueryClient())
+    await fillAndSubmit('RADL3')
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('RADL3'))
+    expect(supabaseMock.chainsWith('positions', 'insert')).toHaveLength(1)
+  })
   it('mostra "Ativo não encontrado" e bloqueia o submit', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })))
     signIn(SESSION_USER_ID)
     catalogReturns(null)
     supabaseMock.on('positions', () => ({ data: null, error: null }))
@@ -211,7 +223,7 @@ describe('AddPositionForm — ticker fora do catálogo (linha da matriz)', () =>
 
     await fillAndSubmit('PETR99')
 
-    expect(await screen.findByText('Ativo não encontrado')).toBeInTheDocument()
+    expect(await screen.findByText('Ativo indisponível. Confira o ticker ou tente novamente.')).toBeInTheDocument()
 
     // O bloqueio é no cliente, antes de qualquer escrita: a FK nunca é violada.
     expect(supabaseMock.chainsWith('positions', 'insert')).toHaveLength(0)

@@ -202,7 +202,6 @@ export function RentabilidadePage() {
     monthlyTableData,
     isLoading,
     isError,
-    error,
     refetch,
     hasPositions,
     hasHistory,
@@ -233,9 +232,7 @@ export function RentabilidadePage() {
           className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col gap-3"
         >
           <p className="text-red-400 font-medium">Erro ao carregar rentabilidade</p>
-          {error && (
-            <p className="text-red-300/70 text-sm font-mono">{error.message}</p>
-          )}
+          <p className="text-red-300/70 text-sm">Não foi possível consultar os dados agora. Tente novamente em instantes.</p>
           <button
             type="button"
             onClick={refetch}

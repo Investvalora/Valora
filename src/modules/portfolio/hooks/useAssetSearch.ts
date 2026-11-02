@@ -65,6 +65,9 @@ export function useTickerLatestPrice(ticker: string): number | null {
       const history = await positionService.listLatestQuotes([normalized])
       if (history.length > 0) return history
 
+      // Typing a prefix is not an external lookup. Wait for an exact asset.
+      if (!await positionService.findAssetByTicker(normalized)) return []
+
       // Fallback para ativos sem histórico sincronizado: a Edge Function
       // consulta a Brapi com a chave mantida no servidor.
       const { data, error } = await supabase.functions.invoke('lookup-asset', {

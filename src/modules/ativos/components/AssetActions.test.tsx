@@ -1,4 +1,6 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render as renderUI, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AssetActions } from './AssetActions'
@@ -7,6 +9,7 @@ import type { PositionRow } from '../../portfolio/types'
 vi.mock('../../portfolio/components/AddTransactionModal', () => ({ AddTransactionModal: ({ ticker, assetType }: { ticker: string; assetType: string }) => <div data-testid="launch">{ticker}:{assetType}</div> }))
 vi.mock('../../portfolio/components/TransactionListModal', () => ({ TransactionListModal: ({ ticker }: { ticker: string }) => <div data-testid="history">{ticker}</div> }))
 afterEach(cleanup)
+const render = (node: ReactNode) => renderUI(<QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider>)
 
 it.each(['stock_br', 'stock_us', 'fii', 'bdr', 'etf_br', 'etf_us', 'reit', 'crypto'])('oferece lançamento contextual para %s', (type) => {
   const row = { ticker: 'ATIVO', type, name: 'Meu ativo' } as PositionRow

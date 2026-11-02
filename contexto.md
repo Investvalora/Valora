@@ -29,6 +29,10 @@ RF02 - Permitir autenticação por e-mail e senha na tela de login.
 
 RF02a - Permitir autenticação pelo Google (RF-003 da ERS citada no levantamento), com retorno para a aplicação e mensagens para cancelamento e falha. O provedor precisa estar configurado no Supabase e no Google Cloud. A numeração RF03 abaixo pertence a este documento e identifica o direcionamento após autenticação.
 
+RF02b - Permitir solicitar reenvio da confirmação de email após cadastro pendente ou recusa de login por email não confirmado, respeitando os limites de envio. O reenvio não libera acesso antes da confirmação.
+
+RF02c - Permitir editar nome e telefone no perfil e solicitar troca de email pelo Supabase Auth. O email confirmado só é substituído quando o serviço concluir a alteração.
+
 RF03 - Direcionar o usuário autenticado para o painel de carteira.
 
 RF04 - Exibir resumo consolidado da carteira com patrimônio total, lucro ou prejuízo, benchmark e score médio.
@@ -163,6 +167,7 @@ O fluxo principal observado é o seguinte:
 
 - O cadastro exige confirmação de senha antes de permitir a continuidade.
 - O nome é validado após remover espaços nas extremidades; nomes vazios ou com menos de três caracteres são rejeitados. Espaços entre palavras são preservados.
+- O telefone é opcional. Quando informado, aceita 10 ou 11 dígitos com DDD para números brasileiros ou +DDI com 8 a 15 dígitos para números internacionais. A formatação é normalizada antes do armazenamento; letras e sequências excessivas são rejeitadas.
 - Cadastro e redefinição adotam uma adaptação autorizada da política Microsoft para corresponder ao Supabase: 8 a 256 caracteres ASCII imprimíveis (incluindo espaços) e as quatro categorias: maiúsculas, minúsculas, números e símbolos. O Valora adiciona bloqueio local de palavras comuns e padrões previsíveis. O login não aplica essa validação a senhas existentes. A lista global proprietária de senhas banidas do Entra não é reproduzida. Referência: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-sspr-policy.
 - Resumo e seletor usam a mesma fonte de patrimônio atual: posições, últimas cotações, câmbio e renda fixa. Quando uma posição não pode ser valorizada, o total da carteira fica indisponível em vez de apresentar soma parcial como completa.
 - Desconto e sobrepreço são calculados sobre o preço de referência: `(referência − cotação) / referência × 100`, tanto em Bazin quanto em Graham. Percentual positivo indica desconto; negativo indica sobrepreço.

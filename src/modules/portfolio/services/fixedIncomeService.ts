@@ -1,4 +1,5 @@
 import { supabase } from '../../../shared/services/supabaseClient'
+import { movementDateSchema } from '../schemas/movementDateSchema'
 import {
   FixedIncomePosition,
   NewFixedIncomePosition,
@@ -68,6 +69,7 @@ export const fixedIncomeService = {
     position: NewFixedIncomePosition,
     walletId?: string,
   ): Promise<FixedIncomePosition> {
+    movementDateSchema.parse(position.application_date)
     const { data, error } = await supabase
       .from('fixed_income_positions')
       .insert({

@@ -41,7 +41,7 @@ import { findBazinAlertCandidates } from '../../../supabase/functions/generate-a
 import type { BazinDividend } from '../../../supabase/functions/generate-alerts/logic'
 
 // Helpers
-const pos = (ticker: string) => ({ ticker })
+const pos = (ticker: string) => ({ ticker, type: 'stock_br', currency: 'BRL' })
 const div = (ticker: string, value: number): BazinDividend => ({ ticker, value_per_share: value })
 const qt = (ticker: string, close: number) => ({ ticker, date: '2026-09-11', close })
 
@@ -151,4 +151,11 @@ describe('findBazinAlertCandidates', () => {
     expect(candidates[0].description).toContain('40,00')
     expect(candidates[0].description).toContain('6%')
   })
+})
+
+it('Bazin rejeita criptos e metadados ausentes, e usa USD sem conversao', () => {
+  expect(findBazinAlertCandidates([{ ticker: 'ETH', type: 'crypto', currency: 'USD' }, { ticker: 'X' }], [div('ETH', 12), div('X', 12)], [qt('ETH', 1), qt('X', 1)])).toEqual([])
+  const [alert] = findBazinAlertCandidates([{ ticker: 'KO', type: 'stock_us', currency: 'USD' }], [div('KO', 6)], [qt('KO', 50)])
+  expect(alert.description).toContain('US$ 100,00')
+  expect(alert.description).not.toContain('R$')
 })

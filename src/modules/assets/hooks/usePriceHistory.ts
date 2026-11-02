@@ -1,22 +1,28 @@
 import { useQuery } from '@tanstack/react-query'
 import { wealthService } from '../../wealth/services/wealthService'
-import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { shiftIsoDate, toIsoDate } from '../../../shared/utils/isoDate'
 import type { WealthPeriod } from '../../wealth/types'
 import type { PricePoint } from '../types'
 
 const STALE_TIME_MS = 5 * 60 * 1000
+export type PriceHistoryPeriod = WealthPeriod | '5A'
 
 /** Converte o período selecionado para a data de início da série. */
-function periodToSince(period: WealthPeriod): string {
+function periodToSince(period: PriceHistoryPeriod): string {
   const today = new Date()
   if (period === '1M') return shiftIsoDate(-30, today)
   if (period === '3M') return shiftIsoDate(-90, today)
   if (period === '6M') return shiftIsoDate(-183, today)
   if (period === '1A') return shiftIsoDate(-365, today)
+  if (period === '5A') {
+    const year = today.getFullYear() - 5
+    const day = Math.min(today.getDate(), new Date(year, today.getMonth() + 1, 0).getDate())
+    return toIsoDate(new Date(year, today.getMonth(), day))
+  }
   return '1970-01-01' // 'Tudo'
 }
 
-export function priceHistoryQueryKey(ticker: string, period: WealthPeriod) {
+export function priceHistoryQueryKey(ticker: string, period: PriceHistoryPeriod) {
   return ['assets', 'price-history', ticker.toUpperCase(), period] as const
 }
 
@@ -24,7 +30,7 @@ export function priceHistoryQueryKey(ticker: string, period: WealthPeriod) {
  * Histórico de preços de um único ativo para o período selecionado.
  * Reutiliza `wealthService.listPriceHistory` sem modificação.
  */
-export function usePriceHistory(ticker: string, period: WealthPeriod) {
+export function usePriceHistory(ticker: string, period: PriceHistoryPeriod) {
   const normalizedTicker = ticker.toUpperCase()
   const since = periodToSince(period)
 

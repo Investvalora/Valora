@@ -49,7 +49,7 @@ describe('Perfil e conta', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
-    expect(screen.getAllByText('perfil@valora.test')).toHaveLength(2)
+    expect(screen.getAllByText('sessao@valora.test')).toHaveLength(2)
     expect(screen.getByText('11988887777')).toBeInTheDocument()
     expect(screen.getByText('AC')).toBeInTheDocument()
     expect(screen.queryByText('Último acesso')).not.toBeInTheDocument()
@@ -70,5 +70,13 @@ describe('Perfil e conta', () => {
     expect(await screen.findByRole('heading', { name: 'Nome da sessão' })).toBeInTheDocument()
     expect(screen.getByText('11999990000')).toBeInTheDocument()
     expect(screen.getAllByText('sessao@valora.test')).toHaveLength(2)
+  })
+
+  it('respeita o telefone removido no perfil sem recuperar um número antigo da sessão', async () => {
+    vi.mocked(authService.getUserProfile).mockResolvedValue({ id: 'user-1', email: 'sessao@valora.test', full_name: 'Ana Carvalho', phone: null } as never)
+    renderPage()
+    expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
+    expect(screen.getByText('Não informado')).toBeInTheDocument()
+    expect(screen.queryByText('11999990000')).not.toBeInTheDocument()
   })
 })

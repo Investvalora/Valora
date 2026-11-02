@@ -252,6 +252,11 @@ describe('positionService.findAssetByTicker', () => {  it('devolve null para tic
 })
 
 describe('positionService.searchAssets', () => {
+  it('encontra Alphabet ao buscar pelo nome Google sem tratar o nome como ticker', async () => {
+    supabaseMock.on('assets', () => ({ data: [], error: null }))
+    await positionService.searchAssets('google')
+    expect(supabaseMock.callArgs('assets', 'or')).toContainEqual(['ticker.ilike.%google%,name.ilike.%google%,name.ilike.%Alphabet%'])
+  })
   it('exige active = true', async () => {
     supabaseMock.on('assets', () => ({ data: [], error: null }))
 

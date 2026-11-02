@@ -88,11 +88,18 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil((async () => {
     const url = new URL('/alertas', self.location.origin).href
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin)
-    if (existing) {
-      await existing.navigate(url)
-      await existing.focus()
-      return
+    // Prefer a visible app and recover from stale or unfocusable clients.
+    const candidates = windows.filter((client) => new URL(client.url).origin === self.location.origin)
+      .sort((a, b) => Number(b.visibilityState === 'visible') - Number(a.visibilityState === 'visible'))
+    for (const client of candidates) {
+      try {
+        // Focusing first preserves the notification's user activation on Android.
+        const focused = await client.focus()
+        const navigated = await focused.navigate(url)
+        if (navigated) return
+      } catch {
+        // The browser may have discarded this client; try another or open a window.
+      }
     }
     await self.clients.openWindow(url)
   })())

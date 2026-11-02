@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { passwordSchema } from './passwordSchema'
+import { phoneSchema } from './profileSchema'
 
 export const signupSchema = z.object({
   email: z
@@ -11,9 +12,7 @@ export const signupSchema = z.object({
     .string()
     .trim()
     .min(3, 'Nome completo deve ter no mínimo 3 caracteres'),
-  phone: z
-    .string()
-    .optional(),
+  phone: phoneSchema.optional(),
   confirmPassword: z.string().min(1, 'Confirme sua senha'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'As senhas não conferem',

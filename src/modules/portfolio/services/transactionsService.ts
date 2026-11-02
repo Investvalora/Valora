@@ -1,5 +1,6 @@
 import { supabase } from '../../../shared/services/supabaseClient'
 import { parseDecimalPtBr } from '../schemas/positionSchema'
+import { movementDateSchema } from '../schemas/movementDateSchema'
 import type { NewTransaction } from '../types'
 import type { CsvImportError, ParsedTransactionRow } from '../csv/csvParser'
 
@@ -30,6 +31,15 @@ export interface NewManualTransaction {
   transaction_date: string
 }
 
+export interface TransactionEdit {
+  type: 'buy' | 'sell'
+  transaction_date: string
+  quantity: number
+  price: number
+  brokerage_fee: number
+  tax: number
+}
+
 const TRANSACTION_COLUMNS =
   'id, seq, user_id, wallet_id, ticker, type, quantity, price, brokerage_fee, tax, transaction_date, created_at'
 const TRANSACTION_PAGE_SIZE = 1000
@@ -44,6 +54,18 @@ function tickerError(row: ParsedTransactionRow): CsvImportError {
 }
 
 export const transactionsService = {
+  async editTransaction(original: Transaction, changes: TransactionEdit): Promise<Transaction> {
+    movementDateSchema.parse(changes.transaction_date)
+    const { data, error } = await supabase.rpc('edit_owned_transaction', {
+      p_id: original.id,
+      p_expected: { type: original.type, transaction_date: original.transaction_date,
+        quantity: Number(original.quantity), price: Number(original.price), brokerage_fee: Number(original.brokerage_fee), tax: Number(original.tax) },
+      p_type: changes.type, p_date: changes.transaction_date, p_quantity: changes.quantity,
+      p_price: changes.price, p_brokerage_fee: changes.brokerage_fee, p_tax: changes.tax,
+    }).single()
+    if (error) throw error
+    return data as Transaction
+  },
   async validateTickers(rows: ParsedTransactionRow[]): Promise<ParsedTransactionRow[]> {
     const tickers = [...new Set(rows.map((row) => row.ticker).filter(Boolean))]
     if (tickers.length === 0) return rows
@@ -75,6 +97,7 @@ export const transactionsService = {
     }))
 
     if (payload.length === 0) return 0
+    for (const transaction of payload) movementDateSchema.parse(transaction.transaction_date)
     const { error } = await supabase.from('transactions').insert(
       payload.map((transaction) => ({
         ...transaction,
@@ -115,6 +138,7 @@ export const transactionsService = {
 
   /** Insere uma transação manual (buy ou sell). */
   async addManualTransaction(userId: string, payload: NewManualTransaction): Promise<Transaction> {
+    movementDateSchema.parse(payload.transaction_date)
     const { data, error } = await supabase
       .from('transactions')
       .insert({

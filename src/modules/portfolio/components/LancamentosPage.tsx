@@ -8,6 +8,7 @@ import { useDeleteTransaction } from '../hooks/useTransactions'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { AddTransactionModal } from './AddTransactionModal'
 import { QuickTransactionModal } from './QuickTransactionModal'
+import { EditTransactionButton } from './EditTransactionButton'
 import {
   ASSET_CLASS_LABEL,
   ASSET_CLASS_ORDER,
@@ -190,6 +191,7 @@ function TxnRow({
 
         {/* Opções */}
         <td className="px-4 py-3 text-right">
+          <EditTransactionButton transaction={txn} />
           {confirmDelete ? (
             <span className="inline-flex items-center gap-1.5">
               <span className="text-xs text-gray-400">Excluir?</span>
@@ -292,6 +294,7 @@ function MobileTxnCard({
 
       <div className="mt-4 flex min-h-9 items-center gap-3 border-t border-white/[0.12] pt-3">
         <p className="text-sm text-zinc-500">{fmtDate(txn.transaction_date)}</p>
+        <EditTransactionButton transaction={txn} />
         {confirmDelete ? (
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-zinc-500">Excluir?</span>

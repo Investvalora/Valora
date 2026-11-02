@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ResendConfirmation } from './ResendConfirmation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -30,6 +31,7 @@ function DesktopLoginForm() {
   const setSession = useAuthStore((state) => state.setSession)
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
   const callbackError = new URLSearchParams(location.search).get('error') ??
     new URLSearchParams(location.hash.slice(1)).get('error')
   const googleMutation = useMutation({
@@ -55,7 +57,7 @@ function DesktopLoginForm() {
       setSession(data.session)
       navigate('/inicio')
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
       console.error('Login error:', error)
 
       const message = error.message?.toLowerCase() ?? ''
@@ -67,6 +69,7 @@ function DesktopLoginForm() {
         setErrorMessage('Email ou senha incorretos')
       } else if (message.includes('email not confirmed')) {
         setErrorMessage('Confirme seu email antes de entrar. Verifique sua caixa de entrada.')
+        setPendingEmail(variables.email)
       } else {
         setErrorMessage('Email ou senha incorretos')
       }
@@ -75,6 +78,7 @@ function DesktopLoginForm() {
 
   const onSubmit = (data: LoginSchema) => {
     setErrorMessage('')
+    setPendingEmail('')
     loginMutation.mutate(data)
   }
 
@@ -111,6 +115,7 @@ function DesktopLoginForm() {
         </div>
 
         {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
+        {pendingEmail && <ResendConfirmation key={pendingEmail} email={pendingEmail} />}
 
         <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
           {loginMutation.isPending ? 'Entrando...' : 'Entrar'}

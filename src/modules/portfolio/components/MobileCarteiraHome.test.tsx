@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import type { Wallet } from '../services/walletService'
 import { MobileCarteiraHome } from './MobileCarteiraHome'
@@ -90,7 +90,15 @@ function giveSwipeZoneBounds(page: HTMLElement) {
 }
 
 describe('Carteira inicial no celular', () => {
+  afterEach(() => { vi.restoreAllMocks() })
+
   beforeEach(() => {
+    const originalRect = HTMLElement.prototype.getBoundingClientRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.testid === 'wallet-swipe-zone'
+        ? new DOMRect(294, 0, 96, 192)
+        : originalRect.call(this)
+    })
     currentWallets = [wallet]
     selectWallet.mockClear()
     createWallet.mockReset()
@@ -113,6 +121,20 @@ describe('Carteira inicial no celular', () => {
     await waitFor(() => {
       expect(onAddTransaction).toHaveBeenCalledOnce()
     })
+  })
+
+  it('ignora gestos fora da zona lateral e rolagem vertical', () => {
+    renderHome()
+    const page = screen.getByTestId('wallet-slide-track').closest('section')!
+    fireEvent.touchStart(page, { touches: [{ clientX: 150, clientY: 150 }] })
+    fireEvent.touchMove(page, { touches: [{ clientX: 10, clientY: 155 }] })
+    fireEvent.touchEnd(page, { changedTouches: [{ clientX: 10, clientY: 155 }] })
+    expect(screen.queryByRole('heading', { name: 'Carteiras' })).not.toBeInTheDocument()
+    fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
+    fireEvent.touchMove(page, { touches: [{ clientX: 290, clientY: 320 }] })
+    fireEvent.touchEnd(page, { changedTouches: [{ clientX: 290, clientY: 320 }] })
+    expect(screen.queryByRole('heading', { name: 'Carteiras' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('wallet-slide-track').style.transform).toContain('0%')
   })
 
   it('abre as carteiras pelo gesto lateral e seleciona uma carteira', () => {
@@ -284,5 +306,16 @@ describe('Carteira inicial no celular', () => {
     })
     expect(track.style.transform).toContain('0%')
     expect(screen.getByRole('heading', { name: 'Olá, Samuel' })).toBeInTheDocument()
+  })
+
+  it('restaura a posição ao cancelar o arrasto e permite abrir pela área lateral', () => {
+    renderHome()
+    const page = screen.getByTestId('wallet-slide-track').closest('section')!
+    fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
+    fireEvent.touchMove(page, { touches: [{ clientX: 180, clientY: 150 }] })
+    fireEvent.touchCancel(page)
+    expect(screen.getByTestId('wallet-slide-track').style.transform).toContain('0%')
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carteiras' }))
+    expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
   })
 })

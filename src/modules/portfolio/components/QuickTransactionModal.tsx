@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { movementDateSchema } from '../schemas/movementDateSchema'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import { useQuery } from '@tanstack/react-query'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
@@ -8,6 +10,7 @@ import { usePositions } from '../hooks/usePositions'
 import { useWallets } from '../hooks/useWallets'
 import { positionService } from '../services/positionService'
 import { useAssetSearch, useTickerLatestPrice } from '../hooks/useAssetSearch'
+import { useLookupExternalAsset } from '../hooks/useLookupExternalAsset'
 import { FIXED_INCOME_TYPE_INDEXER, FIXED_INCOME_RATE_LABEL } from '../types'
 import type { Asset, AssetType, FixedIncomeType, NewFixedIncomePosition } from '../types'
 
@@ -76,6 +79,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const { selectedWallet } = useWallets()
   const { data: positions = [] } = usePositions(selectedWallet?.id ?? '')
   const addTransaction = useAddTransaction()
+  const externalAsset = useLookupExternalAsset()
   const addFI = useAddFixedIncomePosition()
   const { calc: calcValues } = useCalcFixedIncome()
 
@@ -85,7 +89,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   // Campos renda variável
   const [type, setType]             = useState<'buy' | 'sell'>('buy')
   const [ticker, setTicker]         = useState('')
-  const [date, setDate]             = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate]             = useState(toIsoDate(new Date()))
   const [quantity, setQuantity]     = useState('')
   const [price, setPrice]           = useState('')
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false)
@@ -99,13 +103,13 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const [rfTipo, setRfTipo]         = useState<FixedIncomeType | ''>('')
   const [rfTaxa, setRfTaxa]         = useState('')
   const [rfValor, setRfValor]       = useState('')
-  const [rfDate, setRfDate]         = useState(new Date().toISOString().slice(0, 10))
+  const [rfDate, setRfDate]         = useState(toIsoDate(new Date()))
   const [rfMaturity, setRfMaturity] = useState('')
 
   // Campos tesouro direto
   const [tdAtivo, setTdAtivo]           = useState<TesouroDiretoAtivo | ''>('')
   const [tdTaxa, setTdTaxa]             = useState('')
-  const [tdDate, setTdDate]             = useState(new Date().toISOString().slice(0, 10))
+  const [tdDate, setTdDate]             = useState(toIsoDate(new Date()))
   const [tdMaturity, setTdMaturity]     = useState('')
   const [tdQty, setTdQty]               = useState('')
   const [tdPrice, setTdPrice]           = useState('')
@@ -114,15 +118,16 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const [error, setError] = useState('')
   const [changingCurrency, setChangingCurrency] = useState(false)
 
-  const isSaving = addTransaction.isPending || addFI.isPending
+  const isSaving = addTransaction.isPending || addFI.isPending || externalAsset.state.status === 'loading'
 
   const isRendaFixa     = assetClass === 'fixed_income'
   const isTesouroDireto = assetClass === 'tesouro_direto'
   const isVariavel      = !isRendaFixa && !isTesouroDireto
   const debouncedTicker = useDebouncedValue(ticker, 250)
   const { data: assetSuggestions = [], isFetching: isSearchingAssets } = useAssetSearch(debouncedTicker)
-  const filteredAssetSuggestions = assetSuggestions.filter((asset) => asset.type === assetClass)
-  const latestPrice = useTickerLatestPrice(ticker)
+  const suggestionsReady = debouncedTicker.trim() === ticker.trim()
+  const filteredAssetSuggestions = suggestionsReady ? assetSuggestions.filter(asset => asset.type === assetClass) : []
+  const latestPrice = useTickerLatestPrice(isOpen && isVariavel ? selectedAsset?.ticker ?? '' : '')
   const { data: catalogAsset } = useQuery({
     queryKey: ['portfolio', 'asset', ticker],
     queryFn: () => positionService.findAssetByTicker(ticker),
@@ -130,10 +135,10 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   })
 
   useEffect(() => {
-    if (isVariavel && latestPrice !== null && !priceManuallyEdited && ticker.trim().length >= 2) {
+    if (isVariavel && selectedAsset?.ticker === ticker.trim().toUpperCase() && latestPrice !== null && !priceManuallyEdited) {
       setPrice(String(latestPrice))
     }
-  }, [isVariavel, latestPrice, priceManuallyEdited, ticker])
+  }, [isVariavel, latestPrice, priceManuallyEdited, ticker, selectedAsset])
 
   useEffect(() => {
     setHighlightedAssetIndex((current) => Math.min(current, filteredAssetSuggestions.length - 1))
@@ -163,17 +168,19 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const tdIndexer   = tdDbType ? FIXED_INCOME_TYPE_INDEXER[tdDbType] : null
   const tdTaxaLabel = tdIndexer ? FIXED_INCOME_RATE_LABEL[tdIndexer] : 'Taxa'
 
-  const quoteCurrency = isVariavel ? (selectedAsset?.currency ?? catalogAsset?.currency ?? 'BRL') : 'BRL'
+  const defaultCurrency = ['stock_us', 'etf_us', 'reit', 'crypto'].includes(assetClass) ? 'USD' : 'BRL'
+  const quoteCurrency = isVariavel ? (selectedAsset?.currency ?? (catalogAsset?.type === assetClass ? catalogAsset.currency : defaultCurrency)) : 'BRL'
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: quoteCurrency })
 
   function resetFields() {
+    externalAsset.reset()
     setError('')
-    setType('buy'); setTicker(''); setDate(new Date().toISOString().slice(0, 10))
+    setType('buy'); setTicker(''); setDate(toIsoDate(new Date()))
     setQuantity(''); setPrice(''); setPriceManuallyEdited(false); setOtherCosts('')
     setShowAssetSuggestions(false); setHighlightedAssetIndex(-1); setSelectedAsset(null)
     setRfEmissor(''); setRfTipo(''); setRfTaxa('')
-    setRfValor(''); setRfDate(new Date().toISOString().slice(0, 10)); setRfMaturity('')
-    setTdAtivo(''); setTdTaxa(''); setTdDate(new Date().toISOString().slice(0, 10))
+    setRfValor(''); setRfDate(toIsoDate(new Date())); setRfMaturity('')
+    setTdAtivo(''); setTdTaxa(''); setTdDate(toIsoDate(new Date()))
     setTdMaturity(''); setTdQty(''); setTdPrice(''); setTdOther('')
   }
 
@@ -185,12 +192,15 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
     setRfTipo(initialFixedIncome.type)
     setRfTaxa(String(initialFixedIncome.rate))
     setRfValor('')
-    setRfDate(new Date().toISOString().slice(0, 10))
+    setRfDate(toIsoDate(new Date()))
     setRfMaturity('')
     setError('')
   }, [isOpen, initialFixedIncome])
 
   function selectAsset(asset: Asset) {
+    if (asset.type !== assetClass) { setError('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.'); return }
+    setError('')
+    if (selectedAsset?.ticker !== asset.ticker) setPrice('')
     setTicker(asset.ticker)
     setSelectedAsset(asset)
     setShowAssetSuggestions(false)
@@ -250,6 +260,12 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const movementDate = isRendaFixa ? rfDate : isTesouroDireto ? tdDate : date
+    const validation = movementDateSchema.safeParse(movementDate)
+    if (!validation.success) {
+      setError(validation.error.issues[0].message)
+      return
+    }
     setError('')
 
     // ── Renda Fixa ────────────────────────────────────────────────────────
@@ -304,7 +320,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
 
     // ── Renda Variável ────────────────────────────────────────────────────
     const norm = ticker.trim().toUpperCase()
-    if (!norm || !date || parsedQty <= 0 || parsedPrice < 0) {
+    if (!norm || !date || parsedQty <= 0 || !price.trim() || parsedPrice < 0) {
       setError('Preencha ativo, data, quantidade e preço válidos.')
       return
     }
@@ -316,10 +332,11 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
       }
     }
     try {
-      const asset = selectedAsset?.ticker === norm
+      const asset = (selectedAsset?.ticker === norm
         ? selectedAsset
-        : await positionService.findAssetByTicker(norm)
+        : await positionService.findAssetByTicker(norm)) ?? await externalAsset.lookup(norm)
       if (!asset) { setError('Ativo não encontrado no catálogo.'); return }
+      if (asset.type !== assetClass) { setError('Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.'); return }
       await addTransaction.mutateAsync({
         ticker: norm, type, transaction_date: date,
         quantity: parsedQty, price: parsedPrice, brokerage_fee: parsedOther,
@@ -352,7 +369,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
           <button type="submit" form="quick-transaction-form"
             disabled={isSaving || changingCurrency || !selectedWallet}
             className="min-h-11 flex-[1.5] rounded-xl bg-blue-600 px-6 py-2 text-base font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50">
-            {isSaving ? 'Salvando…' : 'Salvar'}
+            {externalAsset.state.status === 'loading' ? 'Buscando ativo…' : isSaving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       }
@@ -412,6 +429,8 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
                 value={ticker}
                 onChange={(e) => {
                   setTicker(e.target.value.toUpperCase())
+                  setPrice('')
+                  externalAsset.reset()
                   setPriceManuallyEdited(false)
                   setSelectedAsset(null)
                   setShowAssetSuggestions(true)
@@ -423,13 +442,24 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
                 placeholder="PETR4"
                 autoCapitalize="characters"
                 maxLength={20}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showAssetSuggestions && ticker.trim().length >= 2}
+                aria-controls="qt-asset-options"
               />
+              {selectedAsset && <p className="mt-1 text-xs text-white/60">{selectedAsset.name} · {selectedAsset.ticker} · {selectedAsset.currency}</p>}
               {isVariavel && showAssetSuggestions && ticker.trim().length >= 2 && (
                 <div className="relative z-20">
-                  <div className="absolute left-0 right-0 top-1 max-h-52 overflow-y-auto rounded-xl border border-white/[0.14] bg-[#242424] p-1 shadow-2xl">
-                    {isSearchingAssets && <p className="px-3 py-2 text-xs text-white/50">Buscando ativos...</p>}
-                    {!isSearchingAssets && filteredAssetSuggestions.length === 0 && (
-                      <p className="px-3 py-2 text-xs text-white/50">Nenhum ativo encontrado</p>
+                  <div id="qt-asset-options" className="absolute left-0 right-0 top-1 max-h-52 overflow-y-auto rounded-xl border border-white/[0.14] bg-[#242424] p-1 shadow-2xl">
+                    {(isSearchingAssets || !suggestionsReady) && <p className="px-3 py-2 text-xs text-white/50">Buscando ativos...</p>}
+                    {!isSearchingAssets && suggestionsReady && filteredAssetSuggestions.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-white/50">
+                        <p>Nenhum ativo encontrado no catálogo. Digite o ticker para buscar na fonte externa.</p>
+                        {catalogAsset?.ticker === ticker.trim().toUpperCase() && catalogAsset.type !== assetClass ? <p className="mt-2">Este ativo pertence a outro tipo. Altere o tipo de ativo para continuar.</p> : <button type="button" disabled={externalAsset.state.status === 'loading'} className="mt-2 text-blue-300 underline" onClick={async () => {
+                          const asset = await externalAsset.lookup(ticker)
+                          if (asset) selectAsset(asset)
+                        }}>{externalAsset.state.status === 'loading' ? 'Buscando…' : 'Buscar ticker na fonte externa'}</button>}
+                      </div>
                     )}
                     {filteredAssetSuggestions.map((asset, index) => (
                       <button
@@ -443,7 +473,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
                           <span className="block text-sm font-medium text-white">{asset.ticker}</span>
                           <span className="block truncate text-xs text-white/50">{asset.name}</span>
                         </span>
-                        <span className="ml-2 shrink-0 text-[10px] uppercase text-white/40">{asset.currency}</span>
+                        <span className="ml-2 shrink-0 text-[10px] text-white/40">{ASSET_TYPES.find(([type]) => type === asset.type)?.[1]} · {asset.currency}</span>
                       </button>
                     ))}
                   </div>

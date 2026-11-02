@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { movementDateSchema } from '../schemas/movementDateSchema'
+import { toIsoDate } from '../../../shared/utils/isoDate'
 import { Modal } from '../../../shared/components/Modal'
 import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
@@ -50,7 +52,7 @@ const INDEXER_DISPLAY: Record<FixedIncomeIndexer, string> = {
 
 const schema = z.object({
   type: z.enum(['buy', 'sell']),
-  transaction_date: z.string().min(1, 'Data obrigatória'),
+  transaction_date: movementDateSchema,
   quantity: z
     .number({ invalid_type_error: 'Informe um número', required_error: 'Obrigatório' })
     .positive('Deve ser maior que zero'),
@@ -83,7 +85,7 @@ const rendaFixaSchema = z.object({
       required_error: 'Informe o valor aplicado',
     })
     .positive('Deve ser maior que zero'),
-  transaction_date: z.string().min(1, 'Data obrigatória'),
+  transaction_date: movementDateSchema,
   maturity_date: z.string().optional(),
 })
 
@@ -99,7 +101,7 @@ const tesouroDiretoSchema = z.object({
   taxa: z
     .number({ invalid_type_error: 'Informe um número', required_error: 'Informe a taxa' })
     .min(0, 'Deve ser ≥ 0'),
-  transaction_date: z.string().min(1, 'Data obrigatória'),
+  transaction_date: movementDateSchema,
   maturity_date: z.string().optional(),
   quantity: z
     .number({ invalid_type_error: 'Informe um número' })
@@ -188,7 +190,7 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
       tipo_titulo: undefined,
       taxa: undefined,
       valor: undefined,
-      transaction_date: new Date().toISOString().slice(0, 10),
+      transaction_date: toIsoDate(new Date()),
       maturity_date: '',
     },
   })
@@ -383,7 +385,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
     defaultValues: {
       ativo: undefined,
       taxa: undefined,
-      transaction_date: new Date().toISOString().slice(0, 10),
+      transaction_date: toIsoDate(new Date()),
       maturity_date: '',
       quantity: undefined,
       price: undefined,
@@ -629,7 +631,7 @@ export function AddTransactionModal({
     resolver: zodResolver(schema),
     defaultValues: {
       type: 'buy',
-      transaction_date: new Date().toISOString().slice(0, 10),
+      transaction_date: toIsoDate(new Date()),
       quantity: undefined,
       price: undefined,
       brokerage_fee: 0,
@@ -641,7 +643,7 @@ export function AddTransactionModal({
     if (isOpen) {
       reset({
         type: 'buy',
-        transaction_date: new Date().toISOString().slice(0, 10),
+        transaction_date: toIsoDate(new Date()),
         quantity: undefined,
         price: undefined,
         brokerage_fee: 0,

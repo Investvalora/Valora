@@ -51,7 +51,7 @@ function fmtBRL(v: number | null): string {
 function fmtPct(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v)) return '—'
   const sign = v > 0 ? '+' : ''
-  return `${sign}${v.toFixed(2)}%`
+  return `${sign}${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 
 export function DesempenhoVisaoGeral() {

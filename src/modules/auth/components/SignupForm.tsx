@@ -7,7 +7,8 @@ import { PASSWORD_HELP } from '../schemas/passwordSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Eye, EyeOff } from 'lucide-react'
+import { ResendConfirmation } from './ResendConfirmation'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
@@ -27,6 +28,8 @@ function DesktopSignupForm() {
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [existingEmail, setExistingEmail] = useState(false)
   const [confirmationEmail, setConfirmationEmail] = useState<string>('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const {
     register,
@@ -46,7 +49,7 @@ function DesktopSignupForm() {
 
       setUser(data.user)
       setSession(data.session)
-      navigate('/carteira')
+      navigate('/inicio', { replace: true })
     },
     onError: (error: Error) => {
       console.error('Signup error:', error)
@@ -90,7 +93,7 @@ function DesktopSignupForm() {
               Verifique a caixa de entrada de <span className="font-medium text-white">{confirmationEmail}</span> e confirme seu endereço para continuar.
             </p>
           </div>
-          <button type="button" disabled className={`${authButton} mt-5`}>Criar conta</button>
+          <ResendConfirmation email={confirmationEmail} />
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -108,20 +111,31 @@ function DesktopSignupForm() {
 
           <div>
             <label htmlFor="phone" className={authLabel}>Telefone <span className="font-normal text-white/35">(opcional)</span></label>
-            <input id="phone" type="tel" autoComplete="tel" {...register('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'signup-phone-error' : undefined} className={authInput} placeholder="(00) 00000-0000" />
+            <input id="phone" type="tel" autoComplete="tel" maxLength={30} {...register('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'signup-phone-error' : 'signup-phone-help'} className={authInput} placeholder="(11) 99999-9999" />
+            <p id="signup-phone-help" className="mt-1 text-xs text-white/45">DDD + número. Para outro país, use +DDI.</p>
             {errors.phone && <p id="signup-phone-error" className={authFieldError}>{errors.phone.message}</p>}
           </div>
 
           <div>
             <label htmlFor="password" className={authLabel}>Senha</label>
-            <input id="password" type="password" autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={authInput} placeholder="Mínimo 8 caracteres" />
+            <div className="relative">
+              <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'signup-password-error' : undefined} className={`${authInput} pr-12`} placeholder="Mínimo 8 caracteres" />
+              <button type="button" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9b9ca1] hover:text-white">
+                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
             <p className="mt-2 text-xs text-white/50">{PASSWORD_HELP}</p>
             {errors.password && <p id="signup-password-error" className={authFieldError}>{errors.password.message}</p>}
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className={authLabel}>Confirmar senha</label>
-            <input id="confirmPassword" type="password" autoComplete="new-password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined} className={authInput} placeholder="Repita a senha" />
+            <div className="relative">
+              <input id="confirmPassword" type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'signup-confirm-error' : undefined} className={`${authInput} pr-12`} placeholder="Repita a senha" />
+              <button type="button" aria-label={showConfirmation ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'} aria-pressed={showConfirmation} onClick={() => setShowConfirmation(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9b9ca1] hover:text-white">
+                {showConfirmation ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
             {errors.confirmPassword && <p id="signup-confirm-error" className={authFieldError}>{errors.confirmPassword.message}</p>}
           </div>
 

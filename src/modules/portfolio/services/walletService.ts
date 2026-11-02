@@ -22,6 +22,13 @@ export interface Wallet {
 const WALLET_COLUMNS = 'id, user_id, name, color, is_default, created_at'
 
 export const walletService = {
+  async remove(walletId: string, confirmationName: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_owned_wallet', {
+      p_wallet_id: walletId,
+      p_confirmation_name: confirmationName.trim(),
+    })
+    if (error) throw error
+  },
   async list(userId: string): Promise<Wallet[]> {
     const { data, error } = await supabase
       .from('wallets')

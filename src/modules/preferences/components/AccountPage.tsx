@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { authService } from '../../auth/services/authService'
 import { ChangePasswordForm } from './ChangePasswordForm'
+import { EditProfileForm } from './EditProfileForm'
 import { useSidebarPreference } from '../../../shared/stores/useSidebarPreference'
 
 function textValue(value: unknown): string {
@@ -37,8 +38,8 @@ export function AccountPage() {
   })
 
   const fullName = textValue(profile?.full_name) || textValue(user?.user_metadata?.full_name)
-  const email = textValue(profile?.email) || textValue(user?.email)
-  const phone = textValue(profile?.phone) || textValue(user?.user_metadata?.phone) || textValue(user?.phone)
+  const email = textValue(user?.email) || textValue(profile?.email)
+  const phone = profile ? textValue(profile.phone) : textValue(user?.user_metadata?.phone) || textValue(user?.phone)
   const displayName = fullName || email.split('@')[0] || 'Sua conta'
   const initials = displayName.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('')
 
@@ -79,6 +80,7 @@ export function AccountPage() {
             <Detail label="E-mail" value={email || 'Não informado'} />
             <Detail label="Telefone" value={phone || 'Não informado'} />
           </dl>
+          <EditProfileForm fullName={fullName} phone={phone} email={email} />
         </div>
 
         <div className="min-w-0 border-t border-white/[0.1] lg:border-t-0">

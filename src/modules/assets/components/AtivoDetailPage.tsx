@@ -15,9 +15,13 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { useAssetDetail } from '../hooks/useAssetDetail'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
+import { EditTransactionButton } from '../../portfolio/components/EditTransactionButton'
+import { FavoriteButton } from './FavoriteButton'
 import { Modal } from '../../../shared/components/Modal'
 import { usePriceHistory } from '../hooks/usePriceHistory'
 import { useAssetDividends } from '../hooks/useAssetDividends'
+import { useDividends } from '../../dividends/hooks/useDividends'
+import { parseIsoDate } from '../../../shared/utils/isoDate'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
 import { useDailyChange } from '../hooks/useDailyChange'
@@ -34,12 +38,12 @@ import { usePerformance } from '../../performance/hooks/usePerformance'
 import { assetClassColor, assetClassLabel } from '../../portfolio/composition'
 import { fmtMoney, fmtPct } from '../../ativos/utils/fmt'
 import type { AssetCurrency } from '../../portfolio/types'
-import type { WealthPeriod } from '../../wealth/types'
+import type { PriceHistoryPeriod } from '../hooks/usePriceHistory'
 import type { PricePoint } from '../types'
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
-const PRICE_PERIODS: WealthPeriod[] = ['1M', '3M', '6M', '1A', 'Tudo']
+const PRICE_PERIODS: PriceHistoryPeriod[] = ['1M', '3M', '6M', '1A', '5A', 'Tudo']
 
 const MISSING = '—'
 
@@ -49,7 +53,8 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' })
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return MISSING
-  const d = new Date(iso)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? parseIsoDate(iso) : new Date(iso)
+  if (!d) return iso
   return Number.isNaN(d.getTime()) ? iso : dateFormatter.format(d)
 }
 
@@ -209,7 +214,8 @@ function AssetDetailHero({
         </div>
 
         {/* Botões de ação — pushed to right on desktop */}
-        <div className="flex gap-2 md:ml-auto">
+        <div className="flex flex-wrap gap-2 md:ml-auto">
+          <FavoriteButton ticker={ticker} />
           <button
             type="button"
             onClick={onTransaction}
@@ -452,7 +458,7 @@ function AssetPositionResult({
     },
     {
       label: 'vs CDI',
-      value: vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(2)} p.p.` : MISSING,
+      value: vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} p.p.` : MISSING,
       color: vscdipp != null && vscdipp >= 0 ? 'text-nf-green' : 'text-nf-pink',
     },
   ]
@@ -476,10 +482,11 @@ function AssetPositionResult({
 
 interface AssetTransactionPreviewProps {
   ticker: string
+  currency: AssetCurrency
   navigate: (path: string) => void
 }
 
-function AssetTransactionPreview({ ticker, navigate }: AssetTransactionPreviewProps) {
+function AssetTransactionPreview({ ticker, currency, navigate }: AssetTransactionPreviewProps) {
   const { data: allTxns = [], isLoading } = useAllTransactions()
 
   const recent = useMemo(
@@ -524,7 +531,7 @@ function AssetTransactionPreview({ ticker, navigate }: AssetTransactionPreviewPr
                   {txn.type === 'buy' ? 'Compra' : 'Venda'}
                 </span>
                 <span className="text-sm font-semibold text-white tabular-nums">
-                  {fmtMoney(total)}
+                  {fmtMoney(total, currency)}
                 </span>
               </div>
             )
@@ -544,10 +551,11 @@ interface AssetDividendPreviewProps {
   navigate: (path: string) => void
 }
 
-function AssetDividendPreview({ ticker, quantity, currency, navigate }: AssetDividendPreviewProps) {
-  const { data: dividends = [], isLoading } = useAssetDividends(ticker)
+function AssetDividendPreview({ ticker, currency, navigate }: AssetDividendPreviewProps) {
+  const { rows: dividends, isLoading, isError, refetch } = useDividends('Tudo')
 
-  const recent = useMemo(() => dividends.slice(0, 4), [dividends])
+  const recent = useMemo(() => dividends.filter(row => row.ticker === ticker)
+    .sort((a, b) => (b.payment_date ?? '').localeCompare(a.payment_date ?? '')).slice(0, 4), [dividends, ticker])
 
   return (
     <PanelCard>
@@ -564,20 +572,22 @@ function AssetDividendPreview({ ticker, quantity, currency, navigate }: AssetDiv
 
       {isLoading ? (
         <p className="text-xs text-[#8f8f8f] animate-pulse">Carregando…</p>
+      ) : isError ? (
+        <div role="alert"><p>Não foi possível carregar seus recebimentos.</p><button type="button" onClick={refetch}>Tentar novamente</button></div>
       ) : recent.length === 0 ? (
-        <p className="text-xs text-[#8f8f8f]">Sem proventos registrados.</p>
+        <p className="text-xs text-[#8f8f8f]">Sem proventos recebidos nesta carteira.</p>
       ) : (
         <div className="space-y-2">
           {recent.map((div, i) => {
-            const total = Number(div.value_per_share) * quantity
+            const rowCurrency = div.currency === 'USD' ? 'USD' : div.currency === 'BRL' ? 'BRL' : currency
             return (
               <div key={`${div.ex_date}-${i}`} className="flex items-center justify-between gap-2">
-                <span className="text-[12px] text-[#8f8f8f]">{fmtDate(div.ex_date)}</span>
+                <span className="text-[12px] text-[#8f8f8f]">{fmtDate(div.payment_date)}</span>
                 <span className="text-[12px] text-[#8f8f8f]">
-                  {fmtMoney(Number(div.value_per_share), currency)} × {quantity}
+                  {div.source === 'imported' ? 'Líquido importado' : `${fmtMoney(Number(div.value_per_share), rowCurrency)} × ${div.quantity.toLocaleString('pt-BR')}`}
                 </span>
                 <span className="text-sm font-semibold text-nf-green tabular-nums">
-                  = {fmtMoney(total, currency)}
+                  = {fmtMoney(div.total_value, rowCurrency)}
                 </span>
               </div>
             )
@@ -707,10 +717,11 @@ function AssetScoreAlerts({
 
 interface TabLancamentosProps {
   ticker: string
+  currency: AssetCurrency
   navigate: (path: string) => void
 }
 
-function TabLancamentos({ ticker, navigate }: TabLancamentosProps) {
+function TabLancamentos({ ticker, currency, navigate }: TabLancamentosProps) {
   const { data: allTxns = [], isLoading } = useAllTransactions()
 
   const txns = useMemo(
@@ -744,6 +755,7 @@ function TabLancamentos({ ticker, navigate }: TabLancamentosProps) {
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Qtd</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Preço</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Total</th>
+                <th className="pb-2 pl-3 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Opções</th>
               </tr>
             </thead>
             <tbody>
@@ -760,10 +772,11 @@ function TabLancamentos({ ticker, navigate }: TabLancamentosProps) {
                     </span>
                   </td>
                   <td className="py-2 text-right text-white tabular-nums">{Number(txn.quantity).toLocaleString('pt-BR')}</td>
-                  <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(txn.price))}</td>
+                  <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(txn.price), currency)}</td>
                   <td className="py-2 text-right text-white tabular-nums font-medium">
-                    {fmtMoney(Number(txn.quantity) * Number(txn.price))}
+                    {fmtMoney(Number(txn.quantity) * Number(txn.price), currency)}
                   </td>
+                  <td className="py-2 pl-3 text-right"><EditTransactionButton transaction={txn} /></td>
                 </tr>
               ))}
             </tbody>
@@ -782,13 +795,36 @@ interface TabProventosProps {
   currency: AssetCurrency
 }
 
-function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
+function TabProventos({ ticker, currency }: TabProventosProps) {
   const { data: dividends = [], isLoading, isError, refetch } = useAssetDividends(ticker)
+  const received = useDividends('Tudo')
+  const [view, setView] = useState<'received' | 'market'>('received')
+  const payments = received.rows.filter(row => row.ticker === ticker)
 
   return (
     <PanelCard>
       <h3 className="text-sm font-semibold text-white mb-4">Proventos — {ticker}</h3>
-      {isLoading ? (
+      <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1 md:flex" role="tablist" aria-label="Origem dos proventos">
+        <button type="button" role="tab" aria-selected={view === 'received'} className={`min-h-11 rounded-lg px-3 py-2 text-sm leading-snug ${view === 'received' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white'}`} onClick={() => setView('received')}>Recebidos na carteira</button>
+        <button type="button" role="tab" aria-selected={view === 'market'} className={`min-h-11 rounded-lg px-3 py-2 text-sm leading-snug ${view === 'market' ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white'}`} onClick={() => setView('market')}>Histórico do ativo</button>
+      </div>
+      {view === 'received' ? (
+        received.isLoading ? <p>Carregando recebimentos…</p> : received.isError ? (
+          <div role="alert"><p>Não foi possível carregar seus recebimentos.</p><button type="button" onClick={received.refetch}>Tentar novamente</button></div>
+        ) : payments.length === 0 ? <p>Sem proventos recebidos nesta carteira.</p> : (
+          <div className="md:overflow-x-auto"><table className="block w-full text-sm md:table">
+            <thead className="sr-only md:not-sr-only md:table-header-group"><tr><th className="pb-3 pr-4 text-left text-white/70">Pagamento</th><th className="pb-3 pr-4 text-left text-white/70">Tipo</th><th className="pb-3 pr-4 text-right text-white/70">Quantidade histórica</th><th className="pb-3 text-right text-white/70">Total recebido</th></tr></thead>
+            <tbody className="grid gap-3 md:table-row-group">{payments.map((row, index) => (
+              <tr key={`${row.payment_date}-${index}`} className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 md:table-row md:rounded-none md:border-0 md:border-b md:border-white/[0.04] md:bg-transparent md:p-0">
+                <td className="block md:table-cell md:whitespace-nowrap md:py-3 md:pr-4"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Pagamento</span><span className="tabular-nums">{fmtDate(row.payment_date)}</span></td>
+                <td className="block min-w-0 md:table-cell md:py-3 md:pr-4"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Tipo</span><span className="block break-words">{({ dividend: 'Dividendo', jcp: 'JCP', interest: 'Juros', distribution: 'Rendimento' } as Record<string, string>)[row.type] ?? row.type}</span><span className="mt-1 block text-xs text-white/60">{row.source === 'imported' ? 'Líquido importado' : 'Estimado'}</span></td>
+                <td className="block md:table-cell md:py-3 md:pr-4 md:text-right"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Quantidade histórica</span><span className="tabular-nums">{row.quantity.toLocaleString('pt-BR')}</span></td>
+                <td className="block md:table-cell md:py-3 md:text-right"><span aria-hidden="true" className="mb-1 block text-xs text-white/60 md:hidden">Total recebido</span><span className="text-base font-semibold tabular-nums md:text-sm">{fmtMoney(row.total_value, row.currency === 'BRL' ? 'BRL' : row.currency === 'USD' ? 'USD' : currency)}</span></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )
+      ) : isLoading ? (
         <p className="text-sm text-[#8f8f8f] animate-pulse">Carregando…</p>
       ) : isError ? (
         <div>
@@ -804,10 +840,9 @@ function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.08]">
-                <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Data COM</th>
+                <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Data ex</th>
                 <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Tipo</th>
                 <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Por cota</th>
-                <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wide text-[#8f8f8f]">Total recebido</th>
               </tr>
             </thead>
             <tbody>
@@ -816,9 +851,6 @@ function TabProventos({ ticker, quantity, currency }: TabProventosProps) {
                   <td className="py-2 text-[#8f8f8f]">{fmtDate(d.ex_date)}</td>
                   <td className="py-2 text-[#8f8f8f] uppercase text-xs">{d.type}</td>
                   <td className="py-2 text-right text-white tabular-nums">{fmtMoney(Number(d.value_per_share), currency)}</td>
-                  <td className="py-2 text-right text-nf-green tabular-nums font-medium">
-                    {fmtMoney(Number(d.value_per_share) * quantity, currency)}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -836,8 +868,8 @@ interface TabRentabilidadeProps {
   priceHistory: PricePoint[]
   avgPrice: number | null
   currency: AssetCurrency
-  period: WealthPeriod
-  onPeriodChange: (p: WealthPeriod) => void
+  period: PriceHistoryPeriod
+  onPeriodChange: (p: PriceHistoryPeriod) => void
   valorInvestido: number | null
   ganhoCapital: number | null
   proventos12m: number | null
@@ -1030,8 +1062,8 @@ interface VisaoGeralProps {
   currentPrice: number | null
   currency: AssetCurrency
   priceHistory: PricePoint[]
-  period: WealthPeriod
-  onPeriodChange: (p: WealthPeriod) => void
+  period: PriceHistoryPeriod
+  onPeriodChange: (p: PriceHistoryPeriod) => void
   portfolioWeight: number | null
   dy: number | null
   changeVsAvg: number | null
@@ -1115,7 +1147,7 @@ function VisaoGeral({
 
       {/* Bottom section — desktop: 3 colunas; mobile: stack */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <AssetTransactionPreview ticker={ticker} navigate={navigate} />
+        <AssetTransactionPreview ticker={ticker} currency={currency} navigate={navigate} />
         <AssetDividendPreview ticker={ticker} quantity={quantity} currency={currency} navigate={navigate} />
         <AssetScoreAlerts
           ticker={ticker}
@@ -1139,7 +1171,7 @@ export function AtivoDetailPage() {
   const ticker = rawTicker.toUpperCase()
 
   const [activeTab, setActiveTab] = useState<AtivoTab>('visao-geral')
-  const [period, setPeriod] = useState<WealthPeriod>('1A')
+  const [period, setPeriod] = useState<PriceHistoryPeriod>('1A')
 
   // ── Dados do ativo ──────────────────────────────────────────────────────────
   const { data: asset, isLoading: assetLoading } = useAssetDetail(ticker)
@@ -1325,7 +1357,7 @@ export function AtivoDetailPage() {
       )}
 
       {activeTab === 'lancamentos' && (
-        <TabLancamentos ticker={ticker} navigate={navigate} />
+        <TabLancamentos ticker={ticker} currency={currency} navigate={navigate} />
       )}
 
       {activeTab === 'proventos' && (

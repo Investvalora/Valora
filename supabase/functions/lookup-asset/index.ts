@@ -1,3 +1,4 @@
+import { yahooCaller } from '../_shared/yahooAuthorization.ts'
 // Edge Function: lookup-asset
 //
 // Recebe um ticker, consulta a brapi para verificar se existe, infere o tipo
@@ -45,7 +46,7 @@ const CORS = {
 
 // ─── tipos internos ───────────────────────────────────────────────────────
 
-type AssetType = 'stock_br' | 'fii' | 'bdr' | 'stock_us' | 'reit' | 'crypto';
+type AssetType = 'stock_br' | 'fii' | 'bdr' | 'stock_us' | 'reit' | 'crypto' | 'etf_br' | 'etf_us';
 type Currency  = 'BRL' | 'USD';
 
 interface AssetRow {
@@ -59,6 +60,7 @@ interface AssetRow {
 }
 
 interface BrapiResult {
+  instrumentType?: string;
   symbol: string;
   shortName: string | null;
   longName: string | null;
@@ -103,7 +105,7 @@ function inferirMoeda(currency: string | null): Currency {
 
 // ─── brapi ────────────────────────────────────────────────────────────────
 
-async function fetchBrapi(ticker: string): Promise<BrapiResult | null> {
+async function fetchBrapiOnly(ticker: string): Promise<BrapiResult | null> {
   if (!BRAPI_KEY) return null;
 
   const controller = new AbortController();
@@ -135,6 +137,23 @@ async function fetchBrapi(ticker: string): Promise<BrapiResult | null> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Free fallback when Brapi does not cover the ticker or its quota is unavailable. */
+async function fetchBrapi(ticker: string): Promise<BrapiResult | null> {
+  const brapi = await fetchBrapiOnly(ticker);
+  if (brapi) return brapi;
+  const symbol = /\d$/.test(ticker) ? `${ticker}.SA` : ticker.replace('.', '-');
+  try {
+    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Valora/1.0)' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const meta = data.chart?.result?.[0]?.meta;
+    if (data.chart?.error || meta?.symbol?.toUpperCase() !== symbol.toUpperCase() || !['BRL', 'USD'].includes(meta.currency) || !(meta.regularMarketPrice > 0)) return null;
+    return { symbol: ticker, shortName: meta.shortName ?? null, longName: meta.longName ?? null, currency: meta.currency, regularMarketPrice: meta.regularMarketPrice, instrumentType: meta.instrumentType };
+  } catch { return null; }
 }
 
 async function vaultSecret(name: string): Promise<string> {
@@ -234,6 +253,9 @@ async function pgInsertAsset(row: Omit<AssetRow, 'active'>): Promise<AssetRow> {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return new Response('{}', { status: 405, headers: CORS });
+  const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY);
+  if (caller.kind === 'denied') return new Response(JSON.stringify({ error: 'unauthorized', message: 'Entre novamente para buscar ativos.' }), { status: caller.status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   const json400 = (msg: string) =>
     new Response(JSON.stringify({ error: 'bad_request', message: msg }),
@@ -293,10 +315,6 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3. Consulta brapi
-    if (!BRAPI_KEY) {
-      return json500('BRAPI_API_KEY não configurada. Não é possível buscar ativos externos.');
-    }
-
     const brapiResult = await fetchBrapi(ticker);
     if (!brapiResult) {
       return json404(`Ativo ${ticker} não encontrado. Verifique o código e tente novamente.`);
@@ -304,7 +322,9 @@ Deno.serve(async (req: Request) => {
 
     // 4. Infere metadados e insere
     const nome = brapiResult.longName ?? brapiResult.shortName ?? ticker;
-    const tipo = inferirTipo(ticker, brapiResult.currency);
+    const tipo = brapiResult.instrumentType === 'ETF'
+      ? (brapiResult.currency === 'USD' ? 'etf_us' : 'etf_br')
+      : inferirTipo(ticker, brapiResult.currency);
     const moeda = inferirMoeda(brapiResult.currency);
 
     const inserted = await pgInsertAsset({
@@ -312,7 +332,7 @@ Deno.serve(async (req: Request) => {
       name: nome,
       type: tipo,
       currency: moeda,
-      quote_provider: 'brapi',
+      quote_provider: moeda === 'USD' ? 'finnhub' : 'brapi',
       provider_symbol: ticker,
     });
 

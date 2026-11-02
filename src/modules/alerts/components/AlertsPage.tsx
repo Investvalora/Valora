@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, BellRing, TrendingDown, TrendingUp, AlertTriangle, Clock, Plus, RefreshCw, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -8,10 +8,10 @@ import {
   useCheckPriceTargets,
 } from '../hooks/useAlertMutations'
 import { useAlerts } from '../hooks/useAlerts'
-import { useAssetSearch, useTickerLatestPrice } from '../../portfolio/hooks/useAssetSearch'
+import { AlertAssetField, AlertTargetPriceField } from './AlertPriceFields'
+import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
-import type { Asset } from '../../portfolio/types'
 import type { Alert, AlertCondition, AlertType } from '../types'
 import { EditAlertButton } from './EditAlertButton'
 
@@ -29,6 +29,19 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value)
 }
 
+function formatCreateAlertError(error: unknown) {
+  const cause = typeof error === 'object' && error !== null ? error : null
+  const code = cause && 'code' in cause ? cause.code : null
+  const message = cause && 'message' in cause && typeof cause.message === 'string' ? cause.message : ''
+  if (code === '23505' || (!code && /duplicate|unique/i.test(message))) {
+    return 'Já existe um alerta ativo com esse preço e condição. Edite o alerta existente ou escolha outra condição.'
+  }
+  if (code === '23503') {
+    return 'Ativo não encontrado no catálogo. Confira o ticker e selecione o ativo na busca.'
+  }
+  return 'Não foi possível criar o alerta. Tente novamente.'
+}
+
 // ─── Configuração visual por tipo ─────────────────────────────────────────────
 
 type AlertConfig = {
@@ -39,7 +52,6 @@ type AlertConfig = {
 
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-[#393939] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#454545] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-50'
-const inputStyle = 'min-h-12 w-full rounded-xl border border-white/20 bg-[#202020] px-3.5 py-2.5 text-base text-white placeholder:text-[#A0A0A5] focus:border-nf-blue focus:outline-none focus:ring-0 md:min-h-11 md:border-white/[0.12] md:bg-[#131313] md:text-sm md:placeholder:text-nf-muted md:focus:border-nf-purple'
 const readButton = 'inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-nf-blue/70 bg-nf-blue/10 px-2 py-2.5 text-center text-sm font-medium text-nf-blue transition-colors hover:bg-nf-blue/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue disabled:cursor-not-allowed disabled:opacity-50 md:border-white/[0.12] md:bg-white/[0.04] md:text-white md:hover:bg-white/[0.09] md:focus-visible:ring-nf-purple'
 
 function triggerHapticFeedback() {
@@ -213,18 +225,7 @@ function AlertCard({ alert }: { alert: Alert }) {
   )
 }
 
-// ─── Debounce ────────────────────────────────────────────────────────────────
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delayMs)
-    return () => clearTimeout(id)
-  }, [value, delayMs])
-  return debounced
-}
-
-// ─── Formulário de criação de alerta de preço-alvo ───────────────────────────
+// ─── Formulário de criação de alerta de preço ─────────────────────────────────
 
 function PriceTargetForm({ onClose }: { onClose: () => void }) {
   const createAlert = useCreatePriceTargetAlert()
@@ -232,80 +233,12 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
   const [price, setPrice] = useState('')
   const [condition, setCondition] = useState<AlertCondition>('below')
 
-  // ── Autocomplete ──────────────────────────────────────────────────────────
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const [priceAutoFilled, setPriceAutoFilled] = useState(false)
-  const debouncedTicker = useDebouncedValue(ticker, 250)
-  const { data: suggestions = [] } = useAssetSearch(debouncedTicker)
-  const latestPrice = useTickerLatestPrice(ticker)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const isSuggestionsOpen = showSuggestions && suggestions.length > 0
-
-  // Ajusta o índice realçado quando a lista encurta (debounce pode reduzir
-  // resultados antes que o índice seja zerado pelas setas)
+  const fields = useAlertPriceFields({ ticker, price, onTickerChange: setTicker, onPriceChange: setPrice })
   useEffect(() => {
-    setHighlightedIndex((i) => Math.min(i, suggestions.length - 1))
-  }, [suggestions.length])
-
-  useEffect(() => {
-    function onEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
+    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', onEscape)
     return () => window.removeEventListener('keydown', onEscape)
   }, [onClose])
-
-  function selectAsset(asset: Asset | undefined) {
-    if (!asset) return
-    setTicker(asset.ticker)
-    setShowSuggestions(false)
-    setHighlightedIndex(-1)
-    // Permite que o auto-fill rode para o novo ativo selecionado
-    autoFilledForTicker.current = null
-    setPriceAutoFilled(false)
-    setPrice('')
-    // Foca no campo de preço após selecionar o ativo
-    setTimeout(() => document.getElementById('pt-price')?.focus(), 0)
-  }
-
-  // Preenche o preço automaticamente uma única vez por ticker selecionado.
-  // Usa ref para não reativar o effect quando o usuário edita o campo manualmente.
-  const autoFilledForTicker = useRef<string | null>(null)
-  useEffect(() => {
-    if (latestPrice !== null && ticker && autoFilledForTicker.current !== ticker) {
-      setPrice(latestPrice.toFixed(2))
-      setPriceAutoFilled(true)
-      autoFilledForTicker.current = ticker
-    }
-  }, [latestPrice, ticker])
-  function handleTickerKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Escape' && isSuggestionsOpen) {
-      e.stopPropagation()
-      setShowSuggestions(false)
-      setHighlightedIndex(-1)
-      return
-    }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (suggestions.length === 0) return
-      e.preventDefault()
-      setShowSuggestions(true)
-      const step = e.key === 'ArrowDown' ? 1 : -1
-      setHighlightedIndex((i) => {
-        const next = i + step
-        if (next < 0) return suggestions.length - 1
-        if (next >= suggestions.length) return 0
-        return next
-      })
-      return
-    }
-    if (e.key === 'Enter' && isSuggestionsOpen && highlightedIndex >= 0) {
-      e.preventDefault()
-      selectAsset(suggestions[highlightedIndex])
-    }
-  }
-  // ──────────────────────────────────────────────────────────────────────────
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -346,79 +279,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* ── Ticker com autocomplete ──────────────────────────────────────── */}
-        <div>
-          <label htmlFor="pt-ticker" className="mb-2 block text-sm font-medium text-white md:text-stone-500">
-            Ativo
-          </label>
-          <div className="relative">
-            <input
-              id="pt-ticker"
-              ref={inputRef}
-              type="text"
-              autoComplete="off"
-              role="combobox"
-              aria-expanded={isSuggestionsOpen}
-              aria-controls="pt-suggestions"
-              aria-autocomplete="list"
-              aria-activedescendant={
-                isSuggestionsOpen && highlightedIndex >= 0
-                  ? `pt-option-${highlightedIndex}`
-                  : undefined
-              }
-              value={ticker}
-              onChange={(e) => {
-                setTicker(e.target.value)
-                setShowSuggestions(true)
-                setHighlightedIndex(-1)
-                // Ao digitar manualmente, limpa o preço e libera o auto-fill para o novo ticker
-                autoFilledForTicker.current = null
-                setPriceAutoFilled(false)
-                setPrice('')
-              }}
-              onBlur={() => setShowSuggestions(false)}
-              onKeyDown={handleTickerKeyDown}
-              placeholder="Ticker ou nome, ex.: MXRF11"
-              required
-              className={inputStyle}
-            />
-
-            {isSuggestionsOpen && (
-              <ul
-                id="pt-suggestions"
-                role="listbox"
-                aria-label="Ativos do catálogo"
-                className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/[0.12] bg-[#242424] p-1 shadow-xl"
-              >
-                {suggestions.map((asset, index) => (
-                  <li
-                    key={asset.ticker}
-                    id={`pt-option-${index}`}
-                    role="option"
-                    aria-selected={index === highlightedIndex}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                    onClick={() => selectAsset(asset)}
-                    className={`flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                      index === highlightedIndex
-                        ? 'bg-white/[0.12] text-white'
-                        : 'text-zinc-200 hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <span className="font-semibold">{asset.ticker}</span>
-                    <span
-                      className={`truncate text-sm ${
-                        index === highlightedIndex ? 'text-white' : 'text-nf-muted'
-                      }`}
-                    >
-                      {asset.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        <AlertAssetField model={fields} />
 
         {/* ── Condição ────────────────────────────────────────────────────── */}
         <div>
@@ -451,35 +312,11 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {/* ── Preço-alvo ──────────────────────────────────────────────────── */}
-        <div>
-          <label htmlFor="pt-price" className="mb-2 block text-sm font-medium text-white md:text-zinc-300">
-            Preço-alvo (R$)
-          </label>
-          <input
-            id="pt-price"
-            type="number"
-            value={price}
-            onChange={(e) => { setPrice(e.target.value); setPriceAutoFilled(false) }}
-            placeholder="Ex: 9.00"
-            min="0.01"
-            step="0.01"
-            required
-            className={inputStyle}
-          />
-          {priceAutoFilled && latestPrice !== null && (
-            <p className="mt-1.5 text-xs text-nf-muted">
-              Cotação atual de {ticker}: {formatCurrency(latestPrice)} — você pode ajustar o valor.
-            </p>
-          )}
-        </div>
+        <AlertTargetPriceField model={fields} />
 
         {createAlert.isError && (
           <p className="text-sm text-red-300" role="alert">
-            {(createAlert.error as Error)?.message?.includes('duplicate') ||
-            (createAlert.error as Error)?.message?.includes('unique')
-              ? 'Já existe um alerta ativo para este ativo com o mesmo preço e condição.'
-              : 'Não foi possível criar o alerta. Tente novamente.'}
+            {formatCreateAlertError(createAlert.error)}
           </p>
         )}
 

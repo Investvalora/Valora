@@ -5,6 +5,7 @@ import { Modal } from '../../../shared/components/Modal'
 import { AddTransactionModal } from '../../portfolio/components/AddTransactionModal'
 import { TransactionListModal } from '../../portfolio/components/TransactionListModal'
 import type { PositionRow } from '../../portfolio/types'
+import { RefreshAssetDataButton } from '../../portfolio/components/AssetDataSyncNotice'
 
 export function AssetActions({ row }: { row: PositionRow }) {
   const [action, setAction] = useState<'menu' | 'add' | 'list' | null>(null)
@@ -15,6 +16,7 @@ export function AssetActions({ row }: { row: PositionRow }) {
       <div className="space-y-2">
         <button type="button" className={optionClass} onClick={() => setAction('add')}>Adicionar lançamento</button>
         <button type="button" className={optionClass} onClick={() => setAction('list')}>Ver lançamentos</button>
+        <RefreshAssetDataButton ticker={row.ticker} className={optionClass} onStarted={() => setAction(null)} />
         <Link className={optionClass} to={`/ativo/${encodeURIComponent(row.ticker.toLowerCase())}`} onClick={() => setAction(null)}>Ver resumo do ativo</Link>
       </div>
     </Modal>

@@ -1,4 +1,4 @@
-export type AlertPosition = { ticker: string }
+export type AlertPosition = { ticker: string; type?: string; currency?: string }
 export type AlertTransaction = { ticker: string }
 export type AlertQuote = { ticker: string; date: string; close?: number }
 
@@ -77,6 +77,7 @@ export function findBazinAlertCandidates(
   opportunityThreshold = 15,
   overvaluedThreshold = -20,
 ): AlertCandidate[] {
+  if (!Number.isFinite(minDY) || minDY <= 0) return []
   // Somar dividendos por ticker
   const annualByTicker = new Map<string, number>()
   for (const d of dividends) {
@@ -95,6 +96,7 @@ export function findBazinAlertCandidates(
   const candidates: AlertCandidate[] = []
 
   for (const position of positions) {
+    if (!position.type || !['stock_br', 'stock_us', 'fii', 'reit', 'bdr', 'etf_br', 'etf_us'].includes(position.type) || !['BRL', 'USD'].includes(position.currency ?? '')) continue
     const annualDividend = annualByTicker.get(position.ticker) ?? 0
     if (annualDividend <= 0) continue
 
@@ -107,6 +109,7 @@ export function findBazinAlertCandidates(
     const margin = ((ceilingPrice - close) / ceilingPrice) * 100
     if (!Number.isFinite(margin)) continue
 
+    const currencyLabel = position.currency === 'USD' ? 'US$' : 'R$'
     const ceilingFmt = ceilingPrice.toFixed(2).replace('.', ',')
     const marginFmt = Math.abs(margin).toFixed(1).replace('.', ',')
     const dyPct = (minDY * 100).toFixed(0)
@@ -117,7 +120,7 @@ export function findBazinAlertCandidates(
         ticker: position.ticker,
         title: `Oportunidade de compra: ${position.ticker}`,
         description:
-          `${position.ticker} está ${marginFmt}% abaixo do preço-teto Bazin de R$ ${ceilingFmt} ` +
+          `${position.ticker} está ${marginFmt}% abaixo do preço-teto Bazin de ${currencyLabel} ${ceilingFmt} ` +
           `(DY mínimo ${dyPct}%). Margem de segurança: +${marginFmt}%.`,
       })
     } else if (margin < overvaluedThreshold) {
@@ -126,7 +129,7 @@ export function findBazinAlertCandidates(
         ticker: position.ticker,
         title: `Sobrevalorizado: ${position.ticker}`,
         description:
-          `${position.ticker} está ${marginFmt}% acima do preço-teto Bazin de R$ ${ceilingFmt} ` +
+          `${position.ticker} está ${marginFmt}% acima do preço-teto Bazin de ${currencyLabel} ${ceilingFmt} ` +
           `(DY mínimo ${dyPct}%). Margem: -${marginFmt}%.`,
       })
     }

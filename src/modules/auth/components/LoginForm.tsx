@@ -9,9 +9,22 @@ import { loginSchema, LoginSchema } from '../schemas/loginSchema'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store'
 import { AuthLayout } from './AuthLayout'
-import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
+import { authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
+import { MobileLoginForm } from './MobileLoginForm'
+import { GoogleLogo } from './MobileAuthLayout'
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 
 export function LoginForm() {
+  const isMobile = useIsMobile()
+
+  // mobile/PWA: tela redesenhada
+  if (isMobile) return <MobileLoginForm />
+
+  // deeeesktop: layout original intacto
+  return <DesktopLoginForm />
+}
+
+function DesktopLoginForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const setUser = useAuthStore((state) => state.setUser)
@@ -104,14 +117,19 @@ export function LoginForm() {
         {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
         {pendingEmail && <ResendConfirmation key={pendingEmail} email={pendingEmail} />}
 
-        <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className={authButton}>
+        <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
           {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
         </button>
-        <button type="button" disabled={googleMutation.isPending || loginMutation.isPending} className={authButton} onClick={() => {
+        <div className="flex items-center gap-3 py-1" aria-hidden="true">
+          <div className="h-px flex-1 bg-white/[0.08]" />
+          <span className="text-xs text-white/30">ou</span>
+          <div className="h-px flex-1 bg-white/[0.08]" />
+        </div>
+        <button type="button" disabled={googleMutation.isPending || loginMutation.isPending} className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.05] text-[15px] font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50" onClick={() => {
           setErrorMessage('')
           googleMutation.mutate()
         }}>
-          {googleMutation.isPending ? 'Conectando ao Google...' : 'Entrar com Google'}
+          {googleMutation.isPending ? 'Conectando…' : <><GoogleLogo />Continuar com Google</>}
         </button>
       </form>
     </AuthLayout>

@@ -48,7 +48,7 @@ export function InicioPage() {
   })
 
   const content = (
-    <div className="flex flex-col gap-5 px-4 md:px-0 md:pt-2">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 md:mx-0 md:max-w-none md:px-0 md:pt-2">
       {/* ── Saudação ── */}
       <div className="pb-20 pt-5 md:py-8">
         <div className="min-w-0">
@@ -235,4 +235,3 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
     </NavLink>
   )
 }
-  

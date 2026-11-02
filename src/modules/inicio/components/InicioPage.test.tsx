@@ -1,10 +1,10 @@
-import { AlertBell } from '../../../shared/components/AlertBell'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 import { InicioPage } from './InicioPage'
+import { AlertBell } from '../../../shared/components/AlertBell'
 
 let walletId = 'wallet-a'
 let isMobile = false
@@ -44,17 +44,17 @@ vi.mock('../../auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { email: 'kaue@example.com', user_metadata: { full_name: 'Kauê Cardoso' } } }),
 }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({
-  useWallets: () => ({ selectedWallet: { color: 'gold', id: walletId, name: walletId === 'wallet-a' ? 'Minha Carteira' : 'Reserva' } }),
+  useWallets: () => ({ selectedWallet: { id: walletId, name: walletId === 'wallet-a' ? 'Minha Carteira' : 'Reserva', color: 'gold' } }),
 }))
 vi.mock('../../dashboard/hooks/useDashboard', () => ({
   useDashboard: (id: string) => dashboardByWallet[id],
 }))
 vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => isMobile }))
 vi.mock('../../portfolio/components/MobileCarteiraHome', () => ({
-  MobileCarteiraHome: ({ dashboard, onAddTransaction, children, alertCount }: { alertCount: number; dashboard: DashboardData; onAddTransaction: () => void; children: ReactNode }) => (
+  MobileCarteiraHome: ({ dashboard, onAddTransaction, alertCount, children }: { dashboard: DashboardData; onAddTransaction: () => void; alertCount: number; children: ReactNode }) => (
     <section>
-      <AlertBell count={alertCount} />
       <h1>Carteiras mobile</h1>
+      <AlertBell count={alertCount} />
       <p>Patrimônio mobile: {dashboard.totalPatrimonioBRL}</p>
       <button type="button" onClick={onAddTransaction}>+ Lançamento</button>
       {children}
@@ -95,6 +95,7 @@ describe('Início', () => {
     expect(screen.getByRole('link', { name: 'Abrir alertas (12 novos)' })).toHaveTextContent('9+')
     expect(screen.getByText('Patrimônio mobile: 4872')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).parentElement?.parentElement).toHaveClass('pb-20')
+    expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).closest('.max-w-md')).toHaveClass('px-4')
     expect(screen.getByRole('link', { name: /Ativos Ver ativos da carteira/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Desempenho Rentabilidade/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Análise Ver análises/ })).toBeInTheDocument()

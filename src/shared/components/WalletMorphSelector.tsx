@@ -52,7 +52,7 @@ export function WalletMorphSelector() {
   }
 
   const otherWallets = wallets.filter((wallet) => wallet.id !== selectedWallet.id)
-  const visibleOptions = Math.min(otherWallets.length, 2)
+  const visibleOptions = Math.min(otherWallets.length, 3)
   const listHeight = visibleOptions * 45
 
   function walletName(name: string) {

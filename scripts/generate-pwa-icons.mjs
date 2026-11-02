@@ -36,12 +36,6 @@ function chunk(type, data) {
   return Buffer.concat([length, name, data, checksum])
 }
 
-function insideRoundedSquare(x, y, inset, radius) {
-  const nearX = Math.max(inset + radius, Math.min(x, 128 - inset - radius))
-  const nearY = Math.max(inset + radius, Math.min(y, 128 - inset - radius))
-  return Math.hypot(x - nearX, y - nearY) <= radius
-}
-
 function distanceToSegment(x, y, start, end) {
   const dx = end[0] - start[0]
   const dy = end[1] - start[1]
@@ -51,11 +45,9 @@ function distanceToSegment(x, y, start, end) {
 }
 
 function pixelColor(x, y) {
-  if (!insideRoundedSquare(x, y, 8, 28)) return [0, 0, 0, 0]
-
-  let color = insideRoundedSquare(x, y, 10, 26)
-    ? [16, 24, 34, 255]
-    : [42, 55, 70, 255]
+  // Ícones de instalação devem preencher todo o bitmap; o sistema aplica
+  // o recorte arredondado. Transparência e moldura viram uma borda escura no iOS.
+  let color = [16, 24, 34, 255]
 
   for (let index = 0; index < pathPoints.length - 1; index += 1) {
     if (distanceToSegment(x, y, pathPoints[index], pathPoints[index + 1]) <= 5) {
@@ -109,6 +101,7 @@ function makePng(size) {
 
 mkdirSync(iconDirectory, { recursive: true })
 
-for (const size of [192, 512]) {
-  writeFileSync(join(iconDirectory, `valora-${size}.png`), makePng(size))
+for (const size of [180, 192, 512]) {
+  const name = size === 180 ? 'valora-apple-180.png' : `valora-${size}.png`
+  writeFileSync(join(iconDirectory, name), makePng(size))
 }

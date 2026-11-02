@@ -111,7 +111,7 @@ export function AccountPage() {
               type="button"
               onClick={handleLogout}
               disabled={isLeaving}
-              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 text-sm font-semibold text-rose-300 transition-colors hover:border-rose-400/50 hover:bg-rose-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60 disabled:opacity-50"
+              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 text-sm font-semibold text-red-500 transition-colors hover:border-rose-400/50 hover:bg-rose-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
               {isLeaving ? 'Saindo…' : 'Sair da conta'}

@@ -83,6 +83,12 @@ function renderHome(onAddTransaction = vi.fn()) {
   )
 }
 
+function giveSwipeZoneBounds(page: HTMLElement) {
+  const zone = page.querySelector<HTMLElement>('[aria-hidden="true"].pointer-events-none.absolute.right-0')
+  if (!zone) throw new Error('Zona de gesto não encontrada')
+  vi.spyOn(zone, 'getBoundingClientRect').mockReturnValue({ left: 250, right: 393, top: 0, bottom: 200 } as DOMRect)
+}
+
 describe('Carteira inicial no celular', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
@@ -134,6 +140,7 @@ describe('Carteira inicial no celular', () => {
   it('abre as carteiras pelo gesto lateral e seleciona uma carteira', () => {
     renderHome()
     const page = screen.getByRole('heading', { name: 'Olá, Samuel' }).closest('section')!
+    giveSwipeZoneBounds(page)
 
     fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
     fireEvent.touchEnd(page, {
@@ -163,9 +170,11 @@ describe('Carteira inicial no celular', () => {
     expect(screen.getByRole('link', { name: 'Ativos' })).toBeInTheDocument()
     const avatar = screen.getByRole('link', { name: 'Abrir minha conta' })
     expect(avatar.closest('[data-testid="wallet-slide-track"]')).toBeNull()
+    expect(avatar.closest('header')?.parentElement).toHaveClass('max-w-md', 'px-4')
     expect(screen.getAllByTestId('wallet-card')).toHaveLength(2)
 
     const page = screen.getByRole('heading', { name: 'Início atual' }).closest('section')!
+    giveSwipeZoneBounds(page)
     fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
     fireEvent.touchEnd(page, { changedTouches: [{ clientX: 100, clientY: 160 }] })
 
@@ -275,6 +284,7 @@ describe('Carteira inicial no celular', () => {
     const track = screen.getByTestId('wallet-slide-track')
     const card = screen.getByTestId('wallet-card')
     const closedLeft = card.style.left
+    giveSwipeZoneBounds(page)
 
     fireEvent.touchStart(page, { touches: [{ clientX: 300, clientY: 150 }] })
     fireEvent.touchMove(page, { touches: [{ clientX: 180, clientY: 155 }] })

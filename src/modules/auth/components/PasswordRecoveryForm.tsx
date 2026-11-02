@@ -9,7 +9,16 @@ import { authService } from '../services/authService'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
+import { MobilePasswordRecoveryForm } from './MobilePasswordRecoveryForm'
+
 export function PasswordRecoveryForm() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <MobilePasswordRecoveryForm />
+  return <DesktopPasswordRecoveryForm />
+}
+
+function DesktopPasswordRecoveryForm() {
   const [successMessage, setSuccessMessage] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
 
@@ -25,7 +34,7 @@ export function PasswordRecoveryForm() {
     mutationFn: authService.requestPasswordRecovery,
     onSuccess: () => {
       setErrorMessage('')
-      setSuccessMessage('Enviamos um link para redefinir sua senha.')
+      setSuccessMessage('Se o e-mail informado estiver cadastrado, você receberá um link com as instruções para redefinir sua senha.')
     },
     onError: (error: Error) => {
       console.error('Password recovery error:', error)

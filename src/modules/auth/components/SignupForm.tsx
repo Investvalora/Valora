@@ -12,7 +12,16 @@ import { ResendConfirmation } from './ResendConfirmation'
 import { AuthLayout } from './AuthLayout'
 import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLink } from './authStyles'
 
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
+import { MobileSignupForm } from './MobileSignupForm'
+
 export function SignupForm() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <MobileSignupForm />
+  return <DesktopSignupForm />
+}
+
+function DesktopSignupForm() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const setSession = useAuthStore((state) => state.setSession)

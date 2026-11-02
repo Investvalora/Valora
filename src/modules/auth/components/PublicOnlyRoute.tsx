@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export function PublicOnlyRoute() {
   const { isAuthenticated, loading } = useAuth()
+  const { pathname } = useLocation()
 
   if (loading) {
     return (
@@ -16,5 +17,16 @@ export function PublicOnlyRoute() {
     return <Navigate to="/inicio" replace />
   }
 
-  return <Outlet />
+  const view = pathname === '/cadastro' ? 'signup' : pathname === '/recuperar-senha' ? 'recovery' : 'login'
+
+  return (
+    <div className="auth-scene" data-auth-view={view}>
+      <div className="auth-scene__blue" aria-hidden="true" />
+      <div className="auth-scene__green" aria-hidden="true" />
+      <div className="auth-scene__shade" aria-hidden="true" />
+      <div className="auth-scene__content">
+        <Outlet />
+      </div>
+    </div>
+  )
 }

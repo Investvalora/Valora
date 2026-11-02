@@ -14,9 +14,9 @@ function show(url = '/login') {
 it('permite iniciar Google e informa falha sem bloquear outra tentativa', async () => {
   vi.mocked(authService.loginWithGoogle).mockRejectedValue(new Error('provider disabled'))
   show()
-  await userEvent.click(screen.getByRole('button', { name: 'Entrar com Google' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Continuar com Google' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível entrar com Google')
-  expect(screen.getByRole('button', { name: 'Entrar com Google' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Continuar com Google' })).toBeEnabled()
 })
 it.each(['/login?error=access_denied', '/login#error=access_denied&error_description=secret'])('informa cancelamento no retorno %s', (url) => {
   show(url)

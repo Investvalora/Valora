@@ -129,13 +129,14 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   const rateFrom = historyFrom ? shiftIsoDate(-10, new Date(`${historyFrom}T12:00:00Z`)) : historyTo
   const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD' || row.asset?.type === 'crypto') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD' || asset?.type === 'crypto')
   const historicalRates = useQuery({
-    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0],
+    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0, fiHistory.dataUpdatedAt],
     queryFn: async () => {
-      const [usd, macro] = await Promise.all([
+      const [usd, macro, treasury] = await Promise.all([
         hasHistoricalUsd ? historicalRatesService.usd(rateFrom, historyTo) : Promise.resolve([]),
         historicalFixed.length ? historicalRatesService.macro(rateFrom, historyTo) : Promise.resolve([]),
+        historicalFixed.some(p => Number(p.treasury_quantity)>0) ? historicalRatesService.treasury(rateFrom,historyTo) : Promise.resolve([]),
       ])
-      return { usd, macro }
+      return { usd, macro, treasury }
     },
     enabled: Boolean(userId) && Boolean(historyFrom) && rateFrom <= historyTo && positionsQuery.isSuccess && transactionsQuery.isSuccess && historicalAssets.isSuccess && fiHistory.isSuccess,
     staleTime: 60 * 60 * 1000,

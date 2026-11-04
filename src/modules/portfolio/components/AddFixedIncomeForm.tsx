@@ -42,6 +42,7 @@ const fiSchema = z.object({
     .min(1, 'Informe a data de aplicação')
     .refine((v) => v <= todayIso(), 'Data não pode estar no futuro'),
   maturity_date: z.string().optional(),
+  treasury_quantity: z.string().optional().refine(v => !v || (Number.isFinite(parseDecimal(v)) && parseDecimal(v)>0), 'Quantidade inválida'),
 })
 
 type FiFormValues = z.infer<typeof fiSchema>
@@ -109,6 +110,7 @@ export function AddFixedIncomeForm({ onSuccess, onCancel, onBusyChange }: Props)
       principal: parseDecimal(values.principal),
       application_date: values.application_date,
       maturity_date: values.maturity_date?.trim() || null,
+      treasury_quantity: values.type.startsWith('tesouro_') && values.maturity_date && values.treasury_quantity ? parseDecimal(values.treasury_quantity) : null,
     }
 
     addPosition.mutate(payload, {
@@ -224,6 +226,12 @@ export function AddFixedIncomeForm({ onSuccess, onCancel, onBusyChange }: Props)
         </div>
       </div>
 
+      {selectedType?.startsWith('tesouro_') && <div>
+        <label htmlFor="fi-treasury-quantity" className={LABEL}>Quantidade de títulos (opcional)</label>
+        <input id="fi-treasury-quantity" type="text" inputMode="decimal" {...register('treasury_quantity')} className={INPUT} placeholder="0,03" />
+        {errors.treasury_quantity && <p className={ERROR}>{errors.treasury_quantity.message}</p>}
+        <p className="mt-1 text-xs text-gray-500">Para títulos sem cupons: informe a quantidade do extrato e o vencimento para usar preços oficiais de mercado. Sem esses dados, usamos estimativa contratual.</p>
+      </div>}
       {/* Vencimento (opcional) */}
       <div>
         <label htmlFor="fi-maturity" className={LABEL}>
@@ -249,7 +257,7 @@ export function AddFixedIncomeForm({ onSuccess, onCancel, onBusyChange }: Props)
 
       {/* Aviso de estimativa */}
       <p className="text-xs text-gray-500">
-        O valor atualizado é uma estimativa baseada nos índices oficiais (CDI, IPCA, Selic).
+        Tesouro sem cupons com quantidade e vencimento usa preços oficiais de mercado; os demais cadastros usam estimativa contratual.
         Não inclui IR, IOF nem taxas da corretora.
       </p>
 

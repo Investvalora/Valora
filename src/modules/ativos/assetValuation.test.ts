@@ -31,3 +31,10 @@ it('não apresenta patrimônio parcial como total quando falta cotação ou câm
   expect(result.rows[0].weightPercent).toBeNull()
   expect(valueAssets(usd, quotes, fixed, 5).patrimonioBRL).toBe(620)
 })
+
+it('não usa custo como preço de mercado quando o Tesouro configurado ainda não tem cotação',()=>{
+ const result=valueAssets([],[],[{...fixed[0],type:'tesouro_ipca',treasury_quantity:0.03,current_value:null}],null)
+ expect(result.patrimonioBRL).toBeNull()
+ expect(result.fixedRows[0].marketValueBRL).toBeNull()
+ expect(result.valorInvestidoBRL).toBe(100)
+})

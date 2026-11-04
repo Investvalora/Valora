@@ -10,7 +10,7 @@ import {
 const COLUMNS =
   'id, user_id, wallet_id, name, type, indexer, rate, principal, ' +
   'application_date, maturity_date, current_value, last_updated_at, ' +
-  'active, created_at, updated_at, remaining_principal'
+  'active, created_at, updated_at, remaining_principal, treasury_quantity, valuation_method, valuation_price_date'
 
 export const fixedIncomeService = {
   /** Lista posições ativas do usuário, ordenadas da mais recente para a mais antiga. */
@@ -63,6 +63,16 @@ export const fixedIncomeService = {
     if (error) throw error
   },
 
+  async configureTreasury(userId: string, id: string, quantity: number, maturity: string): Promise<void> {
+    if (!Number.isFinite(quantity) || quantity <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(maturity)) throw new Error('Informe quantidade e vencimento válidos.')
+    const events = await supabase.from('fixed_income_events').select('id').eq('position_id',id).limit(1)
+    if (events.error) throw events.error
+    if (events.data?.length) throw new Error('Esta aplicação possui eventos. É necessário conferir as quantidades movimentadas antes de mudar a avaliação.')
+    const { data, error } = await supabase.from('fixed_income_positions')
+      .update({ treasury_quantity: quantity, maturity_date: maturity, current_value: null, valuation_method: 'market', valuation_price_date: null })
+      .eq('user_id', userId).eq('id', id).in('type', ['tesouro_ipca','tesouro_pre','tesouro_selic']).select('id').single()
+    if (error || !data) throw error ?? new Error('Aplicação não encontrada.')
+  },
   /** Cria uma nova posição de renda fixa. */
   async addPosition(
     userId: string,

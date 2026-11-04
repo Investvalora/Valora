@@ -36,25 +36,26 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
       const from = shiftIsoDate(-10, new Date(`${first}T12:00:00Z`))
       const quoteTickers = [...new Set(tickers.flatMap(t => t.endsWith('-BRL') ? [t, t.slice(0, -4)] : [t]))]
       const needsUsd = [...metadata.values()].some(a => a.currency === 'USD') || tickers.some(t => t.endsWith('-BRL')) || incomeNeedsUsd
-      const [prices, usd, macro] = await Promise.all([
+      const [prices, usd, macro, treasury] = await Promise.all([
         wealthService.listPriceHistory(quoteTickers, from),
         needsUsd ? historicalRatesService.usd(from, today) : Promise.resolve([]),
         (fixedQuery.data?.positions.length ?? 0) > 0 ? historicalRatesService.macro(from, today) : Promise.resolve([]),
+        (fixedQuery.data?.positions ?? []).some(p => Number(p.treasury_quantity)>0) ? historicalRatesService.treasury(from,today) : Promise.resolve([]),
       ])
-      return { prices, usd, macro, metadata }
+      return { prices, usd, macro, treasury, metadata }
     },
     enabled: Boolean(user && walletId) && positionsQuery.isSuccess && tradesQuery.isSuccess && fixedQuery.isSuccess,
     staleTime: 300_000,
   })
   const points = useMemo(() => {
     if (!data.data) return []
-    const { metadata, prices, usd, macro } = data.data
+    const { metadata, prices, usd, macro, treasury } = data.data
     const selectedTrades = trades.filter(t => !assetType || metadata.get(t.ticker)?.type === assetType)
       .map(t => ({ ...t, currency: metadata.get(t.ticker)?.currency ?? null }))
     const selectedPositions = positions.filter(p => !assetType || p.asset?.type === assetType)
     const fixed = !assetType || assetType === 'fixed_income' ? (fixedQuery.data?.positions ?? []).map(p => ({ ...p, events: (fixedQuery.data?.events ?? []).filter(e => e.position_id === p.id) })) : []
     const income = incomeQuery.rows.filter(p => !assetType || (p.asset_type ?? metadata.get(p.ticker)?.type) === assetType)
-    return historicalReturns(selectedPositions, selectedTrades, prices, fixed, { usd, macro }, today, income)
+    return historicalReturns(selectedPositions, selectedTrades, prices, fixed, { usd, macro, treasury }, today, income)
   }, [data.data, trades, positions, fixedQuery.data, incomeQuery.rows, assetType, today])
   const since = period === 'Tudo' ? points[0]?.date ?? today
     : shiftIsoDate(-({ '1M': 30, '3M': 90, '6M': 180, '1A': 365 }[period]))

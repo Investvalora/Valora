@@ -69,6 +69,9 @@ export const FIXED_INCOME_TYPE_INDEXER: Record<FixedIncomeType, FixedIncomeIndex
 
 /** Linha de `public.fixed_income_positions`. */
 export interface FixedIncomePosition {
+  treasury_quantity?: number | null
+  valuation_method?: 'contract' | 'market'
+  valuation_price_date?: string | null
   remaining_principal?: number | null
   id: string
   user_id: string
@@ -108,6 +111,7 @@ export type NewFixedIncomeEvent = Pick<FixedIncomeEvent, 'id' | 'position_id' | 
 
 /** Payload de criação de posição de renda fixa. */
 export interface NewFixedIncomePosition {
+  treasury_quantity?: number | null
   name: string
   type: FixedIncomeType
   indexer: FixedIncomeIndexer
@@ -222,7 +226,7 @@ export interface PositionSort {
  */
 export interface PositionRow {
   /** Identidade do produto para agrupar lotes sem alterar seus lançamentos. */
-  fixedIncome?: { type: FixedIncomeType; indexer: FixedIncomeIndexer; rate: number }
+  fixedIncome?: { type: FixedIncomeType; indexer: FixedIncomeIndexer; rate: number; treasury_quantity?: number | null; maturity_date?: string | null; valuation_method?: string; valuation_price_date?: string | null }
   id: string
   ticker: string
   name: string | null

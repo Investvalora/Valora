@@ -100,7 +100,7 @@ export function buildMonthlyWealth(
     for (const position of fixedIncome) {
       if (position.application_date > cutoff) continue
       hasPosition = true
-      const value = historical ? fixedIncomeAt(position, cutoff, historical.macro) : Number(position.principal)
+      const value = historical ? fixedIncomeAt(position, cutoff, historical.macro, historical.treasury) : Number(position.principal)
       if (value === null) { complete = false; continue }
       total += value
       invested += fixedIncomePrincipalAt(position, cutoff)

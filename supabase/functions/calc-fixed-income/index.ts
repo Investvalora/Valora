@@ -1,3 +1,4 @@
+import { hasTreasuryQuantity, treasuryValueAt } from '../_shared/treasury.ts';
 // Edge Function: calc-fixed-income
 //
 // Calcula o valor atual de todas as posições de renda fixa ativas de um usuário
@@ -58,6 +59,10 @@ interface FiPosition {
   application_date: string; // YYYY-MM-DD
   maturity_date?: string | null;
   updated_at?: string;
+  treasury_quantity?: number | null;
+  has_events?: boolean;
+  valuation_method?: string;
+  valuation_price_date?: string | null;
 }
 
 interface MacroRate {
@@ -74,7 +79,7 @@ async function pgGetPositions(userId: string | null): Promise<FiPosition[]> {
   const url =
     `${SUPABASE_URL}/rest/v1/fixed_income_positions` +
     `?active=eq.true${userId ? `&user_id=eq.${encodeURIComponent(userId)}` : ''}&order=id&limit=500&offset=${offset}` +
-    `&select=id,user_id,type,indexer,rate,principal,application_date,maturity_date,updated_at,events:fixed_income_events(event_date,balance_after,seq)`;
+    `&select=id,user_id,name,type,indexer,rate,principal,application_date,maturity_date,updated_at,treasury_quantity,events:fixed_income_events(event_date,balance_after,seq)`;
   const r = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });
@@ -82,7 +87,7 @@ async function pgGetPositions(userId: string | null): Promise<FiPosition[]> {
   const positions = await r.json() as (FiPosition & { events?: { event_date: string; balance_after: number; seq: number }[] })[];
   all.push(...positions.map((position) => {
     const latest = [...(position.events ?? [])].sort((a, b) => b.event_date.localeCompare(a.event_date) || b.seq - a.seq)[0];
-    return latest ? { ...position, principal: Number(latest.balance_after), application_date: latest.event_date } : position;
+    return latest ? { ...position, has_events: true, principal: Number(latest.balance_after), application_date: latest.event_date } : position;
   }));
   if (positions.length < 500) return all;
   }
@@ -108,6 +113,8 @@ async function pgUpdateCurrentValue(
   positionId: string,
   currentValue: number,
   expectedUpdatedAt?: string,
+  method = 'contract',
+  priceDate: string | null = null,
 ): Promise<void> {
   const url =
     `${SUPABASE_URL}/rest/v1/fixed_income_positions` +
@@ -123,6 +130,7 @@ async function pgUpdateCurrentValue(
     },
     body: JSON.stringify({
       current_value: parseFloat(currentValue.toFixed(4)),
+      valuation_method: method, valuation_price_date: priceDate,
       last_updated_at: new Date().toISOString(),
     }),
   });
@@ -216,6 +224,16 @@ async function calcIpca(
 
 async function calcularValor(pos: FiPosition): Promise<number> {
   const { indexer, rate, principal, application_date } = pos;
+  if (hasTreasuryQuantity(pos)) {
+    if (pos.has_events) throw new Error('Tesouro com eventos: quantidade por evento ainda não disponível');
+    const query = `${SUPABASE_URL}/rest/v1/treasury_prices?select=type,maturity_date,date,base_price&type=eq.${pos.type}&maturity_date=eq.${pos.maturity_date}&date=lte.${hoje()}&order=date.desc&limit=1`;
+    const response = await fetch(query, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }, signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error('Preço oficial do Tesouro indisponível');
+    const marked = treasuryValueAt(pos, hoje(), await response.json());
+    if (!marked) throw new Error('Preço oficial do Tesouro ausente ou desatualizado');
+    pos.valuation_method = 'market'; pos.valuation_price_date = marked.date;
+    return marked.value;
+  }
   const to = pos.maturity_date && pos.maturity_date < hoje() ? pos.maturity_date : hoje();
 
   switch (indexer) {
@@ -294,7 +312,7 @@ Deno.serve(async (req: Request) => {
     for (const pos of positions) {
       try {
         const valor = await calcularValor(pos);
-        await pgUpdateCurrentValue(pos.id, valor, pos.updated_at);
+        await pgUpdateCurrentValue(pos.id, valor, pos.updated_at, pos.valuation_method, pos.valuation_price_date);
         atualizadas++;
       } catch (e) {
         erros.push(`${pos.id}: ${(e as Error).message.slice(0, 120)}`);

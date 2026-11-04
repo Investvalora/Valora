@@ -5,7 +5,7 @@ export function groupFixedIncome(rows: PositionRow[]) {
   for (const row of rows) {
     const product = row.fixedIncome
     const key = product && Number.isFinite(product.rate)
-      ? JSON.stringify([(row.name ?? row.ticker).trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR'), product.type, product.indexer, product.rate])
+      ? JSON.stringify([(row.name ?? row.ticker).trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR'), product.type, product.indexer, product.rate, ...(product.type.startsWith('tesouro_') ? [product.maturity_date ?? null] : [])])
       : row.id
     groups.set(key, [...(groups.get(key) ?? []), row])
   }

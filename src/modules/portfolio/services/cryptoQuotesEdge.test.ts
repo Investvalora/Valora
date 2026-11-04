@@ -13,16 +13,17 @@ it('sync keeps BRL and USD quotes separate and never substitutes USD when BRL is
       { ticker: 'ETH-BRL', provider_symbol: 'ethereum', quote_provider: 'coingecko', currency: 'BRL' },
     ]))
     expect(url).toContain('vs_currencies=usd,brl')
-    return new Response(JSON.stringify({ bitcoin: { usd: 70000, brl: 350000 }, ethereum: { usd: 3000 } }))
+    return new Response(JSON.stringify({ bitcoin: { usd: 70000, brl: 350000, last_updated_at: Math.floor(Date.now()/1000) }, ethereum: { usd: 3000, last_updated_at: Math.floor(Date.now()/1000) } }))
   })
   vi.stubGlobal('fetch', fetchMock)
   const path = '../../../../supabase/functions/sync-global-assets/index.ts'
   await import(path)
-  const response = await handler!(new Request('https://test/'))
+  const response = await handler!(new Request('https://test/', { method: 'POST', headers: { Authorization: 'Bearer test-only' }, body: '{}' }))
   expect(await response.json()).toMatchObject({ success: 2, failed: 1 })
-  const upsert = fetchMock.mock.calls.find(call => call[1]?.method === 'POST')
-  expect(JSON.parse(String(upsert?.[1]?.body))).toEqual([
+  const upserts = fetchMock.mock.calls.filter(call => call[0].includes('/rpc/store_global_quote')).map(call => JSON.parse(String(call[1]?.body)).p_quote)
+  expect(upserts).toEqual([
     expect.objectContaining({ ticker: 'BTC', close: 70000 }),
     expect.objectContaining({ ticker: 'BTC-BRL', close: 350000 }),
   ])
+  expect(response.status).toBe(503)
 })

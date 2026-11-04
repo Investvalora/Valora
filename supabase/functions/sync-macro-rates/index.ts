@@ -1,3 +1,4 @@
+import { yahooCaller } from '../_shared/yahooAuthorization.ts';
 // Edge Function: sync-macro-rates
 //
 // Sincroniza taxas macroeconômicas (CDI, Selic, IPCA) do Banco Central do Brasil
@@ -107,6 +108,10 @@ async function pgUpsertRates(rows: UpsertRow[]): Promise<void> {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return new Response('Método não permitido', { status: 405, headers: CORS });
+  const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY);
+  if (caller.kind !== 'service') return new Response('Não autorizado', { status: caller.kind === 'denied' ? caller.status : 403, headers: CORS });
+  const body = await req.json().catch(() => ({}));
 
   const resultado: Record<string, number> = {};
   const erros: string[] = [];
@@ -130,6 +135,7 @@ Deno.serve(async (req: Request) => {
           value: parseFloat(e.valor),
         }));
 
+      if (!rows.length) throw new Error('Série vazia');
       await pgUpsertRates(rows);
       resultado[name] = rows.length;
     } catch (e) {
@@ -137,8 +143,20 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  let recalculo: unknown = null;
+  if (body.recalculate === true && !erros.length) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/calc-fixed-income`, {
+        method: 'POST', headers: { Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: '{}', signal: AbortSignal.timeout(90000),
+      });
+      if (!response.ok) throw new Error('Falha no recálculo');
+      recalculo = await response.json();
+      if ((recalculo as { erros?: unknown[] })?.erros?.length) throw new Error('Recálculo parcial');
+    } catch { erros.push('recalculo: falha ao recalcular posições'); }
+  }
   return new Response(
-    JSON.stringify({ linhas_gravadas: resultado, erros, executado_em: new Date().toISOString() }),
-    { headers: { ...CORS, 'Content-Type': 'application/json' } },
+    JSON.stringify({ recalculo, linhas_gravadas: resultado, erros, executado_em: new Date().toISOString() }),
+    { status: erros.length ? 503 : 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
   );
 });

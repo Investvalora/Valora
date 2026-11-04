@@ -2,7 +2,7 @@ export interface Quote { ticker: string; date: string; close: number; source: st
 export interface ProviderKey { id: string; token: string; blockedUntil?: string }
 interface Asset { ticker: string; currency: string }
 interface Dependencies {
-  keys: ProviderKey[]; now?: Date; fetch: typeof fetch
+  keys: ProviderKey[]; now?: Date; fetch: typeof fetch; brapiOnly?: boolean
   block: (id: string, until: string, reason: string) => Promise<void>
   save: (row: Quote) => Promise<boolean>
 }
@@ -25,6 +25,7 @@ export async function syncQuotes(assets: Asset[], deps: Dependencies) {
       failed++; errors.push({ ticker: asset.ticker, reason: Date.now() > deadline ? 'time_budget' : 'unsupported_asset' }); return
     }
     let row: Quote | null = null
+    if (!deps.brapiOnly) {
     yahooRequests++
     try {
       const symbol = `${asset.ticker}.SA`
@@ -33,6 +34,7 @@ export async function syncQuotes(assets: Asset[], deps: Dependencies) {
       const meta = data?.chart?.result?.[0]?.meta
       if (response.ok && !data?.chart?.error && meta?.currency === 'BRL' && meta?.symbol?.toUpperCase() === symbol) row = quote(asset.ticker, meta.regularMarketPrice, meta.regularMarketTime, 'yahoo', now)
     } catch { /* No raw provider URLs, responses or credentials in logs. */ }
+    }
     // A quote more than 36 hours old may be a holiday/weekend close; ask the
     // alternative and choose the newer timestamp, never relabel it as today.
     const oldYahoo = row

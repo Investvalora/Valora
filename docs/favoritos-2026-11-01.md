@@ -8,4 +8,4 @@ Validação: cinco testes de favoritos (adicionar/remover, falha e nova tentativ
 
 TypeScript e build de produção/PWA também aprovados.
 
-Migration preparada: 20261101030740_asset_favorites.sql. Aplicar antes do deploy do frontend. Ainda não aplicada em produção. Teste visual com persistência real e homologação física após aplicação/publicação permanecem pendentes.
+Migration 20261101030740_asset_favorites.sql aplicada em produção em 01/11 após autorização específica do responsável. Testes SQL pós-aplicação aprovados; tabela presente, RLS habilitado e zero fixtures restantes. Teste visual com persistência real e homologação física permanecem pendentes.

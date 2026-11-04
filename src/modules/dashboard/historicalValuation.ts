@@ -1,11 +1,14 @@
+import { hasTreasuryQuantity, treasuryValueAt } from '../../../supabase/functions/_shared/treasury'
+import type { TreasuryPrice } from '../../../supabase/functions/_shared/treasury'
 import type { FixedIncomePosition, FixedIncomeEvent } from '../portfolio/types'
 
 export interface DatedRate { date: string; value: number }
 export interface MacroRate extends DatedRate { series: string }
-export type HistoricalFixedIncome = Pick<FixedIncomePosition, 'principal' | 'application_date'> & Partial<Pick<FixedIncomePosition, 'indexer' | 'rate' | 'maturity_date' | 'active'>> & { events?: FixedIncomeEvent[] }
+export type HistoricalFixedIncome = Pick<FixedIncomePosition, 'principal' | 'application_date'> & Partial<Pick<FixedIncomePosition, 'indexer' | 'rate' | 'maturity_date' | 'active' | 'type' | 'name' | 'treasury_quantity'>> & { events?: FixedIncomeEvent[] }
 export interface HistoricalValuation {
   usd: DatedRate[]
   macro: MacroRate[]
+  treasury?: TreasuryPrice[]
 }
 
 /** Última publicação até a data de corte; nunca usa taxa atual como substituta. */
@@ -73,9 +76,14 @@ export function fixedIncomePrincipalAt(position: HistoricalFixedIncome, date: st
 }
 
 /** O saldo informado no extrato após o evento é a nova base de capitalização. */
-export function fixedIncomeAt(position: HistoricalFixedIncome, date: string, macro: MacroRate[]): number | null {
+export function fixedIncomeAt(position: HistoricalFixedIncome, date: string, macro: MacroRate[], treasury: TreasuryPrice[] = []): number | null {
   const events = eventsAt(position, date)
   const latest = events[events.length - 1]
+  if (hasTreasuryQuantity(position)) {
+    if (position.active === false && !(position.events ?? []).length) return null
+    if (latest && Number(latest.balance_after) === 0) return 0
+    return treasuryValueAt({ ...position, events }, date, treasury)?.value ?? null
+  }
   if (!latest) {
     if (position.active === false && !(position.events ?? []).length) return null
     return contractValueAt(position, date, macro)

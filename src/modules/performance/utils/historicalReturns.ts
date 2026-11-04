@@ -1,3 +1,4 @@
+import { hasTreasuryQuantity } from '../../../../supabase/functions/_shared/treasury'
 import type { PositionWithAsset, AssetCurrency } from '../../portfolio/types'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import type { PriceHistoryRow } from '../../wealth/types'
@@ -83,8 +84,8 @@ export function historicalReturns(
     for (const position of fixed) {
       if (position.application_date > date) continue
       if (position.application_date === date) purchases += Number(position.principal)
-      const value = fixedIncomeAt(position, date, rates.macro)
-      if (value === null || !Number.isFinite(value)) { complete = false; issues.add('Renda fixa sem taxas ou eventos suficientes') }
+      const value = fixedIncomeAt(position, date, rates.macro, rates.treasury)
+      if (value === null || !Number.isFinite(value)) { complete = false; issues.add(hasTreasuryQuantity(position) ? 'Tesouro sem preço oficial ou quantidade de eventos suficiente' : 'Renda fixa sem taxas ou eventos suficientes') }
       else total += value
       withdrawals += (position.events ?? []).filter(e => e.event_date === date).reduce((sum, e) => sum + Number(e.amount), 0)
     }

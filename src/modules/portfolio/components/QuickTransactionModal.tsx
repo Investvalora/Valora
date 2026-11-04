@@ -310,6 +310,7 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
         principal: tdParsedQty * tdParsedPrice + tdParsedOther,
         application_date: tdDate,
         maturity_date: tdMaturity.trim() || null,
+        treasury_quantity: !tdAtivo.endsWith('_juros') && tdMaturity.trim() ? tdParsedQty : null,
       }
       addFI.mutate(payload, {
         onSuccess: () => { calcValues(); setAssetClass('fii'); resetFields(); onClose() },

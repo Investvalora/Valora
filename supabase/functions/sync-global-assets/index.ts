@@ -1,3 +1,5 @@
+import { yahooCaller } from '../_shared/yahooAuthorization.ts';
+import { quoteStamp, selectedProviders } from './quotes.ts';
 // Edge Function: sync-global-assets
 //
 // Atualiza price_history para ativos internacionais:
@@ -46,18 +48,14 @@ async function listGlobalAssets(): Promise<{ ticker: string; provider_symbol: st
 /** Upsert em price_history, idempotente por (ticker, date). */
 async function upsertPrices(rows: Record<string, unknown>[]): Promise<void> {
   if (rows.length === 0) return;
-  const url = `${SUPABASE_URL}/rest/v1/price_history?on_conflict=ticker,date`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify(rows),
-  });
-  if (!res.ok) throw new Error(`upsert ${res.status}: ${(await res.text()).slice(0, 120)}`);
+  for (const row of rows) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/store_global_quote`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_quote: row }), signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) throw new Error('Falha ao gravar cotação global');
+  }
 }
 
 /** Pausa em ms. */
@@ -65,9 +63,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return new Response('Método não permitido', { status: 405, headers: CORS });
+  const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY);
+  if (caller.kind !== 'service') return new Response('Não autorizado', { status: caller.kind === 'denied' ? caller.status : 403, headers: CORS });
 
   try {
-    const assets = await listGlobalAssets();
+    const body = await req.json().catch(() => ({}));
+    const providers = selectedProviders(body);
+    const assets = (await listGlobalAssets()).filter(asset => providers.includes(asset.quote_provider));
     if (!assets.length) {
       return new Response(JSON.stringify({ total: 0, success: 0, failed: 0, errors: [] }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
@@ -109,12 +112,13 @@ Deno.serve(async (req: Request) => {
                 `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${fhKey}`,
                 { signal: AbortSignal.timeout(8_000) },
               );
+              if (!res.ok) throw new Error(`Finnhub HTTP ${res.status}`);
               const json = await res.json();
               // c=0 significa sem dado (mercado fechado sem cotação)
               if (!json.c || json.c === 0) throw new Error(`sem cotação (c=${json.c})`);
               await upsertPrices([{
                 ticker: asset.ticker,
-                date: today,
+                ...quoteStamp(json.t, json.c),
                 close: json.c,
                 open: json.o ?? json.c,
                 high: json.h ?? json.c,
@@ -132,7 +136,7 @@ Deno.serve(async (req: Request) => {
               success++;
             } else {
               failed++;
-              errors.push(`${batch[j].ticker}: ${(r as PromiseRejectedResult).reason?.message ?? 'finnhub error'}`);
+              errors.push(`${batch[j].ticker}: provider_request_failed`);
             }
           }
         }
@@ -144,15 +148,16 @@ Deno.serve(async (req: Request) => {
     if (cgAssets.length > 0) {
       const cgKey = Deno.env.get('COINGECKO_API_KEY')
         ?? await vaultSecret('coingecko_key');
-      const ids = cgAssets.map((a) => a.provider_symbol ?? a.ticker).join(',');
+      const ids = [...new Set(cgAssets.map((a) => a.provider_symbol ?? a.ticker))].join(',');
       try {
         const res = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,brl`,
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,brl&include_last_updated_at=true`,
           {
             headers: cgKey ? { 'x-cg-demo-api-key': cgKey } : {},
             signal: AbortSignal.timeout(8_000),
           },
         );
+        if (!res.ok) throw new Error(`Provedor HTTP ${res.status}`);
         const json = await res.json();
         const upserts: Record<string, unknown>[] = [];
         for (const asset of cgAssets) {
@@ -160,7 +165,7 @@ Deno.serve(async (req: Request) => {
           const price = json[sym]?.[asset.currency.toLowerCase()];
           if (!price) { failed++; errors.push(`${asset.ticker}: coingecko sem preço`); continue; }
           upserts.push({
-            ticker: asset.ticker, date: today,
+            ticker: asset.ticker, ...quoteStamp(json[sym]?.last_updated_at, price),
             close: price, open: price, high: price, low: price,
             adjusted_close: price, volume: null, source: 'coingecko',
           });
@@ -168,7 +173,7 @@ Deno.serve(async (req: Request) => {
         await upsertPrices(upserts);
         success += upserts.length;
       } catch (e) {
-        for (const a of cgAssets) errors.push(`${a.ticker}: coingecko error ${(e as Error).message}`);
+        for (const a of cgAssets) errors.push(`${a.ticker}: coingecko: ${e instanceof Error && /^(Provedor HTTP [0-9]{3}|invalid_quote)$/.test(e.message) ? e.message : "request_failed"}`);
         failed += cgAssets.length;
       }
     }
@@ -182,12 +187,13 @@ Deno.serve(async (req: Request) => {
           `https://economia.awesomeapi.com.br/json/last/${sym}`,
           { signal: AbortSignal.timeout(5_000) },
         );
+        if (!res.ok) throw new Error(`Provedor HTTP ${res.status}`);
         const json = await res.json();
         const key = sym.replace('-', '');
         const price = parseFloat(json[key]?.bid ?? '');
         if (!price || isNaN(price)) throw new Error(`${asset.ticker}: awesomeapi sem bid`);
         await upsertPrices([{
-          ticker: asset.ticker, date: today,
+          ticker: asset.ticker, ...quoteStamp(Number(json[key]?.timestamp), price),
           close: price, open: price, high: price, low: price,
           adjusted_close: price, volume: null, source: 'awesomeapi',
         }]);
@@ -201,11 +207,11 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ date: today, total: assets.length, success, failed, errors: errors.slice(0, 20) }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { status: failed ? 503 : 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: err instanceof Error && err.message === 'invalid_providers' ? 'invalid_providers' : 'global_sync_failed' }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   }

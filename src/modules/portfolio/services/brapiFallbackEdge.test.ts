@@ -56,3 +56,10 @@ it('isolates storage failure per asset',async()=>{
   const d=deps(vi.fn().mockResolvedValue(yahoo())); d.save.mockRejectedValue(new Error('private'))
   expect(await syncQuotes([asset],d)).toMatchObject({failed:1,errors:[{ticker:'VGHF11',reason:'storage_unavailable'}]})
 })
+it('server diagnostic exercises distinct fallback keys without Yahoo',async()=>{
+  const f=vi.fn().mockImplementation(async (_url, options)=>brapi({symbol:String(options.headers.Authorization).endsWith('test-a')?'VGHF11':'MXRF11'}))
+  const d={...deps(f),brapiOnly:true}
+  d.save.mockResolvedValue(false)
+  expect(await syncQuotes([asset,{ticker:'MXRF11',currency:'BRL'}],d)).toMatchObject({yahooRequests:0,brapiRequests:2,preserved:2,failed:0})
+  expect(f.mock.calls.map(c=>c[1].headers.Authorization)).toEqual(['Bearer test-a','Bearer test-b'])
+})

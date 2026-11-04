@@ -1,0 +1,17 @@
+# Yahoo como primeira fonte de cotações brasileiras
+
+Escopo autorizado: cotações atuais de ações BR, FIIs, BDRs e ETFs BR. Não substitui fundamentos, proventos, renda fixa, cripto ou stocks. Yahoo BRL com símbolo `.SA` é consultado primeiro; Brapi é alternativa para ausência, falha ou cotação antiga. Nunca inventa data, converte moeda, baixa histórico em cada execução ou altera lançamentos.
+
+Rodízio de até oito chaves Brapi distintas, nos secrets do Supabase: `BRAPI_API_KEYS` recebe valores separados por vírgula/espaço/ponto e vírgula, e as variáveis legadas BRAPI_API_KEY/BRAPI_KEY continuam aceitas. Duplicatas removidas. Somente a chave existente foi utilizada/configurada nesta etapa; não foram criadas contas nem contratados planos. Não enviar chaves no chat ou colocá-las no frontend. Novas chaves dependem de cadastro pelo responsável diretamente no painel e de autorização de uso pelo provedor.
+
+Rodízio por consulta de fallback, com tentativa da próxima chave após falha. Suspensão individual de credenciais 401/403/429; limite mensal usa resetsAt devolvido pelo provedor. Estado persistente contém somente SHA-256 identificador, prazo e motivo seguro, sem a chave. Rotação distribui chamadas dentro da execução; não há ponteiro global persistente. Yahoo válido consome zero chamadas Brapi.
+
+Tabela de estado exclusiva de service_role, RLS habilitado e sem grants para anon/authenticated; ausência de políticas é intencional. RPC SECURITY INVOKER exclusiva do serviço protege fechamento B3, dias mais recentes e timestamp intradiário, com advisory lock entre execuções desta rotina. Outros escritores existentes não adquirem esse lock; conflitos na mesma linha ainda respeitam o WHERE do upsert. O horário real de mercado é gravado em market_time. Dados antigos sem esse campo usam updated_at conservadoramente.
+
+Função aceita apenas POST autorizado de serviço (inclui credencial legada do agendamento validada por digest). Erros parciais retornam 503 com contagens e motivos seguros, sem fingir sucesso completo. Concorrência limitada a três ativos, timeout por fonte e orçamento de tempo limitam sobrecarga.
+
+Validação: 13 testes de orquestração aprovados; TypeScript e lint direcionado aprovados. Migration + testes SQL em BEGIN/ROLLBACK aprovados: preço antigo, preço recente, fechamento oficial, permissões de clientes e persistência de suspensão. Migration aplicada após autorização de publicar; função sync-brapi-prices v8 publicada com verify_jwt=true. Conferência real registrada após conclusão da execução.
+
+Endpoint Yahoo usado pelo projeto não oferece garantia de serviço; validação observada não é garantia de cobertura completa ou autorização de redistribuição. Falhas mantêm o preço anterior e são reportadas. O controle de meses encerrados/IPCA é uma pendência distinta desta publicação.
+
+Execução real pós-publicação, requisição pg_net 504: HTTP 200, assets 40, yahooRequests 40, brapiRequests 0, saved 36, preserved 4, failed 0. Todos os 40 ativos BR ativos passaram a ter registro de 04/11. Exemplos Yahoo: VGHF11 R$ 4,06; MXRF11 R$ 8,37; GARE11 R$ 7,95; WEGE3 R$ 50,25. Preços capturados por volta de 18:53 UTC, sem alterar quantidades, custos ou lançamentos. Chaves adicionais não fornecidas; rodízio entre várias chaves coberto por testes, não exercitado com várias credenciais reais.

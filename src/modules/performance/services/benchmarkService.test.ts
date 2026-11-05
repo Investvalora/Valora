@@ -9,6 +9,16 @@ import { dividendService } from '../../dividends/services/dividendService'
 
 beforeEach(resetSupabaseMock)
 
+it('consulta apenas a série mensal de IPCA publicada, sem depender de seeds de benchmarks', async () => {
+  const row = { date: '2026-01-01', value: -0.2 }
+  supabaseMock.on('macro_rates', ({ calls }) => {
+    expect(calls).toContainEqual({ method: 'eq', args: ['series', 'ipca'] })
+    expect(calls.some(call => call.method === 'lt')).toBe(true)
+    return { data: [row], error: null }
+  })
+  expect(await benchmarkService.listMonthlyInflation('2026-01-15')).toEqual([row])
+})
+
 it('preserva índices reais e não mistura simulação de seed na comparação', async () => {
   const real = { name: 'CDI', date: '2026-01-02', value: 100, source: 'bcb_sgs12' }
   supabaseMock.on('benchmarks', () => ({ data: [real, { ...real, date: '2026-01-03', source: 'seed' }, { ...real, date: '2026-01-04', source: 'synthetic' }], error: null }))

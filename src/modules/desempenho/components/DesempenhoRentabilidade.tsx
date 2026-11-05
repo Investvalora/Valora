@@ -1,3 +1,4 @@
+import { InflationComparison } from '../../performance/components/InflationComparison'
 /**
  * DesempenhoRentabilidade — sub-rota /desempenho/rentabilidade.
  * Gráfico de linha comparativo, tabela mensal e tabela por ativo.
@@ -292,6 +293,8 @@ export function DesempenhoRentabilidade() {
           <TabelaMensal rows={monthlyTableData} />
         )}
       </PanelCard>
+
+      <InflationComparison portfolio={portfolioSeries} />
 
       {/* ── Tabela por ativo ── */}
       <PanelCard>

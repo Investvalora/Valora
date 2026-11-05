@@ -1,3 +1,4 @@
+import { PageTitle } from './shared/components/PageTitle'
 import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
@@ -62,6 +63,8 @@ function IndexRoute() {
 
 export function AppRoutes() {
   return (
+    <>
+    <PageTitle />
     <Routes>
       {/* ── Rotas públicas ── */}
       <Route path="/sobre" element={<PublicInfoPage page="about" />} />
@@ -138,5 +141,6 @@ export function AppRoutes() {
         </main>
       } />
     </Routes>
+    </>
   )
 }

@@ -1,4 +1,5 @@
 import type { PositionRow } from '../../portfolio/types'
+import type { AssetSector } from '../services/sectorService'
 
 export interface CompositionSlice {
   id: string
@@ -33,5 +34,24 @@ export function buildAssetSlices(rows: PositionRow[], totalBRL: number): Composi
   }
   return [...assets.values()]
     .map((asset) => ({ ...asset, percent: (asset.valueBRL / totalBRL) * 100 }))
+    .sort((a, b) => b.valueBRL - a.valueBRL || a.label.localeCompare(b.label))
+}
+
+/** Setor econômico não é a classe do ativo nem o segmento de um fundo. */
+export function buildSectorSlices(rows: PositionRow[], totalBRL: number, sectors: AssetSector[]): CompositionSlice[] {
+  if (!Number.isFinite(totalBRL) || totalBRL <= 0) return []
+  const classification = new Map(sectors.map(row => [row.ticker, row.sector]))
+  const groups = new Map<string, CompositionSlice>()
+  for (const row of rows) {
+    const value = row.marketValueBRL
+    if (value === null || !Number.isFinite(value) || value <= 0) continue
+    const company = row.type === 'stock_br' || row.type === 'bdr'
+    const notApplicable = row.type === 'fixed_income' || row.type === 'crypto' || row.type === 'etf_br' || row.type === 'etf_us'
+    const label = notApplicable ? 'Sem setor econômico' : company ? classification.get(row.ticker) ?? 'Não classificado' : 'Não classificado'
+    const group = groups.get(label)
+    if (group) group.valueBRL += value
+    else groups.set(label, { id: label, label, color: tickerColor(label), international: false, valueBRL: value, percent: 0, topTicker: null })
+  }
+  return [...groups.values()].map(group => ({ ...group, percent: group.valueBRL / totalBRL * 100 }))
     .sort((a, b) => b.valueBRL - a.valueBRL || a.label.localeCompare(b.label))
 }

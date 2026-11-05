@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AtivosComposicao } from './AtivosComposicao'
 
+vi.mock('../services/sectorService', () => ({ sectorService: { list: async () => [{ ticker: 'AAA3', sector: 'Financeiro', source: 'brapi' }] } }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'wallet' } }) }))
 vi.mock('../../portfolio/hooks/useFixedIncomePositions', () => ({ useFixedIncomePositions: () => ({ data: [] }) }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: () => ({ data: [
@@ -18,7 +20,7 @@ vi.mock('../../portfolio/hooks/useDividendTotals', () => ({ useDividendTotals: (
 
 it('alterna gráfico e lista entre classe e tickers, inclusive pelo seletor mobile', async () => {
   const user = userEvent.setup()
-  render(<AtivosComposicao />)
+  render(<QueryClientProvider client={new QueryClient()}><AtivosComposicao /></QueryClientProvider>)
   expect(screen.getByRole('heading', { name: 'Composição por classe' })).toBeInTheDocument()
   const chart = screen.getAllByRole('img', { name: 'Gráfico de composição da carteira' })[0]
   expect(chart.querySelectorAll('path')).toHaveLength(1)
@@ -34,4 +36,15 @@ it('alterna gráfico e lista entre classe e tickers, inclusive pelo seletor mobi
   await user.selectOptions(screen.getByLabelText('Visualizar por'), 'Tipo de ativos')
   expect(screen.getByRole('heading', { name: 'Composição por classe' })).toBeInTheDocument()
   expect(chart.querySelectorAll('path')).toHaveLength(1)
+})
+
+it('oferece setor no desktop e no mobile, incluindo ativos sem classificação', async () => {
+  const user = userEvent.setup()
+  render(<QueryClientProvider client={new QueryClient()}><AtivosComposicao /></QueryClientProvider>)
+  await user.click(screen.getByRole('button', { name: 'Setor' }))
+  expect(screen.getByRole('heading', { name: 'Composição por setor' })).toBeInTheDocument()
+  expect(await screen.findAllByText('Financeiro')).not.toHaveLength(0)
+  expect(screen.getAllByText('Não classificado')).not.toHaveLength(0)
+  await user.selectOptions(screen.getByLabelText('Visualizar por'), 'Ativos')
+  expect(screen.getByRole('heading', { name: 'Composição por ativo' })).toBeInTheDocument()
 })

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -33,9 +34,9 @@ vi.mock('../../valuation/hooks/useStrategies', () => ({ useStrategies: () => ({ 
 beforeEach(() => { scoreState.enabled = false; fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
 
 function show() {
-  return render(<MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
+  return render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
     <Route path="posicoes" element={<AtivosPosicoes />} /><Route path="composicao" element={<AtivosComposicao />} />
-  </Route></Routes></MemoryRouter>)
+  </Route></Routes></MemoryRouter></QueryClientProvider>)
 }
 
 it('reaproveita score preferido, regras e fundamentos na coluna escolhida', async () => {

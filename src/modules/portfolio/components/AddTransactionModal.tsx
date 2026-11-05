@@ -357,7 +357,7 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
           disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
-          {isSaving ? 'Salvando…' : 'Salvar alteração'}
+          {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
         </button>
       </div>
     </form>
@@ -597,7 +597,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
           disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
-          {isSaving ? 'Salvando…' : 'Salvar alteração'}
+          {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
         </button>
       </div>
     </form>
@@ -906,7 +906,7 @@ export function AddTransactionModal({
               disabled={isSaving}
               className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
             >
-              {isSaving ? 'Salvando…' : 'Salvar alteração'}
+              {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
             </button>
           </div>
         </form>

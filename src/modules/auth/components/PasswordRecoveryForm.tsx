@@ -1,3 +1,4 @@
+import { recoveryErrorMessage } from '../authErrorMessage'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,13 +41,7 @@ function DesktopPasswordRecoveryForm() {
       console.error('Password recovery error:', error)
       setSuccessMessage('')
 
-      const message = error.message?.toLowerCase() ?? ''
-
-      if (message.includes('rate limit')) {
-        setErrorMessage('Muitas tentativas de recuperação foram feitas. Aguarde alguns minutos antes de tentar novamente.')
-      } else {
-        setErrorMessage(error.message || 'Erro ao enviar email de recuperação. Tente novamente.')
-      }
+      setErrorMessage(recoveryErrorMessage(error))
     },
   })
 

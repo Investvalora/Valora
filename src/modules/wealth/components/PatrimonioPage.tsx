@@ -1,10 +1,10 @@
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { deriveComposition } from '../../portfolio/composition'
-import type { PositionRow } from '../../portfolio/types'
+import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
 import { useWealthHistory } from '../hooks/useWealthHistory'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import type { WealthPeriod, PositionSnapshot } from '../types'
+import type { WealthPeriod } from '../types'
 import { PeriodSelector } from './PeriodSelector'
 import { CompositionCards } from './CompositionCards'
 
@@ -46,58 +46,6 @@ class ChartErrorBoundary extends Component<
   }
 }
 
-/**
- * Constrói `PositionRow[]` mínimos para `deriveComposition`, usando o último
- * preço conhecido de cada ticker (do `lastPricesMap`).
- *
- * `deriveComposition` só lê `row.marketValueBRL`, `row.ticker` e `row.type` —
- * os demais campos recebem sentinelas (null / NaN / false).
- *
- * Retorna também o total em BRL para que os percentuais fechem em 100%.
- */
-function buildCompositionInput(
-  positions: PositionSnapshot[],
-  lastPricesMap: Map<string, number>,
-  usdRate: number,
-): { rows: PositionRow[]; totalBRL: number } {
-  let totalBRL = 0
-
-  const rows: PositionRow[] = positions.map((pos) => {
-    const close = lastPricesMap.get(pos.ticker)
-    let marketValueBRL: number | null = null
-
-    if (close !== undefined && Number.isFinite(close)) {
-      const priceInBRL = pos.currency === 'USD' ? close * usdRate : close
-      marketValueBRL = priceInBRL * pos.quantity
-      if (Number.isFinite(marketValueBRL)) {
-        totalBRL += marketValueBRL
-      } else {
-        marketValueBRL = null
-      }
-    }
-
-    return {
-      id: pos.ticker,
-      ticker: pos.ticker,
-      name: null,
-      currency: pos.currency,
-      type: pos.type,
-      quantity: pos.quantity,
-      averagePrice: 0,
-      acquisitionDate: '',
-      quote: null,
-      quotePrice: Number.NaN,
-      marketValueBRL,
-      weightPercent: null,
-      changePercent: null,
-      isStaleQuote: false,
-      usesUSDRate: pos.currency === 'USD',
-    }
-  })
-
-  return { rows, totalBRL }
-}
-
 export function PatrimonioPage() {
   const [period, setPeriod] = useState<WealthPeriod>('1M')
   const { selectedWallet } = useWallets()
@@ -106,36 +54,19 @@ export function PatrimonioPage() {
     series,
     isLoading,
     isError,
-    hasPositions,
+    hasPositions: hasHistoricalPositions,
     hasHistory,
     usdRateIsFallback,
     refetch,
-    positions,
-    lastPricesMap,
-    usdRate,
   } = useWealthHistory(period, selectedWallet?.id ?? '')
 
-  /**
-   * Composição derivada do último preço conhecido por ticker.
-   *
-   * Usa `deriveComposition` — a mesma função da tela Carteira — para que as
-   * classes, cores e labels sejam idênticos (spec AC "cards de composição").
-   */
-  const compositionInput = useMemo(
-    () =>
-      positions.length > 0
-        ? buildCompositionInput(positions, lastPricesMap, usdRate)
-        : null,
-    [positions, lastPricesMap, usdRate],
-  )
-
-  const composition = useMemo(
-    () =>
-      compositionInput
-        ? deriveComposition(compositionInput.rows, compositionInput.totalBRL)
-        : null,
-    [compositionInput],
-  )
+  const valuation = useAtivosValuation(selectedWallet?.id ?? '', true)
+  const hasPositions = hasHistoricalPositions || valuation.assetCount > 0
+  const composition = useMemo(() =>
+    !valuation.isLoading && !valuation.isError && valuation.complete
+      ? deriveComposition(valuation.compositionRows, valuation.totalBRL)
+      : null,
+  [valuation.isLoading, valuation.isError, valuation.complete, valuation.compositionRows, valuation.totalBRL])
 
   // Mensagens de estado vazio distintas (spec §I/O & Edge-Case Matrix)
   const emptyMessage = useMemo(() => {
@@ -222,6 +153,12 @@ export function PatrimonioPage() {
         ) : null}
       </section>
 
+      {!isLoading && !composition && valuation.isError && (
+        <p role="alert" className="mb-6 text-sm text-red-400">Não foi possível carregar a composição atual. Tente novamente ao recarregar a página.</p>
+      )}
+      {!isLoading && !valuation.isLoading && !valuation.isError && !valuation.complete && (
+        <p role="status" className="mb-6 text-sm text-gray-400">Composição atual indisponível: faltam cotações ou câmbio.</p>
+      )}
       {/* Cards de composição — só quando há composição calculável */}
       {!isLoading && composition && composition.slices.length > 0 && (
         <CompositionCards

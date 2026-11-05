@@ -1,3 +1,4 @@
+import { recoveryErrorMessage } from '../authErrorMessage'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,12 +31,7 @@ export function MobilePasswordRecoveryForm() {
     },
     onError: (error: Error) => {
       setSuccessEmail('')
-      const msg = error.message?.toLowerCase() ?? ''
-      if (msg.includes('rate limit')) {
-        setErrorMessage('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.')
-      } else {
-        setErrorMessage(error.message || 'Erro ao enviar email. Tente novamente.')
-      }
+      setErrorMessage(recoveryErrorMessage(error))
     },
   })
 

@@ -1,3 +1,4 @@
+import { recoveryErrorMessage } from '../authErrorMessage'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -33,7 +34,7 @@ export function ResetPasswordForm() {
     onError: (error: Error) => {
       console.error('Reset password error:', error)
       setSuccessMessage('')
-      setErrorMessage(error.message || 'Link expirado ou inválido. Solicite um novo link de recuperação.')
+      setErrorMessage(recoveryErrorMessage(error, true))
     },
   })
 

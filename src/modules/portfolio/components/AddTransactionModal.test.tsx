@@ -156,7 +156,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
     change('rf-taxa', '115')
     change('rf-valor', '1000')
     change('rf-date', '2026-01-15')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalled())
     expect(holders.addFI.mutate.mock.calls[0][0]).toMatchObject({ type, indexer, principal: 1000, maturity_date: null })
   })
@@ -168,7 +168,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
     change('rf-taxa', '110')
     change('rf-valor', '1000')
     change('rf-date', '2026-01-15')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -200,7 +200,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
   it('não submete e mostra erros quando campos obrigatórios faltam', async () => {
     renderModal()
     selectCategory('fixed_income')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() =>
       expect(screen.getByText('Informe o emissor')).toBeInTheDocument(),
@@ -221,7 +221,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
     change('td-qty', '0.5')
     change('td-price', '14000')
     change('td-maturity', '2029-01-01')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -246,7 +246,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
     change('td-date', '2026-01-15')
     change('td-qty', '1')
     change('td-price', '100')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -273,7 +273,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
   it('não submete e mostra erro quando o ativo não é selecionado', async () => {
     renderModal()
     selectCategory('tesouro_direto')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() =>
       expect(screen.getByText('Selecione o ativo')).toBeInTheDocument(),

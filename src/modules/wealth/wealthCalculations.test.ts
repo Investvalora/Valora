@@ -233,3 +233,16 @@ describe('buildLastPricesMap', () => {
     expect(map.get('PETR4')).toBe(30)
   })
 })
+
+
+describe('últimas cotações — regressão da consulta em ordem decrescente', () => {
+  it('mantém o preço mais recente com tickers intercalados e entrada fora de ordem', () => {
+    const rows = [price('ITUB4', '2026-11-04', 39.09), price('AAA3', '2026-10-26', 1), price('ITUB4', '2026-10-26', 41.70), price('AAA3', '2026-11-04', 2)]
+    for (const input of [rows, [...rows].reverse()]) {
+      const map = buildLastPricesMap(input)
+      expect(map.get('ITUB4')).toBe(39.09)
+      expect(map.get('ITUB4')! * 10).toBeCloseTo(390.90)
+      expect(map.get('AAA3')).toBe(2)
+    }
+  })
+})

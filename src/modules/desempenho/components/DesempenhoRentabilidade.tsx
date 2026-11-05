@@ -64,7 +64,7 @@ const CLASS_COLORS: Record<string, string> = {
 function fmtPct(v: number | null | undefined, decimals = 2): string {
   if (v == null || !Number.isFinite(v)) return '—'
   const sign = v > 0 ? '+' : ''
-  return `${sign}${v.toFixed(decimals)}%`
+  return `${sign}${v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`
 }
 
 function fmtBRL(v: number): string {
@@ -314,6 +314,11 @@ export function DesempenhoRentabilidade() {
           </button>
         </div>
 
+        <p className="mb-4 text-[12px] text-white/50">
+          Resultado da posição atual sobre o preço médio, incluindo proventos elegíveis recebidos no período selecionado.
+          O retorno histórico da carteira considera as movimentações e pode ser diferente.
+        </p>
+
         {isLoading ? (
           <div className="flex flex-col gap-2">
             {[1, 2, 3].map((i) => (
@@ -379,7 +384,7 @@ export function DesempenhoRentabilidade() {
                         }`}
                       >
                         {vscdipp != null
-                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)} pp`
+                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`
                           : 'vs CDI: —'}
                       </span>
                     </div>
@@ -498,7 +503,7 @@ export function DesempenhoRentabilidade() {
                               : 'text-nf-pink'
                         }`}
                       >
-                        {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)}pp` : '—'}
+                        {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp` : '—'}
                       </td>
                       {/* Barra de desempenho */}
                       <td className="hidden md:table-cell px-3 py-2.5 min-w-[100px]">

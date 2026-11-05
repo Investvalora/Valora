@@ -6,7 +6,7 @@ import type { AssetType, PositionWithAsset } from '../../portfolio/types'
 import type { PerformancePeriod } from '../types'
 import { usePerformance } from './usePerformance'
 import { wealthService } from '../../wealth/services/wealthService'
-import { dividendService } from '../../dividends/services/dividendService'
+import { useDividends } from '../../dividends/hooks/useDividends'
 import { benchmarkService } from '../services/benchmarkService'
 import type { DailyReturn } from '../utils/historicalReturns'
 
@@ -24,7 +24,7 @@ vi.mock('./useHistoricalReturns', () => ({ useHistoricalReturns: (period: string
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: { rate: 5 }, isLoading: false }) }))
 vi.mock('../../wealth/services/wealthService', () => ({ wealthService: { listPositionsSnapshot: vi.fn(), listPriceHistory: vi.fn(), listLatestPrices: vi.fn() } }))
 vi.mock('../../portfolio/services/positionService', () => ({ positionService: { listPositions: async (_: string, wallet: string) => wallet === 'w2' ? [] : positions } }))
-vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: vi.fn() } }))
+vi.mock('../../dividends/hooks/useDividends', () => ({ useDividends: vi.fn() }))
 vi.mock('../services/benchmarkService', () => ({ benchmarkService: { listBenchmarks: vi.fn() } }))
 
 const positions = [
@@ -42,7 +42,7 @@ beforeEach(() => {
   vi.mocked(wealthService.listPositionsSnapshot).mockImplementation(async (_, wallet) => wallet === 'w2' ? [] : positions.map((p) => ({ ticker: p.ticker, quantity: p.quantity, currency: 'BRL', type: p.asset!.type, acquisitionDate: p.acquisition_date })))
   vi.mocked(wealthService.listPriceHistory).mockImplementation(async (tickers, since) => prices.filter((p) => tickers.includes(p.ticker) && p.date >= since))
   vi.mocked(wealthService.listLatestPrices).mockImplementation(async (tickers) => prices.filter((p) => tickers.includes(p.ticker)))
-  vi.mocked(dividendService.listDividendsByTickers).mockResolvedValue([])
+  vi.mocked(useDividends).mockReturnValue({ rows: [], isLoading: false, isError: false, error: null, refetch: vi.fn(), tickers: [], availableTypes: [] })
   vi.mocked(benchmarkService.listBenchmarks).mockResolvedValue([])
 })
 
@@ -90,7 +90,7 @@ it('filtra gráfico, resumo, tabela e proventos juntos e restaura todas as class
   await waitFor(() => expect(result.current.summary.portfolioReturnPct).toBeCloseTo(1))
   await waitFor(() => expect(result.current.assetRows.map((r) => r.ticker)).toEqual(['AAA3']))
   expect(result.current.portfolioSeries.points[result.current.portfolioSeries.points.length - 1]?.normalized).toBe(200)
-  expect(dividendService.listDividendsByTickers).toHaveBeenCalledWith(['AAA3'], '2020-01-01', true)
+  expect(useDividends).toHaveBeenCalledWith('Tudo', 'paid', 'w1')
   rerender({ type: 'fii', period: 'Tudo', wallet: 'w1' })
   await waitFor(() => expect(result.current.summary.portfolioReturnPct).toBe(0))
   expect(result.current.assetRows.map((r) => r.ticker)).toEqual(['FII11'])
@@ -111,4 +111,13 @@ it('Tudo alcança aquisições antigas, enquanto 1A usa sua janela; carteira vaz
   expect(result.current.hasPositions).toBe(false)
   expect(result.current.assetRows).toEqual([])
   expect(result.current.portfolioSeries.points).toEqual([])
+})
+
+it('usa recebimento líquido elegível em vez de recalcular pela quantidade atual', async () => {
+  vi.mocked(useDividends).mockReturnValue({ rows: [{ ticker: 'AAA3', type: 'dividend', ex_date: '2020-01-03', payment_date: '2020-01-10', value_per_share: 50, quantity: 20, total_value: 0.25, source: 'imported' }], isLoading: false, isError: false, error: null, refetch: vi.fn(), tickers: ['AAA3'], availableTypes: [] })
+  const { result } = show()
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const row = result.current.assetRows.find(r => r.ticker === 'AAA3')!
+  expect(row.dividendsReceived).toBe(0.25)
+  expect(row.dividendsPct).toBe(2.5)
 })

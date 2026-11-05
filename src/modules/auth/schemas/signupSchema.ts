@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { passwordSchema } from './passwordSchema'
-import { phoneSchema } from './profileSchema'
+import { phoneSchema, profileSchema } from './profileSchema'
 
 export const signupSchema = z.object({
   email: z
@@ -8,10 +8,7 @@ export const signupSchema = z.object({
     .min(1, 'Email é obrigatório')
     .email('Email inválido'),
   password: passwordSchema,
-  fullName: z
-    .string()
-    .trim()
-    .min(3, 'Nome completo deve ter no mínimo 3 caracteres'),
+  fullName: profileSchema.shape.fullName,
   phone: phoneSchema.optional(),
   confirmPassword: z.string().min(1, 'Confirme sua senha'),
 }).refine((data) => data.password === data.confirmPassword, {

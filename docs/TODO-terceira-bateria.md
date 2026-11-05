@@ -11,7 +11,7 @@ São os mesmos 20 casos e 12 apontamentos em dois formatos, sem duplicar contage
 
 ## Investigações prioritárias
 
-- [ ] **S3-01 / DF05 — Conciliar rentabilidade entre detalhe, desempenho e Início.** Fonte: ITUB4, 10 unidades, PM R$ 40; detalhe -2,27%, tabela +4,25%, carteira -3,28%. A R$ 39,09, o ganho sobre custo é de fato -2,275%. Porém retorno histórico com meses fechados, retorno da posição e retorno com proventos não são necessariamente iguais. Conferir `usePerformance`, `performanceCalculations`, datas das cotações usadas na tabela, datas das compras, proventos elegíveis e filtros antes de alterar fórmula. Aceite: mesma base produz mesmo resultado; bases diferentes ficam explicitadas. Não forçar o histórico a igualar a cotação atual.
+- [x] **S3-01 / DF05 — Conciliar rentabilidade entre detalhe, desempenho e Início.** Fonte: ITUB4, 10 unidades, PM R$ 40; detalhe -2,27%, tabela +4,25%, carteira -3,28%. A R$ 39,09, o ganho sobre custo é de fato -2,275%. Porém retorno histórico com meses fechados, retorno da posição e retorno com proventos não são necessariamente iguais. Conferir `usePerformance`, `performanceCalculations`, datas das cotações usadas na tabela, datas das compras, proventos elegíveis e filtros antes de alterar fórmula. Aceite: mesma base produz mesmo resultado; bases diferentes ficam explicitadas. Não forçar o histórico a igualar a cotação atual.
 - [x] **S3-02 / DF48 — Conciliar a rota legada `/patrimonio`.** A rota continua ativa em `src/routes.tsx`; `PatrimonioPage` utiliza histórico e composição a partir dos últimos preços do histórico. A fonte compara R$ 417,00 nessa rota com R$ 390,90 nas telas atuais. Conferir data e universo da composição; alinhar o valor atual ou redirecionar a rota preservando a função útil. Atribuição à mesma causa de outros defeitos é hipótese da fonte, ainda não comprovada.
 
 ## Defeitos confirmados por revisão estática
@@ -24,10 +24,10 @@ São os mesmos 20 casos e 12 apontamentos em dois formatos, sem duplicar contage
 
 ## Melhorias e funcionalidades pendentes
 
-- [ ] **S3-08 / DF56 — Nome deve conter uma letra.** Já consta como UX-02 da segunda bateria; não duplicar implementação. Melhoria de qualidade cadastral, sem evidência de quebra da autenticação. Aceitar letras Unicode e nomes diversos.
-- [ ] **S3-09 / DF49 — Título da aba por página.** Melhoria de navegação/acessibilidade; título genérico não comprova falha financeira ou vulnerabilidade. Confirmar o mecanismo global antes de implementar.
-- [ ] **S3-10 / DF12 — Composição por setor.** Já consta como REQ-09 da segunda bateria. Funcionalidade ausente, depende de classificação confiável e setor desconhecido explícito; não é novo erro no cálculo por classe.
-- [ ] **S3-11 / DF34 — Adicionar IPCA aos benchmarks.** Lacuna em relação ao requisito citado pelo avaliador. A ausência não comprova erro do CDI/IBOV/IFIX. Adicionar IPCA com periodicidade mensal e somente dados publicados; preservar IFIX. Não interpolar inflação diária como se fosse observada.
+- [x] **S3-08 / DF56 — Nome deve conter uma letra.** Já consta como UX-02 da segunda bateria; não duplicar implementação. Melhoria de qualidade cadastral, sem evidência de quebra da autenticação. Aceitar letras Unicode e nomes diversos.
+- [x] **S3-09 / DF49 — Título da aba por página.** Melhoria de navegação/acessibilidade; título genérico não comprova falha financeira ou vulnerabilidade. Confirmar o mecanismo global antes de implementar.
+- [x] **S3-10 / DF12 — Composição por setor.** Já consta como REQ-09 da segunda bateria. Funcionalidade ausente, depende de classificação confiável e setor desconhecido explícito; não é novo erro no cálculo por classe.
+- [x] **S3-11 / DF34 — Adicionar IPCA aos benchmarks.** Lacuna em relação ao requisito citado pelo avaliador. A ausência não comprova erro do CDI/IBOV/IFIX. Adicionar IPCA com periodicidade mensal e somente dados publicados; preservar IFIX. Não interpolar inflação diária como se fosse observada.
 - [x] **S3-12 / DF59 — Texto do botão de novo lançamento.** Fonte relata “Salvar alteração” ao criar. Esse texto existe nas três variantes de `AddTransactionModal`; `QuickTransactionModal` já usa “Salvar”. Ajustar o modal de inclusão correspondente, mantendo edição distinta de inclusão. É inconsistência de texto, sem evidência de gravação incorreta.
 
 ## Correções anteriores confirmadas pelo avaliador
@@ -72,10 +72,10 @@ Prioridade: reproduzir S3-01 com mesma carteira, datas e pagamentos; depois alin
 
 Reprodução local executando as funções reais, sem alterar produto ou banco: duas cotações em ordem idêntica à consulta, ITUB4 a R$ 39,09 em 04/11 e R$ 41,70 em 26/10; posição de dez ações a PM R$ 40, sem proventos. O mapa escolheu **41,70**, a composição resultou em **R$ 417,00** e `computeAssetRows` retornou **+4,25%**. Fornecendo o preço mais recente à mesma função, retornou **-2,275%**. Reproduz exatamente os números de DF05/DF48 com massa sintética construída a partir dos valores relatados; não afirma que 26/10 foi a data real do preço original da conta do avaliador.
 
-- [ ] Corrigir seleção de preço para comparar datas explicitamente, independente da ordem de entrada; cobrir consulta em ordem decrescente e múltiplos tickers. Preservar preços válidos e tratamento de ausência.
-- [ ] Corrigir proventos da tabela de Desempenho: o código ainda usa quantidade atual para todos os pagamentos públicos. Usar elegibilidade histórica e recebimentos/importações por carteira. Não imputar esse segundo problema ao ensaio ITUB4 sem conhecer seus pagamentos reais.
-- [ ] Alinhar a composição de `/patrimonio` ao valuation atual completo (inclusive renda fixa), ou redirecionar preservando funções úteis. Corrigir só a ordenação resolve o exemplo de preço, mas não integra renda fixa a essa rota.
-- [ ] Explicar o retorno histórico de **-3,28%** do Início: ainda depende de datas de compra, preços e proventos da massa original. Início utiliza `useHistoricalReturns`; não confundir esse valor com o ganho atual sobre PM. Nenhuma prova de erro desse retorno específico nesta execução.
+- [x] Corrigir seleção de preço para comparar datas explicitamente, independente da ordem de entrada; cobrir consulta em ordem decrescente e múltiplos tickers. Preservar preços válidos e tratamento de ausência.
+- [x] Corrigir proventos da tabela de Desempenho: o código ainda usa quantidade atual para todos os pagamentos públicos. Usar elegibilidade histórica e recebimentos/importações por carteira. Não imputar esse segundo problema ao ensaio ITUB4 sem conhecer seus pagamentos reais.
+- [x] Alinhar a composição de `/patrimonio` ao valuation atual completo (inclusive renda fixa), ou redirecionar preservando funções úteis. Corrigir só a ordenação resolve o exemplo de preço, mas não integra renda fixa a essa rota.
+- [x] Explicar o retorno histórico de **-3,28%** do Início: ainda depende de datas de compra, preços e proventos da massa original. Início utiliza `useHistoricalReturns`; não confundir esse valor com o ganho atual sobre PM. Nenhuma prova de erro desse retorno específico nesta execução.
 
 ### Demais defeitos
 
@@ -102,3 +102,41 @@ Estado após investigação: S3-01 e S3-02 têm causa de seleção de preço con
 S3-08 a S3-11 continuam pendentes como melhorias/funcionalidades. Não foram removidos IFIX, rotas, gráficos, campos ou opções para satisfazer os testes. Nenhuma migration, escrita financeira ou alteração nos agendamentos/provedores de hoje é necessária.
 
 Regressão de implementação: 232 testes aprovados em 30 arquivos dos módulos afetados, incluindo seleção de cotação fora de ordem, proventos líquidos, elegibilidade, histórico e composição com renda fixa. TypeScript, lint dos arquivos alterados e build de produção/PWA aprovados. Validação visual autenticada de produção depende de publicação posterior pelo responsável; não foi simulada como concluída.
+
+
+## Conferência numérica após merge da PR #106
+
+Consulta somente de leitura em produção confirmou ITUB4 registrado a R$ 38,69 em 30/10/2026 e R$ 41,70 em 26/10/2026. Para PM R$ 40, o fechamento de outubro produz `(38,69 / 40 - 1) × 100 = -3,275%`, apresentado como **-3,28%**. Assim, o número histórico do relatório é numericamente compatível com meses fechados e não deve ser tratado como defeito confirmado. O resultado de -2,275% usa a cotação intradiária R$ 39,09 citada no relatório, outra data/base. O +4,25% coincide com a cotação antiga R$ 41,70 escolhida pelo erro de ordenação já corrigido na PR #106.
+
+Não foi reconstituído todo o histórico da conta do avaliador; compras/vendas e pagamentos da massa original ainda são necessários para uma auditoria integral. Para esta triagem, o -3,28% passa a **explicado como compatível com fechamento mensal, sem correção indicada**, reabrindo apenas se houver divergência com dados e período equivalentes.
+
+O resumo público da carteira Investidor10 1782570 retornou nesta conferência variação sobre aportes de -0,197203%, retorno TWR total de 23,989092% e TWR de 12 meses de 7,992265%. São medidas distintas da carteira pública diversificada; não validam diretamente o ensaio de uma conta com somente ITUB4. Nenhuma fórmula, registro financeiro ou configuração foi alterada nesta conferência.
+
+
+## Retestes após publicação
+
+A PR #106 foi integrada em 04/11 às 21h09 BRT. Retestes executados sobre seu código (`13f23a3`; merge `8dfaedb`) e conferência HTTP do frontend publicado `index-BjeXhQrH.js`. O status marcado indica correção conferida por cálculo/teste automatizado; não equivale a homologação visual autenticada no navegador.
+
+- S3-01/S3-02: seleção recente e composição com renda fixa cobertas por regressão. O -3,28% foi explicado como compatível com o fechamento mensal, sem alteração da fórmula.
+- S3-03/S3-04/S3-05/S3-12: formatação, limite de cadastro e inclusão de lançamento retestados na suíte dos módulos.
+- S3-06/S3-07: adicionados retestes dos formulários reais React com serviços simulados. Falha `Failed to fetch` no desktop/móvel mostra orientação em português, preserva email e permite nova tentativa. `Auth session missing!` na redefinição mostra link inválido e mantém o destino para solicitar novo link. **3 cenários aprovados**, sem envio de email ou mudança de senha real.
+- HTTP de `/login`, `/cadastro`, `/recuperar-senha`, `/reset-password`, `/patrimonio`, `/desempenho/rentabilidade` e URL desconhecida: app entregue com HTTP 200. Por ser SPA, esse resultado não prova renderização correta, proteção de rotas ou tela 404; tais comportamentos dependem dos testes de componente/rota e da conferência visual.
+- Arquivos publicados contêm os novos rótulos de lançamento, recuperação e indisponibilidade da composição.
+- A ferramenta de navegador falhou ao inicializar (`failed to write kernel assets`); o reteste visual autenticado de produção continua pendente. Não houve teste real de criação/exclusão de lançamento ou alteração de dados.
+
+As melhorias S3-08 (nome com letra), S3-09 (títulos), S3-10 (setores) e S3-11 (IPCA) continuam abertas. Nenhuma implementação dessas quatro funcionalidades foi incluída no reteste.
+
+
+Fechamento dos retestes: suíte completa inicial com 938 aprovações e cinco falhas; investigação identificou um timeout não persistente e quatro expectativas antigas de interface nos testes. Após manutenção somente dos testes, reteste final com 51 aprovações em seis arquivos e nenhuma falha. TypeScript e lint aprovados. Detalhes, limites e matriz dos 12 apontamentos em [reteste-terceira-semana-2026-11-04.md](reteste-terceira-semana-2026-11-04.md). Melhorias S3-08 a S3-11 e conferência visual autenticada continuam pendentes.
+
+
+## Quatro melhorias autorizadas — implementação posterior aos retestes
+
+S3-08 a S3-11 foram implementadas localmente após autorização do responsável. Este estado substitui as listas anteriores que as registravam como pendentes; o PDF da entrega semanal preserva o retrato da execução anterior e não foi reescrito como se esses testes já tivessem ocorrido.
+
+- **S3-08:** cadastro e perfil exigem ao menos uma letra Unicode; limites anteriores de 3 a 120 caracteres e nomes diversos permanecem. Números/símbolos isolados são rejeitados.
+- **S3-09:** título da aba acompanha a rota, inclusive ticker do ativo e página inexistente; não inclui email, query string ou ID de conta.
+- **S3-10:** opção Setor em Ativos > Composição, no desktop e no seletor móvel. Fonte gratuita Brapi para ações brasileiras/BDRs, sem chave ou envio de dados da carteira; cache de 24 horas. Ativos sem classificação confiável (incluindo FIIs/ações estrangeiras sem cobertura) continuam em Não classificado. ETFs, cripto e renda fixa ficam em Sem setor econômico. Mantém total, filtros e abas anteriores; não trata setor genérico de fundo como segmento de FII.
+- **S3-11:** comparação Carteira × IPCA em recorte próprio de meses completos publicados, nas telas de rentabilidade atual e legada. Usa macro_rates.ipca já alimentado pelo BCB/SGS 433; não cria inflação diária nem usa mês não divulgado. Rebase da carteira e do IPCA no mesmo fechamento, sem atravessar lacunas. CDI, IBOV e IFIX preservados.
+
+Regressão completa: **967 aprovações em 139 arquivos, zero falhas**, duração 195,83 s. TypeScript e lint dos arquivos afetados aprovados. Referência detalhada: [melhorias-terceira-semana-2026-11-04.md](melhorias-terceira-semana-2026-11-04.md). Ainda é necessária publicação para disponibilizar essas quatro melhorias em produção; não foi executada nova validação visual autenticada nesta rodada. Não houve migration ou escrita financeira.

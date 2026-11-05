@@ -60,7 +60,7 @@ describe('Perfil e conta', () => {
     expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('compact')
     fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'expanded' } })
     expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('expanded')
-    expect(screen.getByRole('button', { name: 'Sair da conta' })).toHaveClass('text-rose-300')
+    expect(screen.getByRole('button', { name: 'Sair da conta' })).toHaveClass('text-red-500')
   })
 
   it('usa os metadados da sessão quando o perfil não está disponível', async () => {

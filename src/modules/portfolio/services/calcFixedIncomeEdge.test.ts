@@ -2,6 +2,20 @@ import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
 
+it('preserva o saldo e informa erro por lote quando a série CDI está ausente', async () => {
+  let handler!: (request: Request) => Promise<Response>
+  vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://test' : 'internal' }, serve: (value: typeof handler) => { handler = value } })
+  const fetchMock = vi.fn(async (url: string) => url.includes('/macro_rates') ? Response.json([]) : Response.json([
+    { id: 'missing-cdi', type: 'rdb_cdi', indexer: 'cdi', rate: 115, principal: 1000, application_date: '2026-01-01', events: [] },
+  ]))
+  vi.stubGlobal('fetch', fetchMock)
+  const path = '../../../../supabase/functions/calc-fixed-income/index.ts'
+  await import(path)
+  const response = await handler(new Request('https://test', { method: 'POST', headers: { Authorization: 'Bearer internal' } }))
+  expect(await response.json()).toMatchObject({ posicoes_atualizadas: 0, erros: [expect.stringContaining('CDI indisponível')] })
+  expect(fetchMock.mock.calls.some(call => (call as unknown as [string, RequestInit])[1]?.method === 'PATCH')).toBe(false)
+})
+
 it('recálculo usa o saldo pós-recebimento mais recente, preserva principal e exige sessão', async () => {
   let handler: ((request: Request) => Promise<Response>) | undefined
   vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://test.supabase.co' : 'test-only-key' }, serve: (callback: typeof handler) => { handler = callback } })

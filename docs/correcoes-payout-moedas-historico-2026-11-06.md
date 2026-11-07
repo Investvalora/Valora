@@ -2,6 +2,8 @@
 
 Implementação na branch `codex/payout-moedas-homologacao`, a partir da main com a PR #108. Datas de execução de 06/11 BRT avançam para 07/11 em UTC. A interface desta entrega ainda depende do merge/deploy pelo responsável.
 
+**Atualização pós-merge:** PR #109 publicada e conferida em produção; [homologação e ressalva de disponibilidade do IPCA](validacao-producao-pr109.md). As referências abaixo à espera de deploy descrevem o estado inicial da implementação.
+
 ## Payout
 
 O cálculo anterior dividia os recebimentos pessoais pela quantidade atual e pelo LPA. Isso fazia compras, vendas, retenções e importações alterarem um indicador da empresa. Agora a coluna usa exclusivamente o payout informado pelo Yahoo (`summaryDetail.payoutRatio × 100`), com LPA trailing positivo e finito no mesmo payload. Não calcula por DY × P/L nem mistura períodos por inferência. Só exibe para ações/BDRs, com fonte Yahoo; ausência, fundos, fonte diferente e lucro não positivo ficam indisponíveis. Payout acima de 100% é permitido. A regra de score ainda não recebeu payout.

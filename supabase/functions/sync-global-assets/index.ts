@@ -34,15 +34,19 @@ async function vaultSecret(name: string): Promise<string> {
 
 /** SELECT em assets filtrando por providers globais. */
 async function listGlobalAssets(): Promise<{ ticker: string; provider_symbol: string | null; quote_provider: string; currency: string }[]> {
+  const rows: { ticker: string; provider_symbol: string | null; quote_provider: string; currency: string }[] = [];
+  for (let offset = 0; ; offset += 500) {
   const url = `${SUPABASE_URL}/rest/v1/assets`
     + `?select=ticker,provider_symbol,quote_provider,currency`
     + `&active=eq.true`
-    + `&quote_provider=in.(finnhub,coingecko,awesomeapi)`;
+    + `&quote_provider=in.(finnhub,coingecko,awesomeapi)&order=ticker&limit=500&offset=${offset}`;
   const res = await fetch(url, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });
   if (!res.ok) throw new Error(`assets select ${res.status}: ${(await res.text()).slice(0, 120)}`);
-  return await res.json();
+  const page = await res.json(); rows.push(...page);
+  if (page.length < 500) return rows;
+  }
 }
 
 /** Upsert em price_history, idempotente por (ticker, date). */
@@ -146,8 +150,9 @@ Deno.serve(async (req: Request) => {
     // ── CoinGecko (cripto) ──────────────────────────────────────────────────
     const cgAssets = byProvider['coingecko'] ?? [];
     if (cgAssets.length > 0) {
-      const cgKey = Deno.env.get('COINGECKO_API_KEY')
-        ?? await vaultSecret('coingecko_key');
+      const cgKey = Deno.env.get('COINGECKO_API_KEY')?.trim()
+        || Deno.env.get('COINGECKO_KEY')?.trim()
+        || await vaultSecret('coingecko_key');
       const ids = [...new Set(cgAssets.map((a) => a.provider_symbol ?? a.ticker))].join(',');
       try {
         const res = await fetch(

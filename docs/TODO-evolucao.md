@@ -14,7 +14,7 @@ Segurança foi priorizada em seguida: [estado das correções e pendências](TOD
 
 Homologação da PR #108 concluída: CRUD temporário em produção, OAuth/ajudas/score confirmados pelo responsável e push com abertura de Alertas no PWA. Regra removida e aviso encerrado. [Evidências e limites](validacao-producao-pr108.md).
 
-- [ ] **ENT-04 — Publicar e retestar payout, moedas e diagnóstico.** Correções concluídas nesta branch e backend de payout aplicado; aguardam merge/deploy do frontend e conferência publicada. A homologação acima é da PR #108, não substitui esta etapa.
+- [x] **ENT-04 — Publicar e retestar payout, moedas e diagnóstico.** PR #109 mergeada, deploy e CI da main aprovados. Payout, YOC/BRL/USD, recebimentos, meses fechados e diagnóstico por lote conferidos no navegador integrado, em desktop e layout móvel. [Evidências e limites](validacao-producao-pr109.md). Na Minha Carteira, a lacuna de IPCA em 31/10 persiste porque a fonte consultada ainda termina em setembro; o aviso correto foi preservado. Seleção Investidor10 e colunas restauradas, sem alterações financeiras.
 
 Detalhes e testes já executados: [melhorias gerais](melhorias-gerais-2026-11-06.md).
 
@@ -28,7 +28,20 @@ RP-01/02/03 implementados e testados na branch `codex/payout-moedas-homologacao`
 
 Evidências e distinção entre achado de código e impacto ainda não medido: [revisão do projeto](revisao-projeto-oportunidades-2026-11-06.md).
 
+### Reconciliação com Investidor10 — 07/11/2026
+
+[Soluções verificadas, fontes e limites](solucao-reconciliacao-pendencias-2026-11-07.md). Integração local B3/CVM/iShares e reforços de BCB/Tesouro/CoinGecko: [implementação e publicação](fontes-oficiais-2026-11-07.md). JPM permanece sem adaptador homologado; iShares tem descoberta pelo catálogo, sem lista fixa de tickers.
+
+- [ ] Publicar correção de proventos totais/lucro: 12M e histórico inteiro estavam compartilhando o mesmo total. Implementado e retestado localmente; [evidências](comparacao-investidor10-2026-11-07.md).
+- [x] Adicionar sincronização BR após fechamento e ampliar janela EUA até22h UTC. Migrations aplicadas; atualização BR pontual40/40 sem falhas. Não alterar cotações americanas que concordam entre fontes só para igualar ao I10.
+- [ ] Publicar remoção do CDI fixo10,5% e completar referência/cobertura da série. Fallback removido localmente e teste de preservação do saldo aprovado; ainda falta diferenciar data de execução da referência econômica. Não acionado no RDB conferido.
+- [ ] Integrar fonte gratuita confiável de datas reais de pagamento/valores líquidos para completar proventos após importação (JPM/TFLO). Yahoo ex_date não comprova pagamento; não copiar arredondamentos nem inventar retenção/câmbio.
+- [ ] Publicar e homologar fontes oficiais implementadas em07/11: B3 ações por ISIN, CVM informes de FIIs, iShares por descoberta/fila, validação BCB, Tesouro recente de todos os títulos suportados e alias `COINGECKO_KEY`. Migration e funções locais testadas; dados públicos brutos não substituem recebimentos líquidos. Calendário de FIIs brasileiros, outros gestores/JPM e rotação/orçamento dos demais jobs de cotação em escala permanecem pendentes.
+- [ ] Publicar status de falha parcial da ingestão B3 (503 em vez de falso200) e tratar de forma observável título de Tesouro sem preço oficial compatível, sem editar cadastro por suposição.
+
 ## 3. Média — consistência técnica e operação
+
+Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, recuperação de sessão/tela, bloqueio da corrida de importação e divisão de páginas. Os itens abaixo permanecem abertos até atenderem seus critérios completos e homologação. [Implementação, medições e limites](correcoes-tecnicas-2026-11-07.md).
 
 - [ ] **RP-04 — Catálogo compartilhado de indicadores.** Centralizar fórmula/convenção, unidade, fonte, referência, classes e operadores para tabela, score, estratégias e alertas. Conferir Dívida/PL; confirmar intenção antes de converter limites antigos.
 - [ ] **RP-05 — Integrar a importação ao fluxo atual.** Reutilizar parser/preview existentes, mostrar carteira de destino e registrar lote/arquivo. Conferir possíveis duplicatas sem bloquear compras legítimas iguais. Reproduzir a hipótese de corrida entre validação assíncrona e confirmação; só então classificar/corrigir esse defeito.

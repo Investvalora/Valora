@@ -5,6 +5,7 @@ const TITLES: Record<string, string> = {
   '/sobre': 'Sobre', '/privacidade': 'Privacidade', '/termos': 'Termos de uso', '/conta': 'Minha conta',
   '/ativos': 'Ativos', '/ativos/posicoes': 'Posições', '/ativos/composicao': 'Composição',
   '/ativos/lancamentos': 'Lançamentos', '/lancamentos': 'Lançamentos', '/patrimonio': 'Patrimônio',
+  '/ativos/importar': 'Importar transações',
   '/desempenho': 'Desempenho', '/desempenho/visao-geral': 'Desempenho',
   '/desempenho/rentabilidade': 'Rentabilidade', '/rentabilidade': 'Rentabilidade',
   '/desempenho/proventos': 'Proventos', '/proventos': 'Proventos', '/analise': 'Análise',

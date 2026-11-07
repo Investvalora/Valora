@@ -63,6 +63,7 @@ const dashboard: DashboardData = {
   ganhoCapitalBRL: 1000,
   lucroTotalBRL: 1200,
   proventos12mBRL: 200,
+  proventosTotalBRL: 300,
   variacaoPct: 10,
   rentabilidadeTotalPct: 25,
   monthlySeries: [{ month: '2026-09', totalBRL: 5000, investedBRL: 4000 }],

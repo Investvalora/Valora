@@ -1,7 +1,8 @@
+import { INDICATOR_IDS, INDICATOR_OPERATORS } from '../../../shared/indicators/catalog'
 import { z } from 'zod'
 
-const VALID_METRICS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin'] as const
-const VALID_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'between'] as const
+const VALID_METRICS = INDICATOR_IDS
+const VALID_OPERATORS = INDICATOR_OPERATORS
 
 /**
  * Schema Zod para criação e edição de regras de score.

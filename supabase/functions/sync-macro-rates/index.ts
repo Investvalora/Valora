@@ -1,4 +1,5 @@
 import { yahooCaller } from '../_shared/yahooAuthorization.ts';
+import { macroRows } from './validation.ts';
 // Edge Function: sync-macro-rates
 //
 // Sincroniza taxas macroeconômicas (CDI, Selic, IPCA) do Banco Central do Brasil
@@ -37,12 +38,6 @@ interface UpsertRow {
   series: string;
   date: string;
   value: number;
-}
-
-/** Converte 'DD/MM/YYYY' para 'YYYY-MM-DD'. */
-function bcbDateToIso(d: string): string {
-  const [day, month, year] = d.split('/');
-  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -127,13 +122,7 @@ Deno.serve(async (req: Request) => {
   for (const { name, code, daysBack } of series) {
     try {
       const entries = await bcbFetch(code, daysBack);
-      const rows: UpsertRow[] = entries
-        .filter(e => e.data && e.valor && !isNaN(parseFloat(e.valor)))
-        .map(e => ({
-          series: name,
-          date: bcbDateToIso(e.data),
-          value: parseFloat(e.valor),
-        }));
+      const rows: UpsertRow[] = macroRows(entries, name, new Date().toISOString().slice(0, 10));
 
       if (!rows.length) throw new Error('Série vazia');
       await pgUpsertRates(rows);

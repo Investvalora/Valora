@@ -5,9 +5,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LoginForm } from './LoginForm'
 import { authService } from '../services/authService'
+import { loginThrottle } from '../services/loginThrottle'
+import { MobileLoginForm } from './MobileLoginForm'
 
 vi.mock('../services/authService', () => ({ authService: { login: vi.fn(), loginWithGoogle: vi.fn(), resendConfirmation: vi.fn() } }))
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks(); loginThrottle.success(); loginThrottle.finish() })
 function show(url = '/login') {
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}><MemoryRouter initialEntries={[url]}><LoginForm /></MemoryRouter></QueryClientProvider>)
 }
@@ -37,4 +39,19 @@ it('oferece reenvio ao bloquear email não confirmado sem liberar sessão', asyn
   expect(await screen.findByRole('alert')).toHaveTextContent('Confirme seu email')
   expect(screen.getByRole('button', { name: 'Reenviar email de confirmação' })).toBeEnabled()
   expect(authService.resendConfirmation).not.toHaveBeenCalled()
+})
+
+it.each([false, true])('bloqueia nova submissão e informa espera no formulário mobile=%s', async (mobile) => {
+  vi.mocked(authService.login).mockImplementation(async () => {
+    loginThrottle.failure({ code: 'invalid_credentials' })
+    throw new Error('Invalid login credentials')
+  })
+  render(<QueryClientProvider client={new QueryClient()}><MemoryRouter>{mobile ? <MobileLoginForm /> : <LoginForm />}</MemoryRouter></QueryClientProvider>)
+  await userEvent.type(screen.getByLabelText('Email'), 'teste@valora.invalid')
+  await userEvent.type(screen.getByLabelText('Senha'), 'Invalid-test-only!')
+  await userEvent.click(screen.getByRole('button', { name: /^Entrar$/ }))
+  expect(await screen.findByRole('status')).toHaveTextContent('Aguarde')
+  expect(screen.getByRole('button', { name: /Aguarde/ })).toBeDisabled()
+  await userEvent.keyboard('{Enter}')
+  expect(authService.login).toHaveBeenCalledTimes(1)
 })

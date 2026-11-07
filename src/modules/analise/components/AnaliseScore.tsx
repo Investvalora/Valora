@@ -1,3 +1,5 @@
+import { PortfolioScore } from '../../score/components/PortfolioScore'
+import { ScoreCalculationHelp, ScoreMetricHelp } from '../../score/components/ScoreMetricHelp'
 /**
  * AnaliseScore — sub-rota /analise/score.
  * Regras agrupadas por nome de score em cards, com ações Usar/Editar/Excluir.
@@ -90,7 +92,7 @@ function ScoreGroupCard({
         {groupRules.map((rule, i) => (
           <div
             key={rule.id}
-            className={`flex items-center gap-3 px-5 py-3 ${
+            className={`flex flex-wrap items-center gap-x-3 px-5 py-3 ${
               i < groupRules.length - 1 ? 'border-b border-white/[0.04]' : ''
             }`}
           >
@@ -139,6 +141,7 @@ function ScoreGroupCard({
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
               </button>
             </div>
+            <div className="w-full"><ScoreMetricHelp metric={rule.metric} rule={rule} /></div>
           </div>
         ))}
       </div>
@@ -173,6 +176,9 @@ export function AnaliseScore() {
           + Nova regra
         </button>
       </div>
+
+      <PortfolioScore rules={rules.filter(rule => rule.name === rules.find(item => item.id === activeRuleId)?.name)} />
+      <ScoreCalculationHelp />
 
       {/* ── Grupos de score ── */}
       {isLoading ? (

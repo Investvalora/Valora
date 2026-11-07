@@ -3,6 +3,7 @@
  * Lista de cards de alertas + form inline de alerta de preço + filtro por status.
  */
 import { useState } from 'react'
+import { ConfiguredAlerts } from '../../alerts/components/ConfiguredAlerts'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
 import { EditAlertButton } from '../../alerts/components/EditAlertButton'
 import {
@@ -24,6 +25,8 @@ type AlertConfig = {
 }
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
+  indicator: { label: 'Indicador', color: '#7987FF', Icon: BellRing },
+  event: { label: 'Evento', color: '#7987FF', Icon: BellRing },
   position_no_transactions: { label: 'Inconsistência', color: '#FFD95A', Icon: AlertTriangle },
   stale_quote:              { label: 'Cotação antiga', color: '#FFD95A', Icon: Clock },
   opportunity:              { label: 'Oportunidade',   color: '#63D16B', Icon: TrendingDown },
@@ -159,6 +162,7 @@ export function AnaliseAlertas() {
   return (
     <div className="flex flex-col gap-5">
       <p className="text-xs text-white/45">Alertas ignorados são excluídos automaticamente após 3 dias.</p>
+      <ConfiguredAlerts />
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

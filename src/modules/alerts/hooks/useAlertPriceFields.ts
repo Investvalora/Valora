@@ -3,8 +3,8 @@ import { useAssetSearch } from '../../portfolio/hooks/useAssetSearch'
 import type { Asset } from '../../portfolio/types'
 import { alertQuoteService } from '../services/alertQuoteService'
 
-export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChange, initialTicker = '' }: {
-  ticker: string; price: string; onTickerChange: (value: string) => void; onPriceChange: (value: string) => void; initialTicker?: string
+export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChange, initialTicker = '', fetchQuote = true }: {
+  ticker: string; price: string; onTickerChange: (value: string) => void; onPriceChange: (value: string) => void; initialTicker?: string; fetchQuote?: boolean
 }) {
   const [term, setTerm] = useState(ticker)
   useEffect(() => { const timer = setTimeout(() => setTerm(ticker), 250); return () => clearTimeout(timer) }, [ticker])
@@ -23,6 +23,7 @@ export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChan
   useEffect(() => { setHighlighted(previous => Math.min(previous, suggestions.length - 1)) }, [suggestions.length])
 
   const loadQuote = useCallback(async (asset: Asset, revision = edits.current) => {
+    if (!fetchQuote) { setLoading(false); return }
     const id = ++request.current
     setLoading(true)
     setError('')
@@ -37,7 +38,7 @@ export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChan
     } finally {
       if (id === request.current) setLoading(false)
     }
-  }, [onPriceChange])
+  }, [onPriceChange, fetchQuote])
 
   useEffect(() => {
     if (!initialTicker) return

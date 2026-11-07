@@ -4,10 +4,40 @@ import type { FundamentalsRow, ScoreByTicker, ScoreMetric, ScoreRule } from '../
  * Extrai o valor de uma métrica de uma linha de fundamentals.
  * Retorna `null` quando o campo está ausente ou não é um número finito.
  */
-function getMetricValue(row: FundamentalsRow, metric: ScoreMetric): number | null {
+export function getMetricValue(row: FundamentalsRow, metric: ScoreMetric): number | null {
   const value = row[metric as keyof FundamentalsRow]
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
   return value
+}
+
+/** Same rules and cap as the existing score, with missing data distinguished. */
+export function explainScore(rules: ScoreRule[], row: FundamentalsRow | null) {
+  const criteria = rules.map(rule => {
+    const value = row ? getMetricValue(row, rule.metric) : null
+    const met = value === null ? null : evaluateRule(rule, value)
+    return { rule, value, met, contribution: met ? rule.points : 0 }
+  })
+  const raw = criteria.reduce((sum, item) => sum + item.contribution, 0)
+  return { criteria, raw, total: row && rules.length ? Math.min(100, Math.max(0, raw)) : null }
+}
+
+/** Market-value weighting in BRL. Unknown scores never become zero. */
+export function weightedPortfolioScore(
+  rows: Array<{ ticker: string; marketValueBRL: number | null }>,
+  scores: ScoreByTicker,
+) {
+  let total = 0, covered = 0, weighted = 0
+  for (const row of rows) {
+    const value = row.marketValueBRL
+    if (value === null || !Number.isFinite(value) || value < 0) return { score: null, coverage: null }
+    total += value
+    const score = scores.get(row.ticker)
+    if (score != null && Number.isFinite(score)) {
+      covered += value
+      weighted += value * score
+    }
+  }
+  return { score: covered > 0 ? weighted / covered : null, coverage: total > 0 ? covered / total * 100 : null }
 }
 
 /**

@@ -4,6 +4,7 @@
  * - Edição (/analise/score/:id/editar): modal sobre AnaliseScore (comportamento original mantido)
  */
 import { useEffect, useRef, useState } from 'react'
+import { ScoreMetricHelp } from './ScoreMetricHelp'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -154,6 +155,7 @@ function ScoreRuleFields({
   showCreateAndAddAnother?: boolean
 }) {
   const { register, formState: { errors } } = form
+  const selectedMetric = form.watch('metric')
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -209,6 +211,7 @@ function ScoreRuleFields({
             />
           )}
           {errors.name && <p className={ERROR_CLASS} role="alert">{errors.name.message}</p>}
+          <p className="text-xs leading-relaxed text-white/60">Regras com o mesmo nome entram no mesmo score. O nome não altera os pontos.</p>
         </div>
       </div>
 
@@ -219,6 +222,7 @@ function ScoreRuleFields({
           {Object.entries(METRIC_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         {errors.metric && <p className={ERROR_CLASS} role="alert">{errors.metric.message}</p>}
+        {selectedMetric && <ScoreMetricHelp metric={selectedMetric} />}
       </div>
 
       {/* Operador */}
@@ -228,6 +232,7 @@ function ScoreRuleFields({
           {Object.entries(OPERATOR_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         {errors.operator && <p className={ERROR_CLASS} role="alert">{errors.operator.message}</p>}
+        <p className="mt-2 text-xs leading-relaxed text-white/60">Define a comparação: &lt; e &gt; excluem o limite; ≤ e ≥ o incluem. “Entre” inclui os dois limites.</p>
       </div>
 
       {/* Valor + Pontos */}
@@ -239,12 +244,14 @@ function ScoreRuleFields({
           <input id="score-threshold-min" type="number" step="any" className={INPUT_CLASS}
             {...register('threshold_min', { valueAsNumber: true })} />
           {errors.threshold_min && <p className={ERROR_CLASS} role="alert">{errors.threshold_min.message}</p>}
+          <p className="mt-2 text-xs leading-relaxed text-white/60">Limite na unidade do indicador. Ex.: DY 7 significa 7%; P/VP 1,5 significa 1,5 vez. Confira a unidade de Dívida/PL.</p>
         </div>
         <div>
           <label htmlFor="score-points" className={LABEL_CLASS}>Pontos</label>
           <input id="score-points" type="number" step="1" className={INPUT_CLASS}
             {...register('points', { valueAsNumber: true })} />
           {errors.points && <p className={ERROR_CLASS} role="alert">{errors.points.message}</p>}
+          <p className="mt-2 text-xs leading-relaxed text-white/60">Soma ao atender a condição. Valor negativo desconta. Se não atender ou faltar dado, contribui com 0.</p>
         </div>
       </div>
 
@@ -255,6 +262,7 @@ function ScoreRuleFields({
           <input id="score-threshold-max" type="number" step="any" className={INPUT_CLASS}
             {...register('threshold_max', { valueAsNumber: true })} />
           {errors.threshold_max && <p className={ERROR_CLASS} role="alert">{errors.threshold_max.message}</p>}
+          <p className="mt-2 text-xs text-white/60">Teto do intervalo, incluído na comparação; deve ser maior ou igual ao mínimo.</p>
         </div>
       )}
 

@@ -1,3 +1,4 @@
+import { useLoginCooldown } from '../hooks/useLoginCooldown'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,6 +19,7 @@ import {
 } from './MobileAuthLayout'
 
 export function MobileLoginForm() {
+  const cooldown = useLoginCooldown()
   const navigate = useNavigate()
   const location = useLocation()
   const setUser = useAuthStore((s) => s.setUser)
@@ -46,6 +48,7 @@ export function MobileLoginForm() {
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
+    retry: false,
     onSuccess: (data) => {
       setUser(data.user)
       setSession(data.session)
@@ -77,7 +80,7 @@ export function MobileLoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit((d) => { setErrorMessage(''); loginMutation.mutate(d) })} className="auth-form-enter flex flex-col gap-3.5" noValidate>
+      <form onSubmit={handleSubmit((d) => { setErrorMessage(''); if (!cooldown && !isPending) loginMutation.mutate(d) })} className="auth-form-enter flex flex-col gap-3.5" noValidate>
         {/* Email */}
         <div>
           <input
@@ -129,9 +132,10 @@ export function MobileLoginForm() {
           <p role="alert" className={mobileErrorBox}>{errorMessage || oauthMessage}</p>
         )}
 
+        {cooldown > 0 && <p role="status" className="text-sm text-amber-300">Muitas tentativas. Aguarde {cooldown}s antes de tentar novamente.</p>}
         {/* Entrar */}
-        <button type="submit" disabled={isPending} className={mobilePrimaryBtn}>
-          {loginMutation.isPending ? 'Entrando…' : 'Entrar'}
+        <button type="submit" disabled={isPending || cooldown > 0} className={mobilePrimaryBtn}>
+          {loginMutation.isPending ? 'Entrando…' : cooldown ? `Aguarde ${cooldown}s` : 'Entrar'}
         </button>
 
         {/* Divisor */}

@@ -1,3 +1,5 @@
+import { authorizeServiceJob } from '../_shared/serviceAuthorization.ts'
+
 // Edge Function: sync-b3-prices
 //
 // Ingestão automática de preços da B3 a partir do COTAHIST oficial.
@@ -19,10 +21,8 @@
 //     (ticker, date).
 //
 // SEGURANCA
-//   verify_jwt=true (configurado no deploy). Exige JWT do projeto. Como a anon
-//   key é um JWT válido e pública, isto barra varredura anônima mas não quem
-//   leia o bundle do front. Para agendamento interno, invocada com a service
-//   role key, que nunca sai do servidor.
+//   Gateway JWT e autorização explícita de serviço, validada antes de qualquer
+//   consulta ou download. Aceita a chave interna exata ou seu digest no Vault.
 //
 // LIMITACAO
 //   COTAHIST é preço bruto. adjusted_close = close até o histórico de
@@ -134,6 +134,9 @@ function acumularLinha(l: string, alvo: Set<string>, out: Map<string, Row[]>): v
 // deno-lint-ignore no-explicit-any
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (!await authorizeServiceJob(req, SUPABASE_URL, SERVICE_KEY)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  }
 
   try {
     const meses = Math.min(Number(new URL(req.url).searchParams.get('meses') ?? '1'), 13);

@@ -1,3 +1,5 @@
+import { authorizeServiceJob } from '../_shared/serviceAuthorization.ts'
+
 // Edge Function: sync-bolsai-fundamentals
 //
 // Sincroniza indicadores fundamentalistas e dividendos históricos de ativos BR
@@ -263,6 +265,9 @@ function dividendsToRows(ticker: string, d: BolsaiDividends): Record<string, unk
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (!await authorizeServiceJob(req, SUPABASE_URL, SERVICE_KEY)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  }
 
   if (!BOLSAI_KEY) {
     return new Response(

@@ -1,3 +1,5 @@
+import { FundamentalsPanel } from './FundamentalsPanel'
+import { ScoreBreakdown } from '../../score/components/ScoreBreakdown'
 import { useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -1180,7 +1182,7 @@ export function AtivoDetailPage() {
   const valuation = useAtivosValuation(selectedWallet?.id ?? '', true)
   const positions = valuation.positions
   const quotesQuery = useLatestQuotes([ticker])
-  const { data: fundamentalsList = [] } = useFundamentals([ticker])
+  const { data: fundamentalsList = [], isLoading: fundamentalsLoading, isError: fundamentalsError } = useFundamentals([ticker])
 
   // ── Score ───────────────────────────────────────────────────────────────────
   const { data: allRules = [] } = useScoreRules()
@@ -1332,6 +1334,8 @@ export function AtivoDetailPage() {
 
       {/* ── Conteúdo da tab ─────────────────────────────────────────────── */}
       {activeTab === 'visao-geral' && (
+        <>
+        <FundamentalsPanel row={fundamental} type={asset.type} loading={fundamentalsLoading} error={fundamentalsError} />
         <VisaoGeral
           ticker={ticker}
           quantity={quantity}
@@ -1354,6 +1358,7 @@ export function AtivoDetailPage() {
           activeScoreName={activeScoreName}
           navigate={navigate}
         />
+        </>
       )}
 
       {activeTab === 'lancamentos' && (
@@ -1381,6 +1386,7 @@ export function AtivoDetailPage() {
       )}
 
       {activeTab === 'score' && (
+        <>
         <TabScore
           ticker={ticker}
           activeScoreName={activeScoreName}
@@ -1388,6 +1394,8 @@ export function AtivoDetailPage() {
           bazin={bazin}
           currency={currency}
         />
+        <PanelCard><ScoreBreakdown rules={activeRules} row={fundamental} /></PanelCard>
+        </>
       )}
 
       {activeTab === 'alertas' && <TabAlertas ticker={ticker} />}

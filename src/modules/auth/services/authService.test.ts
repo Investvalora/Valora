@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from '../../../shared/services/supabaseClient'
 import { authService } from './authService'
+import { loginThrottle } from './loginThrottle'
 
 vi.mock('../../../shared/services/supabaseClient', () => ({
   supabase: {
@@ -10,6 +11,7 @@ vi.mock('../../../shared/services/supabaseClient', () => ({
       signInWithOAuth: vi.fn(),
       resend: vi.fn(),
       updateUser: vi.fn(),
+      signInWithPassword: vi.fn(),
     },
   },
 }))
@@ -29,6 +31,23 @@ function signupResponse(identities: object[]) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  loginThrottle.success()
+  loginThrottle.finish()
+})
+
+it('não chama Auth novamente durante o cooldown após credenciais inválidas', async () => {
+  vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: {}, error: { code: 'invalid_credentials', message: 'Invalid login credentials' } } as never)
+  const credentials = { email: 'test@valora.invalid', password: 'invalid-test-only' }
+  await expect(authService.login(credentials)).rejects.toMatchObject({ code: 'invalid_credentials' })
+  await expect(authService.login(credentials)).rejects.toThrow('Aguarde')
+  expect(supabase.auth.signInWithPassword).toHaveBeenCalledTimes(1)
+})
+
+it('aceita sessão válida e limpa o contador de falhas', async () => {
+  vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { user: { id: 'test' }, session: {} }, error: null } as never)
+  const result = await authService.login({ email: 'test@valora.invalid', password: 'test-only' })
+  expect(result.user.id).toBe('test')
+  expect(loginThrottle.remaining()).toBe(0)
 })
 
 describe('authService.signup', () => {

@@ -4,6 +4,7 @@ import { authRedirect } from './authRedirect'
 import { passwordSchema } from '../schemas/passwordSchema'
 import { phoneSchema, profileSchema } from '../schemas/profileSchema'
 import { z } from 'zod'
+import { loginThrottle } from './loginThrottle'
 
 export const authService = {
   async signup(data: SignupFormData) {
@@ -36,13 +37,20 @@ export const authService = {
   },
 
   async login(data: LoginFormData) {
-    const { data: authData, error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    })
+    loginThrottle.begin()
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
 
-    if (error) throw error
-    return authData
+      if (error) throw error
+      loginThrottle.success()
+      return authData
+    } catch (error) {
+      loginThrottle.failure(error)
+      throw error
+    } finally { loginThrottle.finish() }
   },
 
   async loginWithGoogle() {

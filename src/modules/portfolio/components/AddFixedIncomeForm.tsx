@@ -28,7 +28,7 @@ const fiSchema = z.object({
   type: z.enum([
     'tesouro_selic', 'tesouro_ipca', 'tesouro_pre',
     'cdb_cdi', 'cdb_pre', 'rdb_cdi', 'rdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre',
-  ] as const, { required_error: 'Selecione o tipo' }),
+  ] as const, { error: 'Selecione o tipo' }),
   rate: z
     .string()
     .min(1, 'Informe a taxa')

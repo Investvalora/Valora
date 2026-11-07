@@ -1,5 +1,9 @@
 # TODO do Valora
 
+**Segurança — 06/11/2026:** [TODO de segurança](TODO-seguranca.md), com correções, proteção de login e pendências de publicação, e [relatório do penteste controlado](penteste-controlado-2026-11-06.md).
+
+**Lista ativa consolidada em 06/11/2026:** [TODO de evolução](TODO-evolucao.md), com prioridades, critérios de conclusão e todas as melhorias aprovadas para acompanhamento. As seções abaixo preservam o histórico; itens com descrição antiga devem ser lidos com as atualizações posteriores.
+
 ## Cadastro e sincronização de ativos — 30/10/2026
 
 - [x] Investigar RADL3 e completar histórico, eventos públicos e fundamentos disponíveis sem alterar lançamentos.
@@ -53,12 +57,13 @@ Complemento de 31/10: [investigação no navegador local](investigacoes-alertas-
 
 - [x] **Implementação local — busca global de ativos:** botão Buscar no topo de Ativos, consulta por ticker/nome no catálogo, nome/classe/moeda nos resultados e abertura do resumo sem posição. Filtro da carteira preservado. Três testes aprovados e fluxo real com Microsoft/MSFT conferido no Brave local, incluindo 320 px sem alargamento. Até oito resultados por consulta; não inclui descoberta automática fora do catálogo. Aguarda PR/publicação.
 - [x] **Favoritos — implementação local:** marcar/desmarcar no resumo e lista por conta em Ativos, persistência com RLS e testes de isolamento aprovados. Migration e publicação pendentes. Ver [favoritos-2026-11-01.md](favoritos-2026-11-01.md).
-- [ ] Painel de fundamentos. Período 5A já publicado na PR #97.
-- [ ] Detalhamento do score por critério e score médio ponderado da carteira.
-- [ ] Alertas configuráveis de indicador/evento; composição por setor.
+- [x] Painel de fundamentos no detalhe: implementado localmente em 06/11, com referência, fonte, dados ausentes e compatibilidade por classe. Frontend aguarda PR/publicação. Período 5A já publicado na PR #97.
+- [x] Detalhamento do score por critério e média ponderada da carteira: implementados localmente em 06/11, preservando pontos/limites existentes e exibindo cobertura. Frontend aguarda PR/publicação.
+- [x] Alertas configuráveis de indicador/proventos: criação, edição, pausa e exclusão implementadas localmente; migrations e monitor a cada 5 minutos aplicados no servidor. Frontend aguarda PR/publicação.
+- [x] Composição por setor entregue na PR #107 e conferida em produção.
 - [x] **Implementação local — edição de lançamentos com recálculo:** compras/vendas editáveis com identidade fixa, validação de saldo histórico, bloqueio de sobrescrita concorrente e recálculo pelo servidor. 25 testes direcionados, SQL com rollback, lint, build/PWA e visual local aprovados; resumo da regressão geral com 894 aprovados. Frontend publicado na PR #100; migration aplicada em 01/11 e testes SQL pós-aplicação aprovados. Ver aplicacao-pr100-2026-11-01.md. [Detalhes](edicao-lancamentos-2026-10-31.md).
 - [x] **Implementação local — exclusão de carteira:** confirmação pelo nome, principal protegida no servidor, remoção transacional dos registros vinculados e retorno à principal após sucesso. Nove testes de frontend, SQL com rollback, lint e build aprovados; diálogo conferido no navegador local em 390 px. Frontend publicado na PR #100; migration aplicada em 01/11 e testes SQL pós-aplicação aprovados. [Detalhes e publicação](exclusao-carteiras-2026-10-31.md).
-- [ ] Definir a regra para nomes exclusivamente numéricos. Mostrar/ocultar senha e confirmação conferidos em 31/10 no deployment publicado, sem criar conta nem encerrar sessão real.
+- [x] Nome exige ao menos uma letra Unicode: entregue na PR #107 e conferido em produção. Mostrar/ocultar senha e confirmação conferidos em 31/10 no deployment publicado, sem criar conta nem encerrar sessão real.
 
 Migration 018 e crítica a preço-alvo “irrealista” continuam excluídas conforme decisão do responsável. Não alterar o método de rentabilidade acordado para atender comparações entre medidas diferentes.
 
@@ -123,3 +128,17 @@ Lista/sino: polling de 30 segundos enquanto o app está visível e atualização
 - [x] UX-03: comparação vs CDI no detalhe com vírgula decimal e duas casas, preservando o cálculo.
 
 Esses três itens foram implementados na branch `codex/sincronizacao-novos-ativos`; aguardam publicação. Validação local: sete testes aprovados entre cadastro, consulta histórica e detalhe do ativo; lint dos arquivos envolvidos e build de produção aprovados. Nenhuma migration ou escrita financeira foi realizada neste complemento.
+
+## Melhorias gerais — 06/11/2026
+
+Implementação das quatro pendências anteriores à terceira bateria. Escopo, regras de cálculo, migrations e validação em [melhorias-gerais-2026-11-06.md](melhorias-gerais-2026-11-06.md). Frontend ainda local; backend de regras aplicado. Não equivale a homologação da interface em produção.
+
+## Evolução, indicadores e revisão geral — 06/11/2026
+
+Os itens abertos desta rodada foram consolidados na [TODO ativa de evolução](TODO-evolucao.md), para acompanhar publicação/retestes, correções prioritárias, melhorias técnicas, novas funcionalidades, indicadores e simulações sem duplicar tarefas.
+
+Evidências e referências:
+
+- [Revisão do projeto e oportunidades](revisao-projeto-oportunidades-2026-11-06.md).
+- [Pesquisa de indicadores e canais, incluindo A Cara da Riqueza](pesquisa-indicadores-canais-2026-11-06.md).
+- [Melhorias gerais já implementadas localmente](melhorias-gerais-2026-11-06.md).

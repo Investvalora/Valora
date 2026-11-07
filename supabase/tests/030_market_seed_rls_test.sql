@@ -23,6 +23,11 @@ BEGIN
   PERFORM public.assert((SELECT count(*) = 0 FROM public.fundamentals WHERE pl IS NULL OR pvp IS NULL OR roe IS NULL OR dy IS NULL OR debt_equity IS NULL OR net_margin IS NULL OR lpa IS NULL OR vpa IS NULL), 'fundamentos tem todos os indicadores');
   PERFORM public.assert(NOT has_table_privilege('anon', 'public.dividends', 'SELECT'), 'anon nao consulta dividends');
   PERFORM public.assert(NOT has_table_privilege('anon', 'public.fundamentals', 'SELECT'), 'anon nao consulta fundamentals');
+  PERFORM public.assert(NOT has_table_privilege('anon', 'public.benchmarks', 'SELECT'), 'anon nao consulta benchmarks');
+  PERFORM public.assert(has_table_privilege('authenticated', 'public.benchmarks', 'SELECT'), 'authenticated consulta benchmarks');
+  PERFORM public.assert(NOT has_table_privilege('authenticated', 'public.benchmarks', 'INSERT'), 'authenticated nao insere benchmarks');
+  PERFORM public.assert(NOT has_table_privilege('authenticated', 'public.benchmarks', 'UPDATE'), 'authenticated nao atualiza benchmarks');
+  PERFORM public.assert(NOT has_table_privilege('authenticated', 'public.benchmarks', 'DELETE'), 'authenticated nao remove benchmarks');
   PERFORM public.assert(NOT has_table_privilege('anon', 'public.dividends', 'INSERT'), 'anon nao insere dividends');
   PERFORM public.assert(NOT has_table_privilege('anon', 'public.dividends', 'UPDATE'), 'anon nao atualiza dividends');
   PERFORM public.assert(NOT has_table_privilege('anon', 'public.dividends', 'DELETE'), 'anon nao remove dividends');
@@ -43,6 +48,7 @@ DO $$
 BEGIN
   PERFORM public.assert((SELECT count(*) > 0 FROM public.dividends), 'authenticated le dividends');
   PERFORM public.assert((SELECT count(*) > 0 FROM public.fundamentals), 'authenticated le fundamentals');
+  PERFORM public.assert((SELECT count(*) > 0 FROM public.benchmarks), 'authenticated le benchmarks');
 END $$;
 
 DO $$
@@ -98,6 +104,7 @@ DO $$
 BEGIN
   PERFORM public.assert((SELECT count(*) = (SELECT count(*) FROM public.assets WHERE type <> 'crypto') * 4 FROM public.dividends), 'reexecucao nao duplica dividendos');
   PERFORM public.assert((SELECT count(*) = (SELECT count(*) FROM public.assets) * 4 FROM public.fundamentals), 'reexecucao nao duplica fundamentos');
+  PERFORM public.assert((SELECT count(*) = count(DISTINCT (name, date)) FROM public.benchmarks), 'reexecucao nao duplica benchmarks');
 END $$;
 
 DROP FUNCTION public.assert(BOOLEAN, TEXT);

@@ -44,6 +44,7 @@ const DesempenhoProventos     = lazy(() => import('./modules/desempenho/componen
 // ── Lazy imports para sub-rotas de Análise ────────────────────────────────
 const AnaliseVisaoGeral = lazy(() => import('./modules/analise/components/AnaliseVisaoGeral').then((m) => ({ default: m.AnaliseVisaoGeral })))
 const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseScore').then((m) => ({ default: m.AnaliseScore })))
+const AssetComparison = lazy(() => import('./modules/analise/components/AssetComparison').then(m => ({ default: m.AssetComparison })))
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 const ScoreRulePage  = lazy(() => import('./modules/score/components/ScoreRulePage').then((m) => ({ default: m.ScoreRulePage })))
 
@@ -114,6 +115,7 @@ export function AppRoutes() {
 
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
+            <Route path="comparar" element={<Suspense fallback={<LoadingFallback />}><AssetComparison /></Suspense>} />
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
@@ -135,6 +137,7 @@ export function AppRoutes() {
           <h1 className="text-2xl font-semibold">Página não encontrada</h1>
           <p className="mt-3 text-white/60">O endereço pode ter mudado. Acesse o início para continuar.</p>
           <a href="/inicio" className="mt-6 inline-block rounded-xl bg-white px-5 py-3 font-semibold text-zinc-950">Ir para o início</a>
+          <p className="mt-4 text-sm text-white/60">Saiu da conta? <a href="/login" className="text-nf-blue underline">Entrar novamente</a></p>
         </main>
       } />
     </Routes></Suspense>

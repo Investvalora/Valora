@@ -47,7 +47,7 @@ export function MobilePasswordRecoveryForm() {
           <p className="mt-3 max-w-[280px] text-[14px] leading-relaxed text-white/50">
             Enviamos as instruções para{' '}
             <span className="font-medium text-white">{successEmail}</span>.
-            Verifique sua caixa de entrada.
+            Verifique sua caixa de entrada e spam. Use o link mais recente, uma única vez. Se estiver inválido, solicite outro pela recuperação de senha.
           </p>
           <Link
             to="/login"

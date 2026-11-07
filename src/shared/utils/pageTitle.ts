@@ -9,7 +9,7 @@ const TITLES: Record<string, string> = {
   '/desempenho': 'Desempenho', '/desempenho/visao-geral': 'Desempenho',
   '/desempenho/rentabilidade': 'Rentabilidade', '/rentabilidade': 'Rentabilidade',
   '/desempenho/proventos': 'Proventos', '/proventos': 'Proventos', '/analise': 'Análise',
-  '/analise/visao-geral': 'Análise', '/analise/score': 'Score', '/score': 'Score',
+  '/analise/visao-geral': 'Análise', '/analise/score': 'Score', '/score': 'Score', '/analise/comparar': 'Comparar ativos',
   '/analise/score/nova': 'Nova regra', '/analise/estrategias': 'Estratégias', '/estrategias': 'Estratégias',
   '/analise/estrategias/nova': 'Nova estratégia', '/analise/estrategias/novo': 'Novo insight',
   '/analise/alertas': 'Alertas', '/alertas': 'Alertas',

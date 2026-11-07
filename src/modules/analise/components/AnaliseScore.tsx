@@ -1,4 +1,5 @@
 import { PortfolioScore } from '../../score/components/PortfolioScore'
+import { StarterScore } from '../../score/components/StarterScore'
 import { ScoreCalculationHelp, ScoreMetricHelp } from '../../score/components/ScoreMetricHelp'
 /**
  * AnaliseScore — sub-rota /analise/score.
@@ -190,6 +191,7 @@ export function AnaliseScore() {
       ) : rules.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
           <p className="text-[13px] text-white/40">Nenhuma regra criada ainda.</p>
+          <StarterScore />
           <button
             type="button"
             onClick={() => navigate('/analise/score/nova')}

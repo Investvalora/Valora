@@ -46,3 +46,9 @@ Não foi criado recebimento pessoal nem aplicada retenção presumida. Para ence
 ### Precisão residual do custo
 
 Consulta somente de leitura comparou o custo das compras dos ativos ainda mantidos com quantidade vezes preço médio armazenado. Nesta carteira, sem vendas desses ativos, a diferença de arredondamento é BRL 0,0136 mais USD 0,000251144536; pela PTAX 5,5013 equivale a BRL 0,0149816214. Portanto explica cerca de 1,5 centavo, não os aproximadamente 5,6 centavos integrais. O custo calculado diretamente desses lançamentos mais renda fixa seria BRL 18.670,3891649 (18.670,39), ainda cerca de 4 centavos abaixo do cabeçalho observado no I10. Nenhuma compensação artificial foi aplicada.
+
+## Comprovantes Nomad recebidos
+
+Extrato fornecido pelo titular confirma USD como moeda original: TFLO em 06/10 bruto0,54/imposto0,16/líquido0,38; JPM crédito02/11 bruto0,13/imposto0,04/líquido0,09; TFLO05/11 bruto0,58/imposto0,17/líquido0,41. A dúvida sobre líquidos está resolvida; valores arredondados efetivamente creditados prevalecem sobre multiplicação teórica. Não presumir retenções futuras iguais.
+
+Migration support_usd_recorded_income aplicada e TFLO06/10 existente substituído por USD0,38, sem duplicação. Novembro aguarda deploy do frontend desta PR: substituição por evento (ticker/tipo/data de registro ou pagamento) evita duplicar a estimativa JPM31/10 com crédito02/11. Importação parcial Nomad não suprime outros pagamentos no intervalo. Script privado idempotente preparado em output/nomad-income-after-deploy.sql; NÃO executar antes de confirmar o deploy. Não versionar prints nem identificadores pessoais desse script. Doze testes direcionados aprovados e TypeScript aprovado.

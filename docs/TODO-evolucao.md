@@ -45,6 +45,8 @@ Evidências e distinção entre achado de código e impacto ainda não medido: [
 
 Atualização das prioridades: custo de aquisição com corretagem/taxas de compra corrigido no banco, com recálculo autorizado; diferença explicada de7,92659 na Investidor10, restando cerca de0,05 para reconciliar. CDI agora grava referência econômica05/11 separada da execução e rejeita lacunas acima de10 dias; critério é conservador e não substitui calendário bancário completo. B3 concluiu22/22 tarefas sem erros,134 anúncios. JPM pagamento31/10 confirmado no RI e complementado como evento público; líquido pessoal não inferido. Tesouro desconhecido pertence a outra conta, não ao titular da Investidor10; preservado e não tratado como cadastro do usuário.
 
+PR112 também separa visualmente líquidos importados e estimativas brutas em Desempenho › Proventos. Fechamento técnico da rodada não significa reconciliação de líquido sem extrato ou igualdade artificial dos centavos com I10. [Estado detalhado](pendencias-prioritarias-2026-11-07.md).
+
 ## 3. Média — consistência técnica e operação
 
 Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, recuperação de sessão/tela, bloqueio da corrida de importação e divisão de páginas. Os itens abaixo permanecem abertos até atenderem seus critérios completos e homologação. [Implementação, medições e limites](correcoes-tecnicas-2026-11-07.md).

@@ -12,6 +12,7 @@ import { filterAndSort } from '../../dividends/utils/dividendCalculations'
 import type { DividendPeriod } from '../../dividends/types'
 import type { DividendRow } from '../../dividends/types'
 import { AnnouncedDividends } from './AnnouncedDividends'
+import { IncomeBasisSummary } from '../../dividends/components/IncomeBasisSummary'
 
 const ProventosChart = lazy(() =>
   import('./ProventosChart').then((m) => ({ default: m.ProventosChart })),
@@ -171,6 +172,7 @@ function PaidDividends() {
 
   return (
     <div className="flex flex-col gap-5">
+      {!isLoading && <IncomeBasisSummary rows={filteredRows} />}
       <p className="text-xs text-white/50">Valores em reais; USD convertido pela PTAX do pagamento (última publicação anterior, até 10 dias). O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">

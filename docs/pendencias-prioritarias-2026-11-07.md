@@ -21,3 +21,9 @@
 ## Testes
 
 7 testes direcionados CDI/Edge, TypeScript e Deno check aprovados; lint dos arquivos frontend alterados aprovado. PostgreSQL descartável: compras10×10+3 e10×20+2 =>PM15,25; venda parcial com despesas mantémPM15,25; RPC continua sem EXECUTE autenticado. TesteSQL versionado em supabase/tests/acquisition_costs.sql, rollback. Nenhuma fixture persistida em produção.
+
+## Fechamento da rodada na PR112
+
+Tela Desempenho › Proventos passa a separar os totais filtrados de líquidos importados e estimativas brutas, com aviso de imposto/tarifa/câmbio e de que a soma combina bases diferentes. Não substitui o histórico nem aplica retenção presumida. Teste do componente confirma a separação sem alteração dos valores. Rodada direcionada8/8 aprovada.
+
+Critérios não tecnicamente solucionáveis sem dados externos permanecem delimitados: líquido exato JPM/TFLO necessita extrato; centavos restantes necessitam base exata de conversão/precisão do I10. Cadastro de outro titular não será alterado por solicitação desta conta. Estes itens não impedem a entrega das correções e não justificam inventar recebimentos, taxa ou vencimento.

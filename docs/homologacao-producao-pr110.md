@@ -39,3 +39,13 @@ Teste usa ZIP deflate com data descriptor, verifica exatamente o tamanho extraí
 ### Limite do recálculo manual
 
 Revisão automática rejeitou chamada combinada que incluía sync-treasury-prices, pois ela recalcula `current_value` e conflita com a restrição anterior de preservar a carteira Investidor10. A chamada não foi executada. Carga B3 foi enviada separadamente, pois apenas altera dados públicos. As novas versões de macro/Tesouro/recálculo estão publicadas; teste manual que grava saldos aguarda autorização específica solicitada ao usuário. Agendamentos preexistentes não foram alterados.
+
+### Recálculo autorizado posteriormente pelo usuário
+
+Usuário confirmou expressamente “Sim, autorizar o recálculo dos saldos”, inclusive Investidor10. Executado sync-treasury-prices:1118 preços salvos, referência06/11/2026,13 posições recalculadas. Retorno503 parcial por um cadastro Tesouro Selic vencimento10/10/2027, quantidade100, sem PU oficial correspondente. Esse cadastro **não pertence à carteira Investidor10**; valor preservado e cadastro não corrigido por suposição. É uma pendência de dados, não publicação faltante.
+
+Carteira Investidor10: três lotes Tesouro mantêm quantidades0,03/0,01/0,14 e valores118,7583/39,5861/78,134, referência06/11; seis lotes RDB somam3011,0208. Atualizações calculadas concluídas nessa carteira. Posições de renda variável67 e lançamentos202 continuam com o digest anterior, inclusive após o recálculo.
+
+Macro HTTP200, sem erros:499 valores CDI,500 Selic,23 IPCA processados; não acionou outro recálculo (`recalculo:null`). Três chamadas sem credencial às novas funções retornaram401. Primeira execução automática iShares registrada com sucesso no cron; aprovação SQL do cron apenas confirma despacho, enquanto a execução HTTP manual e os dados persistidos comprovam a carga.
+
+Permanecem os avisos de segurança preexistentes: [pg_net no schema público](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public) e [proteção de senhas vazadas desabilitada](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Não alterados nesta publicação.

@@ -181,15 +181,14 @@ async function calcCdi(
   from: string,
   to = hoje(),
 ): Promise<number> {
+  if (from >= to) return principal;
   const rates = await pgGetMacroRates('cdi', from, to);
   if (!rates.length) {
-    // Sem dados: usa CDI médio aproximado de 10,5% a.a. como fallback
-    const fallbackAa = 10.5;
-    const du = diasUteis(from, to);
-    return principal * Math.pow(1 + (pctCdi / 100) * (fallbackAa / 100), du / 252);
+    throw new Error('CDI indisponível no período; saldo anterior preservado, sem taxa estimada');
   }
   let fatorAcum = 1;
   for (const { value } of rates) {
+    if (!Number.isFinite(Number(value)) || Number(value) < 0) throw new Error('Taxa CDI inválida; saldo anterior preservado');
     // value = CDI anualizado em % a.a.
     // fator diário = (1 + pctCdi/100 × cdi_aa/100)^(1/252)
     const fatorDia = 1 + (Math.pow(1 + value / 100, 1 / 252) - 1) * pctCdi / 100;
@@ -247,7 +246,7 @@ async function calcularValor(pos: FiPosition): Promise<number> {
     case 'ipca':
       return calcIpca(principal, rate, application_date, to);
     default:
-      return principal; // indexador desconhecido: retorna principal sem rendimento
+      throw new Error('Indexador não suportado; saldo anterior preservado');
   }
 }
 

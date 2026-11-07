@@ -1,7 +1,8 @@
+import { INDICATOR_LABELS } from '../../../shared/indicators/catalog'
 import type { PositionRow } from '../../portfolio/types'
 
 export const CUSTOM_METRICS = {
-  pl: 'P/L', pvp: 'P/VP', dy: 'DY (%)', roe: 'ROE (%)', netMargin: 'Margem líquida (%)',
+  pl: INDICATOR_LABELS.pl, pvp: INDICATOR_LABELS.pvp, dy: INDICATOR_LABELS.dy, roe: INDICATOR_LABELS.roe, netMargin: INDICATOR_LABELS.net_margin,
   quotePrice: 'Preço atual (moeda do ativo)', weightPercent: 'Peso na carteira (%)',
 } as const
 export const CUSTOM_OPERATORS = { lt: 'menor que', lte: 'menor ou igual a', gt: 'maior que', gte: 'maior ou igual a', between: 'entre' } as const

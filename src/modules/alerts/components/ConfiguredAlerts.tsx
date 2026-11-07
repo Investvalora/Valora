@@ -6,6 +6,7 @@ import { METRIC_LABELS, type ScoreMetric } from '../../score/types'
 import { configuredAlertsService as service, type ConfiguredAlertRule, type RuleInput, type RuleKind } from '../services/configuredAlertsService'
 import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
 import { AlertAssetField } from './AlertPriceFields'
+import { supportsIndicator } from '../../../shared/indicators/catalog'
 
 const kinds: Record<RuleKind, string> = { indicator: 'Indicador fundamentalista', dividend_announced: 'Provento anunciado', dividend_payment: 'Data de pagamento de provento' }
 const field = 'mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#252525] px-3 py-2 text-sm text-white'
@@ -20,7 +21,7 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
   const [threshold, setThreshold] = useState(String(rule?.threshold ?? ''))
   const model = useAlertPriceFields({ ticker, price: unusedPrice, onTickerChange: setTicker, onPriceChange: setUnusedPrice, initialTicker: rule?.ticker, fetchQuote: false })
   const fund = ['fii', 'reit'].includes(model.selected?.type ?? '')
-  const chosenMetric = fund && !['dy', 'pvp'].includes(metric) ? 'dy' : metric
+  const chosenMetric = fund && model.selected && !supportsIndicator(metric, model.selected.type) ? 'dy' : metric
   const [invalid, setInvalid] = useState('')
   const save = useMutation({ mutationFn: (input: RuleInput) => service.save(userId, input, rule?.id), onSuccess: onSaved })
   return <Modal isOpen title={rule ? 'Editar regra de alerta' : 'Nova regra de alerta'} onClose={onClose} dismissible={!save.isPending} variant="score">
@@ -36,7 +37,7 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
       <AlertAssetField model={model} />
       <label className="block text-sm text-white/70">Tipo de acompanhamento<select className={field} value={kind} onChange={event => setKind(event.target.value as RuleKind)}>{Object.entries(kinds).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       {kind === 'indicator' && <>
-        <label className="block text-sm text-white/70">Indicador<select className={field} value={chosenMetric} onChange={event => setMetric(event.target.value as ScoreMetric)}>{Object.entries(METRIC_LABELS).filter(([key]) => !fund || ['dy','pvp'].includes(key)).map(([key, label]) => <option key={key} value={key}>{key === 'debt_equity' ? 'Dívida/PL (%) — Yahoo' : label}</option>)}</select></label>
+        <label className="block text-sm text-white/70">Indicador<select className={field} value={chosenMetric} onChange={event => setMetric(event.target.value as ScoreMetric)}>{Object.entries(METRIC_LABELS).filter(([key]) => !fund || (model.selected && supportsIndicator(key as ScoreMetric, model.selected.type))).map(([key, label]) => <option key={key} value={key}>{key === 'debt_equity' ? 'Dívida/PL (%) — Yahoo' : label}</option>)}</select></label>
         <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-white/70">Condição<select className={field} value={operator} onChange={event => setOperator(event.target.value as 'gte' | 'lte')}><option value="gte">Maior ou igual (≥)</option><option value="lte">Menor ou igual (≤)</option></select></label>
           <label className="text-sm text-white/70">Valor de referência<input className={field} value={threshold} onChange={event => setThreshold(event.target.value)} inputMode="decimal" required /></label></div>
       </>}

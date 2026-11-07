@@ -9,6 +9,7 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
 import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
@@ -614,6 +615,7 @@ export function AtivosLancamentos() {
             </div>
 
             {/* Botão + Lançamento */}
+            <Link to="/ativos/importar" className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white">Importar CSV</Link>
             <button
               type="button"
               onClick={() => setShowAddModal(true)}

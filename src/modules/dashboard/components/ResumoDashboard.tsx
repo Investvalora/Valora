@@ -156,7 +156,9 @@ export function ResumoDashboard() {
     totalPatrimonioBRL,
     valorInvestidoBRL,
     ganhoCapitalBRL,
+    lucroTotalBRL,
     proventos12mBRL,
+    proventosTotalBRL,
     variacaoPct,
     monthlySeries,
     compositionSlices,
@@ -214,18 +216,18 @@ export function ResumoDashboard() {
         <KpiCard
           icon="💡"
           title="Lucro total"
-          main={fmtBRL(ganhoCapitalBRL)}
+          main={fmtBRL(lucroTotalBRL)}
           mainColor={
-            ganhoCapitalBRL === null
+            lucroTotalBRL === null
               ? 'text-white'
-              : ganhoCapitalBRL >= 0
+              : lucroTotalBRL >= 0
                 ? 'text-green-400'
                 : 'text-red-400'
           }
           sub1Label="Ganho de Capital"
           sub1Value={fmtBRL(ganhoCapitalBRL)}
           sub2Label="Dividendos Recebidos"
-          sub2Value={fmtBRL(proventos12mBRL)}
+          sub2Value={fmtBRL(proventosTotalBRL)}
         />
 
         {/* Proventos Recebidos (12M) */}
@@ -234,7 +236,7 @@ export function ResumoDashboard() {
           title="Proventos Recebidos (12M)"
           main={fmtBRL(proventos12mBRL)}
           sub1Label="Total"
-          sub1Value={fmtBRL(proventos12mBRL)}
+          sub1Value={fmtBRL(proventosTotalBRL)}
         />
 
         {/* Rentabilidade */}

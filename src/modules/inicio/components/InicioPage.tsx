@@ -87,14 +87,14 @@ export function InicioPage() {
           icon={Coins}
           sub={[
             { label: 'Ganho de capital', value: money(dashboard.ganhoCapitalBRL) },
-            { label: 'Dividendos recebidos', value: money(dashboard.proventos12mBRL), valueColor: 'text-nf-green' },
+            { label: 'Dividendos recebidos', value: money(dashboard.proventosTotalBRL), valueColor: 'text-nf-green' },
           ]}
         />
         <KpiCard
           label="Proventos recebidos (12M)"
           value={money(dashboard.proventos12mBRL)}
           icon={Coins}
-          sub={[{ label: 'Total', value: money(dashboard.proventos12mBRL) }]}
+          sub={[{ label: 'Total', value: money(dashboard.proventosTotalBRL) }]}
         />
         <KpiCard
           label="Rentabilidade"

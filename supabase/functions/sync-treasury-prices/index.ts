@@ -15,7 +15,6 @@ Deno.serve(async request => {
    if(!r.ok) throw new Error('positions')
    const page=await r.json(); positions.push(...page); if(page.length<500) break
   }
-  if(!positions.length) return Response.json({saved:0})
   const keys=new Map<string,string>()
   for(const p of positions) {const k=`${p.type}:${p.maturity_date}`;keys.set(k, keys.has(k) && keys.get(k)!<p.application_date ? keys.get(k)! : p.application_date)}
   const response=await fetch(csv,{signal:AbortSignal.timeout(90000)})
@@ -23,6 +22,7 @@ Deno.serve(async request => {
   const reader=response.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer='', saved=0, latest='', batch: unknown[]=[], headerSeen=false
   const today=new Date().toISOString().slice(0,10)
+  const recent=new Date(Date.now()-30*86400000).toISOString().slice(0,10)
   async function flush() {
    if(!batch.length) return
    const r=await fetch(`${url}/rest/v1/treasury_prices?on_conflict=type,maturity_date,date`,{method:'POST',headers:{...headers,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(batch),signal:AbortSignal.timeout(15000)})
@@ -36,7 +36,8 @@ Deno.serve(async request => {
    }
    const row=parseTreasuryLine(text);if(!row) return
    const from=keys.get(`${row.type}:${row.maturity_date}`)
-   if(!from || row.date<from || row.date>today) return
+   // Recent official prices for every supported title; held lots also get backfill.
+   if(row.date>today || row.date<(from && from<recent ? from : recent)) return
    batch.push({...row,updated_at:new Date().toISOString()}); if(row.date>latest) latest=row.date
    if(batch.length>=500) await flush()
   }
@@ -47,6 +48,7 @@ Deno.serve(async request => {
   }
   if(buffer) await line(buffer);await flush()
   if(!saved) throw new Error('empty_source')
+  if(!positions.length) return Response.json({saved,latest,recalculation:null})
   const calc=await fetch(`${url}/functions/v1/calc-fixed-income`,{method:'POST',headers,body:'{}',signal:AbortSignal.timeout(90000)})
   if(!calc.ok) throw new Error('calculation')
   const result=await calc.json()

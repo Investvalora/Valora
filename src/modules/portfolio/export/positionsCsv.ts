@@ -91,17 +91,23 @@ function escapeCsvField(value: string): string {
   return /[;"\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }
 
+// Text cells may be interpreted as formulas even when correctly quoted as CSV.
+function safeText(value: string): string {
+  // eslint-disable-next-line no-control-regex -- intentionally detect formula prefixes after control characters
+  return /^[\s\u0000-\u001f]*[=+@-]/.test(value) || /^[\t\r\n]/.test(value) ? `'${value}` : value
+}
+
 function rowToFields(row: PositionRow): string[] {
   return [
-    row.ticker || MISSING,
-    row.name ?? MISSING,
+    safeText(row.ticker || MISSING),
+    safeText(row.name ?? MISSING),
     formatQuantity(row.quantity),
     formatMoney(row.averagePrice, row.currency),
     formatMoney(row.quotePrice, row.currency),
     formatBRL(row.marketValueBRL),
     formatWeight(row.weightPercent),
     formatChange(row.changePercent),
-    formatDate(row.acquisitionDate),
+    safeText(formatDate(row.acquisitionDate)),
   ]
 }
 

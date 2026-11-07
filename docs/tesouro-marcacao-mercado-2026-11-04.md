@@ -33,3 +33,13 @@ Gráfico patrimonial e rentabilidade consultam treasury_prices para lotes config
 Testes de parser oficial, preços por quantidade, data/vencimento corretos, recusa de valores futuros/antigos, importação e recálculo, principal preservado e outubro completo sem IPCA. 59 testes aprovados na regressão de renda fixa, lançamentos, agrupamento, totais e rentabilidade. TypeScript, lint dos arquivos alterados e build/PWA aprovados na implementação. Migration testada com rollback, checagem de permissões e ausência de aviso de segurança para a tabela nova.
 
 Servidor e quantidades já aplicados. As mudanças de interface e de cálculo histórico no navegador precisam do merge/deploy do frontend. Não foi possível fazer a conferência visual nesta sessão porque a ferramenta do navegador falhou ao inicializar; não afirmar que o aviso sumiu na interface publicada antes dessa etapa.
+
+## Verificação após merge e deploy
+
+PR 105 confirmada como MERGED em 04/11/2026 às 23h03 UTC (20h03 BRT). Conferência HTTP do site publicado: entry index-B9LiscsW.js contém consulta treasury_prices; chunk AtivosPosicoes-CC5cDoEo.js contém configuração de marcação e referência do preço oficial.
+
+Banco de produção: os três lotes permanecem com valuation_method market, valuation_price_date 30/10/2026 e saldo igual a quantidade × PU Base, a quatro casas decimais: 77,3738; 118,2303; 39,4101. Custos preservados.
+
+Executado o mesmo cálculo histórico do código da PR usando posições, eventos, taxas e 850 preços oficiais lidos de produção. Verificadas 712 datas do Prefixado e 530/404 datas dos lotes IPCA+ (1.646 datas, desde as aplicações até 31/10): zero valores ausentes. Isolando toda a renda fixa da carteira, outubro apresentou incomplete=false e nenhuma issue. Isso valida especificamente a causa de renda fixa/IPCA; não afirma ausência de outras lacunas nos ativos de renda variável ou câmbio.
+
+A ferramenta de navegador falhou novamente ao iniciar, inclusive após reset. Portanto a validação técnica dos dados, cálculo e arquivos publicados está concluída; o desaparecimento visual do aviso na sessão autenticada ainda não foi observado diretamente. Fixtures de produção ficaram somente em output, fora do Git.

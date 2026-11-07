@@ -54,13 +54,13 @@ const schema = z.object({
   type: z.enum(['buy', 'sell']),
   transaction_date: movementDateSchema,
   quantity: z
-    .number({ invalid_type_error: 'Informe um número', required_error: 'Obrigatório' })
+    .number({ error: issue => issue.input === undefined ? 'Obrigatório' : 'Informe um número' })
     .positive('Deve ser maior que zero'),
   price: z
-    .number({ invalid_type_error: 'Informe um número', required_error: 'Obrigatório' })
+    .number({ error: issue => issue.input === undefined ? 'Obrigatório' : 'Informe um número' })
     .min(0, 'Deve ser ≥ 0'),
   brokerage_fee: z
-    .number({ invalid_type_error: 'Informe um número' })
+    .number({ error: 'Informe um número' })
     .min(0)
     .optional()
     .default(0),
@@ -77,12 +77,11 @@ const rendaFixaSchema = z.object({
     { message: 'Selecione o tipo' },
   ),
   taxa: z
-    .number({ invalid_type_error: 'Informe um número' })
+    .number({ error: 'Informe um número' })
     .min(0, 'Deve ser ≥ 0'),
   valor: z
     .number({
-      invalid_type_error: 'Informe um número',
-      required_error: 'Informe o valor aplicado',
+      error: issue => issue.input === undefined ? 'Informe o valor aplicado' : 'Informe um número',
     })
     .positive('Deve ser maior que zero'),
   transaction_date: movementDateSchema,
@@ -99,18 +98,18 @@ const tesouroDiretoSchema = z.object({
     { message: 'Selecione o ativo' },
   ),
   taxa: z
-    .number({ invalid_type_error: 'Informe um número', required_error: 'Informe a taxa' })
+    .number({ error: issue => issue.input === undefined ? 'Informe a taxa' : 'Informe um número' })
     .min(0, 'Deve ser ≥ 0'),
   transaction_date: movementDateSchema,
   maturity_date: z.string().optional(),
   quantity: z
-    .number({ invalid_type_error: 'Informe um número' })
+    .number({ error: 'Informe um número' })
     .min(0.01, 'Mínimo 0,01'),
   price: z
-    .number({ invalid_type_error: 'Informe um número' })
+    .number({ error: 'Informe um número' })
     .min(0, 'Deve ser ≥ 0'),
   outros_custos: z
-    .number({ invalid_type_error: 'Informe um número' })
+    .number({ error: 'Informe um número' })
     .min(0)
     .optional()
     .default(0),
@@ -380,7 +379,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<TesouroDiretoValues>({
+  } = useForm<z.input<typeof tesouroDiretoSchema>, unknown, TesouroDiretoValues>({
     resolver: zodResolver(tesouroDiretoSchema),
     defaultValues: {
       ativo: undefined,
@@ -627,7 +626,7 @@ export function AddTransactionModal({
     reset,
     setValue,
     formState: { errors, dirtyFields },
-  } = useForm<FormValues>({
+  } = useForm<z.input<typeof schema>, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       type: 'buy',

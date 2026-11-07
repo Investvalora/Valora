@@ -140,3 +140,15 @@ S3-08 a S3-11 foram implementadas localmente após autorização do responsável
 - **S3-11:** comparação Carteira × IPCA em recorte próprio de meses completos publicados, nas telas de rentabilidade atual e legada. Usa macro_rates.ipca já alimentado pelo BCB/SGS 433; não cria inflação diária nem usa mês não divulgado. Rebase da carteira e do IPCA no mesmo fechamento, sem atravessar lacunas. CDI, IBOV e IFIX preservados.
 
 Regressão completa: **967 aprovações em 139 arquivos, zero falhas**, duração 195,83 s. TypeScript e lint dos arquivos afetados aprovados. Referência detalhada: [melhorias-terceira-semana-2026-11-04.md](melhorias-terceira-semana-2026-11-04.md). Ainda é necessária publicação para disponibilizar essas quatro melhorias em produção; não foi executada nova validação visual autenticada nesta rodada. Não houve migration ou escrita financeira.
+
+
+## Verificação autenticada em produção — 05/11/2026
+
+Após o merge da PR #107, o navegador integrado abriu a sessão existente e permitiu conferir os fluxos publicados:
+
+- Ativos > Composição > Setor carregou setores da fonte pública. O patrimônio exibido continuou R$ 18.612,70 tanto por classe quanto por setor; categorias sem classificação permaneceram explícitas.
+- Desempenho > Rentabilidade manteve Carteira/CDI/IBOV/IFIX e mostrou o card Carteira × IPCA, com recorte comum de 30/11/2024 a 30/09/2026, sem inventar outubro. Nenhum erro foi capturado no console nessa conferência.
+- A aba exibiu Composição | Valora, Rentabilidade | Valora e Minha conta | Valora conforme a navegação.
+- No perfil, nome numérico de teste foi rejeitado com Informe um nome com pelo menos uma letra. Um telefone também inválido foi usado como guarda adicional; o formulário foi cancelado e o nome/telefone originais permaneceram exibidos. Nenhuma mudança de cadastro foi gravada.
+
+A conferência visual autenticada dessas quatro melhorias deixa de estar bloqueada. Esta execução no navegador integrado não é novo teste em PWA instalado ou aparelho físico. Evidências locais em output/pr107-setores-producao.png e output/pr107-validacao-nome-producao.png, fora do Git. A comparação IPCA foi verificada pelo conteúdo renderizado; não foi registrada captura útil desse card.

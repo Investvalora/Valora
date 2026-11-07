@@ -10,7 +10,7 @@ export function deferPushPrompt(userId: string) {
 
 const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
 
-function decodeVapidKey(value: string): Uint8Array {
+function decodeVapidKey(value: string): Uint8Array<ArrayBuffer> {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
   const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))

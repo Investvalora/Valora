@@ -30,6 +30,12 @@ Solicitação: corrigir os pontos do penteste e acrescentar proteção contra te
 
 ## Limites que permanecem
 
+### Complemento da CI na PR #108
+
+A primeira execução remota encontrou duas lacunas no ambiente de testes: o teste de patrimônio ainda consultava carteiras e proventos importados pela rede, e o harness não aplicava `010_create_benchmarks.sql` antes do seed compartilhado. Foram completados os mocks e adicionada uma asserção de nenhuma chamada de rede; os 11 testes passaram com as variáveis fictícias da CI. O harness passou a incluir a migration existente e verificar leitura restrita, bloqueio de escrita pelo cliente e unicidade dos benchmarks após duas aplicações do seed. Nenhuma regra de produto ou migration de produção foi alterada por esse ajuste; a nova execução no GitHub valida o conjunto.
+
+### Proteções adicionais e serviços externos
+
 O intervalo no navegador é contornável e **não constitui proteção contra DDoS**. O limite de IP é imposto pelo Supabase Auth; ataques distribuídos exigem proteção do provedor e camadas adicionais. Um proxy no frontend não impediria chamadas diretas ao Auth público. Não se deve criar bloqueio global pelo email, que permitiria a terceiros impedir o acesso de uma pessoa.
 
 CAPTCHA validado no Supabase pode acrescentar proteção usando o Turnstile gratuito. Exige site key no frontend, secret somente no Supabase e atualização conjunta de cadastro, login e recuperação antes de habilitar a configuração. Não foi ativado sem essas chaves, para não interromper esses fluxos. Não enviar secrets no chat.

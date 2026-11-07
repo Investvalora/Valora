@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -23,8 +23,13 @@ vi.mock('../services/positionService', () => ({
 }))
 vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPositions: vi.fn(), listHistory: vi.fn() } }))
 vi.mock('../services/transactionsService', () => ({ transactionsService: { listAll: async () => [] } }))
+vi.mock('./useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' }, wallets: [{ id: 'w1' }, { id: 'w2' }] }) }))
 vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: async () => [], macro: async () => [] } }))
 vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: async () => [] } }))
+vi.mock('../../dividends/services/incomeHistoryService', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../dividends/services/incomeHistoryService')>(),
+  incomeHistoryService: { list: async () => ({ entries: [], coverage: [] }) },
+}))
 vi.mock('../../wealth/hooks/useWealthHistory', () => ({ useWealthHistory: (period: string) => ({
   positions: [{ ticker: 'BR', quantity: 1, currency: 'BRL', type: 'stock_br' }],
   lastPricesMap: new Map([['BR', 11575.73]]), usdRate: 5,
@@ -43,6 +48,8 @@ let annualHistory: typeof history | undefined
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Unit fixtures must never depend on the local Supabase project or network.
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('Unexpected network request in wallet totals test') }))
   useAssetFilters.getState().clear()
   close = 11524.60
   history = []
@@ -55,6 +62,11 @@ beforeEach(() => {
   ] as Awaited<ReturnType<typeof positionService.listLatestQuotes>>)
   vi.mocked(fixedIncomeService.listPositions).mockResolvedValue(fixed)
   vi.mocked(fixedIncomeService.listHistory).mockResolvedValue({ positions: fixed.map((position) => ({ ...position, indexer: 'pre', rate: 0, active: true })), events: [] })
+})
+
+afterEach(() => {
+  expect(fetch).not.toHaveBeenCalled()
+  vi.unstubAllGlobals()
 })
 
 function show(filters?: WealthChartFilters) {

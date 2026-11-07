@@ -14,7 +14,7 @@
  *   falha.
  *
  * MIGRATIONS APLICADAS
- *   001, 002, 003, 004, 006, 007, 008 e 009. A 005 é PULADA de propósito: agenda o sync
+ *   001, 002, 003, 004, 006, 007, 008, 009 e 010. A 005 é PULADA de propósito: agenda o sync
  *   de preços via `pg_cron`/`pg_net` e lê segredo do `vault`, três extensões
  *   que não existem na imagem oficial do Postgres. Ela não toca `positions`
  *   nem `transactions`, então pular não afeta o que está sob teste.
@@ -62,6 +62,7 @@ const MIGRATIONS = [
   '007_create_transactions.sql',
   '008_create_alerts.sql',
   '009_create_dividends_and_fundamentals.sql',
+  '010_create_benchmarks.sql', // The shared seed also inserts benchmark history.
 ]
 
 /** Stub primeiro, asserções depois; as migrations entram no meio. */

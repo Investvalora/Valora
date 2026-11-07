@@ -1,3 +1,4 @@
+import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 /**
  * DesempenhoProventos — sub-rota /desempenho/proventos.
  * Gráfico de barras mensal + tabela (desktop) / cards (mobile) de proventos recebidos com busca e paginação.
@@ -5,7 +6,7 @@
 import { lazy, Suspense, useState, useMemo } from 'react'
 import { Download, RefreshCw, Search } from 'lucide-react'
 import { PanelCard } from '../../../shared/components/PanelCard'
-import { useDividends, useSyncDividends } from '../../dividends/hooks/useDividends'
+import { useSyncDividends } from '../../dividends/hooks/useDividends'
 import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
 import { filterAndSort } from '../../dividends/utils/dividendCalculations'
 import type { DividendPeriod } from '../../dividends/types'
@@ -105,7 +106,7 @@ function PaidDividends() {
   const [typeFilter, setTypeFilter] = useState('')
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
 
-  const { rows, isLoading, isError, refetch, availableTypes } = useDividends(period)
+  const { rows, isLoading, isError, refetch, availableTypes } = useBrlDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
@@ -166,11 +167,11 @@ function PaidDividends() {
     return `${MONTHS[m] ?? m}/${y?.slice(2)}`
   }
 
-  if (isError) return <div role="alert" className="rounded-xl border border-rose-400/30 p-5 text-sm text-rose-300">Não foi possível carregar os proventos. <button type="button" onClick={refetch} className="underline">Tentar novamente</button></div>
+  if (isError) return <div role="alert" className="rounded-xl border border-rose-400/30 p-5 text-sm text-rose-300">Dados ou câmbio histórico indisponíveis. O total não foi somado parcialmente. <button type="button" onClick={refetch} className="underline">Tentar novamente</button></div>
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-xs text-white/50">O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
+      <p className="text-xs text-white/50">Valores em reais; USD convertido pela PTAX do pagamento (última publicação anterior, até 10 dias). O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Proventos</h2>

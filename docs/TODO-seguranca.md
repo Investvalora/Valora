@@ -4,6 +4,8 @@
 
 Evidências iniciais em [penteste controlado](penteste-controlado-2026-11-06.md); execução e limites em [correções de segurança](correcoes-seguranca-2026-11-06.md). Banco, autorização dos jobs e limite de login já aplicados. Correções do frontend estão locais e dependem de PR/deploy. A lista anterior continua preservada abaixo.
 
+Atualização: o frontend acima foi publicado pela PR #108 e homologado no recorte registrado em [validação de produção](validacao-producao-pr108.md), incluindo confirmação do responsável para Google e push/PWA. Referências a “local” nas evidências iniciais descrevem o estado anterior à publicação.
+
 ### Prioridade alta
 
 - [x] **SEG-01 — Ferramentas e transitivas corrigidas localmente.** Versões fixadas, host padrão loopback, instalação frozen e build/PWA passaram. Auditoria passou de 27 ocorrências para zero; regressão completa passou. A atualização do app publicado acompanha o próximo deploy.
@@ -12,7 +14,7 @@ Evidências iniciais em [penteste controlado](penteste-controlado-2026-11-06.md)
 ### Prioridade média
 
 - [x] **SEG-02 — Dependências do app corrigidas localmente.** Router/Zod/resolvers atualizados, formulários adaptados, versões e transitivas sem avisos conhecidos na auditoria. Tipos, regressão e build passaram; publicação acompanha o frontend.
-- [ ] **SEG-04 — Publicar e homologar cabeçalhos.** CSP, bloqueio de enquadramento, nosniff, referrer e permissions policy implementados em `vercel.json`. Falta deploy e conferência dos headers reais, OAuth, APIs e PWA com enforcement.
+- [x] **SEG-04 — Cabeçalhos publicados e homologados na PR #108.** Headers reais conferidos; navegação autenticada, score, regras e fontes observadas sem violação de CSP. Responsável confirmou OAuth Google e PWA (ajudas, score e push abrindo Alertas). Escopo e evidências em [validação da PR #108](validacao-producao-pr108.md). Não equivale a teste de todas as APIs/dispositivos.
 - [ ] **SEG-07 — Proteção nativa contra senhas vazadas.** Avaliação concluída: painel exige plano Pro ou superior. Ativação adiada sem contratar plano; requisitos atuais de senha preservados. Não é falha corrigível apenas pelo frontend.
 
 ### Prioridade baixa e prevenção

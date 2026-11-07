@@ -62,7 +62,7 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
   const summary = useMemo(() => summarizeHistoricalReturns(points, since, today), [points, since, today])
   const isLoading = positionsQuery.isLoading || tradesQuery.isLoading || fixedQuery.isLoading || incomeQuery.isLoading || data.isLoading
   const isError = positionsQuery.isError || tradesQuery.isError || fixedQuery.isError || incomeQuery.isError || data.isError
-  return { ...summary, points, since, isLoading, isError,
+  return { ...summary, issues: summary.diagnosticIssues, points, since, isLoading, isError,
     returnPct: isLoading || isError ? null : summary.returnPct,
     incomplete: !isLoading && !isError && summary.incomplete,
     refetch: () => { void positionsQuery.refetch(); void tradesQuery.refetch(); void fixedQuery.refetch(); void incomeQuery.refetch(); void data.refetch() } }

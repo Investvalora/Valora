@@ -279,12 +279,12 @@ export interface PositionRow {
   /** Proventos recebidos nos últimos 12M em BRL (qty × value_per_share). */
   proventosRecebidosBRL?: number | null
   /**
-   * Payout % = (dividendos_por_ação / lpa) × 100.
+   * Payout % da empresa, informado pela fonte fundamentalista.
    * `null` quando lpa ausente ou ≤ 0.
    */
   payoutPercent?: number | null
   /**
-   * Yield on Cost % = (proventos_recebidos / custo_total) × 100.
+   * Yield on Cost % = (recebimentos 12M / custo atual) × 100, na moeda do custo.
    * custo_total = averagePrice × quantity.
    */
   yieldOnCostPercent?: number | null

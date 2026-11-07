@@ -1,3 +1,4 @@
+import { useDividendCurrency } from '../../dividends/hooks/useDividendCurrency'
 import { useHistoricalReturns } from './useHistoricalReturns'
 import { returnChartSeries, alignedBenchmarkSeries } from '../utils/returnChartSeries'
 import { useWallets } from '../../portfolio/hooks/useWallets'
@@ -96,6 +97,9 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     row.payment_date !== null && row.payment_date >= since,
   ), [dividends.rows, since])
 
+  const incomeCurrencies = useMemo(() => new Map(positions.map(position => [position.ticker, position.asset?.currency ?? 'unknown'])), [positions])
+  const incomeFx = useDividendCurrency(dividendRows, incomeCurrencies, true)
+
   // 4. Benchmarks — busca desde o mês de `since` para ter o mês anterior
   //    como base do primeiro retorno mensal
   const benchmarkSince = useMemo(() => {
@@ -172,10 +176,11 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
         dividendRows,
         firstPoint.date,
         lastPoint.date,
+        incomeFx.rates,
       )
     }
-    return computeAssetRows(positions, wealth.lastPricesMap, dividendRows)
-  }, [positions, wealth.lastPricesMap, dividendRows, wealth.series])
+    return computeAssetRows(positions, wealth.lastPricesMap, dividendRows, undefined, undefined, incomeFx.rates)
+  }, [positions, wealth.lastPricesMap, dividendRows, wealth.series, incomeFx.rates])
 
   // Tabela mês a mês (estilo Investidor10)
   const monthlyTableData = useMemo<MonthlyTableRow[]>(
@@ -189,13 +194,13 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const isLoading = historical.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
-    dividends.isLoading ||
+    dividends.isLoading || incomeFx.isLoading ||
     benchmarksQuery.isLoading
 
   const isError = historical.isError ||
     wealth.isError ||
     positionsQuery.isError ||
-    dividends.isError ||
+    dividends.isError || incomeFx.isError ||
     benchmarksQuery.isError
 
   const error = (
@@ -208,6 +213,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     void positionsQuery.refetch()
     void benchmarksQuery.refetch()
     dividends.refetch()
+    void incomeFx.refetch()
   }
 
   return {

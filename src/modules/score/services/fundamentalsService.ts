@@ -5,7 +5,7 @@ import type { FundamentalsRow } from '../types'
  * Colunas selecionadas — inclui `lpa` e `vpa` para Graham e Payout.
  */
 const FUNDAMENTALS_COLUMNS =
-  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, source, updated_at'
+  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, payout_ratio, source, updated_at'
 
 export const fundamentalsService = {
   /**

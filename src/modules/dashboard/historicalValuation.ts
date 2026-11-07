@@ -4,7 +4,7 @@ import type { FixedIncomePosition, FixedIncomeEvent } from '../portfolio/types'
 
 export interface DatedRate { date: string; value: number }
 export interface MacroRate extends DatedRate { series: string }
-export type HistoricalFixedIncome = Pick<FixedIncomePosition, 'principal' | 'application_date'> & Partial<Pick<FixedIncomePosition, 'indexer' | 'rate' | 'maturity_date' | 'active' | 'type' | 'name' | 'treasury_quantity'>> & { events?: FixedIncomeEvent[] }
+export type HistoricalFixedIncome = Pick<FixedIncomePosition, 'principal' | 'application_date'> & Partial<Pick<FixedIncomePosition, 'id' | 'indexer' | 'rate' | 'maturity_date' | 'active' | 'type' | 'name' | 'treasury_quantity'>> & { events?: FixedIncomeEvent[] }
 export interface HistoricalValuation {
   usd: DatedRate[]
   macro: MacroRate[]
@@ -24,7 +24,7 @@ function contractValueAt(position: HistoricalFixedIncome, date: string, macro: M
   const to = position.maturity_date && position.maturity_date < date ? position.maturity_date : date
   if (from > date) return 0
   if (to <= from) return Number(position.principal)
-  if (!position.indexer || position.rate === undefined) return null
+  if (!position.indexer || position.rate == null) return null
   const principal = Number(position.principal)
   const rate = Number(position.rate)
   const days = (Date.parse(to) - Date.parse(from)) / 86400000

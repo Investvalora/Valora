@@ -26,7 +26,7 @@ export interface AssetReturnRow {
    */
   capitalGainPct: number | null
   /** Soma de `value_per_share × quantity` para o ticker no período (em BRL). */
-  dividendsReceived: number
+  dividendsReceived: number | null
   /**
    * Proventos % = (dividendsReceived / (preço médio × quantidade)) × 100.
    * `null` quando preço médio = 0 ou quantidade = 0.

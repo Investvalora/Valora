@@ -81,6 +81,7 @@ export function AtivosPosicoes() {
     return m
   }, [positions])
 
+  const dividendLocalTotalsByTicker = useDividendTotals(tickers, quantityByTicker, currencyByTicker)
   const { bazinByTicker, isLoading: valuationLoading, isError: valuationError } = useBazin(tickers, 0.06, currencyByTicker)
 
   // ── Derivação ─────────────────────────────────────────────────────────────
@@ -91,9 +92,10 @@ export function AtivosPosicoes() {
         rows: baseRows,
         fundamentalsByTicker,
         dividendTotalsByTicker,
+        dividendLocalTotalsByTicker,
         bazinByTicker,
       }),
-    [baseRows, fundamentalsByTicker, dividendTotalsByTicker, bazinByTicker],
+    [baseRows, fundamentalsByTicker, dividendTotalsByTicker, dividendLocalTotalsByTicker, bazinByTicker],
   )
   const enrichedRows = useMemo(() => enrichedBase.map((row) => ({ ...row,
     score: activeScoreName ? scoreByTicker.get(row.ticker) ?? null : undefined,
@@ -108,7 +110,7 @@ export function AtivosPosicoes() {
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
-    for (const v of dividendTotalsByTicker.values()) total += v
+    for (const v of dividendTotalsByTicker.values()) { if (v === null) return null; total += v }
     return total > 0 ? total : null
   }, [dividendTotalsByTicker])
 

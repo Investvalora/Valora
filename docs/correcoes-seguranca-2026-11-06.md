@@ -34,6 +34,8 @@ Solicitação: corrigir os pontos do penteste e acrescentar proteção contra te
 
 A primeira execução remota encontrou duas lacunas no ambiente de testes: o teste de patrimônio ainda consultava carteiras e proventos importados pela rede, e o harness não aplicava `010_create_benchmarks.sql` antes do seed compartilhado. Foram completados os mocks e adicionada uma asserção de nenhuma chamada de rede; os 11 testes passaram com as variáveis fictícias da CI. O harness passou a incluir a migration existente e verificar leitura restrita, bloqueio de escrita pelo cliente e unicidade dos benchmarks após duas aplicações do seed. Nenhuma regra de produto ou migration de produção foi alterada por esse ajuste; a nova execução no GitHub valida o conjunto.
 
+Execução remota `42321229897`: jobs `app` e `database-isolation` aprovados. O harness Docker foi efetivamente executado no runner. As actions de checkout/setup-node foram atualizadas para versões oficiais com runtime Node 24, checkout sem persistência de credenciais e imagem Ubuntu 24.04 explícita, eliminando a dependência de runtime obsoleto e da mudança automática de imagem do runner.
+
 ### Proteções adicionais e serviços externos
 
 O intervalo no navegador é contornável e **não constitui proteção contra DDoS**. O limite de IP é imposto pelo Supabase Auth; ataques distribuídos exigem proteção do provedor e camadas adicionais. Um proxy no frontend não impediria chamadas diretas ao Auth público. Não se deve criar bloqueio global pelo email, que permitiria a terceiros impedir o acesso de uma pessoa.

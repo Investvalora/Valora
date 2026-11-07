@@ -32,7 +32,8 @@ function formatPct(value: number | null): string {
   return `${pctFormatter.format(value)}%`
 }
 
-function formatBRL(value: number): string {
+function formatBRL(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return '—'
   return brlFormatter.format(value).replace(/\u00a0/g, ' ')
 }
 

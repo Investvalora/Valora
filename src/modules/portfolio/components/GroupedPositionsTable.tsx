@@ -233,7 +233,7 @@ export function GroupedPositionsTable({
                         <th className={`${HEADER_CLASS} text-right`}>Proventos (12M)</th>
                       )}
                       {show('payout') && (
-                        <th className={`${HEADER_CLASS} text-right`}>Payout %</th>
+                        <th className={`${HEADER_CLASS} text-right`} title="Payout da empresa informado pelo Yahoo, independente dos recebimentos pessoais. Ausente quando não há dado confiável ou lucro positivo.">Payout %</th>
                       )}
                       {show('pl') && (
                         <th className={`${HEADER_CLASS} text-right`}>P/L</th>
@@ -245,7 +245,7 @@ export function GroupedPositionsTable({
                         <th className={`${HEADER_CLASS} text-right`}>DY %</th>
                       )}
                       {show('yieldOnCost') && (
-                        <th className={`${HEADER_CLASS} text-right`}>Yield on Cost</th>
+                        <th className={`${HEADER_CLASS} text-right`} title="Recebimentos dos últimos 12 meses / custo da posição atual, na mesma moeda. Muda com compras e vendas; não é projeção de dividendos.">Yield on Cost</th>
                       )}
                       {show('graham') && (
                         <th className={`${HEADER_CLASS} text-right`}>Preço Justo (Graham)</th>

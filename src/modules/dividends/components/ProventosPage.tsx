@@ -1,10 +1,11 @@
+import { useBrlDividends } from '../hooks/useBrlDividends'
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, RefreshCw } from 'lucide-react'
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
 import { DividendsTable } from './DividendsTable'
-import { useDividends, useHasPositions, useSyncDividends } from '../hooks/useDividends'
+import { useHasPositions, useSyncDividends } from '../hooks/useDividends'
 import { buildMonthlyBars, filterAndSort, sumTotalValue } from '../utils/dividendCalculations'
 import { downloadDividendsCsv } from '../export/dividendsCsv'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -118,7 +119,7 @@ export function ProventosPage() {
   const isMobile = useIsMobile()
   const { user } = useAuth()
   const { hasPositions, isLoading: isPositionsLoading } = useHasPositions()
-  const { rows, isLoading, isError, refetch, availableTypes } = useDividends(period)
+  const { rows, isLoading, isError, refetch, availableTypes } = useBrlDividends(period)
   const syncDividends = useSyncDividends()
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
@@ -185,7 +186,7 @@ export function ProventosPage() {
           className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 flex flex-col gap-3"
         >
           <p className="text-red-400 font-medium">Erro ao carregar proventos</p>
-          <p className="text-red-300/70 text-sm">Não foi possível consultar os dados agora. Tente novamente em instantes.</p>
+          <p className="text-red-300/70 text-sm">Dados ou câmbio histórico indisponíveis. O total não foi somado parcialmente. Tente recarregar.</p>
           <button
             type="button"
             onClick={refetch}
@@ -239,7 +240,7 @@ export function ProventosPage() {
 
         {/* Título */}
         <div>
-          <h1 className="text-[26px] font-semibold text-white">Proventos</h1>
+          <h1 className="text-[26px] font-semibold text-white">Proventos</h1><p className="mt-2 text-xs text-white/50">Valores em reais. Recebimentos em USD usam PTAX da data do pagamento (última publicação anterior, até 10 dias). Valores originais são preservados.</p>
           <p className="text-[11px] text-[#8f8f8f]">Dividendos, JCP e rendimentos recebidos</p>
         </div>
 
@@ -371,7 +372,7 @@ export function ProventosPage() {
     <div className="p-8 flex flex-col gap-6">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Proventos</h1>
+        <h1 className="text-2xl font-bold text-white">Proventos</h1><p className="mt-2 text-xs text-white/50">Valores em reais. Recebimentos em USD usam PTAX da data do pagamento (última publicação anterior, até 10 dias). Valores originais são preservados.</p>
         <div className="flex flex-wrap items-center gap-3">
           <PeriodSelector
             value={period}

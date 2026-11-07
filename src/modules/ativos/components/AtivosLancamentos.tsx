@@ -423,7 +423,7 @@ export function AtivosLancamentos() {
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
-    for (const v of dividendTotalsByTicker.values()) total += v
+    for (const v of dividendTotalsByTicker.values()) { if (v === null) return null; total += v }
     return total > 0 ? total : null
   }, [dividendTotalsByTicker])
 

@@ -124,6 +124,7 @@ async function getYahooSession(): Promise<YahooSession | null> {
 // ─── Yahoo Finance — quoteSummary ─────────────────────────────────────────────
 
 interface YahooFundamentals {
+  payout_ratio: number | null
   lpa: number | null
   vpa: number | null
   pl: number | null
@@ -210,6 +211,8 @@ async function fetchYahooFundamentals(
     const rawDebtEquity  = nonNeg(fd.debtToEquity?.raw)
 
     return {
+      payout_ratio: rawLpa !== null && rawLpa > 0 && sd.payoutRatio?.raw != null
+        ? nonNeg(sd.payoutRatio.raw * 100) : null,
       lpa: rawLpa,
       vpa: rawVpa,
       pl: rawPl,

@@ -1,9 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest'
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
 it.each([
-  [{ defaultKeyStatistics: { bookValue: { raw: -1.446 }, trailingEps: { raw: 12 } }, summaryDetail: { dividendYield: { raw: 0.025 } } }, -1.446, 2.5],
-  [{ defaultKeyStatistics: {}, summaryDetail: { dividendYield: { raw: 0.1 } } }, null, 10],
-])('salva indicadores disponíveis e mantém ausentes como null', async (result, vpa, dy) => {
+  [{ defaultKeyStatistics: { bookValue: { raw: -1.446 }, trailingEps: { raw: 12 } }, summaryDetail: { dividendYield: { raw: 0.025 }, payoutRatio: { raw: 1.3 } } }, -1.446, 2.5, 130],
+  [{ defaultKeyStatistics: {}, summaryDetail: { dividendYield: { raw: 0.1 }, payoutRatio: { raw: 0.5 } } }, null, 10, null],
+])('salva indicadores disponíveis e mantém ausentes como null', async (result, vpa, dy, payout) => {
   let handler!: (request: Request) => Promise<Response>
   let rows: unknown
   vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://db.test' : 'service' }, serve: (callback: typeof handler) => { handler = callback } })
@@ -18,5 +18,5 @@ it.each([
   await import('../../../supabase/functions/sync-yahoo-fundamentals/index.ts')
   const response = await handler(new Request('https://test', { method: 'POST', headers: { authorization: 'Bearer service' }, body: '{"tickers":["MCD"]}' }))
   expect(response.status).toBe(200)
-  expect(rows).toEqual([expect.objectContaining({ ticker: 'MCD', vpa, dy, pvp: null, roe: null, debt_equity: null, net_margin: null, pl: null })])
+  expect(rows).toEqual([expect.objectContaining({ ticker: 'MCD', vpa, dy, payout_ratio: payout, pvp: null, roe: null, debt_equity: null, net_margin: null, pl: null })])
 })

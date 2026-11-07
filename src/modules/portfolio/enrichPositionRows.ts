@@ -20,7 +20,9 @@ export interface EnrichInput {
   /** Fundamentals mais recentes por ticker. */
   fundamentalsByTicker: Map<string, FundamentalsRow>
   /** Proventos recebidos nos últimos 12M em BRL, por ticker. */
-  dividendTotalsByTicker: Map<string, number>
+  dividendTotalsByTicker: Map<string, number | null>
+  /** Recebimentos 12M convertidos na data de pagamento para a moeda do custo. */
+  dividendLocalTotalsByTicker?: Map<string, number | null>
   /**
    * Resultados Bazin por ticker (de `useBazin`).
    * Quando ausente, `bazinCeiling` fica `null`.
@@ -32,8 +34,8 @@ export interface EnrichInput {
  * Enriquece cada `PositionRow` com:
  * - `pl`, `pvp`, `dy`              — direto do `FundamentalsRow`
  * - `proventosRecebidosBRL`        — do `dividendTotalsByTicker`
- * - `payoutPercent`                — (dividendos_por_ação / lpa) × 100
- * - `yieldOnCostPercent`           — (proventosRecebidosBRL / custo_total) × 100
+ * - `payoutPercent`                — distribuição/lucro da empresa, informado pela fonte
+ * - `yieldOnCostPercent`           — recebimentos 12M/custo atual, na mesma moeda
  * - `grahamPrice`                  — √(22,5 × lpa × vpa)
  * - `bazinCeiling`                 — dividendo_anual / DY_mínimo (de `bazinByTicker`)
  *
@@ -44,6 +46,7 @@ export function enrichPositionRows({
   rows,
   fundamentalsByTicker,
   dividendTotalsByTicker,
+  dividendLocalTotalsByTicker,
   bazinByTicker,
 }: EnrichInput): PositionRow[] {
   return rows.map((row) => {
@@ -57,18 +60,20 @@ export function enrichPositionRows({
     const lpa = fund?.lpa ?? null
     const vpa = fund?.vpa ?? null
 
-    // Payout = (dividendos_por_ação / lpa) × 100
-    let payoutPercent: number | null = null
-    if (proventosRecebidosBRL !== null && row.quantity > 0 && lpa !== null && lpa > 0) {
-      const divPerShare = proventosRecebidosBRL / row.quantity
-      payoutPercent = (divPerShare / lpa) * 100
-    }
+    // Nunca inferir payout dos recebimentos pessoais, DY × P/L ou períodos distintos.
+    const company = row.type && ['stock_br', 'stock_us', 'bdr'].includes(row.type)
+    const ratio = fund?.payout_ratio
+    const payoutPercent = company && fund?.source === 'yahoo' && lpa !== null && Number.isFinite(lpa) && lpa > 0
+      && ratio != null && Number.isFinite(ratio) && ratio >= 0 ? ratio : null
 
     // Yield on Cost = proventos / (preço médio × quantidade) × 100
     let yieldOnCostPercent: number | null = null
     const costTotal = row.averagePrice * row.quantity
-    if (proventosRecebidosBRL !== null && costTotal > 0) {
-      yieldOnCostPercent = (proventosRecebidosBRL / costTotal) * 100
+    const localIncome = dividendLocalTotalsByTicker?.has(row.ticker)
+      ? dividendLocalTotalsByTicker.get(row.ticker) ?? null
+      : row.currency === 'BRL' ? proventosRecebidosBRL : null
+    if (localIncome !== null && costTotal > 0) {
+      yieldOnCostPercent = (localIncome / costTotal) * 100
     }
 
     // Graham = √(22,5 × LPA × VPA)

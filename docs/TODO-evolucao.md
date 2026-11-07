@@ -9,16 +9,22 @@ Segurança foi priorizada em seguida: [estado das correções e pendências](TOD
 ## 1. Concluir a entrega já implementada
 
 - [x] **ENT-01 — Revisar o diff e abrir PR das melhorias locais.** Entrega na branch `codex/fundamentos-score-alertas`, incluindo fundamentos, score explicado/ponderado, regras de alertas e correções de segurança. Commits separados por melhorias e segurança; arquivos pessoais/gerados excluídos. Backend aplicado; publicação e homologação permanecem em ENT-02/03. Merge pelo responsável.
-- [ ] **ENT-02 — Retestar a interface em produção após merge/deploy.** Conferir fundamentos por classe, mesma pontuação do ativo, cobertura da média, criação/edição/pausa de regras e preservação dos alertas de preço.
-- [ ] **ENT-03 — Homologar esta versão no PWA instalado.** Leitura das ajudas, formulários, navegação e um teste autorizado de novo tipo de push. As homologações anteriores de Android/iOS permanecem válidas para suas versões; não equivalem ao reteste desta entrega.
+- [x] **ENT-02 — Retestar a interface em produção após merge/deploy.** Conferir fundamentos por classe, mesma pontuação do ativo, cobertura da média, criação/edição/pausa de regras e preservação dos alertas de preço.
+- [x] **ENT-03 — Homologar esta versão no PWA instalado.** Leitura das ajudas, formulários, navegação e um teste autorizado de novo tipo de push. As homologações anteriores de Android/iOS permanecem válidas para suas versões; não equivalem ao reteste desta entrega.
+
+Homologação da PR #108 concluída: CRUD temporário em produção, OAuth/ajudas/score confirmados pelo responsável e push com abertura de Alertas no PWA. Regra removida e aviso encerrado. [Evidências e limites](validacao-producao-pr108.md).
+
+- [ ] **ENT-04 — Publicar e retestar payout, moedas e diagnóstico.** Correções concluídas nesta branch e backend de payout aplicado; aguardam merge/deploy do frontend e conferência publicada. A homologação acima é da PR #108, não substitui esta etapa.
 
 Detalhes e testes já executados: [melhorias gerais](melhorias-gerais-2026-11-06.md).
 
 ## 2. Alta — confiabilidade dos cálculos e dados
 
-- [ ] **RP-01 — Corrigir a base do payout.** Usar distribuição e lucro da empresa compatíveis por período, moeda e unidade. O resultado não deve depender de compras, vendas ou proventos recebidos pessoalmente. Tratar lucro não positivo e dados ausentes. Validar antes de disponibilizar payout no score.
-- [ ] **RP-02 — Padronizar moedas nos proventos e YOC.** Impedir soma direta de BRL/USD; preservar valores originais e definir conversão histórica quando necessária. Testar recebimentos importados em BRL, eventos em USD, retenção e mudanças de quantidade. Câmbio ausente deve gerar indisponibilidade.
-- [ ] **RP-03 — Diagnóstico acionável do histórico incompleto.** Identificar ativo/título/lote, datas e informação faltante; oferecer atualização ou orientação de cadastro. Validar a causa de renda fixa por lote. Preservar meses fechados e lacunas reais, sem apenas ocultar o aviso.
+- [x] **RP-01 — Corrigir a base do payout.** Usar distribuição e lucro da empresa compatíveis por período, moeda e unidade. O resultado não deve depender de compras, vendas ou proventos recebidos pessoalmente. Tratar lucro não positivo e dados ausentes. Validar antes de disponibilizar payout no score.
+- [x] **RP-02 — Padronizar moedas nos proventos e YOC.** Impedir soma direta de BRL/USD; preservar valores originais e definir conversão histórica quando necessária. Testar recebimentos importados em BRL, eventos em USD, retenção e mudanças de quantidade. Câmbio ausente deve gerar indisponibilidade.
+- [x] **RP-03 — Diagnóstico acionável do histórico incompleto.** Identificar ativo/título/lote, datas e informação faltante; oferecer atualização ou orientação de cadastro. Validar a causa de renda fixa por lote. Preservar meses fechados e lacunas reais, sem apenas ocultar o aviso.
+
+RP-01/02/03 implementados e testados na branch `codex/payout-moedas-homologacao`; publicação acompanhada em ENT-04. [Implementação, fórmulas e limites](correcoes-payout-moedas-historico-2026-11-06.md).
 
 Evidências e distinção entre achado de código e impacto ainda não medido: [revisão do projeto](revisao-projeto-oportunidades-2026-11-06.md).
 
@@ -28,7 +34,9 @@ Evidências e distinção entre achado de código e impacto ainda não medido: [
 - [ ] **RP-05 — Integrar a importação ao fluxo atual.** Reutilizar parser/preview existentes, mostrar carteira de destino e registrar lote/arquivo. Conferir possíveis duplicatas sem bloquear compras legítimas iguais. Reproduzir a hipótese de corrida entre validação assíncrona e confirmação; só então classificar/corrigir esse defeito.
 - [ ] **RP-06 — Recuperação de erros e de carregamento do PWA.** Adicionar fallback global e nova tentativa; distinguir offline e falha de versão/chunk, preservando dados de formulário. Não prometer gravação offline sem implementação própria.
 - [ ] **RP-07 — Melhorar carregamento inicial.** Medir em aparelho/rede limitados, dividir rotas e carregar recursos pesados sob demanda. Comparar com o bundle inicial observado de aproximadamente 1,4 MB sem compressão; manter fluxos existentes.
-- [ ] **RP-08 — CI por PR.** Versionar execução de TypeScript, lint, testes e build/PWA com runtime e lockfile definidos. Testes SQL com fixtures/rollback e tratamento seguro de credenciais.
+- [x] **RP-08 — CI por PR.** Versionar execução de TypeScript, lint, testes e build/PWA com runtime e lockfile definidos. Testes SQL com fixtures/rollback e tratamento seguro de credenciais. Entregue na PR #108; CI da main e PR aprovadas, com Node 24 nas Actions.
+
+- [ ] **RP-09 — Explicar sessão revogada.** Diferenciar `session_not_found` de indisponibilidade do provedor e orientar novo login. Não aceitar token revogado para silenciar o erro nem alterar o escopo de logout sem decisão explícita.
 
 ## 4. Novas funcionalidades de produto
 

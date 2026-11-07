@@ -66,7 +66,7 @@ export function AtivosTable({ rows, totalBRL, isLoading = false, visibleColumns 
     <div hidden={groups.length > 0 && groups.every(({ summary }) => collapsed.has(summary.key))} tabIndex={0} role="region" aria-label="Tabela de ativos com rolagem horizontal" className="assets-table-scroll overflow-x-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#9299ff]">
       <table aria-label={tableLabel} className="w-full border-collapse" style={{ minWidth: Math.max(420, columnCount * 125) }}>
         <thead><tr className="bg-white/[0.04]">
-          {columns.map((column) => <th key={column.id} scope="col" className={`whitespace-nowrap px-4 py-3 text-xs font-medium text-[#8F8F8F] ${column.id === 'ticker' ? 'sticky left-0 z-10 bg-[#252525] text-left' : column.id === 'name' ? 'text-left' : 'text-right'}`}>{column.label}</th>)}
+          {columns.map((column) => <th key={column.id} scope="col" title={column.id === 'payout' ? 'Payout da empresa informado pelo Yahoo, independente dos recebimentos pessoais. Ausente quando não há dado confiável ou lucro positivo.' : column.id === 'yoc' ? 'Recebimentos dos últimos 12 meses / custo da posição atual, na mesma moeda. Muda com compras e vendas; não é projeção de dividendos.' : undefined} className={`whitespace-nowrap px-4 py-3 text-xs font-medium text-[#8F8F8F] ${column.id === 'ticker' ? 'sticky left-0 z-10 bg-[#252525] text-left' : column.id === 'name' ? 'text-left' : 'text-right'}`}>{column.label}</th>)}
           <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-[#8F8F8F]">Opções</th>
         </tr></thead>
         <tbody>

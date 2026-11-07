@@ -24,6 +24,11 @@ export interface DividendRaw {
  * usuário e o valor total recebido (calculado client-side).
  */
 export interface DividendRow extends DividendRaw {
+  /** Display conversion only; original income remains unchanged in storage. */
+  original_currency?: string
+  original_total_value?: number
+  original_value_per_share?: number
+  original_gross_amount?: number
   /** Imported rows display record_date (Data COM) in the common date column. */
   source?: 'imported'
   record_date?: string | null

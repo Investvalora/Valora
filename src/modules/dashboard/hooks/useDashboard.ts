@@ -11,7 +11,7 @@ import { useFixedIncomeHistory } from '../../portfolio/hooks/useFixedIncomeHisto
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
-import { useDividends } from '../../dividends/hooks/useDividends'
+import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
@@ -148,7 +148,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   // que pode ser recente (set/26), enquanto dividendos podem ter sido pagos
   // em dez/25 para ativos que o usuário tinha antes de cadastrar no Valora.
 
-  const dividendsQuery = useDividends('1A', 'paid', walletId)
+  const dividendsQuery = useBrlDividends('1A', 'paid', walletId)
 
   // ── Patrimônio atual ──────────────────────────────────────────────────────
   // Mesma consulta e cálculo do seletor. Histórico fica restrito ao gráfico.
@@ -183,15 +183,17 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
   const proventos12mBRL = useMemo(() => {
+    if (dividendsQuery.isLoading || dividendsQuery.isError) return null
     const total = dividendsQuery.rows.reduce((acc, row) => acc + row.total_value, 0)
     return total > 0 ? total : null
-  }, [dividendsQuery.rows])
+  }, [dividendsQuery.rows, dividendsQuery.isLoading, dividendsQuery.isError])
 
   // ── Lucro total = ganho de capital + proventos ────────────────────────────
   const lucroTotalBRL = useMemo(() => {
+    if (dividendsQuery.isLoading || dividendsQuery.isError) return null
     if (ganhoCapitalBRL === null && proventos12mBRL === null) return null
     return (ganhoCapitalBRL ?? 0) + (proventos12mBRL ?? 0)
-  }, [ganhoCapitalBRL, proventos12mBRL])
+  }, [ganhoCapitalBRL, proventos12mBRL, dividendsQuery.isLoading, dividendsQuery.isError])
 
   // ── Variação % 12M ───────────────────────────────────────────────────────
   // Mesma série e fórmula usadas por Desempenho em cada período.

@@ -242,11 +242,11 @@ export function PositionsTable({
             {show('peso') && <SortableHeader column="weight" label="% Carteira" sort={sort} onSortChange={onSortChange} align="right" />}
             <SortableHeader column="change" label="Variação" sort={sort} onSortChange={onSortChange} align="right" />
             {show('proventos') && <th scope="col" className={`${HEADER_CLASS} text-right`}>Proventos (12M)</th>}
-            {show('payout') && <th scope="col" className={`${HEADER_CLASS} text-right`}>Payout %</th>}
+            {show('payout') && <th scope="col" className={`${HEADER_CLASS} text-right`} title="Payout da empresa informado pelo Yahoo, independente dos recebimentos pessoais. Ausente quando não há dado confiável ou lucro positivo.">Payout %</th>}
             {show('pl') && <th scope="col" className={`${HEADER_CLASS} text-right`}>P/L</th>}
             {show('pvp') && <th scope="col" className={`${HEADER_CLASS} text-right`}>P/VP</th>}
             {show('dy') && <th scope="col" className={`${HEADER_CLASS} text-right`}>DY %</th>}
-            {show('yieldOnCost') && <th scope="col" className={`${HEADER_CLASS} text-right`}>Yield on Cost</th>}
+            {show('yieldOnCost') && <th scope="col" className={`${HEADER_CLASS} text-right`} title="Recebimentos dos últimos 12 meses / custo da posição atual, na mesma moeda. Muda com compras e vendas; não é projeção de dividendos.">Yield on Cost</th>}
             {show('graham') && <th scope="col" className={`${HEADER_CLASS} text-right`}>Preço Justo (Graham)</th>}
             {show('bazin') && <th scope="col" className={`${HEADER_CLASS} text-right`}>Preço-Teto Bazin</th>}
             {show('score') && scoreByTicker && (

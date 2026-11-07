@@ -79,6 +79,29 @@ interface Row {
   date: string; open: number; high: number; low: number; close: number; volume: number | null; isin: string;
 }
 
+/** B3 uses ZIP data descriptors: compressed size is zero in the local header.
+ * Read the central directory size so Deno never receives the descriptor/trailer
+ * as part of the raw deflate stream. Node tolerates this trailer; Edge does not. */
+export function cotahistPayload(buf: Uint8Array): { payload: Uint8Array<ArrayBuffer>; method: number } {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  if (buf.length < 30 || dv.getUint32(0, true) !== 0x04034b50) throw new Error('invalid_zip');
+  const flags = dv.getUint16(6, true), method = dv.getUint16(8, true);
+  if (flags & 1 || ![0, 8].includes(method)) throw new Error('unsupported_zip');
+  const start = 30 + dv.getUint16(26, true) + dv.getUint16(28, true);
+  let compressed = dv.getUint32(18, true);
+  if (flags & 8) {
+    let end = buf.length - 22;
+    for (; end >= Math.max(0, buf.length - 65557); end--) if (dv.getUint32(end, true) === 0x06054b50) break;
+    if (end < Math.max(0, buf.length - 65557) || dv.getUint16(end + 10, true) !== 1 || dv.getUint16(end + 4, true) || dv.getUint16(end + 6, true)) throw new Error('invalid_zip_directory');
+    const directory = dv.getUint32(end + 16, true);
+    if (directory + 46 > end || dv.getUint32(directory, true) !== 0x02014b50 || dv.getUint32(directory + 42, true) !== 0 || dv.getUint16(directory + 10, true) !== method) throw new Error('invalid_zip_directory');
+    compressed = dv.getUint32(directory + 20, true);
+    if (dv.getUint32(directory + 24, true) > 160 * 1024 * 1024 || start + compressed > directory) throw new Error('unsupported_zip_size');
+  }
+  if (!compressed || start + compressed > buf.length) throw new Error('invalid_zip_size');
+  return { payload: buf.slice(start, start + compressed), method };
+}
+
 /** Extrai e parseia o COTAHIST em streaming, sem materializar os ~83 MB de texto.
  *  Descomprime e lê linha a linha, guardando só as linhas dos tickers-alvo. */
 async function baixarEParsear(nome: string, alvo: Set<string>): Promise<Map<string, Row[]>> {
@@ -90,12 +113,7 @@ async function baixarEParsear(nome: string, alvo: Set<string>): Promise<Map<stri
   // O header do zip do COTAHIST é fixo (nome curto, sem extra), mas para ser
   // robusto lemos os primeiros bytes e calculamos o offset antes de inflar.
   const buf = await boundedBytes(r);
-  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-  if (dv.getUint32(0, true) !== 0x04034b50) throw new Error('não é ZIP');
-  const metodo = dv.getUint16(8, true);
-  const inicio = 30 + dv.getUint16(26, true) + dv.getUint16(28, true);
-  const compLen = dv.getUint32(18, true);
-  const payload = new Uint8Array(buf.subarray(inicio, compLen > 0 ? inicio + compLen : undefined));
+  const { payload, method: metodo } = cotahistPayload(buf);
 
   const fonte = metodo === 0
     ? new Response(payload).body!

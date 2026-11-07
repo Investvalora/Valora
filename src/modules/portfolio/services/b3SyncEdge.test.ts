@@ -9,8 +9,14 @@ it('usa arquivo diário quando o mensal não foi publicado e informa cobertura p
   for (const at of [56,69,82,108]) put(at,'0000000001483')
   put(210,'0000001'); put(230,'BRRADLACNOR0')
   const payload = new TextEncoder().encode(line.join('')+'\n')
-  const zip = new Uint8Array(30+payload.length), view = new DataView(zip.buffer)
-  view.setUint32(0,0x04034b50,true); view.setUint32(18,payload.length,true); zip.set(payload,30)
+  // Strip the zlib wrapper to build a raw-deflate ZIP entry without Node types.
+  const compressed = new Uint8Array(await new Response(new Response(payload).body!.pipeThrough(new CompressionStream('deflate'))).arrayBuffer()).slice(2,-4)
+  const directory = 30 + compressed.length + 16
+  const zip = new Uint8Array(directory + 46 + 22), view = new DataView(zip.buffer)
+  view.setUint32(0,0x04034b50,true); view.setUint16(6,8,true); view.setUint16(8,8,true); zip.set(compressed,30)
+  view.setUint32(directory,0x02014b50,true); view.setUint16(directory+10,8,true)
+  view.setUint32(directory+20,compressed.length,true); view.setUint32(directory+24,payload.length,true)
+  view.setUint32(directory+46,0x06054b50,true); view.setUint16(directory+56,1,true); view.setUint32(directory+62,directory,true)
   const written: string[] = []
   vi.stubGlobal('fetch',vi.fn(async(url: string, init?: RequestInit) => {
     if(url.includes('/assets?')) return Response.json([{ticker:'RADL3',provider_symbol:'RADL3'}])
@@ -19,7 +25,10 @@ it('usa arquivo diário quando o mensal não foi publicado e informa cobertura p
     if(init?.method==='POST') {written.push(url);return new Response(null,{status:204})}
     throw new Error('Unexpected request')
   }))
-  const path = '../../../../supabase/functions/sync-b3-prices/index.ts'; await import(path)
+  const path = '../../../../supabase/functions/sync-b3-prices/index.ts'; const module = await import(path)
+  expect(module.cotahistPayload(zip).payload.length).toBe(compressed.length)
+  const broken = zip.slice(); new DataView(broken.buffer).setUint32(directory+62,zip.length,true)
+  expect(() => module.cotahistPayload(broken)).toThrow('invalid_zip_directory')
   const response = await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer internal'}}))
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({linhas:1,cobertura_mensal_completa:false,avisos:[expect.stringContaining('monthly_unavailable_daily_only:')]})

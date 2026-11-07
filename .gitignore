@@ -36,6 +36,8 @@ lerna-debug.log*
 .tmp/
 scripts-temp/
 supabase/.temp/
+.claude/worktrees/
+.claude/settings.local.json
 
 # OS
 Thumbs.db

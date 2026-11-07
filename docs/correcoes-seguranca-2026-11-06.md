@@ -36,6 +36,8 @@ A primeira execução remota encontrou duas lacunas no ambiente de testes: o tes
 
 Execução remota `42321229897`: jobs `app` e `database-isolation` aprovados. O harness Docker foi efetivamente executado no runner. As actions de checkout/setup-node foram atualizadas para versões oficiais com runtime Node 24, checkout sem persistência de credenciais e imagem Ubuntu 24.04 explícita, eliminando a dependência de runtime obsoleto e da mudança automática de imagem do runner.
 
+O checkout atualizado identificou um gitlink preexistente em `.claude/worktrees/agent-a621403417532ee7c` sem entrada em `.gitmodules`. Essa referência temporária foi retirada somente do índice Git e worktrees/configuração pessoal do Claude foram incluídas no `.gitignore`; o diretório local foi preservado. Isso corrige a origem do aviso antigo de Git 128 e da falha no checkout novo, sem desativar a limpeza de credenciais da action.
+
 ### Proteções adicionais e serviços externos
 
 O intervalo no navegador é contornável e **não constitui proteção contra DDoS**. O limite de IP é imposto pelo Supabase Auth; ataques distribuídos exigem proteção do provedor e camadas adicionais. Um proxy no frontend não impediria chamadas diretas ao Auth público. Não se deve criar bloqueio global pelo email, que permitiria a terceiros impedir o acesso de uma pessoa.

@@ -32,16 +32,26 @@ Evidências e distinção entre achado de código e impacto ainda não medido: [
 
 [Soluções verificadas, fontes e limites](solucao-reconciliacao-pendencias-2026-11-07.md). Integração local B3/CVM/iShares e reforços de BCB/Tesouro/CoinGecko: [implementação e publicação](fontes-oficiais-2026-11-07.md). JPM permanece sem adaptador homologado; iShares tem descoberta pelo catálogo, sem lista fixa de tickers.
 
-- [ ] Publicar correção de proventos totais/lucro: 12M e histórico inteiro estavam compartilhando o mesmo total. Implementado e retestado localmente; [evidências](comparacao-investidor10-2026-11-07.md).
+- [x] Publicar correção de proventos totais/lucro: PR110 mergeada e produção conferida, total773,60 e12M603,54. [Evidências](homologacao-producao-pr110.md).
 - [x] Adicionar sincronização BR após fechamento e ampliar janela EUA até22h UTC. Migrations aplicadas; atualização BR pontual40/40 sem falhas. Não alterar cotações americanas que concordam entre fontes só para igualar ao I10.
-- [ ] Publicar remoção do CDI fixo10,5% e completar referência/cobertura da série. Fallback removido localmente e teste de preservação do saldo aprovado; ainda falta diferenciar data de execução da referência econômica. Não acionado no RDB conferido.
+- [x] Publicar remoção do CDI fixo10,5%: função publicada e recálculo autorizado executado. Saldo preservado quando faltam dados; nenhuma taxa arbitrária introduzida.
+- [ ] Completar diagnóstico de referência/cobertura CDI: diferenciar data de execução da referência econômica e identificar lacunas internas da série. Publicação do fallback removido não encerra esse critério.
 - [ ] Integrar fonte gratuita confiável de datas reais de pagamento/valores líquidos para completar proventos após importação (JPM/TFLO). Yahoo ex_date não comprova pagamento; não copiar arredondamentos nem inventar retenção/câmbio.
-- [ ] Publicar e homologar fontes oficiais implementadas em07/11: B3 ações por ISIN, CVM informes de FIIs, iShares por descoberta/fila, validação BCB, Tesouro recente de todos os títulos suportados e alias `COINGECKO_KEY`. Migration e funções locais testadas; dados públicos brutos não substituem recebimentos líquidos. Calendário de FIIs brasileiros, outros gestores/JPM e rotação/orçamento dos demais jobs de cotação em escala permanecem pendentes.
-- [ ] Publicar status de falha parcial da ingestão B3 (503 em vez de falso200) e tratar de forma observável título de Tesouro sem preço oficial compatível, sem editar cadastro por suposição.
+- [x] Publicar e homologar a carga inicial das fontes oficiais: migration e10 funções publicadas;4 crons ativos. CVM19301 informes/9 FIIs, B3 diário40 ativos/primeiro lote13 anúncios, iShares20 eventos, cripto12/12. [Evidências e limites](homologacao-producao-pr110.md). Não significa cobertura completa de todos os calendários ou recebimentos líquidos.
+- [ ] Ampliar cobertura de calendário de FIIs brasileiros e outros gestores/JPM; rotação/orçamento global dos jobs de cotação em escala. Confirmar processamento das filas automáticas além do primeiro lote antes de declarar cobertura integral.
+- [x] Publicar falha parcial observável na ingestão B3 e corrigir ZIP com data descriptor no Edge. Carga HTTP200 validada após correção; mensal indisponível continua explicitamente como cobertura diária. PR111 mergeada com checks aprovados.
+- [ ] Conferir cadastro Tesouro Selic vencimento10/10/2027, quantidade100, sem PU oficial compatível. Fora da carteira Investidor10; saldo preservado, sem correção por suposição. Outros13 lotes recalculados.
+- [x] Retestar em produção a consolidação dos lotes do mesmo Tesouro após merge da PR111: IPCA2029 uma linha/2 aplicações, saldo158,34; compras e datas preservadas.
+
+Atualização das prioridades: custo de aquisição com corretagem/taxas de compra corrigido no banco, com recálculo autorizado; diferença explicada de7,92659 na Investidor10, restando cerca de0,05 para reconciliar. CDI agora grava referência econômica05/11 separada da execução e rejeita lacunas acima de10 dias; critério é conservador e não substitui calendário bancário completo. B3 concluiu22/22 tarefas sem erros,134 anúncios. JPM pagamento31/10 confirmado no RI e complementado como evento público; líquido pessoal não inferido. Tesouro desconhecido pertence a outra conta, não ao titular da Investidor10; preservado e não tratado como cadastro do usuário.
+
+PR112 também separa visualmente líquidos importados e estimativas brutas em Desempenho › Proventos. Fechamento técnico da rodada não significa reconciliação de líquido sem extrato ou igualdade artificial dos centavos com I10. [Estado detalhado](pendencias-prioritarias-2026-11-07.md).
 
 ## 3. Média — consistência técnica e operação
 
 Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, recuperação de sessão/tela, bloqueio da corrida de importação e divisão de páginas. Os itens abaixo permanecem abertos até atenderem seus critérios completos e homologação. [Implementação, medições e limites](correcoes-tecnicas-2026-11-07.md).
+
+Atualização07/11: implementação inicial publicada pela PR110; início, importação, detalhe e rentabilidade conferidos em produção. RP04–07 continuam abertos pelos critérios restantes abaixo; RP09 precisa do reteste específico de sessão revogada, sem revogar sessões reais inadvertidamente.
 
 - [ ] **RP-04 — Catálogo compartilhado de indicadores.** Centralizar fórmula/convenção, unidade, fonte, referência, classes e operadores para tabela, score, estratégias e alertas. Conferir Dívida/PL; confirmar intenção antes de converter limites antigos.
 - [ ] **RP-05 — Integrar a importação ao fluxo atual.** Reutilizar parser/preview existentes, mostrar carteira de destino e registrar lote/arquivo. Conferir possíveis duplicatas sem bloquear compras legítimas iguais. Reproduzir a hipótese de corrida entre validação assíncrona e confirmação; só então classificar/corrigir esse defeito.

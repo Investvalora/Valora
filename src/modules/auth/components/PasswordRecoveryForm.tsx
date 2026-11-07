@@ -66,7 +66,7 @@ function DesktopPasswordRecoveryForm() {
           <div role="status" className="flex min-h-[174px] flex-col items-center justify-center text-center">
             <Check className="auth-success-check h-12 w-12 text-[#7ee39a]" strokeWidth={2.5} aria-hidden="true" />
             <h2 className="mt-4 text-lg font-semibold">Email enviado</h2>
-            <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-[#a8adb1]">{successMessage} Confira sua caixa de entrada.</p>
+            <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-[#a8adb1]">{successMessage} Confira sua caixa de entrada e spam. Use o link mais recente, uma única vez. Se ele estiver inválido, volte à recuperação para solicitar outro.</p>
           </div>
           <button type="button" disabled className={`${authButton} mt-5`}>Enviar instruções</button>
         </div>

@@ -2,6 +2,23 @@ import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
 
+it('grava referência CDI e não a data da execução como referência econômica', async () => {
+  let handler!: (request: Request) => Promise<Response>
+  vi.stubGlobal('Deno',{env:{get:(name:string)=>name==='SUPABASE_URL'?'https://test':'internal'},serve:(h:typeof handler)=>{handler=h}})
+  const mock = vi.fn(async(url:string,init?:RequestInit) => {
+    if(init?.method==='PATCH') return new Response(null,{status:204})
+    if(url.includes('macro_rates')) return Response.json([{date:'2026-11-05',value:13.65}])
+    return Response.json([{id:'rdb',type:'rdb_cdi',indexer:'cdi',rate:115,principal:1000,application_date:'2026-11-05',maturity_date:'2026-11-06',events:[]}])
+  })
+  vi.stubGlobal('fetch',mock)
+  const path='../../../../supabase/functions/calc-fixed-income/index.ts';await import(path)
+  const response=await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer internal'}}))
+  expect((await response.json()).erros).toEqual([])
+  const patch=JSON.parse(String(mock.mock.calls.find(call=>call[1]?.method==='PATCH')?.[1]?.body))
+  expect(patch).toMatchObject({valuation_method:'contract',valuation_price_date:'2026-11-05'})
+  expect(patch.current_value).toBeCloseTo(1000*(1+(1.1365**(1/252)-1)*1.15),4)
+})
+
 it('preserva o saldo e informa erro por lote quando a série CDI está ausente', async () => {
   let handler!: (request: Request) => Promise<Response>
   vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://test' : 'internal' }, serve: (value: typeof handler) => { handler = value } })

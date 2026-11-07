@@ -6,7 +6,7 @@ export interface IncomeCoverage { covered_from: string; covered_until: string }
 export interface RecordedIncome {
   id: string; ticker: string; type: string; record_date: string | null
   payment_date: string; quantity: number; value_per_share: number
-  gross_amount: number; net_amount: number; currency: 'BRL'
+  gross_amount: number; net_amount: number; currency: 'BRL' | 'USD'
   asset: { type: DividendRow['asset_type'] } | null
 }
 export interface IncomeHistory { entries: RecordedIncome[]; coverage: IncomeCoverage[] }
@@ -15,6 +15,7 @@ export const incomeHistoryService = {
   async list(userId: string, walletId: string): Promise<IncomeHistory> {
     const { data: coverage, error } = await supabase.from('wallet_income_imports')
       .select('covered_from, covered_until').eq('user_id', userId).eq('wallet_id', walletId)
+      .neq('source', 'nomad_statement_partial')
     if (error) throw error
     const entries: RecordedIncome[] = []
     for (let start = 0; ; start += 500) {
@@ -33,9 +34,15 @@ export const incomeHistoryService = {
 
 /** Imported totals are authoritative, including sold assets and withholding. */
 export function mergeIncomeHistory(estimates: DividendRow[], history: IncomeHistory, since: string, today = toIsoDate(new Date())): DividendRow[] {
-  const uncovered = estimates.filter(row => !row.payment_date || !history.coverage.some(
-    period => row.payment_date! >= period.covered_from && row.payment_date! <= period.covered_until,
-  ))
+  const uncovered = estimates.filter(row => {
+    const confirmed = history.entries.some(entry => entry.ticker === row.ticker && entry.type === row.type && (
+      entry.payment_date === row.payment_date ||
+      (entry.record_date !== null && entry.record_date === (row.record_date ?? row.ex_date))
+    ))
+    return !confirmed && (!row.payment_date || !history.coverage.some(
+      period => row.payment_date! >= period.covered_from && row.payment_date! <= period.covered_until,
+    ))
+  })
   const recorded = history.entries.filter(row => row.payment_date >= since && row.payment_date <= today)
     .map(row => ({
       ticker: row.ticker, type: row.type, ex_date: row.record_date ?? row.payment_date,

@@ -24,6 +24,7 @@ export function ScoreCalculationHelp() {
       <div><dt className="font-medium text-white/85">Pontos</dt><dd>Entram somente quando a condição é atendida. Pontos negativos descontam; condição não atendida ou dado ausente contribui com 0. Não há pontuação proporcional à distância do limite.</dd></div>
       <div><dt className="font-medium text-white/85">Total do ativo</dt><dd>Somamos as contribuições e limitamos o resultado a 0–100. Não transformamos o total possível em 100: um grupo de até 6 pontos continua valendo até 6. O total do card é a soma dos pontos configurados, não o resultado de um ativo.</dd></div>
       <div><dt className="font-medium text-white/85">Média da carteira</dt><dd>Usa os scores elegíveis ponderados pelos valores de mercado em reais. Um ativo com mais valor pesa mais. A cobertura mostra quanto do patrimônio participa dessa média.</dd></div>
+      <div><dt className="font-medium text-white/85">Escala e modelo inicial</dt><dd>A soma não é normalizada: se suas regras positivas somam 6 pontos, atender todas resulta em 6, não 100. Para usar toda a escala, distribua 100 pontos entre os critérios positivos. O modelo inicial é um exemplo opcional; suas regras existentes permanecem iguais.</dd></div>
     </dl>
   </details>
 }

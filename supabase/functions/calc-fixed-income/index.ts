@@ -1,4 +1,5 @@
 import { hasTreasuryQuantity, treasuryValueAt } from '../_shared/treasury.ts';
+import { cdiPeriod } from '../_shared/cdi.ts';
 // Edge Function: calc-fixed-income
 //
 // Calcula o valor atual de todas as posições de renda fixa ativas de um usuário
@@ -180,21 +181,19 @@ async function calcCdi(
   pctCdi: number,
   from: string,
   to = hoje(),
-): Promise<number> {
-  if (from >= to) return principal;
+): Promise<{ value: number; referenceDate: string | null }> {
+  if (from >= to) return { value: principal, referenceDate: null };
   const rates = await pgGetMacroRates('cdi', from, to);
-  if (!rates.length) {
-    throw new Error('CDI indisponível no período; saldo anterior preservado, sem taxa estimada');
-  }
+  const period = cdiPeriod(rates, from, to);
   let fatorAcum = 1;
-  for (const { value } of rates) {
+  for (const { value } of period.rows) {
     if (!Number.isFinite(Number(value)) || Number(value) < 0) throw new Error('Taxa CDI inválida; saldo anterior preservado');
     // value = CDI anualizado em % a.a.
     // fator diário = (1 + pctCdi/100 × cdi_aa/100)^(1/252)
     const fatorDia = 1 + (Math.pow(1 + value / 100, 1 / 252) - 1) * pctCdi / 100;
     fatorAcum *= fatorDia;
   }
-  return principal * fatorAcum;
+  return { value: principal * fatorAcum, referenceDate: period.referenceDate };
 }
 
 /**
@@ -241,8 +240,11 @@ async function calcularValor(pos: FiPosition): Promise<number> {
     case 'selic':
       // Selic: usa taxa média do período (similar ao prefixado mas com dados reais)
       return calcPrefixado(principal, rate, application_date, to);
-    case 'cdi':
-      return calcCdi(principal, rate, application_date, to);
+    case 'cdi': {
+      const result = await calcCdi(principal, rate, application_date, to);
+      pos.valuation_method = 'contract'; pos.valuation_price_date = result.referenceDate;
+      return result.value;
+    }
     case 'ipca':
       return calcIpca(principal, rate, application_date, to);
     default:

@@ -26,7 +26,7 @@ export function FixedIncomeActions({ name, lots }: { name: string; lots: Positio
           <p className="font-medium">{lot.acquisitionDate ? lot.acquisitionDate.slice(0, 10).split('-').reverse().join('/') : 'Data não informada'}</p>
           <dl className="mt-2 grid grid-cols-2 gap-2 text-xs"><dt className="text-white/50">Principal restante</dt><dd className="text-right">{fmtMoney(lot.averagePrice)}</dd><dt className="text-white/50">Saldo bruto</dt><dd className="text-right">{fmtMoney(lot.marketValueBRL)}</dd></dl>
           {lot.fixedIncome?.type.startsWith('tesouro_') && !/juros|renda\+|educa/i.test(lot.name ?? '') && <TreasuryMarketForm lot={lot} />}
-          {lot.fixedIncome?.valuation_price_date && <p className="mt-2 text-xs text-white/50">Preço oficial de {lot.fixedIncome.valuation_price_date.split('-').reverse().join('/')}</p>}
+          {lot.fixedIncome?.valuation_price_date && <p className="mt-2 text-xs text-white/50">{lot.fixedIncome.valuation_method === 'market' ? 'Preço oficial de ' : 'Última referência do índice: '}{lot.fixedIncome.valuation_price_date.split('-').reverse().join('/')}</p>}
         </li>)}
       </ul>
     </Modal>

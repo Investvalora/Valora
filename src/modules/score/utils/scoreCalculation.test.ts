@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyScoreRules, evaluateRule } from './scoreCalculation'
+import { applyScoreRules, evaluateRule, explainScore, weightedPortfolioScore } from './scoreCalculation'
 import type { FundamentalsRow, ScoreRule } from '../types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -212,5 +212,26 @@ describe('applyScoreRules', () => {
     })
     const result = applyScoreRules([betweenRule], [fund('BBAS3', { roe: 12 })])
     expect(result.get('BBAS3')).toBe(15)
+  })
+})
+
+
+describe('score explanation and portfolio weighting', () => {
+  it('explains penalties, missing values and the same final cap', () => {
+    const rules = [rule({ metric: 'dy', operator: 'gte', threshold_min: 6, points: 120 }), rule({ metric: 'pl', operator: 'lt', points: -10 }), rule({ metric: 'roe', operator: 'gt' })]
+    const row = fund('A', { pl: 5, roe: null })
+    const explanation = explainScore(rules, row)
+    expect(explanation.raw).toBe(110)
+    expect(explanation.total).toBe(applyScoreRules(rules, [row]).get('A'))
+    expect(explanation.criteria.map(item => item.met)).toEqual([true, true, null])
+    expect(explainScore(rules, null).total).toBeNull()
+  })
+  it('weights BRL market values and reports excluded coverage without treating missing as zero', () => {
+    expect(weightedPortfolioScore([{ ticker: 'A', marketValueBRL: 100 }, { ticker: 'B', marketValueBRL: 300 }, { ticker: 'RF', marketValueBRL: 400 }], new Map([['A', 0], ['B', 80]]))).toEqual({ score: 60, coverage: 50 })
+  })
+  it('does not publish a partial score with missing valuation or an empty portfolio', () => {
+    expect(weightedPortfolioScore([{ ticker: 'A', marketValueBRL: null }], new Map([['A', 80]]))).toEqual({ score: null, coverage: null })
+    expect(weightedPortfolioScore([], new Map())).toEqual({ score: null, coverage: null })
+    expect(weightedPortfolioScore([{ ticker: 'A', marketValueBRL: 100 }], new Map())).toEqual({ score: null, coverage: 0 })
   })
 })

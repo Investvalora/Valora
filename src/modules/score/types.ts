@@ -57,6 +57,7 @@ export const OPERATOR_LABELS: Record<ScoreOperator, string> = {
 
 /** Linha da tabela `fundamentals` (apenas o registro mais recente por ticker). */
 export interface FundamentalsRow {
+  source?: string
   ticker: string
   reference_date: string
   pl: number | null

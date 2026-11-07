@@ -1,3 +1,4 @@
+import { ConfiguredAlerts } from './ConfiguredAlerts'
 import { useEffect, useState } from 'react'
 import { Bell, BellRing, TrendingDown, TrendingUp, AlertTriangle, Clock, Plus, RefreshCw, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -59,6 +60,8 @@ function triggerHapticFeedback() {
 }
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
+  indicator: { label: 'Indicador', tickerColor: 'text-nf-blue', Icon: BellRing },
+  event: { label: 'Evento', tickerColor: 'text-nf-blue', Icon: BellRing },
   position_no_transactions: {
     label: 'Inconsistência',
     tickerColor: 'text-amber-300',
@@ -512,6 +515,8 @@ export function AlertsPage() {
           </button>
         </div>
       )}
+
+      <ConfiguredAlerts />
 
       {/* Lista de alertas */}
       {isLoading ? (

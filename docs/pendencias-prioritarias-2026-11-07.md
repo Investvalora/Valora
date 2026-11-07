@@ -27,3 +27,22 @@
 Tela Desempenho › Proventos passa a separar os totais filtrados de líquidos importados e estimativas brutas, com aviso de imposto/tarifa/câmbio e de que a soma combina bases diferentes. Não substitui o histórico nem aplica retenção presumida. Teste do componente confirma a separação sem alteração dos valores. Rodada direcionada8/8 aprovada.
 
 Critérios não tecnicamente solucionáveis sem dados externos permanecem delimitados: líquido exato JPM/TFLO necessita extrato; centavos restantes necessitam base exata de conversão/precisão do I10. Cadastro de outro titular não será alterado por solicitação desta conta. Estes itens não impedem a entrega das correções e não justificam inventar recebimentos, taxa ou vencimento.
+
+## Pesquisa pública dos créditos JPM e TFLO
+
+Pesquisa solicitada pelo usuário em 07/11/2026. As quantidades da carteira permitem calcular o bruto elegível, mas não comprovam o crédito líquido da corretora:
+
+| Ativo | Pagamento | Distribuição por unidade | Quantidade | Bruto calculado em USD |
+| --- | --- | --- | --- | --- |
+| JPM | 31/10/2026 | 1,65 | 0,08102 | 0,133683 |
+| TFLO | 05/11/2026 | 0,171627 | 3,35616657 | 0,57600879990939 |
+
+Fontes primárias: [declaração do JPMorgan](https://www.jpmorganchase.com/ir/news/2026/jpmc-declares-increased-common-stock-dividend-9-15) e [distribuições do TFLO](https://www.ishares.com/us/products/260652/ishares-treasury-floating-rate-bond-etf). O JPM tem data de registro em 06/10; o TFLO em 02/11.
+
+Uma retenção hipotética de 30%, sem outras despesas, resultaria em USD 0,0935781 para JPM e USD 0,403206159936573 para TFLO, antes do arredondamento da corretora. São cenários, não líquidos confirmados. A [IRS Publication 519](https://www.irs.gov/publications/p519) prevê tratamento específico para interest-related dividends de fundos que façam a designação correspondente. O [relatório QII da iShares de 2025](https://www.ishares.com/us/literature/tax-information/2025-ishares-qualified-interest-income-summary-stamped.pdf) documenta esse mecanismo e orienta conferir a retenção no informe da corretora; não comprova o percentual do pagamento do TFLO de novembro de 2026. A pesquisa não localizou uma designação desse pagamento que permita calcular seu líquido com segurança.
+
+Não foi criado recebimento pessoal nem aplicada retenção presumida. Para encerrar a conciliação são necessários o lançamento da corretora (bruto, imposto, tarifa, moeda e eventual câmbio), inclusive possível ajuste posterior de retenção.
+
+### Precisão residual do custo
+
+Consulta somente de leitura comparou o custo das compras dos ativos ainda mantidos com quantidade vezes preço médio armazenado. Nesta carteira, sem vendas desses ativos, a diferença de arredondamento é BRL 0,0136 mais USD 0,000251144536; pela PTAX 5,5013 equivale a BRL 0,0149816214. Portanto explica cerca de 1,5 centavo, não os aproximadamente 5,6 centavos integrais. O custo calculado diretamente desses lançamentos mais renda fixa seria BRL 18.670,3891649 (18.670,39), ainda cerca de 4 centavos abaixo do cabeçalho observado no I10. Nenhuma compensação artificial foi aplicada.

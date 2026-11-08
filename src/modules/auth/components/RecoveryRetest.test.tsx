@@ -7,6 +7,7 @@ import { ResetPasswordForm } from './ResetPasswordForm'
 
 const fixture = vi.hoisted(() => ({ mobile: false, recover: vi.fn(), reset: vi.fn() }))
 vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => fixture.mobile }))
+vi.mock('../hooks/useAuth', () => ({ useAuth: () => ({ loading: false, isAuthenticated: true }) }))
 vi.mock('../services/authService', () => ({ authService: {
   requestPasswordRecovery: fixture.recover, resetPassword: fixture.reset,
 } }))

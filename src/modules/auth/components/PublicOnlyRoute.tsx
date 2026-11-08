@@ -13,7 +13,7 @@ export function PublicOnlyRoute() {
     )
   }
 
-  if (isAuthenticated && !(pathname === '/login' && new URLSearchParams(search).get('reauth') === '1')) {
+  if (isAuthenticated && pathname !== '/recuperar-senha' && !(pathname === '/login' && new URLSearchParams(search).get('reauth') === '1')) {
     return <Navigate to="/inicio" replace />
   }
 

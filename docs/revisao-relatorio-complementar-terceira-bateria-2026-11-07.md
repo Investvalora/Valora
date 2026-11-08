@@ -69,3 +69,15 @@ Rodada direcionada:35 testes aprovados em cinco arquivos (ProtectedRoute, Recove
 Homologação local autenticada no navegador integrado: seleção PETR4/VALE3, seis indicadores lado a lado, fontes Yahoo com referências distintas, sem escrita na carteira. Evidência não versionada output/revisao-pdf-s3/comparador-local.png.15 testes aprovados em cinco arquivos, incluindo criação explícita do modelo e preservação de regras existentes. TypeScript do app aprovado; build de produção/PWA em verificação. A nota padrão automática de toda conta não foi imposta. Diagnóstico operacional de e-mail continua aberto até correlação com entrega/abertura.
 
 Fechamento local: build de produção/PWA concluído, incluindo TypeScript do projeto; lint dos arquivos alterados sem erros. Rodada final ampliada cobre16 testes únicos (seis dos dois componentes novos mais dez dos arquivos de guarda, recuperação e ajuda); limite de quatro e duplicatas também aprovados. Funcionalidades novas ainda dependem de merge/deploy e reteste publicado. O diagnóstico SMTP permanece pendente, não encerrado pela melhoria de texto.
+
+## Homologação publicada após merge PR112 — 07/11/2026
+
+Merge d3ba5f9b94c337aaaea24e19569c97a9f3e70ea7 confirmado (20h31 BRT); app/database-isolation/preview aprovados. Commit de merge passou Vercel de pending a success durante esta conferência. Antes disso /analise/comparar ainda mostrava404 na versão anterior; após publicação e reload passou a carregar normalmente.
+
+Produção autenticada: comparador PETR4/VALE3 exibiu os seis indicadores, moedas, fontes e referências lado a lado. Ajuda da escala do score abriu com o texto novo; grupos personalizados6/16 permaneceram e média ponderada carregou0,97/100 com cobertura38,64%. Nenhuma regra ou posição criada. Modelo inicial não foi acionado nesta conta, que já tem regras; persistência foi coberta nos testes locais, não por criação real em produção. Sem erros de console capturados.
+
+Após confirmar o novo frontend, executada a carga Nomad previamente autorizada: JPM02/11 brutoUSD0,13/líquido0,09 e TFLO05/11 brutoUSD0,58/líquido0,41; TFLO06/10 já estava corrigido para brutoUSD0,54/líquido0,38. SELECT posterior confirmou uma linha por ativo/data, moedaUSD. Importação parcial não alterou cobertura completa anterior nem posições/transações.
+
+Conferência visual de produção: filtroJPM mostra apenas o pagamento02/11, R$0,49 líquido convertido, estimativas0; filtroTFLO mostra05/11 R$2,24 e06/10 R$1,89 uma vez cada, estimativas0. Total anual selecionadoR$606,30; valoresBRL são apresentação por PTAX e originaisUSD persistidos. Evidências privadas não versionadas: comparador-producao.png, jpm-producao.png e tflo-producao.png em output/revisao-pdf-s3.
+
+Diagnóstico de entrega do e-mail continua aberto; o merge publica orientação, não comprova correçãoSMTP. Recuperação real de senha, logout real e criação do modelo em conta nova não foram executados nesta homologação para preservar a sessão/regras do responsável.

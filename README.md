@@ -4,22 +4,23 @@ Plataforma de análise e gestão de investimentos para investidores brasileiros.
 
 ## Stack Técnica
 
-- **Frontend:** Vite 5.x, React 18.3.x, TypeScript 5.5.x
+- **Frontend:** Vite 7.x, React 18.3.x, TypeScript 5.9.x
 - **Styling:** TailwindCSS 3.4.x (tema dark-only)
-- **Routing:** React Router 6.x
+- **Routing:** React Router 7.x
 - **State:** Zustand 4.5.x
 - **Data Fetching:** TanStack Query 5.x
 - **Backend:** Supabase (Postgres 15, Auth, Edge Functions)
 - **Charts:** Recharts 2.12.x
 - **Forms:** React Hook Form 7.x + Zod
-- **Package Manager:** pnpm 9.x
+- **Runtime:** Node.js 24 (mínimo 22.12)
+- **Package Manager:** pnpm 12.3.4 (mesma versão do CI, fixada em `package.json`)
 
 ## Setup de Desenvolvimento
 
 ### 1. Instalar Dependências
 
 ```bash
-pnpm install
+npx pnpm@12.3.4 install --frozen-lockfile
 ```
 
 ### 2. Configurar Supabase
@@ -35,18 +36,24 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ### 3. Rodar Migrations
 
-Execute as migrations SQL no Supabase Dashboard (SQL Editor):
+Para um banco local isolado, com Docker Desktop em execução:
 
 ```bash
-# No SQL Editor do Supabase, execute em ordem:
-# 1. supabase/migrations/001_create_users_table.sql
+npx supabase@3.0.0 start
 ```
 
-Ou use a Supabase CLI:
+Use a URL e a chave pública do ambiente local no `.env.local`. As migrations
+são aplicadas em ordem pelo CLI; não esvazie arquivos para contornar erros.
+Não copie secrets de produção para testes. Jobs de sincronização dependem de
+Vault e Edge Functions configurados; iniciar o banco não ativa essas integrações.
+
+Para um projeto hospedado existente, revise migrations pendentes antes de aplicar:
 
 ```bash
-supabase link --project-ref your-project-ref
-supabase db push
+npx supabase@3.0.0 link --project-ref your-project-ref
+npx supabase@3.0.0 db push --remote --dry-run
+# Após revisar o plano e o projeto de destino:
+npx supabase@3.0.0 db push --remote
 ```
 
 Ver detalhes em `supabase/migrations/README.md`

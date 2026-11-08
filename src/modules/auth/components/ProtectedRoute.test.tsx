@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, expect, it } from 'vitest'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -36,4 +36,18 @@ it('aguarda a restauração da sessão antes de decidir o redirecionamento', () 
   expect(screen.getByText('Carregando...')).toBeInTheDocument()
   expect(screen.queryByText('Login público')).not.toBeInTheDocument()
   expect(screen.queryByText('Dados privados')).not.toBeInTheDocument()
+})
+
+it('remove a página privada e vai ao login quando uma sessão aberta é encerrada', () => {
+  useAuthStore.setState({ session: { user: { id: 'test-owner' } } as never, loading: false })
+  render(<MemoryRouter initialEntries={['/inicio']}><Routes>
+    <Route path="/login" element={<p>Login público</p>} />
+    <Route element={<ProtectedRoute />}><Route path="/inicio" element={<p>Dados privados</p>} /></Route>
+    <Route path="*" element={<p>Endereço inexistente</p>} />
+  </Routes></MemoryRouter>)
+  expect(screen.getByText('Dados privados')).toBeInTheDocument()
+  act(() => useAuthStore.setState({ session: null, user: null }))
+  expect(screen.getByText('Login público')).toBeInTheDocument()
+  expect(screen.queryByText('Dados privados')).not.toBeInTheDocument()
+  expect(screen.queryByText('Endereço inexistente')).not.toBeInTheDocument()
 })

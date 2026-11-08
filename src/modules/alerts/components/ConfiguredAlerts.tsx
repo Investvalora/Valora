@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { useFormDraft } from '../../../shared/hooks/useFormDraft'
 import { draftKey } from '../../../shared/utils/sessionDraft'
 import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { DebtThresholdNotice } from '../../score/components/DebtThresholdNotice'
 
 const kinds: Record<RuleKind, string> = { indicator: 'Indicador fundamentalista', dividend_announced: 'Provento anunciado', dividend_payment: 'Data de pagamento de provento' }
 const field = 'mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#252525] px-3 py-2 text-sm text-white'
@@ -61,6 +62,7 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
           <label className="text-sm text-white/70">Valor de referência<input className={field} value={threshold} onChange={event => setThreshold(event.target.value)} inputMode="decimal" required /></label></div>
       </>}
       {kind === 'indicator' && chosenMetric === 'debt_equity' && <p className="text-xs text-white/60">Dívida/PL em percentual, conforme Yahoo: 76 significa 76%, e não 76 vezes o patrimônio.</p>}
+      {kind === 'indicator' && chosenMetric === 'debt_equity' && threshold.trim() && <DebtThresholdNotice minimum={Number(threshold.replace(',', '.'))} />}
       <p className="text-xs leading-relaxed text-white/60">Indicadores: ações e BDRs; fundos aceitam DY e P/VP. Cada condição dispara uma vez ao ser atendida e rearma depois de deixar de ser atendida. Proventos: somente eventos públicos disponíveis na fonte, uma notificação por evento. O aviso não confirma direito ao recebimento.</p>
       {(invalid || save.isError) && <p role="alert" className="text-sm text-amber-200">{invalid || 'Não foi possível salvar. Confira a classe do ativo, a condição e se já existe uma regra igual.'}</p>}
       <div className="flex flex-wrap justify-end gap-2"><button type="button" className={button} disabled={save.isPending} onClick={close}>Cancelar</button><button className={button} disabled={save.isPending}>{save.isPending ? 'Salvando…' : 'Salvar regra'}</button></div>
@@ -81,6 +83,7 @@ export function ConfiguredAlerts() {
     <p className="mt-2 text-xs text-white/60">Monitoramento automático a cada 5 minutos, inclusive com o app fechado. Depende da atualização dos dados públicos; o push requer permissão no dispositivo.</p>
     {query.isLoading ? <p role="status" className="mt-3 text-sm text-white/60">Carregando regras…</p> : query.isError ? <div role="alert" className="mt-3 text-sm text-amber-200">Não foi possível carregar as regras. <button onClick={() => query.refetch()} className="underline">Tentar novamente</button></div> : !query.data?.length ? <p className="mt-3 text-sm text-white/50">Nenhuma regra configurada.</p> : <ul className="mt-4 space-y-3">{query.data.map(rule => <li key={rule.id} className="rounded-xl border border-white/10 p-3">
       <p className="text-sm font-semibold text-white">{rule.ticker} · {kinds[rule.kind]} · {rule.enabled ? 'Ativa' : 'Pausada'}</p>
+      {rule.kind === 'indicator' && rule.metric === 'debt_equity' && rule.threshold != null && <DebtThresholdNotice minimum={rule.threshold} />}
       {rule.kind === 'indicator' && <p className="mt-1 text-sm text-white/65">{METRIC_LABELS[rule.metric!]} {rule.operator === 'gte' ? '≥' : '≤'} {rule.threshold?.toLocaleString('pt-BR')}</p>}
       <div className="mt-2 flex flex-wrap gap-2"><button className={button} onClick={() => setEditing(rule)}>Editar regra</button><button className={button} disabled={action.isPending} onClick={() => action.mutate({ rule })}>{rule.enabled ? 'Pausar' : 'Ativar'}</button><button className={button} disabled={action.isPending} onClick={() => { if (window.confirm(`Excluir a regra de ${rule.ticker}? Os avisos já recebidos serão mantidos.`)) action.mutate({ rule, remove: true }) }}>Excluir regra</button></div>
     </li>)}</ul>}

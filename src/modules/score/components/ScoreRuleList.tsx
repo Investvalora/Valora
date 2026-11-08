@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDeleteScoreRule } from '../hooks/useScoreRules'
 import { useUpsertScorePreferences } from '../hooks/useScorePreferences'
 import { METRIC_LABELS, OPERATOR_LABELS, type ScoreRule } from '../types'
+import { DebtThresholdNotice } from './DebtThresholdNotice'
 
 interface ScoreRuleListProps {
   rules: ScoreRule[]
@@ -109,6 +110,7 @@ export function ScoreRuleList({ rules, activeRuleId, onEdit }: ScoreRuleListProp
 
                   {/* Condição */}
                   <td className="px-4 py-3 text-gray-300">
+                    {rule.metric === 'debt_equity' && <DebtThresholdNotice minimum={rule.threshold_min} maximum={rule.operator === 'between' ? rule.threshold_max : null} />}
                     {OPERATOR_LABELS[rule.operator] !== rule.operator
                       ? formatThreshold(rule)
                       : '—'}

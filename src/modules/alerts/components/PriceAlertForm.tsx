@@ -3,15 +3,31 @@ import { useCreatePriceTargetAlert } from '../hooks/useAlertMutations'
 import type { AlertCondition } from '../types'
 import { AlertAssetField, AlertTargetPriceField } from './AlertPriceFields'
 import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
+import { usePriceAlertDraft } from '../hooks/usePriceAlertDraft'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { useAuth } from '../../auth/hooks/useAuth'
 
 export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () => void; initialTicker?: string }) {
+  const { user } = useAuth()
+  return <PriceAlertFields key={`${user?.id ?? 'anonymous'}:${initialTicker}`} onClose={onClose} initialTicker={initialTicker} />
+}
+
+function PriceAlertFields({ onClose, initialTicker }: { onClose: () => void; initialTicker: string }) {
   const [ticker, setTicker] = useState(initialTicker)
   const [condition, setCondition] = useState<AlertCondition>('below')
   const [targetPrice, setTargetPrice] = useState('')
   const [error, setError] = useState('')
 
   const createAlert = useCreatePriceTargetAlert()
-  const fields = useAlertPriceFields({ ticker, price: targetPrice, onTickerChange: setTicker, onPriceChange: setTargetPrice, initialTicker })
+  const draft = usePriceAlertDraft('inline', { ticker, price: targetPrice, condition }, initialTicker)
+  const [hasDraftOnOpen] = useState(draft.available)
+  const fields = useAlertPriceFields({ ticker, price: targetPrice, onTickerChange: setTicker, onPriceChange: setTargetPrice, initialTicker: hasDraftOnOpen ? '' : initialTicker })
+  function close() { draft.clear(); onClose() }
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    fields.changeTicker(saved.ticker); fields.changePrice(saved.price); setCondition(saved.condition)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,7 +49,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
         targetPrice: price,
         condition,
       })
-      onClose()
+      close()
     } catch (cause) {
       const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : null
       setError(code === '23505'
@@ -48,6 +64,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
     <div className="rounded-[14px] border border-nf-blue/20 bg-[#1B1B1B] p-5">
       <h3 className="mb-4 text-[14px] font-semibold text-white">Novo alerta de preço</h3>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end" noValidate>
+        <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
         <AlertAssetField model={fields} />
 
         {/* Condição */}
@@ -92,7 +109,7 @@ export function PriceAlertForm({ onClose, initialTicker = '' }: { onClose: () =>
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             disabled={createAlert.isPending}
             className="rounded-full border border-white/[0.15] px-4 py-2 text-[12px] font-medium text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-50"
           >

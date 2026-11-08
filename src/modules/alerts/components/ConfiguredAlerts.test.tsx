@@ -9,7 +9,7 @@ vi.mock('../services/configuredAlertsService', () => ({ configuredAlertsService:
 vi.mock('../../portfolio/hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: [{ ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' }] }) }))
 vi.mock('../services/alertQuoteService', () => ({ alertQuoteService: { getQuote: mocks.getQuote, resolveAsset: async () => ({ ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' }) } }))
 const rule = { id: 'r', user_id: 'u', ticker: 'PETR4', kind: 'indicator', metric: 'dy', operator: 'gte', threshold: 6, enabled: true }
-beforeEach(() => { vi.clearAllMocks(); mocks.list.mockResolvedValue([]); mocks.save.mockResolvedValue(undefined); mocks.setEnabled.mockResolvedValue(undefined) })
+beforeEach(() => { sessionStorage.clear(); vi.clearAllMocks(); mocks.list.mockResolvedValue([]); mocks.save.mockResolvedValue(undefined); mocks.setEnabled.mockResolvedValue(undefined) })
 function page() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><ConfiguredAlerts /></QueryClientProvider>) }
 it('cria regra por seleção do catálogo sem consultar preço e permite corrigir falha', async () => {
   page()
@@ -45,4 +45,25 @@ it('cria evento sem enviar condição numérica residual', async () => {
   fireEvent.change(dialog.getByLabelText('Tipo de acompanhamento'), { target: { value: 'dividend_payment' } })
   fireEvent.click(dialog.getByRole('button', { name: 'Salvar regra' }))
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith('u', { ticker: 'PETR4', kind: 'dividend_payment', metric: null, operator: null, threshold: null }, undefined))
+})
+
+it('restaura condição e exige nova seleção do ativo sem salvar nem buscar cotação', async () => {
+  const first = page()
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.change(screen.getByLabelText('Ativo (ticker)'), { target: { value: 'PETR4' } })
+  fireEvent.click(within(await screen.findByRole('listbox')).getByRole('option'))
+  fireEvent.change(screen.getByLabelText('Valor de referência'), { target: { value: '8,5' } })
+  first.unmount()
+  page()
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+  expect(screen.getByLabelText('Ativo (ticker)')).toHaveValue('PETR4')
+  expect(screen.getByLabelText('Valor de referência')).toHaveValue('8,5')
+  expect(mocks.save).not.toHaveBeenCalled()
+  expect(mocks.getQuote).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Salvar regra' }))
+  expect(screen.getByRole('alert')).toHaveTextContent('Selecione um ativo')
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
 })

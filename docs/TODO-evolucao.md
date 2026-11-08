@@ -49,7 +49,7 @@ PR112 também separa visualmente líquidos importados e estimativas brutas em De
 
 ## 3. Média — consistência técnica e operação
 
-**Atualização após PR113 — rodada atual:** [integridade e homologação técnica](pendencias-tecnicas-integridade-2026-11-07.md). Contrato frontend/monitor alinhado; importação atômica com recibo e idempotência por conteúdo implementada e testada em banco descartável, inclusive concorrência real. Rascunhos explícitos adicionados à prévia CSV e ao lançamento rápido. Recuperação de sessão conferida em harness visual isolado; medição inicial do build com rede simulada concluída. Publicação das duas novas migrations/frontend, rascunhos dos outros formulários e teste Android físico continuam pendentes. O titular fará o Android após publicação; não marcar todos os itens como encerrados apenas pela implementação local.
+**Atualização PR114:** [implementação técnica](pendencias-tecnicas-integridade-2026-11-07.md) e [homologação em produção](homologacao-producao-pr114.md). Contrato frontend/monitor alinhado; importação atômica com recibo e idempotência por conteúdo publicada e retestada com carteira temporária autorizada: duas linhas preservadas, repetição sem duplicar, limpeza integral e Investidor10 preservada. As duas migrations estão aplicadas. Rascunhos da prévia CSV e do lançamento rápido sobreviveram à recarga em produção, sem envio automático. Recuperação de sessão conferida em harness visual isolado; medição inicial do build com rede simulada concluída. Permanecem rascunhos dos outros formulários e teste Android físico, que o titular fará após publicação; não marcar RP-06/RP-07 inteiramente encerrados.
 
 Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, recuperação de sessão/tela, bloqueio da corrida de importação e divisão de páginas. Os itens abaixo permanecem abertos até atenderem seus critérios completos e homologação. [Implementação, medições e limites](correcoes-tecnicas-2026-11-07.md).
 
@@ -106,3 +106,5 @@ Entrega local → payout/moedas → diagnóstico e contrato dos indicadores → 
 - SendGrid/spam continua adiado enquanto não houver domínio próprio.
 - Tokens do Kauê permanecem autorizados conforme decisão registrada na TODO de segurança.
 - Recursos já entregues não são reabertos como ausentes: favoritos, edição de lançamentos, exclusão de carteira, metas por classe, busca, push básico, composição por setor e comparação IPCA. Esta lista contém suas evoluções quando explicitadas.
+
+**Complemento PWA — 08/11/2026:** responsável confirmou funcionamento após verificar o ajuste responsivo da barra Renda variável em Ativos › Lançamentos. Correção restrita à busca e aos botões Importar CSV/Lançamento, sem mudança de logo ou formulário. Homologação detalhada em [PR114](homologacao-producao-pr114.md). Medição física de desempenho e rascunhos dos demais formulários continuam separados.

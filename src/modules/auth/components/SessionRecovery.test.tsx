@@ -11,7 +11,7 @@ beforeEach(() => {
   mocks.getUser.mockReset()
   useAuthStore.setState({ session: { access_token: 'test', user: { id: 'a' } } as never })
 })
-afterEach(() => useAuthStore.setState({ session: null }))
+afterEach(() => { vi.useRealTimers(); useAuthStore.setState({ session: null }) })
 it('classifica apenas códigos explícitos, não indisponibilidade ou mensagem genérica', () => {
   expect(isRevokedSession({ code: 'session_not_found' })).toBe(true)
   expect(isRevokedSession({ status: 503 })).toBe(false)
@@ -42,4 +42,19 @@ it('descarta resposta da sessão antiga após troca de identidade', async () => 
   act(() => useAuthStore.setState({ session: { access_token: 'other', user: { id: 'b' } } as never }))
   await act(async () => resolve({ error: { code: 'session_not_found' } }))
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+
+it('oferece nova tentativa após timeout sem logout e ignora a resposta tardia', async () => {
+  vi.useFakeTimers()
+  let resolve!: (value: unknown) => void
+  mocks.getUser.mockReturnValueOnce(new Promise(done => { resolve = done })).mockResolvedValue({ error: null })
+  render(<MemoryRouter><input aria-label="rascunho" defaultValue="preservar"/><SessionRecovery /></MemoryRouter>)
+  await act(async () => vi.advanceTimersByTimeAsync(15_000))
+  expect(screen.getByRole('status')).toHaveTextContent('Não foi possível verificar')
+  expect(useAuthStore.getState().session).not.toBeNull()
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' })))
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  await act(async () => resolve({ error: { code: 'session_not_found' } }))
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.getByLabelText('rascunho')).toHaveValue('preservar')
 })

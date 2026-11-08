@@ -14,17 +14,22 @@ export function SessionRecovery() {
   useEffect(() => {
     let active = true
     let checking = false
+    let timeout: ReturnType<typeof setTimeout> | undefined
     setProblem(null)
     if (!session) return
     const check = async () => {
       if (checking || document.visibilityState === 'hidden') return
       checking = true
       try {
-        const { error } = await supabase.auth.getUser(session.access_token)
+        const result = await Promise.race([
+          supabase.auth.getUser(session.access_token),
+          new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error('Session check timeout')), 15_000) }),
+        ])
+        const { error } = result
         if (active) setProblem(error ? (isRevokedSession(error) ? 'revoked' : 'unavailable') : null)
       } catch {
         if (active) setProblem('unavailable')
-      } finally { checking = false }
+      } finally { clearTimeout(timeout); checking = false }
     }
     void check()
     const visible = () => { if (document.visibilityState === 'visible') void check() }
@@ -32,6 +37,7 @@ export function SessionRecovery() {
     document.addEventListener('visibilitychange', visible)
     return () => {
       active = false
+      clearTimeout(timeout)
       window.removeEventListener('online', check)
       document.removeEventListener('visibilitychange', visible)
     }

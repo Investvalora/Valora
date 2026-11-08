@@ -54,3 +54,16 @@ Instrumentação local apresentou métricas no DOM, sem coletar conteúdo de for
 2. Publicar e homologar recibo/repetição com carteira temporária autorizada, sem importar dados fictícios na Investidor10.
 3. Android físico: abrir lançamento, digitar, recarregar/reabrir, restaurar e cancelar; navegar com rede limitada e conferir retorno de segundo plano. Não enviar operações de teste à carteira real.
 4. Completar rascunhos nos demais formulários e medir outras rotas/instalação antes de encerrar integralmente RP-06/RP-07.
+
+## Aplicação no Supabase compartilhado — 07/11/2026
+
+Aplicação autorizada pelo titular após abertura da PR114. Migrations aplicadas em ordem via plugin no projeto Valora:
+
+- `import_batches_idempotency`: versão remota `20261108013514` (arquivo local `20261108010717`).
+- `indicator_contract`: versão remota `20261108013524` (arquivo local `20261108011211`).
+
+O plugin registra seu próprio timestamp; as duas entradas foram conferidas por nome e conteúdo aplicado. Não reaplicar por diferença de nome de arquivo/timestamp nem executar o histórico inteiro.
+
+Verificação somente de leitura: RLS ativo com policies por auth.uid(); anônimo sem SELECT/EXECUTE, usuário autenticado com execução da importação; as três funções INVOKER com search_path vazio. Contrato mantém Yahoo76 e retorna NULL para dívida sem convenção validada e DY sintético. Zero recibos e zero transações vinculadas ao novo lote: não houve importação de teste, recálculo ou alteração financeira.
+
+Auditor de segurança não apontou os objetos novos. Permanecem os avisos já conhecidos de pg_net em public, proteção de senha vazada desativada e tabelas internas sem policies de cliente. Não foram ampliadas permissões dessas tabelas nem alterados os avisos fora do escopo. Frontend/Android continuam sujeitos à publicação e homologação da PR114.

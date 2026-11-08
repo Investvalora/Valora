@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { email: 'kaue@example.com', user_metadata: { full_name: 'Kauê Cardoso' } } }),
+  useAuth: () => ({ user: { id: 'u', email: 'kaue@example.com', user_metadata: { full_name: 'Kauê Cardoso' } } }),
 }))
 
 vi.mock('../../../shared/hooks/useIsMobile', () => ({
@@ -51,6 +51,7 @@ function renderPage() {
 
 describe('AlertsPage', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     mocks.alerts = []
     mocks.isError = false
     mocks.isLoading = false
@@ -192,6 +193,24 @@ describe('AlertsPage', () => {
       { ticker: 'PETR4', targetPrice: 42.5, condition: 'above' },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     )
+  })
+
+  it.each([false, true])('recupera rascunho sem enviar e limpa no cancelamento (mobile=%s)', mobile => {
+    mocks.mobile = mobile
+    const first = renderPage()
+    const open = () => fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    open()
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'PETR4' } })
+    fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '42.50' } })
+    first.unmount()
+    renderPage(); open()
+    expect(screen.getByLabelText('Preço-alvo (R$)')).toHaveValue(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    expect(screen.getByLabelText('Preço-alvo (R$)')).toHaveValue(42.5)
+    expect(mocks.create).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
+    open()
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
   })
 
   it.each([false, true])('bloqueia ticker vazio e preço inválido no formulário atual (mobile=%s)', (mobile) => {

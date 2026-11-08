@@ -7,10 +7,16 @@ import { configuredAlertsService as service, type ConfiguredAlertRule, type Rule
 import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
 import { AlertAssetField } from './AlertPriceFields'
 import { supportsIndicator } from '../../../shared/indicators/catalog'
+import { z } from 'zod'
+import { useFormDraft } from '../../../shared/hooks/useFormDraft'
+import { draftKey } from '../../../shared/utils/sessionDraft'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
 
 const kinds: Record<RuleKind, string> = { indicator: 'Indicador fundamentalista', dividend_announced: 'Provento anunciado', dividend_payment: 'Data de pagamento de provento' }
 const field = 'mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#252525] px-3 py-2 text-sm text-white'
 const button = 'min-h-11 rounded-full border border-white/15 px-4 py-2 text-sm text-white hover:bg-white/10 disabled:opacity-50'
+const ruleDraftSchema = z.object({ ticker: z.string().max(40), kind: z.enum(['indicator', 'dividend_announced', 'dividend_payment']), metric: z.string().refine(value => Object.prototype.hasOwnProperty.call(METRIC_LABELS, value)).transform(value => value as ScoreMetric), operator: z.enum(['gte', 'lte']), threshold: z.string().max(100) })
+const validateRuleDraft = (value: unknown) => { const result = ruleDraftSchema.safeParse(value); return result.success ? result.data : null }
 
 function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRule; userId: string; onClose: () => void; onSaved: () => void }) {
   const [ticker, setTicker] = useState(rule?.ticker ?? '')
@@ -19,12 +25,23 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
   const [metric, setMetric] = useState<ScoreMetric>(rule?.metric ?? 'dy')
   const [operator, setOperator] = useState<'gte' | 'lte'>(rule?.operator ?? 'gte')
   const [threshold, setThreshold] = useState(String(rule?.threshold ?? ''))
-  const model = useAlertPriceFields({ ticker, price: unusedPrice, onTickerChange: setTicker, onPriceChange: setUnusedPrice, initialTicker: rule?.ticker, fetchQuote: false })
+  const value = { ticker, kind, metric, operator, threshold }
+  const initial = { ticker: rule?.ticker ?? '', kind: rule?.kind ?? 'indicator', metric: rule?.metric ?? 'dy', operator: rule?.operator ?? 'gte', threshold: String(rule?.threshold ?? '') }
+  const draft = useFormDraft(draftKey(userId, 'global', `alert-rule:${rule ? JSON.stringify(rule) : 'new'}`), value, JSON.stringify(value) !== JSON.stringify(initial), validateRuleDraft)
+  const [hasDraftOnOpen] = useState(draft.available)
+  const model = useAlertPriceFields({ ticker, price: unusedPrice, onTickerChange: setTicker, onPriceChange: setUnusedPrice, initialTicker: hasDraftOnOpen ? '' : rule?.ticker, fetchQuote: false })
+  const [restored, setRestored] = useState(false)
+  function close() { draft.clear(); onClose() }
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    model.changeTicker(saved.ticker); setKind(saved.kind); setMetric(saved.metric); setOperator(saved.operator); setThreshold(saved.threshold); setRestored(true)
+  }
   const fund = ['fii', 'reit'].includes(model.selected?.type ?? '')
   const chosenMetric = fund && model.selected && !supportsIndicator(metric, model.selected.type) ? 'dy' : metric
   const [invalid, setInvalid] = useState('')
-  const save = useMutation({ mutationFn: (input: RuleInput) => service.save(userId, input, rule?.id), onSuccess: onSaved })
-  return <Modal isOpen title={rule ? 'Editar regra de alerta' : 'Nova regra de alerta'} onClose={onClose} dismissible={!save.isPending} variant="score">
+  const save = useMutation({ mutationFn: (input: RuleInput) => service.save(userId, input, rule?.id), onSuccess: () => { draft.clear(); onSaved() } })
+  return <Modal isOpen title={rule ? 'Editar regra de alerta' : 'Nova regra de alerta'} onClose={close} dismissible={!save.isPending} variant="score">
     <form className="space-y-4" onSubmit={event => {
       event.preventDefault(); setInvalid('')
       if (!model.selected || model.selected.ticker !== ticker.toUpperCase()) { setInvalid('Selecione um ativo no autocomplete.'); return }
@@ -34,6 +51,8 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
       if (kind === 'indicator' && !Number.isFinite(value)) { setInvalid('Informe um valor de referência válido.'); return }
       save.mutate({ ticker: model.selected.ticker, kind, metric: kind === 'indicator' ? chosenMetric : null, operator: kind === 'indicator' ? operator : null, threshold: kind === 'indicator' ? value : null })
     }}>
+      <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
+      {restored && !model.selected && <p role="status" className="text-sm text-white/70">Selecione novamente o ativo na busca para validar a classe antes de salvar. A condição do rascunho foi preservada.</p>}
       <AlertAssetField model={model} />
       <label className="block text-sm text-white/70">Tipo de acompanhamento<select className={field} value={kind} onChange={event => setKind(event.target.value as RuleKind)}>{Object.entries(kinds).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       {kind === 'indicator' && <>
@@ -44,7 +63,7 @@ function RuleForm({ rule, userId, onClose, onSaved }: { rule?: ConfiguredAlertRu
       {kind === 'indicator' && chosenMetric === 'debt_equity' && <p className="text-xs text-white/60">Dívida/PL em percentual, conforme Yahoo: 76 significa 76%, e não 76 vezes o patrimônio.</p>}
       <p className="text-xs leading-relaxed text-white/60">Indicadores: ações e BDRs; fundos aceitam DY e P/VP. Cada condição dispara uma vez ao ser atendida e rearma depois de deixar de ser atendida. Proventos: somente eventos públicos disponíveis na fonte, uma notificação por evento. O aviso não confirma direito ao recebimento.</p>
       {(invalid || save.isError) && <p role="alert" className="text-sm text-amber-200">{invalid || 'Não foi possível salvar. Confira a classe do ativo, a condição e se já existe uma regra igual.'}</p>}
-      <div className="flex flex-wrap justify-end gap-2"><button type="button" className={button} disabled={save.isPending} onClick={onClose}>Cancelar</button><button className={button} disabled={save.isPending}>{save.isPending ? 'Salvando…' : 'Salvar regra'}</button></div>
+      <div className="flex flex-wrap justify-end gap-2"><button type="button" className={button} disabled={save.isPending} onClick={close}>Cancelar</button><button className={button} disabled={save.isPending}>{save.isPending ? 'Salvando…' : 'Salvar regra'}</button></div>
     </form>
   </Modal>
 }
@@ -66,6 +85,6 @@ export function ConfiguredAlerts() {
       <div className="mt-2 flex flex-wrap gap-2"><button className={button} onClick={() => setEditing(rule)}>Editar regra</button><button className={button} disabled={action.isPending} onClick={() => action.mutate({ rule })}>{rule.enabled ? 'Pausar' : 'Ativar'}</button><button className={button} disabled={action.isPending} onClick={() => { if (window.confirm(`Excluir a regra de ${rule.ticker}? Os avisos já recebidos serão mantidos.`)) action.mutate({ rule, remove: true }) }}>Excluir regra</button></div>
     </li>)}</ul>}
     {action.isError && <p role="alert" className="mt-3 text-sm text-amber-200">Não foi possível alterar a regra. Tente novamente.</p>}
-    {editing && user && <RuleForm rule={editing === 'new' ? undefined : editing} userId={user.id} onClose={() => setEditing(null)} onSaved={refresh} />}
+    {editing && user && <RuleForm key={`${user.id}:${JSON.stringify(editing)}`} rule={editing === 'new' ? undefined : editing} userId={user.id} onClose={() => setEditing(null)} onSaved={refresh} />}
   </section>
 }

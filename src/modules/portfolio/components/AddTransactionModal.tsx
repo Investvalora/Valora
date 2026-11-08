@@ -7,7 +7,7 @@ import { toIsoDate } from '../../../shared/utils/isoDate'
 import { Modal } from '../../../shared/components/Modal'
 import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
 import { useFormDraft } from '../../../shared/hooks/useFormDraft'
-import { draftKey } from '../../../shared/utils/sessionDraft'
+import { draftKey, readDraft, removeDraft } from '../../../shared/utils/sessionDraft'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWallets } from '../hooks/useWallets'
 import { useAddTransaction } from '../hooks/useTransactions'
@@ -97,6 +97,11 @@ const rendaFixaSchema = z.object({
 })
 
 type RendaFixaValues = z.infer<typeof rendaFixaSchema>
+const rendaFixaDraftSchema = z.object({
+  emissor: z.string().max(200), tipo_titulo: z.enum(['', 'cdb_cdi', 'cdb_pre', 'rdb_cdi', 'rdb_pre', 'lci_cdi', 'lca_cdi', 'lci_pre', 'lca_pre']),
+  taxa: z.string().max(100), valor: z.string().max(100), transaction_date: z.string().max(20), maturity_date: z.string().max(20),
+})
+const validateRendaFixaDraft = (value: unknown) => { const result = rendaFixaDraftSchema.safeParse(value); return result.success ? result.data : null }
 
 // ─── tesouro direto schema ────────────────────────────────────────────────────
 
@@ -124,6 +129,12 @@ const tesouroDiretoSchema = z.object({
 })
 
 type TesouroDiretoValues = z.infer<typeof tesouroDiretoSchema>
+const tesouroDraftSchema = z.object({
+  ativo: z.enum(['', 'tesouro_selic', 'tesouro_ipca', 'tesouro_pre', 'tesouro_ipca_juros', 'tesouro_pre_juros']),
+  taxa: z.string().max(100), transaction_date: z.string().max(20), maturity_date: z.string().max(20),
+  quantity: z.string().max(100), price: z.string().max(100), outros_custos: z.string().max(100),
+})
+const validateTesouroDraft = (value: unknown) => { const result = tesouroDraftSchema.safeParse(value); return result.success ? result.data : null }
 
 /** Variantes de Tesouro Direto oferecidas no seletor. As variantes `_juros`
  *  mapeiam para o tipo-base (a coluna `type` só aceita os três títulos-base),
@@ -177,19 +188,21 @@ interface AddTransactionModalProps {
 // ─── RendaFixaForm ────────────────────────────────────────────────────────────
 
 interface RendaFixaFormProps {
+  storageKey: string | null
   addFI: ReturnType<typeof useAddFixedIncomePosition>
   calcValues: () => Promise<void>
   onClose: () => void
 }
 
-function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
+function RendaFixaForm({ addFI, calcValues, onClose, storageKey }: RendaFixaFormProps) {
   const [globalError, setGlobalError] = useState('')
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    setValue,
+    formState: { errors, dirtyFields },
   } = useForm<RendaFixaValues>({
     resolver: zodResolver(rendaFixaSchema),
     defaultValues: {
@@ -201,6 +214,18 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
       maturity_date: '',
     },
   })
+
+  const fields = watch()
+  const draft = useFormDraft(storageKey, {
+    emissor: fields.emissor ?? '', tipo_titulo: fields.tipo_titulo ?? '', taxa: draftNumber(fields.taxa), valor: draftNumber(fields.valor),
+    transaction_date: fields.transaction_date, maturity_date: fields.maturity_date ?? '',
+  }, Object.keys(dirtyFields).length > 0, validateRendaFixaDraft)
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    for (const name of ['emissor', 'tipo_titulo', 'transaction_date', 'maturity_date'] as const) setValue(name, saved[name], { shouldDirty: true })
+    for (const name of ['taxa', 'valor'] as const) setValue(name, saved[name] === '' ? NaN : Number(saved[name]), { shouldDirty: true })
+  }
 
   // isSaving lido da prop addFI para que o componente pai (AddTransactionModal)
   // controle corretamente o estado dismissible do Modal.
@@ -236,6 +261,7 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
       {/* Row 1: Emissor + Tipo de título */}
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -374,19 +400,21 @@ function RendaFixaForm({ addFI, calcValues, onClose }: RendaFixaFormProps) {
 // ─── TesouroDiretoForm ────────────────────────────────────────────────────────
 
 interface TesouroDiretoFormProps {
+  storageKey: string | null
   addFI: ReturnType<typeof useAddFixedIncomePosition>
   calcValues: () => Promise<void>
   onClose: () => void
 }
 
-function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProps) {
+function TesouroDiretoForm({ addFI, calcValues, onClose, storageKey }: TesouroDiretoFormProps) {
   const [globalError, setGlobalError] = useState('')
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    setValue,
+    formState: { errors, dirtyFields },
   } = useForm<z.input<typeof tesouroDiretoSchema>, unknown, TesouroDiretoValues>({
     resolver: zodResolver(tesouroDiretoSchema),
     defaultValues: {
@@ -399,6 +427,18 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
       outros_custos: 0,
     },
   })
+
+  const fields = watch()
+  const draft = useFormDraft(storageKey, {
+    ativo: fields.ativo ?? '', taxa: draftNumber(fields.taxa), transaction_date: fields.transaction_date, maturity_date: fields.maturity_date ?? '',
+    quantity: draftNumber(fields.quantity), price: draftNumber(fields.price), outros_custos: draftNumber(fields.outros_custos),
+  }, Object.keys(dirtyFields).length > 0, validateTesouroDraft)
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    for (const name of ['ativo', 'transaction_date', 'maturity_date'] as const) setValue(name, saved[name], { shouldDirty: true })
+    for (const name of ['taxa', 'quantity', 'price', 'outros_custos'] as const) setValue(name, saved[name] === '' ? NaN : Number(saved[name]), { shouldDirty: true })
+  }
 
   // isSaving lido da prop addFI para que o componente pai (AddTransactionModal)
   // controle corretamente o estado dismissible do Modal.
@@ -461,6 +501,7 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       {/* Row 1: Ativo (full width) */}
+      <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
       <div>
         <label htmlFor="td-ativo" className={LABEL_CLASS}>Ativo</label>
         <select
@@ -631,6 +672,10 @@ function AddTransactionForm({
   const { selectedWallet } = useWallets()
   const [globalError, setGlobalError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<FormCategory | ''>('')
+  const fixedKey = user && selectedWallet ? draftKey(user.id, selectedWallet.id, 'detail-fixed-income') : null
+  const treasuryKey = user && selectedWallet ? draftKey(user.id, selectedWallet.id, 'detail-treasury') : null
+  const [fixedAvailable, setFixedAvailable] = useState(() => !!fixedKey && !!validateRendaFixaDraft(readDraft(fixedKey)))
+  const [treasuryAvailable, setTreasuryAvailable] = useState(() => !!treasuryKey && !!validateTesouroDraft(readDraft(treasuryKey)))
   const addTransaction = useAddTransaction()
   const addFI = useAddFixedIncomePosition()
   const { calc: calcValues } = useCalcFixedIncome()
@@ -678,7 +723,14 @@ function AddTransactionForm({
     { type: transactionType, transaction_date: date, quantity: draftNumber(quantity), price: draftNumber(price), brokerage_fee: draftNumber(brokerageFee) },
     Boolean(Object.keys(dirtyFields).length), validateTransactionDraft)
   const [hasDraftOnOpen] = useState(draft.available)
-  function close() { draft.clear(); onClose() }
+  function close() {
+    draft.clear()
+    if (!ticker) {
+      if (fixedKey) removeDraft(fixedKey)
+      if (treasuryKey) removeDraft(treasuryKey)
+    }
+    onClose()
+  }
   function restore() {
     const saved = draft.restore()
     if (!saved) return
@@ -747,6 +799,14 @@ function AddTransactionForm({
       variant="transaction"
     >
       {/* Category selector — only when ticker is empty */}
+      {!ticker && !selectedCategory && (fixedAvailable || treasuryAvailable) && <div role="status" className="mb-4 rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+        <p>Há rascunhos nesta sessão. Escolha a categoria para conferir e restaurar os campos.</p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {fixedAvailable && <button type="button" className="min-h-11 underline" onClick={() => setSelectedCategory('fixed_income')}>Abrir rascunho de renda fixa</button>}
+          {treasuryAvailable && <button type="button" className="min-h-11 underline" onClick={() => setSelectedCategory('tesouro_direto')}>Abrir rascunho de Tesouro Direto</button>}
+          <button type="button" className="min-h-11 underline" onClick={() => { if (fixedKey) removeDraft(fixedKey); if (treasuryKey) removeDraft(treasuryKey); setFixedAvailable(false); setTreasuryAvailable(false) }}>Descartar rascunhos</button>
+        </div>
+      </div>}
       {ticker === '' && (
         <div className="mb-4">
           <label htmlFor="cat-select" className={LABEL_CLASS}>Tipo de ativo</label>
@@ -765,12 +825,12 @@ function AddTransactionForm({
 
       {/* Renda Fixa form */}
       {showRendaFixa && (
-        <RendaFixaForm addFI={addFI} calcValues={calcValues} onClose={onClose} />
+        <RendaFixaForm storageKey={fixedKey} addFI={addFI} calcValues={calcValues} onClose={close} />
       )}
 
       {/* Tesouro Direto form */}
       {showTesouroDireto && (
-        <TesouroDiretoForm addFI={addFI} calcValues={calcValues} onClose={onClose} />
+        <TesouroDiretoForm storageKey={treasuryKey} addFI={addFI} calcValues={calcValues} onClose={close} />
       )}
 
       {/* Equity / variable-income form */}
@@ -949,7 +1009,7 @@ function AddTransactionForm({
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
             Cancelar

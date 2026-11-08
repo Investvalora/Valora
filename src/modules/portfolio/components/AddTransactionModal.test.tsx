@@ -96,6 +96,52 @@ beforeEach(() => {
 // ─── seletor sem ticker ─────────────────────────────────────────────────────
 
 describe('AddTransactionModal — seletor sem ticker', () => {
+  it('mantém rascunhos separados ao alternar entre renda fixa e Tesouro', () => {
+    renderModal(); selectCategory('fixed_income')
+    change('rf-emissor', 'Banco A'); change('rf-valor', '250')
+    selectCategory('tesouro_direto')
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+    change('td-ativo', 'tesouro_pre'); change('td-price', '500')
+    selectCategory('fixed_income')
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    expect(document.getElementById('rf-emissor')).toHaveValue('Banco A')
+    expect(document.getElementById('rf-valor')).toHaveValue(250)
+  })
+
+  it('remove rascunho após salvar com sucesso sem reaplicar ao reabrir', async () => {
+    const first = renderModal(); selectCategory('fixed_income')
+    change('rf-emissor', 'Banco A'); change('rf-tipo', 'rdb_cdi'); change('rf-taxa', '115'); change('rf-valor', '250')
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
+    await waitFor(() => expect(first.onClose).toHaveBeenCalled())
+    first.unmount(); renderModal(); selectCategory('fixed_income')
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
+  it.each(['fixed_income', 'tesouro_direto'] as const)('recupera rascunho de %s após remontar sem enviar e limpa ao cancelar', category => {
+    const first = renderModal()
+    selectCategory(category)
+    if (category === 'fixed_income') {
+      change('rf-emissor', 'Banco teste'); change('rf-tipo', 'rdb_cdi'); change('rf-taxa', '115'); change('rf-valor', '123.45')
+    } else {
+      change('td-ativo', 'tesouro_ipca'); change('td-taxa', '7.19'); change('td-qty', '0.03'); change('td-price', '3400.03')
+    }
+    first.unmount()
+    const second = renderModal()
+    fireEvent.click(screen.getByRole('button', { name: category === 'fixed_income' ? 'Abrir rascunho de renda fixa' : 'Abrir rascunho de Tesouro Direto' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    if (category === 'fixed_income') {
+      expect(document.getElementById('rf-emissor')).toHaveValue('Banco teste')
+      expect(document.getElementById('rf-taxa')).toHaveValue(115)
+      expect(document.getElementById('rf-valor')).toHaveValue(123.45)
+    } else {
+      expect(document.getElementById('td-ativo')).toHaveValue('tesouro_ipca')
+      expect(document.getElementById('td-qty')).toHaveValue(0.03)
+      expect(document.getElementById('td-price')).toHaveValue(3400.03)
+    }
+    expect(holders.addFI.mutate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    second.unmount(); renderModal(); selectCategory(category)
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
   it('oferece só Renda Fixa e Tesouro Direto (sem renda variável)', () => {
     renderModal()
     const select = document.getElementById('cat-select') as HTMLSelectElement

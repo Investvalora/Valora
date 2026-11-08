@@ -24,6 +24,8 @@ const holders = vi.hoisted(() => ({
 vi.mock('../hooks/useTransactions', () => ({
   useAddTransaction: () => holders.addTx,
 }))
+vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'u' } }) }))
+vi.mock('../hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w' } }) }))
 vi.mock('../hooks/useFixedIncomePositions', () => ({
   useAddFixedIncomePosition: () => holders.addFI,
 }))
@@ -53,7 +55,7 @@ function renderModal(props: {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
-  render(
+  const view = render(
     <AddTransactionModal
       isOpen
       onClose={onClose}
@@ -63,7 +65,7 @@ function renderModal(props: {
     />,
     { wrapper },
   )
-  return { onClose }
+  return { onClose, ...view }
 }
 
 /** Dispara `change` num campo pelo id — funciona p/ input, select e date. */
@@ -78,6 +80,7 @@ function selectCategory(category: 'fixed_income' | 'tesouro_direto') {
 }
 
 beforeEach(() => {
+  sessionStorage.clear()
   holders.addFI.mutate.mockImplementation(
     (_payload: unknown, opts?: { onSuccess?: () => void; onError?: () => void }) => {
       opts?.onSuccess?.()
@@ -124,6 +127,33 @@ describe('AddTransactionModal — seletor sem ticker', () => {
 // ─── ticker pré-preenchido (caminho inalterado) ──────────────────────────────
 
 describe('AddTransactionModal — ticker pré-preenchido', () => {
+  it('restaura quantidade, preço manual e custos após remontar sem enviar; cancelar limpa', async () => {
+    const first = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    change('txn-qty', '2.5')
+    change('txn-price', '40.12')
+    change('txn-fee', '1.25')
+    first.unmount()
+    holders.latestPrice = 99
+    const second = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    expect(document.getElementById('txn-qty')).toHaveValue(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    expect(document.getElementById('txn-qty')).toHaveValue(2.5)
+    expect(document.getElementById('txn-price')).toHaveValue(40.12)
+    expect(document.getElementById('txn-fee')).toHaveValue(1.25)
+    expect(holders.addTx.mutateAsync).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    second.unmount()
+    renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
+
+  it('não oferece rascunho de outro ativo', () => {
+    const first = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    change('txn-qty', '2')
+    first.unmount()
+    renderModal({ ticker: 'VALE3', assetType: 'stock_br' })
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
   it('não mostra o seletor e renderiza o formulário de renda variável', () => {
     renderModal({ ticker: 'PETR4', assetType: 'stock_br', assetName: 'Petrobras PN' })
     expect(document.getElementById('cat-select')).toBeNull()

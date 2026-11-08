@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { draftKey, readDraft, saveDraft, removeDraft } from '../../../shared/utils/sessionDraft'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import { useQuery } from '@tanstack/react-query'
@@ -21,6 +24,10 @@ interface QuickTransactionModalProps {
 }
 
 type FormCategory = AssetType | 'tesouro_direto'
+const transactionDraftSchema = z.object({
+  assetClass: z.enum(['stock_br','fii','bdr','stock_us','etf_us','etf_br','reit','crypto','fixed_income','tesouro_direto']),
+  type: z.enum(['buy','sell']), values: z.record(z.string(), z.string().max(200)),
+})
 
 const ASSET_TYPES: [AssetType, string][] = [
   ['stock_br', 'Ações BR'],
@@ -75,8 +82,18 @@ const RF_TYPES: { value: FixedIncomeType; label: string }[] = [
   { value: 'lca_pre', label: 'LCA Pré' },
 ]
 
-export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: QuickTransactionModalProps) {
+export function QuickTransactionModal(props: QuickTransactionModalProps) {
   const { selectedWallet } = useWallets()
+  const { user } = useAuth()
+  return <QuickTransactionForm key={`${user?.id}:${selectedWallet?.id}:${props.initialFixedIncome?.name ?? 'new'}`} {...props} />
+}
+
+function QuickTransactionForm({ isOpen, onClose, initialFixedIncome }: QuickTransactionModalProps) {
+  const { selectedWallet } = useWallets()
+  const { user } = useAuth()
+  const storageKey = user && selectedWallet ? draftKey(user.id, selectedWallet.id, `transaction:${initialFixedIncome?.name ?? 'new'}`) : null
+  const [draftAvailable, setDraftAvailable] = useState(false)
+  const [draftWarning, setDraftWarning] = useState(false)
   const { data: positions = [] } = usePositions(selectedWallet?.id ?? '')
   const addTransaction = useAddTransaction()
   const externalAsset = useLookupExternalAsset()
@@ -117,6 +134,30 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
 
   const [error, setError] = useState('')
   const [changingCurrency, setChangingCurrency] = useState(false)
+  const draftValues = { ticker,date,quantity,price,otherCosts,rfEmissor,rfTipo,rfTaxa,rfValor,rfDate,rfMaturity,tdAtivo,tdTaxa,tdDate,tdMaturity,tdQty,tdPrice,tdOther }
+  const serializedDraft = JSON.stringify({ assetClass, type, values: draftValues })
+  useEffect(() => {
+    if (isOpen) setDraftAvailable(!!storageKey && transactionDraftSchema.safeParse(readDraft(storageKey)).success)
+  }, [isOpen, storageKey])
+  useEffect(() => {
+    if (!isOpen || !storageKey || !(ticker || quantity || price || rfValor || tdQty || tdPrice)) return
+    setDraftWarning(!saveDraft(storageKey, JSON.parse(serializedDraft)))
+  }, [isOpen, storageKey, serializedDraft, ticker, quantity, price, rfValor, tdQty, tdPrice])
+  function restoreDraft() {
+    if (!storageKey) return
+    const draft = transactionDraftSchema.safeParse(readDraft(storageKey))
+    if (!draft.success) return
+    const v = draft.data.values
+    setAssetClass(draft.data.assetClass); setType(draft.data.type)
+    setTicker(v.ticker ?? ''); setDate(v.date ?? ''); setQuantity(v.quantity ?? ''); setPrice(v.price ?? '')
+    setOtherCosts(v.otherCosts ?? ''); setPriceManuallyEdited(true); setSelectedAsset(null)
+    setRfEmissor(v.rfEmissor ?? ''); setRfTipo(RF_TYPES.some(t => t.value === v.rfTipo) ? v.rfTipo as FixedIncomeType : '')
+    setRfTaxa(v.rfTaxa ?? ''); setRfValor(v.rfValor ?? ''); setRfDate(v.rfDate ?? ''); setRfMaturity(v.rfMaturity ?? '')
+    setTdAtivo(Object.prototype.hasOwnProperty.call(TD_NAME, v.tdAtivo ?? '') ? v.tdAtivo as TesouroDiretoAtivo : '')
+    setTdTaxa(v.tdTaxa ?? ''); setTdDate(v.tdDate ?? ''); setTdMaturity(v.tdMaturity ?? '')
+    setTdQty(v.tdQty ?? ''); setTdPrice(v.tdPrice ?? ''); setTdOther(v.tdOther ?? '')
+    setDraftAvailable(false)
+  }
 
   const isSaving = addTransaction.isPending || addFI.isPending || externalAsset.state.status === 'loading'
 
@@ -173,6 +214,8 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: quoteCurrency })
 
   function resetFields() {
+    if (storageKey) removeDraft(storageKey)
+    setDraftAvailable(false)
     externalAsset.reset()
     setError('')
     setType('buy'); setTicker(''); setDate(toIsoDate(new Date()))
@@ -376,6 +419,12 @@ export function QuickTransactionModal({ isOpen, onClose, initialFixedIncome }: Q
       }
     >
       <form id="quick-transaction-form" onSubmit={submit} className="space-y-5">
+        {draftAvailable && <div role="status" className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+          Há um rascunho desta carteira guardado nesta aba por até 8 horas. Confira os dados antes de salvar.
+          <button type="button" className="ml-2 underline" onClick={restoreDraft}>Restaurar rascunho</button>
+          <button type="button" className="ml-2 underline" onClick={() => { if (storageKey) removeDraft(storageKey); setDraftAvailable(false) }}>Descartar rascunho</button>
+        </div>}
+        {draftWarning && <p role="status" className="text-sm text-amber-200">O navegador não permitiu guardar o rascunho. Campos podem ser perdidos ao recarregar.</p>}
 
         {/* Toggle Compra / Venda — apenas renda variável */}
         {isVariavel && (

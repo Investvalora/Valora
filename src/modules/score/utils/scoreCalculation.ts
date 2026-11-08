@@ -1,13 +1,12 @@
 import type { FundamentalsRow, ScoreByTicker, ScoreMetric, ScoreRule } from '../types'
+import { indicatorValue } from '../../../shared/indicators/catalog'
 
 /**
  * Extrai o valor de uma métrica de uma linha de fundamentals.
  * Retorna `null` quando o campo está ausente ou não é um número finito.
  */
 export function getMetricValue(row: FundamentalsRow, metric: ScoreMetric): number | null {
-  const value = row[metric as keyof FundamentalsRow]
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  return value
+  return indicatorValue(row, metric)
 }
 
 /** Same rules and cap as the existing score, with missing data distinguished. */

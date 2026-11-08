@@ -26,6 +26,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node scripts/security-scan.mjs
+      - run: node scripts/build-indicator-contract.mjs --check
       - run: pnpm audit --audit-level=moderate
       - run: pnpm exec vitest run --maxWorkers=2
       - run: pnpm build
@@ -54,5 +55,7 @@ jobs:
       # Fresh local database: no hosted project, tokens or production Vault.
       - run: npx --yes supabase@3.0.0 start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/040_migration_replay_test.sql
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/import_batches.sql
+      - run: node supabase/tests/import-concurrency.mjs
       - if: always()
         run: npx --yes supabase@3.0.0 stop

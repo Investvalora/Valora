@@ -85,6 +85,7 @@ export const transactionsService = {
     userId: string,
     rows: ParsedTransactionRow[],
     walletId?: string,
+    fileName = 'importacao.csv',
   ) {
     const selected = rows.filter((row) => row.selected && !row.skipped && row.errors.length === 0)
     const payload: NewTransaction[] = selected.map((row) => ({
@@ -96,17 +97,14 @@ export const transactionsService = {
       transaction_date: row.date,
     }))
 
-    if (payload.length === 0) return 0
+    if (payload.length === 0) return { count: 0, duplicate: false }
     for (const transaction of payload) movementDateSchema.parse(transaction.transaction_date)
-    const { error } = await supabase.from('transactions').insert(
-      payload.map((transaction) => ({
-        ...transaction,
-        user_id: userId,
-        ...(walletId ? { wallet_id: walletId } : {}),
-      })),
-    )
+    if (!userId || !walletId) throw new Error('Selecione uma carteira para importar.')
+    const { data, error } = await supabase.rpc('import_owned_transactions', {
+      p_wallet_id: walletId, p_file_name: fileName.slice(0, 255), p_rows: payload,
+    })
     if (error) throw error
-    return payload.length
+    return data as { count: number; duplicate: boolean; batch_id?: string }
   },
 
   /**

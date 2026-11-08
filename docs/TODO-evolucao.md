@@ -49,6 +49,8 @@ PR112 também separa visualmente líquidos importados e estimativas brutas em De
 
 ## 3. Média — consistência técnica e operação
 
+**Atualização após PR113 — rodada atual:** [integridade e homologação técnica](pendencias-tecnicas-integridade-2026-11-07.md). Contrato frontend/monitor alinhado; importação atômica com recibo e idempotência por conteúdo implementada e testada em banco descartável, inclusive concorrência real. Rascunhos explícitos adicionados à prévia CSV e ao lançamento rápido. Recuperação de sessão conferida em harness visual isolado; medição inicial do build com rede simulada concluída. Publicação das duas novas migrations/frontend, rascunhos dos outros formulários e teste Android físico continuam pendentes. O titular fará o Android após publicação; não marcar todos os itens como encerrados apenas pela implementação local.
+
 Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, recuperação de sessão/tela, bloqueio da corrida de importação e divisão de páginas. Os itens abaixo permanecem abertos até atenderem seus critérios completos e homologação. [Implementação, medições e limites](correcoes-tecnicas-2026-11-07.md).
 
 Atualização07/11: implementação inicial publicada pela PR110; início, importação, detalhe e rentabilidade conferidos em produção. RP04–07 continuam abertos pelos critérios restantes abaixo; RP09 precisa do reteste específico de sessão revogada, sem revogar sessões reais inadvertidamente.
@@ -100,7 +102,7 @@ Entrega local → payout/moedas → diagnóstico e contrato dos indicadores → 
 
 ## Decisões preservadas
 
-- Migration 018 continua fora do escopo por decisão do responsável.
+- A antiga exclusão da migration 018 foi superada pela correção de instalação autorizada na PR113: replay das 61 migrations aprovado localmente e no CI. Não reaplicar o histórico inteiro em produção.
 - SendGrid/spam continua adiado enquanto não houver domínio próprio.
 - Tokens do Kauê permanecem autorizados conforme decisão registrada na TODO de segurança.
 - Recursos já entregues não são reabertos como ausentes: favoritos, edição de lançamentos, exclusão de carteira, metas por classe, busca, push básico, composição por setor e comparação IPCA. Esta lista contém suas evoluções quando explicitadas.

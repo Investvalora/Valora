@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../shared/services/supabaseClient', async () => {
   const { supabaseMock } = await import('../../../test/supabaseMock')
-  return { supabase: supabaseMock.client }
+  return { supabase: { ...supabaseMock.client, rpc: mocks.rpc } }
 })
+const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 
 import { resetSupabaseMock, supabaseMock } from '../../../test/supabaseMock'
 import { transactionsService } from './transactionsService'
@@ -23,7 +24,7 @@ const validRow: ParsedTransactionRow = {
   skipped: false,
 }
 
-beforeEach(() => resetSupabaseMock())
+beforeEach(() => { resetSupabaseMock(); mocks.rpc.mockReset() })
 
 describe('transactionsService', () => {
   it('rejeita operação futura antes de escrever, inclusive em lote', async () => {
@@ -43,14 +44,12 @@ describe('transactionsService', () => {
     expect(rows[1].selected).toBe(false)
   })
 
-  it('insere lote atômico com user_id da sessão', async () => {
-    supabaseMock.on('transactions', () => ({ data: null, error: null }))
-
-    await expect(transactionsService.importTransactions(USER_ID, [validRow])).resolves.toBe(1)
-
-    expect(supabaseMock.insertPayloads('transactions')[0]).toEqual([
+  it('envia o lote à RPC com destino fixo; identidade e duplicação são verificadas no servidor', async () => {
+    mocks.rpc.mockResolvedValue({ data: { count: 1, duplicate: false }, error: null })
+    await expect(transactionsService.importTransactions(USER_ID, [validRow], 'wallet', 'nomad.csv')).resolves.toEqual({ count: 1, duplicate: false })
+    expect(mocks.rpc).toHaveBeenCalledWith('import_owned_transactions', {
+      p_wallet_id: 'wallet', p_file_name: 'nomad.csv', p_rows: [
       {
-        user_id: USER_ID,
         ticker: 'PETR4',
         type: 'buy',
         quantity: 10,
@@ -58,6 +57,7 @@ describe('transactionsService', () => {
         brokerage_fee: 0.5,
         transaction_date: '2026-09-10',
       },
-    ])
+    ] })
+    expect(supabaseMock.insertPayloads('transactions')).toEqual([])
   })
 })

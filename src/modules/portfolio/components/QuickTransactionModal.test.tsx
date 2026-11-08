@@ -8,11 +8,13 @@ afterEach(() => vi.restoreAllMocks())
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(async () => ({})), suggestions: [] as Asset[], prices: {} as Record<string, number>, latest: vi.fn() }))
 beforeEach(() => {
+  sessionStorage.clear()
   mocks.save.mockClear()
   mocks.suggestions = []
   mocks.prices = {}
   mocks.latest.mockReset().mockImplementation((ticker: string) => mocks.prices[ticker] ?? null)
 })
+vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'draft-owner' } }) }))
 const usd: Asset = { ticker: 'BTC', name: 'Bitcoin', type: 'crypto', currency: 'USD' }
 const brl: Asset = { ...usd, ticker: 'BTC-BRL', currency: 'BRL' }
 vi.mock('../hooks/useTransactions', () => ({ useAddTransaction: () => ({ mutateAsync: mocks.save, isPending: false }) }))
@@ -23,6 +25,20 @@ vi.mock('../hooks/useFixedIncomePositions', () => ({ useAddFixedIncomePosition: 
 vi.mock('../hooks/useAssetSearch', () => ({ useAssetSearch: () => ({ data: mocks.suggestions }), useTickerLatestPrice: mocks.latest }))
 vi.mock('../services/positionService', () => ({ positionService: { findAssetByTicker: async (ticker: string) => ticker === 'BTC-BRL' ? brl : usd } }))
 import { QuickTransactionModal } from './QuickTransactionModal'
+import { draftKey, readDraft, saveDraft } from '../../../shared/utils/sessionDraft'
+
+it('restaura campos sem salvar nem substituir preço e descarta ao cancelar', async () => {
+  const key = draftKey('draft-owner','wallet','transaction:new')
+  saveDraft(key,{ assetClass: 'crypto', type: 'buy', values: { ticker: 'BTC',date: '2026-01-02',quantity: '2',price: '10' } })
+  mocks.prices.BTC = 99
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.click(await screen.findByRole('button',{name:'Restaurar rascunho'}))
+  expect(screen.getByLabelText('Quantidade')).toHaveValue(2)
+  expect(screen.getByLabelText('Preço (USD)')).toHaveValue(10)
+  expect(mocks.save).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button',{name:'Cancelar'}))
+  expect(readDraft(key)).toBeNull()
+})
 
 it('mostra nome/classe/moeda e só preenche preço após selecionar; trocar a busca limpa cotação anterior', async () => {
   vi.spyOn(positionService, 'findAssetByTicker').mockResolvedValue(null)

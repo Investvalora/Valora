@@ -13,6 +13,7 @@ import type { PositionRow } from './types'
 import type { FundamentalsRow } from '../score/types'
 import type { BazinByTicker } from '../valuation/types'
 import { calcGrahamPrice } from '../valuation/utils/grahamCalculation'
+import { indicatorValue } from '../../shared/indicators/catalog'
 
 export interface EnrichInput {
   /** Linhas derivadas por `derivePositionRows`. */
@@ -54,9 +55,9 @@ export function enrichPositionRows({
     const proventosRecebidosBRL = dividendTotalsByTicker.get(row.ticker) ?? null
 
     // P/L, P/VP, DY — vindos diretamente do fundamentals
-    const pl  = fund?.pl  ?? null
-    const pvp = fund?.pvp ?? null
-    const dy  = fund?.dy  ?? null
+    const pl  = indicatorValue(fund, 'pl', row.type)
+    const pvp = indicatorValue(fund, 'pvp', row.type)
+    const dy  = indicatorValue(fund, 'dy', row.type)
     const lpa = fund?.lpa ?? null
     const vpa = fund?.vpa ?? null
 

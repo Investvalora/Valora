@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { supabase } from '../../../shared/services/supabaseClient'
 import { useAuthStore } from '../store'
 import { useQueryClient } from '@tanstack/react-query'
+import { clearSessionDrafts } from '../../../shared/utils/sessionDraft'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
       const nextIdentity = session?.user.id ?? null
       if (identity !== nextIdentity || nextIdentity === null) {
+        if (identity !== null || nextIdentity === null) clearSessionDrafts()
         // Cancel in-flight requests before removing data from the previous identity.
         void queryClient.cancelQueries()
         queryClient.clear()

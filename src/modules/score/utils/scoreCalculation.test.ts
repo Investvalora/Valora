@@ -28,6 +28,7 @@ function fund(ticker: string, overrides: Partial<FundamentalsRow> = {}): Fundame
     roe: 12,
     dy: 6,
     debt_equity: 0.5,
+    source: 'yahoo',
     net_margin: 20,
     updated_at: new Date().toISOString(),
     ...overrides,

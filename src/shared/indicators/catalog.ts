@@ -1,4 +1,5 @@
 import type { AssetType } from '../../modules/portfolio/types'
+import contract from './contract.json'
 
 export const INDICATOR_IDS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin'] as const
 export type IndicatorId = typeof INDICATOR_IDS[number]
@@ -10,12 +11,12 @@ const equities: AssetType[] = ['stock_br', 'stock_us', 'bdr']
 /** Existing raw values and thresholds are preserved. Debt/PL is Yahoo percentage. */
 export const INDICATOR_CATALOG = Object.fromEntries(INDICATOR_IDS.map(id => [id, {
   label: INDICATOR_LABELS[id],
-  unit: ['pl', 'pvp'].includes(id) ? 'multiple' as const : 'percent' as const,
+  unit: contract[id].unit,
   classes: [...equities, ...(['pvp', 'dy'].includes(id) ? ['fii', 'reit'] as AssetType[] : [])],
   operators: INDICATOR_OPERATORS,
   alertOperators: ['gte', 'lte'] as const,
   sourceField: 'source', referenceField: 'reference_date',
-  requiredSource: id === 'debt_equity' ? 'yahoo' : null,
+  requiredSource: contract[id].requiredSource,
 }])) as Record<IndicatorId, {
   label: string; unit: 'multiple' | 'percent'; classes: AssetType[];
   operators: typeof INDICATOR_OPERATORS; alertOperators: readonly ['gte', 'lte'];
@@ -23,6 +24,15 @@ export const INDICATOR_CATALOG = Object.fromEntries(INDICATOR_IDS.map(id => [id,
 }>
 export function supportsIndicator(id: IndicatorId, type: AssetType) {
   return INDICATOR_CATALOG[id].classes.includes(type)
+}
+
+/** Read raw units without converting user thresholds or silently inventing a source. */
+export function indicatorValue(row: Partial<Record<IndicatorId, number | null>> & { source?: string | null } | null, id: IndicatorId, type?: AssetType | null): number | null {
+  if (!row || (type && !supportsIndicator(id, type)) || row.source === 'seed' || row.source === 'synthetic') return null
+  const requiredSource = INDICATOR_CATALOG[id].requiredSource
+  if (requiredSource && row.source !== requiredSource) return null
+  const value = row[id]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export const INDICATOR_EXPLANATIONS: Record<IndicatorId, { meaning: string; formula: string; context: string }> = {

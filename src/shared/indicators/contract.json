@@ -1,0 +1,8 @@
+{
+  "pl": { "unit": "multiple", "requiredSource": null },
+  "pvp": { "unit": "multiple", "requiredSource": null },
+  "roe": { "unit": "percent", "requiredSource": null },
+  "dy": { "unit": "percent", "requiredSource": null },
+  "debt_equity": { "unit": "percent", "requiredSource": "yahoo" },
+  "net_margin": { "unit": "percent", "requiredSource": null }
+}

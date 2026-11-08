@@ -1,5 +1,8 @@
 import { ArrowLeft, FileUp, Wallet } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { z } from 'zod'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { draftKey, readDraft, saveDraft, removeDraft } from '../../../shared/utils/sessionDraft'
 import { useNavigate } from 'react-router-dom'
 import { parseCsvTransactions, MAX_PREVIEW_ROWS, type CsvImportError, type ParsedTransactionRow } from '../csv/csvParser'
 import { transactionsService } from '../services/transactionsService'
@@ -10,6 +13,11 @@ import { duplicateRows } from '../csv/duplicatePreview'
 
 const HEADER = 'data;ticker;tipo;quantidade;preço;corretagem'
 const FIELDS = ['date', 'ticker', 'type', 'quantity', 'price', 'brokerageFee'] as const
+const draftSchema = z.object({ fileName: z.string().min(1).max(255), rows: z.array(z.object({
+  rowNumber: z.number().int().positive(), date: z.string(), ticker: z.string(),
+  type: z.enum(['buy', 'sell', 'dividend', 'jcp', 'bonus', '']), quantity: z.string(), price: z.string(), brokerageFee: z.string(),
+  selected: z.boolean(), skipped: z.boolean(),
+})).min(1).max(1000) })
 
 function reparseRow(row: ParsedTransactionRow, value: string, field: (typeof FIELDS)[number]) {
   const values = {
@@ -35,6 +43,10 @@ export function TransactionImportPage() {
   const navigate = useNavigate()
   const importMutation = useImportTransactions()
   const { selectedWallet } = useWallets()
+  const { user } = useAuth()
+  const storageKey = user && selectedWallet ? draftKey(user.id, selectedWallet.id, 'csv') : null
+  const [draftAvailable, setDraftAvailable] = useState(false)
+  const [draftWarning, setDraftWarning] = useState('')
   const history = useAllTransactions()
   const [fileName, setFileName] = useState('')
   const [previewWallet, setPreviewWallet] = useState<string | null>(null)
@@ -48,6 +60,28 @@ export function TransactionImportPage() {
   const validationVersion = useRef(0)
   const duplicates = useMemo(() => duplicateRows(rows, history.data ?? []), [rows, history.data])
   const walletChanged = previewWallet !== null && previewWallet !== selectedWallet?.id
+
+  useEffect(() => {
+    setDraftAvailable(!!storageKey && draftSchema.safeParse(readDraft(storageKey)).success)
+  }, [storageKey])
+  useEffect(() => {
+    if (!storageKey || !rows.length || walletChanged || isReading) return
+    if (!saveDraft(storageKey, { fileName, rows })) setDraftWarning('Não foi possível guardar a prévia neste navegador. Preserve o CSV antes de recarregar.')
+  }, [storageKey, rows, fileName, walletChanged, isReading])
+
+  const restoreDraft = async () => {
+    if (!storageKey) return
+    const saved = draftSchema.safeParse(readDraft(storageKey))
+    if (!saved.success) return
+    const restored = saved.data.rows.map(row => reparseRow({ ...row, errors: [] }, row.date, 'date'))
+    setRows(restored)
+    setTotalRows(restored.length)
+    setFileName(saved.data.fileName)
+    setPreviewWallet(selectedWallet?.id ?? null)
+    setAcceptDuplicates(false)
+    setDraftAvailable(false)
+    await validateRows(restored)
+  }
 
   const validateRows = async (nextRows: ParsedTransactionRow[]) => {
     const version = validationVersion.current + 1
@@ -72,7 +106,8 @@ export function TransactionImportPage() {
   const handleFile = async (file?: File) => {
     if (!file) return
     setIsReading(true)
-    setFileName(file.name)
+    setFileName(file.name || 'importacao.csv')
+    setDraftAvailable(false)
     setPreviewWallet(selectedWallet?.id ?? null)
     setAcceptDuplicates(false)
     setSuccessMessage('')
@@ -113,10 +148,12 @@ export function TransactionImportPage() {
   const confirm = async () => {
     if (isReading || isValidating || importMutation.isPending || fileError || walletChanged || !selectedWallet || history.isPending || history.isError || (duplicates.size > 0 && !acceptDuplicates)) return
     try {
-      const count = await importMutation.mutateAsync(rows)
-      setSuccessMessage(`${count} ${count === 1 ? 'transação importada' : 'transações importadas'} com sucesso.`)
+      const { count, duplicate } = await importMutation.mutateAsync({ rows, fileName, walletId: selectedWallet.id })
+      setSuccessMessage(duplicate ? `Este lote de ${count} transações já foi importado nesta carteira. Nenhuma transação foi duplicada.` : `${count} ${count === 1 ? 'transação importada' : 'transações importadas'} com sucesso.`)
       setRows([])
       setTotalRows(0)
+      if (storageKey) removeDraft(storageKey)
+      setDraftAvailable(false)
     } catch {
       void history.refetch()
       setFileError('Não foi possível confirmar o resultado da importação. Confira o histórico antes de repetir: uma falha de conexão pode ocorrer depois da gravação. Revalide a prévia para conferir possíveis duplicatas.')
@@ -139,6 +176,12 @@ export function TransactionImportPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />Voltar para carteira
         </button>
       </header>
+      {draftAvailable && rows.length === 0 && <div role="status" className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+        Há uma prévia guardada nesta aba para esta carteira. Ela expira em 8 horas e não será enviada automaticamente.
+        <button className="ml-3 underline" type="button" onClick={() => void restoreDraft()}>Restaurar prévia</button>
+        <button className="ml-3 underline" type="button" onClick={() => { if (storageKey) removeDraft(storageKey); setDraftAvailable(false) }}>Descartar rascunho</button>
+      </div>}
+      {draftWarning && <p role="status" className="mb-4 text-sm text-amber-200">{draftWarning}</p>}
 
       <section className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-5 sm:p-6" aria-label="Upload de CSV">
         <div className="mb-4 flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-nf-purple/10 text-nf-purple"><FileUp className="h-5 w-5" aria-hidden="true" /></span><div><label htmlFor="transaction-csv" className="block text-sm font-semibold text-white">Arquivo CSV</label><p className="mt-1 text-xs text-white/50">Selecione o arquivo e confira a prévia antes de importar.</p></div></div>
@@ -152,6 +195,7 @@ export function TransactionImportPage() {
         />
         <p className="mt-3 text-xs leading-relaxed text-white/50">Colunas obrigatórias: data, ticker, tipo, quantidade, preço e corretagem. Até 1000 linhas.</p>
         <p className="mt-3 text-xs leading-relaxed text-white/50">Tipo: buy (compra), sell (venda), dividend, jcp ou bonus. Data no formato AAAA-MM-DD. Preços e custos devem estar na moeda do ativo cadastrado.</p>
+        <p className="mt-3 text-xs leading-relaxed text-white/50">O mesmo lote selecionado é importado uma única vez por carteira, mesmo em dispositivos diferentes. Linhas iguais dentro do arquivo são mantidas. Para uma nova operação idêntica a um lote anterior, use um lançamento manual.</p>
       </section>
 
       {fileError && <p className="mt-4 rounded border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-300" role="alert">{fileError}</p>}

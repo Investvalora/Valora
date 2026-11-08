@@ -1,4 +1,4 @@
-import { INDICATOR_CATALOG, supportsIndicator } from '../../../shared/indicators/catalog'
+import { INDICATOR_CATALOG, indicatorValue, supportsIndicator } from '../../../shared/indicators/catalog'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { METRIC_LABELS, type FundamentalsRow, type ScoreMetric } from '../../score/types'
 import type { AssetType } from '../../portfolio/types'
@@ -19,8 +19,8 @@ export function FundamentalsPanel({ row, type, loading, error }: {
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {metrics.map(metric => {
             const applicable = supportsIndicator(metric, type)
-            const value = row?.[metric]
-            const available = real && typeof value === 'number' && Number.isFinite(value) && (metric !== 'debt_equity' || row?.source === 'yahoo')
+            const value = indicatorValue(row, metric, type)
+            const available = value !== null
             return <div key={metric} className="rounded-xl border border-white/10 p-3">
               <dt className="text-xs text-white/60">{metric === 'debt_equity' ? 'Dívida/PL (%)' : METRIC_LABELS[metric]}</dt>
               <dd className="mt-1 text-sm font-semibold text-white">{!applicable ? 'Não se aplica' : available ? `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}${INDICATOR_CATALOG[metric].unit === 'percent' ? '%' : ''}` : 'Indisponível'}</dd>

@@ -28,4 +28,4 @@ Conferência final da folha `/alertas` em 390 px: preencher PETR4/preço-alvo 42
 - RP-09: testes simulados de revogação/rede/identidade aprovados, sem revogar sessões reais. Reteste completo entre abas/dispositivos permanece separado.
 - CDI/calendários/fontes de proventos: não foram modificados nesta rodada; exigem investigação própria e fontes verificadas. Não marcar como encerrados.
 
-Publicação e homologação em produção desta continuação ainda pendentes.
+PR117 publicada e homologada em 08/11/2026, merge `04d954c`. Checks e deploy Vercel aprovados. Preço-alvo 42,5 restaurado nos dois formulários; referência 8,5 restaurada na nova regra com exigência de revalidar ativo. Cancelamentos limparam os rascunhos. Nenhuma operação de criação/edição foi enviada ao banco. Evidência em `output/homologacao-pr117/`. Conferência em navegador integrado, incluindo 390 px; não substitui novo teste físico ou alteração de regras reais.

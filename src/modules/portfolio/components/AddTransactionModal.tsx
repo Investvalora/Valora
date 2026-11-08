@@ -5,6 +5,11 @@ import { z } from 'zod'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import { Modal } from '../../../shared/components/Modal'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { useFormDraft } from '../../../shared/hooks/useFormDraft'
+import { draftKey } from '../../../shared/utils/sessionDraft'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { useWallets } from '../hooks/useWallets'
 import { useAddTransaction } from '../hooks/useTransactions'
 import { useAddFixedIncomePosition } from '../hooks/useFixedIncomePositions'
 import { useCalcFixedIncome } from '../hooks/useCalcFixedIncome'
@@ -67,6 +72,9 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
+const transactionDraftSchema = z.object({ type: z.enum(['buy', 'sell']), transaction_date: z.string().max(20), quantity: z.string().max(100), price: z.string().max(100), brokerage_fee: z.string().max(100) })
+const validateTransactionDraft = (value: unknown) => { const result = transactionDraftSchema.safeParse(value); return result.success ? result.data : null }
+const draftNumber = (value: number | undefined) => Number.isFinite(value) ? String(value) : ''
 
 // ─── renda fixa schema ────────────────────────────────────────────────────────
 
@@ -605,13 +613,22 @@ function TesouroDiretoForm({ addFI, calcValues, onClose }: TesouroDiretoFormProp
 
 // ─── main modal ───────────────────────────────────────────────────────────────
 
-export function AddTransactionModal({
+export function AddTransactionModal(props: AddTransactionModalProps) {
+  const { user } = useAuth()
+  const { selectedWallet } = useWallets()
+  if (!props.isOpen) return null
+  return <AddTransactionForm key={`${user?.id}:${selectedWallet?.id}:${props.ticker}`} {...props} />
+}
+
+function AddTransactionForm({
   isOpen,
   onClose,
   ticker,
   assetType,
   assetName,
 }: AddTransactionModalProps) {
+  const { user } = useAuth()
+  const { selectedWallet } = useWallets()
   const [globalError, setGlobalError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<FormCategory | ''>('')
   const addTransaction = useAddTransaction()
@@ -656,6 +673,21 @@ export function AddTransactionModal({
   const quantity = watch('quantity')
   const price = watch('price')
   const brokerageFee = watch('brokerage_fee') ?? 0
+  const date = watch('transaction_date')
+  const draft = useFormDraft(user && selectedWallet && ticker ? draftKey(user.id, selectedWallet.id, `detail-transaction:${ticker}`) : null,
+    { type: transactionType, transaction_date: date, quantity: draftNumber(quantity), price: draftNumber(price), brokerage_fee: draftNumber(brokerageFee) },
+    Boolean(Object.keys(dirtyFields).length), validateTransactionDraft)
+  const [hasDraftOnOpen] = useState(draft.available)
+  function close() { draft.clear(); onClose() }
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    setValue('type', saved.type, { shouldDirty: true })
+    setValue('transaction_date', saved.transaction_date, { shouldDirty: true })
+    for (const field of ['quantity', 'price', 'brokerage_fee'] as const) {
+      setValue(field, saved[field] === '' ? NaN : Number(saved[field]), { shouldDirty: true })
+    }
+  }
   const { data: catalogAsset } = useQuery({
     queryKey: ['portfolio', 'asset', ticker],
     queryFn: () => positionService.findAssetByTicker(ticker),
@@ -665,10 +697,10 @@ export function AddTransactionModal({
   const latestPrice = useTickerLatestPrice(ticker)
 
   useEffect(() => {
-    if (latestPrice !== null && !dirtyFields.price) {
+    if (latestPrice !== null && !dirtyFields.price && !hasDraftOnOpen) {
       setValue('price', latestPrice, { shouldValidate: false })
     }
-  }, [latestPrice, dirtyFields.price, setValue])
+  }, [latestPrice, dirtyFields.price, setValue, hasDraftOnOpen])
 
   const totalValue =
     Number.isFinite(quantity) && Number.isFinite(price) && quantity > 0 && price >= 0
@@ -693,7 +725,7 @@ export function AddTransactionModal({
         brokerage_fee: values.brokerage_fee ?? 0,
         transaction_date: values.transaction_date,
       })
-      onClose()
+      close()
     } catch {
       setGlobalError('Erro ao salvar o lançamento. Tente novamente.')
     }
@@ -710,7 +742,7 @@ export function AddTransactionModal({
     <Modal
       isOpen={isOpen}
       title="Adicionar Lançamento"
-      onClose={onClose}
+      onClose={close}
       dismissible={!isSaving}
       variant="transaction"
     >
@@ -744,6 +776,7 @@ export function AddTransactionModal({
       {/* Equity / variable-income form */}
       {showEquityForm && (
         <form onSubmit={onSubmit} noValidate className="space-y-4">
+          <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
           {/* Tabs Compra / Venda */}
           <div className="grid grid-cols-2 gap-1 rounded-lg border border-dark-border bg-dark-bg p-1">
             {(['buy', 'sell'] as const).map((t) => (
@@ -894,7 +927,7 @@ export function AddTransactionModal({
           <div className="flex items-center justify-between pt-1">
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               disabled={isSaving}
               className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             >

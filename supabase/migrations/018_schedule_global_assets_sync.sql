@@ -37,7 +37,7 @@ WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'sync-global-assets-every-5
 
 -- A cada 5 minutos entre 12h30 e 19h00 UTC (9h30–16h00 BRT), seg a sex
 -- Slots: 12:30, 12:35, ..., 18:55 (67 slots/dia)
-DO $$
+DO $migration$
 DECLARE
   hour INT;
   minute INT;
@@ -68,7 +68,7 @@ BEGIN
     END LOOP;
   END LOOP;
 END;
-$$;
+$migration$;
 
 COMMIT;
 

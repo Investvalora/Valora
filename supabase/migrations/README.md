@@ -4,7 +4,19 @@ Este diretório contém as migrations SQL do projeto Valora.
 
 ## Como executar as migrations
 
-### Opção 1: Supabase Dashboard (Recomendado para dev)
+### Desenvolvimento local (recomendado para banco novo)
+
+Com Docker em execução, na raiz do projeto:
+
+```bash
+npx supabase@3.0.0 start
+```
+
+O CLI aplica os arquivos em ordem. `supabase/config.toml` desativa o seed
+fictício por padrão. Para testes offline, carregue dados sintéticos somente no
+banco local. Não esvazie migrations nem desative RLS para iniciar o banco.
+
+### Opção 1: Supabase Dashboard (aplicação manual controlada)
 
 1. Acesse o [Supabase Dashboard](https://app.supabase.com)
 2. Vá em **SQL Editor**
@@ -14,17 +26,16 @@ Este diretório contém as migrations SQL do projeto Valora.
 ### Opção 2: Supabase CLI
 
 ```bash
-# Instalar Supabase CLI
-npm install -g supabase
-
 # Login
-supabase login
+npx supabase@3.0.0 login
 
 # Link ao projeto
-supabase link --project-ref your-project-ref
+npx supabase@3.0.0 link --project-ref your-project-ref
 
 # Executar migrations
-supabase db push
+npx supabase@3.0.0 db push --remote --dry-run
+# Revise o plano antes de aplicar ao projeto hospedado.
+npx supabase@3.0.0 db push --remote
 ```
 
 > Ao aplicar uma migration à mão, registre-a em

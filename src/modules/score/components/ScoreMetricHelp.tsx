@@ -1,17 +1,18 @@
 import { INDICATOR_EXPLANATIONS } from '../../../shared/indicators/catalog'
 import { scoreConditionText } from '../utils/scoreConditionText'
 import { METRIC_LABELS, type ScoreMetric, type ScoreRule } from '../types'
+import { DebtThresholdNotice } from './DebtThresholdNotice'
 
 
 export function ScoreMetricHelp({ metric, rule }: { metric: ScoreMetric; rule?: ScoreRule }) {
   const info = INDICATOR_EXPLANATIONS[metric]
-  return <details className="mt-2 text-xs leading-relaxed text-white/65">
+  return <>{metric === 'debt_equity' && rule && <DebtThresholdNotice minimum={rule.threshold_min} maximum={rule.operator === 'between' ? rule.threshold_max : null} />}<details className="mt-2 text-xs leading-relaxed text-white/65">
     <summary className="min-h-9 cursor-pointer py-2 text-nf-blue focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue">Entender {METRIC_LABELS[metric]}</summary>
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <p>{info.meaning}</p><p><strong className="text-white/85">Fórmula: </strong>{info.formula}</p><p>{info.context}</p>
       {rule && <p><strong className="text-white/85">Efeito nesta regra: </strong>se o indicador estiver {scoreConditionText(rule)}, {rule.points < 0 ? `retira ${Math.abs(rule.points)}` : `soma ${rule.points}`} {Math.abs(rule.points) === 1 ? 'ponto' : 'pontos'}. Caso contrário, contribui com 0. Sem dado, não soma pontos e o critério fica indisponível.</p>}
     </div>
-  </details>
+  </details></>
 }
 
 export function ScoreCalculationHelp() {

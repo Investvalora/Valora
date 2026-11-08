@@ -25,4 +25,10 @@ Homologação visual local concluída com o componente real em harness isolado: 
 
 PR119: merge e deploy aprovados. Fluxos atuais de renda fixa e Tesouro conferidos em produção sem salvar aplicações. Formulários legados reais conferidos em harness local com stubs de escrita; não têm entrada na navegação publicada. Evidências em output/qa-legacy e output/homologacao-pr119.
 
-Revisão dos limites personalizados, desempenho físico, CDI e cobertura de calendários não foram alterados nem declarados concluídos nesta rodada.
+## Continuação RP-04 na mesma PR
+
+Adicionado aviso visível da unidade percentual de Dívida/PL nas regras existentes de score e alertas e nos formulários de criação/edição. O aviso mostra a interpretação do limite informado: 1,5 significa 1,5%, ou 0,015 vez o patrimônio; 1,5 vez corresponde a 150%. Intervalos mostram os dois limites em percentual. Valores não finitos não geram aviso numérico.
+
+Nenhum limite, regra salva ou algoritmo de comparação foi convertido. A revisão da intenção dos limites antigos continua pendente, pois não pode ser inferida pelo valor. Desempenho físico, CDI e cobertura de calendários permanecem abertos.
+
+Validação desta continuação: 10 testes em três arquivos (aviso, ajuda do score e regras de alertas), TypeScript, lint e build/PWA aprovados. Conferência visual do componente real com limites simulados 1,5, 150 e intervalo 50–150 em área de 390 px; evidência não versionada em output/qa-indicator-limits/limites.png. Nenhuma regra real foi editada na homologação.

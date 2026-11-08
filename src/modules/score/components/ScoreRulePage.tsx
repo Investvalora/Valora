@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ScoreMetricHelp } from './ScoreMetricHelp'
+import { DebtThresholdNotice } from './DebtThresholdNotice'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -156,6 +157,8 @@ function ScoreRuleFields({
 }) {
   const { register, formState: { errors } } = form
   const selectedMetric = form.watch('metric')
+  const minimum = form.watch('threshold_min')
+  const maximum = form.watch('threshold_max')
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -267,6 +270,9 @@ function ScoreRuleFields({
       )}
 
       {/* Dica */}
+      {selectedMetric === 'debt_equity' && (
+        <DebtThresholdNotice minimum={minimum} maximum={isBetween ? maximum : null} />
+      )}
       <p className="text-[#8F8F8F] text-[11px] leading-relaxed">
         ⓘ Para "entre", informe mínimo e máximo. Os pontos são somados quando a condição é atendida.
       </p>

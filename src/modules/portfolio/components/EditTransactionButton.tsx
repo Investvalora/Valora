@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { z } from 'zod'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { draftKey, readDraft, removeDraft, saveDraft } from '../../../shared/utils/sessionDraft'
 import { Modal } from '../../../shared/components/Modal'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import { useAssetDetail } from '../../assets/hooks/useAssetDetail'
@@ -8,7 +11,14 @@ import { parseDecimalPtBr } from '../schemas/positionSchema'
 import type { Transaction, TransactionEdit } from '../services/transactionsService'
 
 const decimal = (value: number) => value.toLocaleString('pt-BR', { useGrouping: false, maximumFractionDigits: 20 })
+const editDraftSchema = z.object({
+  type: z.enum(['buy', 'sell']), date: z.string().max(20),
+  values: z.object({ quantity: z.string().max(100), price: z.string().max(100), brokerage_fee: z.string().max(100), tax: z.string().max(100) }),
+})
 function EditTransactionDialog({ transaction, onClose }: { transaction: Transaction; onClose: () => void }) {
+  const { user } = useAuth()
+  // Bind the draft to the original snapshot: never restore edits over a changed transaction.
+  const key = user?.id === transaction.user_id ? draftKey(user.id, transaction.wallet_id, `edit:${transaction.id}:${JSON.stringify([transaction.type, transaction.transaction_date, transaction.quantity, transaction.price, transaction.brokerage_fee, transaction.tax])}`) : null
   const edit = useEditTransaction()
   const asset = useAssetDetail(transaction.ticker)
   const [type, setType] = useState<'buy' | 'sell'>(transaction.type === 'sell' ? 'sell' : 'buy')
@@ -16,6 +26,22 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
   const [values, setValues] = useState({ quantity: decimal(Number(transaction.quantity)), price: decimal(Number(transaction.price)), brokerage_fee: decimal(Number(transaction.brokerage_fee)), tax: decimal(Number(transaction.tax)) })
   const [error, setError] = useState('')
   const [stale, setStale] = useState(false)
+  const [available, setAvailable] = useState(() => key !== null && editDraftSchema.safeParse(readDraft(key)).success)
+  const [storageFailed, setStorageFailed] = useState(false)
+  const initial = { type: transaction.type === 'sell' ? 'sell' : 'buy', date: transaction.transaction_date, values: { quantity: decimal(Number(transaction.quantity)), price: decimal(Number(transaction.price)), brokerage_fee: decimal(Number(transaction.brokerage_fee)), tax: decimal(Number(transaction.tax)) } }
+  const serialized = JSON.stringify({ type, date, values })
+  const dirty = serialized !== JSON.stringify(initial)
+  useEffect(() => {
+    if (key && dirty) setStorageFailed(!saveDraft(key, JSON.parse(serialized)))
+  }, [key, dirty, serialized])
+  function close() { if (key) removeDraft(key); onClose() }
+  function restore() {
+    if (!key) return
+    const draft = editDraftSchema.safeParse(readDraft(key))
+    setAvailable(false)
+    if (!draft.success) { removeDraft(key); return }
+    setType(draft.data.type); setDate(draft.data.date); setValues(draft.data.values)
+  }
   const currency = asset.data?.currency
   const style = 'mt-2 min-h-12 w-full rounded-xl border border-white/20 bg-[#242424] px-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-nf-purple disabled:opacity-50'
   async function save(event: React.FormEvent) {
@@ -33,7 +59,7 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
     }
     try {
       await edit.mutateAsync({ original: transaction, changes: { type, transaction_date: date, ...numbers } })
-      onClose()
+      close()
     } catch (cause) {
       const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : null
       if (code === '40001') { setStale(true); setError('Este lançamento foi alterado ou não está mais disponível. Feche e atualize a lista antes de editar novamente.') }
@@ -41,8 +67,16 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
         : 'Não foi possível salvar a alteração. Confira a lista antes de tentar novamente.')
     }
   }
-  return <Modal isOpen title={`Editar lançamento · ${transaction.ticker}`} onClose={onClose} dismissible={!edit.isPending} variant="transaction">
+  return <Modal isOpen title={`Editar lançamento · ${transaction.ticker}`} onClose={close} dismissible={!edit.isPending} variant="transaction">
     <form onSubmit={save} className="space-y-5" noValidate>
+      {available && <div role="status" className="rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-white/80">
+        <p>Há um rascunho desta edição nesta sessão. Restaurar não salva o lançamento.</p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <button type="button" onClick={restore} className="min-h-11 text-nf-purple underline">Restaurar rascunho</button>
+          <button type="button" onClick={() => { if (key) removeDraft(key); setAvailable(false) }} className="min-h-11 underline">Descartar rascunho</button>
+        </div>
+      </div>}
+      {storageFailed && <p role="status" className="text-sm text-white/70">Não foi possível guardar o rascunho neste navegador. Mantenha o formulário aberto até concluir.</p>}
       <p className="text-sm leading-relaxed text-white/65">A alteração recalcula a posição e o histórico desta carteira. Ativo e carteira serão mantidos; a ordem de cadastro é preservada para operações do mesmo dia.</p>
       {!currency && <div role="status" className="text-sm text-white/70">{asset.isLoading ? 'Carregando moeda do ativo…' : 'Não foi possível carregar a moeda do ativo.'}{!asset.isLoading && <button type="button" onClick={() => asset.refetch()} className="ml-2 min-h-11 underline">Tentar novamente</button>}</div>}
       <fieldset disabled={edit.isPending || stale || !currency} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -55,7 +89,7 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
       </fieldset>
       {error && <p role="alert" className="text-sm text-nf-pink">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3">
-        <button type="button" disabled={edit.isPending} onClick={onClose} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
+        <button type="button" disabled={edit.isPending} onClick={close} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
         <button type="submit" disabled={edit.isPending || stale || !currency} className="min-h-11 rounded-xl bg-[#393939] px-4 text-sm font-semibold text-white hover:bg-[#454545] disabled:opacity-40">{edit.isPending ? 'Salvando…' : 'Salvar alterações'}</button>
       </div>
     </form>
@@ -67,6 +101,6 @@ export function EditTransactionButton({ transaction }: { transaction: Transactio
   if (transaction.type !== 'buy' && transaction.type !== 'sell') return null
   return <>
     <button type="button" onClick={() => setOpen(true)} aria-label={`Editar lançamento de ${transaction.ticker} em ${transaction.transaction_date}`} className="min-h-11 rounded-lg px-2 text-xs text-white/75 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple">Editar</button>
-    {open && <EditTransactionDialog transaction={transaction} onClose={() => setOpen(false)} />}
+    {open && <EditTransactionDialog key={JSON.stringify(transaction)} transaction={transaction} onClose={() => setOpen(false)} />}
   </>
 }

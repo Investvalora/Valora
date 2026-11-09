@@ -41,6 +41,11 @@ html.ios-standalone .app-shell-novo {
   min-height: 100vh;
 }
 
+html.ios-standalone .asset-chart-fullscreen {
+  height: 100vh;
+  min-height: 100vh;
+}
+
 html.ios-standalone .mobile-navigation,
 html.ios-standalone .transaction-modal-overlay,
 html.ios-standalone .wallet-modal-overlay {
@@ -324,6 +329,14 @@ html.ios-standalone .auth-scene {
 }
 
 @media (max-width: 767px) {
+  .account-section-panel {
+    animation: account-mobile-push 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .account-menu[data-returning='true'] {
+    animation: account-mobile-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   .alert-price-sheet {
     animation: alert-sheet-rise 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -337,9 +350,88 @@ html.ios-standalone .auth-scene {
   }
 }
 
+@keyframes account-mobile-push {
+  from {
+    opacity: 0.75;
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes account-mobile-pop {
+  from {
+    opacity: 0.75;
+    transform: translate3d(-28%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (min-width: 768px) {
   .alert-price-sheet {
     animation: alert-panel-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .account-section-panel[data-direction='down'] {
+    animation: account-section-enter-down 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .account-section-panel[data-direction='up'] {
+    animation: account-section-enter-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes account-section-enter-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+@keyframes account-section-enter-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.asset-chart-fullscreen {
+  animation: asset-chart-expand 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center center;
+}
+
+@keyframes asset-chart-expand {
+  from {
+    opacity: 0.55;
+    transform: scale(0.9);
+    border-radius: 24px;
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+    border-radius: 0;
   }
 }
 
@@ -348,6 +440,24 @@ html.ios-standalone .auth-scene {
   .alert-filter-content[data-direction],
   .valuation-route-enter {
     animation: none;
+  }
+
+  .account-section-panel[data-direction] {
+    animation: none;
+  }
+
+  .account-menu[data-returning] {
+    animation: none;
+  }
+
+  .asset-chart-fullscreen {
+    animation: none;
+  }
+
+  .account-section-link,
+  .account-section-link span,
+  .account-section-link svg {
+    transition-duration: 0ms;
   }
 }
 

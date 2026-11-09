@@ -5,6 +5,7 @@ const DEFAULT_PERIODS: WealthPeriod[] = ['1M', '3M', '6M', '1A', 'Tudo']
 interface PeriodSelectorProps<T extends string> {
   value: T
   onChange: (period: T) => void
+  fullWidthOnMobile?: boolean
   /**
    * Subconjunto de períodos a exibir.
    * Quando omitido, exibe todos os períodos disponíveis.
@@ -19,12 +20,12 @@ interface PeriodSelectorProps<T extends string> {
  * Acessível: `role="group"` agrupa os botões logicamente; cada botão usa
  * `aria-pressed` para comunicar o estado selecionado a leitores de tela.
  */
-export function PeriodSelector<T extends string = WealthPeriod>({ value, onChange, periods }: PeriodSelectorProps<T>) {
+export function PeriodSelector<T extends string = WealthPeriod>({ value, onChange, periods, fullWidthOnMobile = false }: PeriodSelectorProps<T>) {
   return (
     <div
       role="group"
       aria-label="Selecionar período"
-      className="inline-flex rounded-lg border border-dark-border bg-dark-bg p-1 gap-1"
+      className={`inline-flex gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1 ${fullWidthOnMobile ? 'w-full sm:w-auto' : ''}`}
     >
       {(periods ?? DEFAULT_PERIODS as T[]).map((period) => {
         const isActive = period === value
@@ -36,11 +37,12 @@ export function PeriodSelector<T extends string = WealthPeriod>({ value, onChang
             aria-pressed={isActive}
             onClick={() => onChange(period)}
             className={`
-              rounded px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500
+              min-h-9 rounded-lg py-1.5 text-sm font-medium transition-[background-color,color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple
+              ${fullWidthOnMobile ? 'min-w-0 flex-1 px-1 sm:flex-none sm:px-3' : 'px-3'}
               ${
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:bg-dark-surface hover:text-gray-200'
+                  ? 'bg-[#393939] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+                  : 'text-white/50 hover:bg-white/[0.07] hover:text-white/[0.85]'
               }
             `}
           >

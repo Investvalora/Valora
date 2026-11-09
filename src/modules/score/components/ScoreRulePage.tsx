@@ -22,6 +22,11 @@ import { ScorePreviewPanel } from './ScorePreviewPanel'
 import { Modal } from '../../../shared/components/Modal'
 import { AnaliseScore } from '../../analise/components/AnaliseScore'
 import { AnaliseVisaoGeral } from '../../analise/components/AnaliseVisaoGeral'
+import { useAuthStore } from '../../auth/store'
+import { useFormDraft } from '../../../shared/hooks/useFormDraft'
+import { draftKey } from '../../../shared/utils/sessionDraft'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { validateScoreDraft, type ScoreDraft } from '../utils/scoreDraft'
 
 // ── Tokens de estilo ──────────────────────────────────────────────────────
 const INPUT_CLASS =
@@ -83,6 +88,27 @@ function useScoreRuleForm(id?: string) {
   const watchedMax      = watch('threshold_max')
   const watchedPoints   = watch('points')
   const isBetween       = watchedOperator === 'between'
+  const userId = useAuthStore(state => state.user?.id)
+  const finite = (value: number | null | undefined) => Number.isFinite(value) ? value! : null
+  const draftValue: ScoreDraft = {
+    scoreMode, name: watchedName, metric: watchedMetric, operator: watchedOperator,
+    threshold_min: finite(watchedMin), threshold_max: finite(watchedMax), points: finite(watchedPoints),
+  }
+  const draft = useFormDraft(userId ? draftKey(userId, 'global', `score-rule:${editingRule ? JSON.stringify(editingRule) : id ?? 'new'}`) : null,
+    // Empty number inputs can make isDirty true during registration; only edited fields may replace a saved draft.
+    draftValue, Object.keys(form.formState.dirtyFields).length > 0, validateScoreDraft)
+  function restoreDraft() {
+    const saved = draft.restore()
+    if (!saved) return
+    setScoreMode(saved.scoreMode)
+    setValue('name', saved.name, { shouldDirty: true })
+    setValue('metric', saved.metric, { shouldDirty: true })
+    setValue('operator', saved.operator, { shouldDirty: true })
+    setValue('threshold_min', saved.threshold_min ?? NaN, { shouldDirty: true })
+    setValue('threshold_max', saved.threshold_max ?? undefined, { shouldDirty: true })
+    setValue('points', saved.points ?? NaN, { shouldDirty: true })
+  }
+  function cancel() { draft.clear(); navigate(returnTo) }
 
   const existingRulesInScore: ScoreRule[] = watchedName
     ? (scoreGroups.get(watchedName) ?? []).filter((r) => r.id !== id)
@@ -101,6 +127,7 @@ function useScoreRuleForm(id?: string) {
       } else {
         await createRule.mutateAsync(buildPayload(values))
       }
+      draft.clear()
       navigate(returnTo)
     } catch (err) {
       setGlobalError('Ocorreu um erro ao salvar a regra. Tente novamente.')
@@ -112,6 +139,7 @@ function useScoreRuleForm(id?: string) {
     setGlobalError('')
     try {
       await createRule.mutateAsync(buildPayload(values))
+      draft.clear()
       reset({ operator: 'gte', metric: 'dy', name: '' })
       setScoreMode(scoreNames.length > 0 ? 'existing' : 'new')
       setGlobalError('')
@@ -128,7 +156,7 @@ function useScoreRuleForm(id?: string) {
     watchedName, watchedMetric, watchedOperator, watchedMin, watchedMax, watchedPoints,
     isBetween, existingRulesInScore,
     onSubmit, onSubmitAndAddAnother,
-    navigate, returnTo, setValue,
+    navigate, returnTo, setValue, draft, restoreDraft, cancel,
   }
 }
 
@@ -281,8 +309,8 @@ function ScoreRuleFields({
 
       <hr className="border-none bg-white/[0.08] h-px w-full" />
 
-      {/* Botões desktop */}
-      <div className="hidden md:flex gap-3 flex-wrap">
+      {/* Creation has a separate mobile action bar; editing uses these buttons at every width. */}
+      <div className={`${isEditing ? 'flex' : 'hidden md:flex'} gap-3 flex-wrap`}>
         <button type="submit" disabled={isSaving}
           className="bg-[#2B6DB0] h-[46px] px-[18px] rounded-[8px] text-white font-semibold text-[15px] hover:bg-[#2460A0] transition-colors disabled:opacity-50">
           {isSaving ? 'Salvando…' : isEditing ? 'Salvar alterações' : 'Criar regra'}
@@ -305,17 +333,16 @@ function ScoreRuleFields({
 // ── Tela de CRIAÇÃO — página dedicada ─────────────────────────────────────
 function ScoreRuleCreatePage() {
   const state = useScoreRuleForm()
-  const { navigate } = state
 
   return (
-    <div className="flex flex-col gap-5 pb-32 md:pb-10">
+    <div className="flex flex-col gap-5 pb-48 md:pb-10">
       {/* Header */}
       <div>
         {/* Mobile: botão voltar + título compacto */}
         <div className="flex items-center gap-3 mb-1 md:hidden">
           <button
             type="button"
-            onClick={() => navigate('/analise/score')}
+            onClick={state.cancel}
             className="bg-[#393939] rounded-[16px] size-[32px] flex items-center justify-center shrink-0"
             aria-label="Voltar"
           >
@@ -331,7 +358,7 @@ function ScoreRuleCreatePage() {
         <div className="hidden md:block">
           <button
             type="button"
-            onClick={() => navigate('/analise/score')}
+            onClick={state.cancel}
             className="flex items-center gap-1.5 text-[#8F8F8F] text-[13px] mb-4 hover:text-white transition-colors"
           >
             ← Análise › Score Fundamentalista
@@ -353,6 +380,7 @@ function ScoreRuleCreatePage() {
         {/* Painel form */}
         <div className="flex-1 min-w-0 bg-[#1B1B1B] border border-white/[0.08] rounded-[14px] px-[28px] pt-[26px] pb-[28px]">
           <h2 className="text-white font-semibold text-[16px] mb-5">Dados da regra</h2>
+          <FormDraftNotice {...state.draft} onRestore={state.restoreDraft} onDiscard={state.draft.clear} />
           <ScoreRuleFields
             form={state.form}
             scoreMode={state.scoreMode}
@@ -364,7 +392,7 @@ function ScoreRuleCreatePage() {
             isEditing={false}
             onSubmit={state.onSubmit}
             onSubmitAndAddAnother={state.onSubmitAndAddAnother}
-            onCancel={() => navigate('/analise/score')}
+            onCancel={state.cancel}
             setValue={state.setValue}
             watchedName={state.watchedName}
           />
@@ -422,7 +450,7 @@ function ScoreRuleCreatePage() {
       </div>
 
       {/* Barra de ações mobile — fixa na base */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#1C1C1C] border-t border-white/[0.08] flex gap-3 px-[26px] pt-[14px] pb-[24px] md:hidden z-10">
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 bg-[#1C1C1C] border-t border-white/[0.08] flex gap-3 px-[26px] py-[14px] md:hidden z-10">
         <button
           type="button"
           disabled={state.isSaving}
@@ -433,7 +461,7 @@ function ScoreRuleCreatePage() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/analise/score')}
+          onClick={state.cancel}
           className="border border-white/25 h-[48px] w-[110px] rounded-[8px] text-white font-medium text-[15px]"
         >
           Cancelar
@@ -456,6 +484,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
 
   function finishAndReturn() {
     if (navigationTimer.current !== null) return
+    state.draft.clear()
     setIsOpen(false)
     navigationTimer.current = window.setTimeout(() => state.navigate(state.returnTo), 300)
   }
@@ -497,6 +526,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
         <p className="mb-6 text-sm text-white/50">
           Defina as condições e pontuação para avaliar seus ativos.
         </p>
+        <FormDraftNotice {...state.draft} onRestore={state.restoreDraft} onDiscard={state.draft.clear} />
         <ScoreRuleFields
           form={state.form}
           scoreMode={state.scoreMode}
@@ -533,6 +563,11 @@ function ScoreRuleEditModal({ id }: { id: string }) {
 // ── Entry point — router despacha para criação ou edição ──────────────────
 export function ScoreRulePage() {
   const { id } = useParams<{ id?: string }>()
-  if (id) return <ScoreRuleEditModal id={id} />
-  return <ScoreRuleCreatePage />
+  const userId = useAuthStore(state => state.user?.id)
+  const { data: rules = [] } = useScoreRules()
+  const snapshot = id ? rules.find(rule => rule.id === id) : undefined
+  // Remount when identity, rule or original snapshot changes; never mix draft contexts.
+  const context = JSON.stringify([userId, id ?? 'new', snapshot])
+  if (id) return <ScoreRuleEditModal key={context} id={id} />
+  return <ScoreRuleCreatePage key={context} />
 }

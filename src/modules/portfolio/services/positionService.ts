@@ -224,6 +224,22 @@ export const positionService = {
     return (data ?? []) as unknown as Asset[]
   },
 
+  /** Página de resultados do catálogo; busca uma linha extra para indicar continuação. */
+  async searchAssetsPage(term: string, page: number, pageSize = 24): Promise<Asset[]> {
+    const sanitized = sanitizeSearchTerm(term)
+    if (!sanitized) return []
+    const start = page * pageSize
+    const { data, error } = await supabase
+      .from('assets')
+      .select(ASSET_COLUMNS)
+      .eq('active', true)
+      .or(`ticker.ilike.%${sanitized}%,name.ilike.%${sanitized}%${sanitized.toUpperCase() === 'GOOGLE' ? ',name.ilike.%Alphabet%' : ''}`)
+      .order('ticker', { ascending: true })
+      .range(start, start + pageSize)
+    if (error) throw error
+    return (data ?? []) as unknown as Asset[]
+  },
+
   /** Remove uma posição pelo id. RLS garante que só o dono pode excluir. */
   async deletePosition(userId: string, positionId: string): Promise<void> {
     const { error } = await supabase

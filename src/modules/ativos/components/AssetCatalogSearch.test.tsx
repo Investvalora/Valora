@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { AssetCatalogSearch } from './AssetCatalogSearch'
 
@@ -11,50 +12,64 @@ beforeEach(() => {
   retry.mockReset()
   search.mockImplementation((term: string) => ({ data: term === 'Apple' ? [{ ticker: 'AAPL', name: 'Apple Inc', type: 'stock_us', currency: 'USD' }] : [], isFetching: false, isError: false, refetch: retry }))
 })
+
+function SearchHarness() {
+  const [open, setOpen] = useState(false)
+  return <AssetCatalogSearch open={open} onOpenChange={setOpen} />
+}
+function ResultsLocation() {
+  const location = useLocation()
+  return <p>Resultados: {location.search}</p>
+}
 function show() {
   render(<MemoryRouter initialEntries={['/ativos']}><Routes>
-    <Route path="/ativos" element={<AssetCatalogSearch />} />
-    <Route path="/ativo/AAPL" element={<h1>Resumo de AAPL</h1>} />
+    <Route path="/ativos" element={<SearchHarness />} />
+    <Route path="/ativos/explorar" element={<ResultsLocation />} />
+    <Route path="/ativos/explorar/AAPL" element={<h1>Resumo de AAPL</h1>} />
   </Routes></MemoryRouter>)
 }
 
-it('consulta ativo fora da carteira e abre seu resumo sem formulário de compra', async () => {
+it('expande a busca e abre o resumo de uma sugestão', async () => {
   const user = userEvent.setup()
   show()
-  await user.click(screen.getByRole('button', { name: 'Buscar ativos no catálogo' }))
-  await user.type(screen.getByLabelText('Ticker ou nome do ativo'), 'Apple')
-  const result = await screen.findByRole('link', { name: /AAPL Apple Inc Stocks US · USD/ })
-  expect(result).toHaveAttribute('href', '/ativo/AAPL')
+  await user.click(screen.getByRole('button', { name: 'Buscar ativo no catálogo' }))
+  await user.type(screen.getByRole('searchbox', { name: 'Buscar ativo por nome ou ticker' }), 'Apple')
+  const result = await screen.findByRole('link', { name: /AAPL Apple Inc Stocks US/ })
+  expect(result).toHaveAttribute('href', '/ativos/explorar/AAPL?q=Apple')
   await user.click(result)
   expect(screen.getByRole('heading', { name: 'Resumo de AAPL' })).toBeInTheDocument()
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 })
 
-it('não mostra resultado anterior durante nova busca e informa ausência de correspondência', async () => {
+it('Enter abre a página de resultados com a consulta na URL', async () => {
   const user = userEvent.setup()
   show()
-  await user.click(screen.getByRole('button', { name: 'Buscar ativos no catálogo' }))
-  const input = screen.getByLabelText('Ticker ou nome do ativo')
+  await user.click(screen.getByRole('button', { name: 'Buscar ativo no catálogo' }))
+  await user.type(screen.getByRole('searchbox'), 'Apple{Enter}')
+  expect(screen.getByText('Resultados: ?q=Apple')).toBeInTheDocument()
+})
+
+it('não mostra sugestões anteriores durante outra busca e permite fechar', async () => {
+  const user = userEvent.setup()
+  show()
+  await user.click(screen.getByRole('button', { name: 'Buscar ativo no catálogo' }))
+  const input = screen.getByRole('searchbox')
   await user.type(input, 'Apple')
   await screen.findByRole('link', { name: /AAPL/ })
   await user.clear(input)
   expect(screen.queryByRole('link', { name: /AAPL/ })).not.toBeInTheDocument()
   await user.type(input, 'ZZZZ')
   expect(screen.queryByRole('link', { name: /AAPL/ })).not.toBeInTheDocument()
-  expect(await screen.findByText(/Nenhum ativo encontrado no catálogo/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Fechar busca' }))
+  expect(screen.getByRole('button', { name: 'Buscar ativo no catálogo' })).toBeInTheDocument()
 })
 
-it('oferece nova tentativa e limpa a consulta ao fechar', async () => {
+it('oferece nova tentativa em erro', async () => {
   search.mockReturnValue({ data: [], isFetching: false, isError: true, refetch: retry })
   const user = userEvent.setup()
   show()
-  await user.click(screen.getByRole('button', { name: 'Buscar ativos no catálogo' }))
-  await user.type(screen.getByLabelText('Ticker ou nome do ativo'), 'Apple')
+  await user.click(screen.getByRole('button', { name: 'Buscar ativo no catálogo' }))
+  await user.type(screen.getByRole('searchbox'), 'Apple')
   expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível buscar os ativos.')
   await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
   expect(retry).toHaveBeenCalledOnce()
-  await user.click(screen.getByRole('button', { name: /^Fechar$/ }))
-  await user.click(screen.getByRole('button', { name: 'Buscar ativos no catálogo' }))
-  await waitFor(() => expect(screen.getByLabelText('Ticker ou nome do ativo')).toHaveValue(''))
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })

@@ -11,7 +11,6 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
 import { useMemo, useRef, useState } from 'react'
 import { Download, Columns3 } from 'lucide-react'
 import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
-import { AssetFilterButton } from './AssetFiltersPanel'
 import { useAssetFilters } from '../hooks/useAssetFilters'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAssetColumns } from '../hooks/useAssetColumns'
@@ -212,7 +211,6 @@ export function AtivosPosicoes() {
             <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
               <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
             </button>
-            <AssetFilterButton />
             <button
               type="button"
               onClick={() => downloadPositionsCsv(baseRows)}

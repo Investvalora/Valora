@@ -18,12 +18,16 @@ type SubTabBarProps = {
 export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
   const segmented = mobileVariant === 'segmented'
   const { pathname } = useLocation()
-  const activeIndex = Math.max(0, tabs.findIndex(({ to }) => pathname === to || pathname.startsWith(`${to}/`)))
+  const matchesPath = (to: string) => {
+    const tabPath = to.split('?')[0]
+    return pathname === tabPath || pathname.startsWith(`${tabPath}/`)
+  }
+  const activeIndex = Math.max(0, tabs.findIndex(({ to }) => matchesPath(to)))
 
   return (
     <div
       className={segmented
-        ? 'relative grid w-full border-b border-white/[0.08] md:flex md:w-auto md:gap-6 md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        ? 'relative grid w-full border-b border-white/[0.08] md:flex md:w-auto md:gap-6 md:overflow-visible'
         : 'flex gap-6 overflow-x-auto border-b border-white/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}
       role="tablist"
       style={segmented ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` } : undefined}
@@ -42,18 +46,18 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
           to={to}
           end={false}
           role="tab"
-          aria-selected={segmented ? pathname === to || pathname.startsWith(`${to}/`) : undefined}
-          className={({ isActive }) =>
+          aria-selected={segmented ? matchesPath(to) : undefined}
+          className={() =>
             segmented
               ? [
-                  'relative z-10 flex min-h-9 min-w-0 items-center justify-center px-1 text-center text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:-mb-px md:min-h-0 md:border-b-2 md:px-0 md:pb-2.5 md:text-sm md:whitespace-nowrap',
-                  isActive
+                  'relative z-10 flex min-h-9 min-w-0 items-center justify-center px-1 text-center text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:min-h-0 md:border-b-2 md:px-0 md:pb-2.5 md:text-sm md:whitespace-nowrap',
+                  matchesPath(to)
                     ? 'text-white md:border-nf-blue'
                     : 'text-white/55 hover:text-white/80 md:border-transparent',
                 ].join(' ')
               : [
                   'pb-2.5 px-0 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap',
-                  isActive
+                  matchesPath(to)
                     ? 'border-nf-blue text-white'
                     : 'border-transparent text-white/50 hover:text-white/80',
                 ].join(' ')

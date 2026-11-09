@@ -50,4 +50,15 @@ describe('Navegação de Ativos no mobile', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Estratégias' }))
     expect(screen.getByRole('tab', { name: 'Estratégias' })).toHaveAttribute('aria-selected', 'true')
   })
+
+  it('mantém Explorar ativa no detalhe e mostra o underline desktop', () => {
+    const exploreTabs = [...tabs, { label: 'Explorar', to: '/ativos/explorar?q=AAA' }]
+    render(<MemoryRouter initialEntries={['/ativos/explorar/AAA0?q=AAA']}><SubTabBar tabs={exploreTabs} mobileVariant="segmented" /></MemoryRouter>)
+    const explore = screen.getByRole('tab', { name: 'Explorar' })
+    expect(explore).toHaveAttribute('aria-selected', 'true')
+    expect(explore).toHaveClass('md:border-nf-blue')
+    expect(explore).not.toHaveClass('md:border-transparent')
+    expect(screen.getByRole('tablist')).toHaveClass('md:overflow-visible')
+    expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ transform: 'translateX(300%)' })
+  })
 })

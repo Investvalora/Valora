@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShellNovo } from './AppShellNovo'
 const monitor = vi.hoisted(() => ({ isError: false, isFetching: false, refetch: vi.fn() }))
+const quickModal = vi.hoisted(() => ({ render: vi.fn() }))
 vi.mock('../../modules/alerts/hooks/usePriceTargetMonitor', () => ({ usePriceTargetMonitor: () => monitor }))
 
 vi.mock('../../modules/auth/hooks/useAuth', () => ({
@@ -15,7 +16,10 @@ vi.mock('../../modules/portfolio/hooks/useWallets', () => ({
   useWallets: () => ({ wallets: [], selectedWallet: null, isLoading: false, isError: false }),
 }))
 vi.mock('../../modules/portfolio/components/QuickTransactionModal', () => ({
-  QuickTransactionModal: () => null,
+  QuickTransactionModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    quickModal.render()
+    return isOpen ? <div role="dialog" aria-label="Lançamento de teste"><button onClick={onClose}>Cancelar teste</button></div> : null
+  },
 }))
 
 describe('Shell do fluxo atual', () => {
@@ -44,6 +48,18 @@ describe('Shell do fluxo atual', () => {
     expect(screen.getByRole('banner')).toHaveClass('hidden', 'md:flex')
     expect(screen.getByRole('main')).toHaveClass('md:px-10')
   })
+})
+
+it('abre o lançamento sob demanda e permite fechar e reabrir sem trocar a página', async () => {
+  quickModal.render.mockClear()
+  render(<MemoryRouter><AppShellNovo /></MemoryRouter>)
+  expect(quickModal.render).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: /^Lançamento$/ }))
+  expect(await screen.findByRole('dialog', { name: 'Lançamento de teste' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar teste' }))
+  expect(screen.queryByRole('dialog', { name: 'Lançamento de teste' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /^Novo lançamento$/ }))
+  expect(await screen.findByRole('dialog', { name: 'Lançamento de teste' })).toBeInTheDocument()
 })
 
 it('mostra falha do monitor e permite tentar novamente sem bloquear a pagina', () => {

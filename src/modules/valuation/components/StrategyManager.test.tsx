@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { StrategyForm } from './StrategyForm'
 import { StrategyManager } from './StrategyManager'
+import { useAuthStore } from '../../auth/store'
 
 const save = vi.hoisted(() => vi.fn())
 const remove = vi.hoisted(() => vi.fn())
@@ -11,7 +12,7 @@ vi.mock('../hooks/useStrategies', () => ({ useStrategies: () => ({
   strategies: [{ id: 's', name: 'Minha renda', method: 'bazin', min_dy: 0.08, safety_discount: 0, show_in_assets: true }],
   isLoading: false, isError: false, save: { mutateAsync: save, isPending: false }, remove: { mutateAsync: remove, isPending: false },
 }) }))
-beforeEach(() => { save.mockReset().mockResolvedValue({}); remove.mockReset().mockResolvedValue({}) })
+beforeEach(() => { sessionStorage.clear(); useAuthStore.setState({ user: { id: 'owner' } as never }); save.mockReset().mockResolvedValue({}); remove.mockReset().mockResolvedValue({}) })
 
 it('cria uma estratégia nomeada com percentuais em decimal e exibição opcional', async () => {
   const user = userEvent.setup()
@@ -30,6 +31,19 @@ it('cria uma estratégia nomeada com percentuais em decimal e exibição opciona
   await user.click(dialog.getByLabelText('Exibir esta estratégia em Ativos'))
   await user.click(dialog.getByRole('button', { name: 'Criar estratégia' }))
   await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: 'Renda conservadora', method: 'bazin', min_dy: 0.08, safety_discount: 0.2, show_in_assets: false })))
+})
+
+it('fechar a edição pelo X remove o rascunho e preserva a estratégia original', async () => {
+  const user = userEvent.setup()
+  render(<MemoryRouter><StrategyManager /></MemoryRouter>)
+  await user.click(screen.getByRole('button', { name: 'Editar Minha renda' }))
+  await user.type(screen.getByLabelText('Nome da estratégia'), ' pendente')
+  expect(sessionStorage.length).toBeGreaterThan(0)
+  await user.click(screen.getByRole('button', { name: 'Fechar' }))
+  await user.click(screen.getByRole('button', { name: 'Editar Minha renda' }))
+  expect(screen.getByLabelText('Nome da estratégia')).toHaveValue('Minha renda')
+  expect(screen.queryByRole('button', { name: 'Restaurar rascunho' })).not.toBeInTheDocument()
+  expect(save).not.toHaveBeenCalled()
 })
 
 it('cria do zero sem Bazin/Graham, exige condição e permite combinar com OU', async () => {

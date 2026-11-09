@@ -4,9 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Modal } from '../../../shared/components/Modal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
-import { StrategyForm, STRATEGY_DEFAULTS } from './StrategyForm'
+import { StrategyForm } from './StrategyForm'
+import { STRATEGY_DEFAULTS } from '../utils/strategyDefaults'
 import { EstrategiasPage } from './EstrategiasPage'
 import type { StrategyInput } from '../hooks/useStrategies'
+import { useAuthStore } from '../../auth/store'
+import { clearStrategyDraft } from '../utils/strategyDraft'
 
 /**
  * NovaEstrategiaPage
@@ -18,6 +21,7 @@ import type { StrategyInput } from '../hooks/useStrategies'
  *   ?method=fii&name=...&fii_inflation=...&fii_treasury=...&fii_tax=...&fii_premium=...&min_dy=...
  */
 export function NovaEstrategiaPage() {
+  const userId = useAuthStore(state => state.user?.id)
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [searchParams] = useSearchParams()
@@ -52,6 +56,7 @@ export function NovaEstrategiaPage() {
   })()
 
   function handleClose() {
+    clearStrategyDraft(userId, undefined, initialDraft)
     if (!isMobile) {
       setIsOpen(false)
       closeTimer.current = window.setTimeout(() => {

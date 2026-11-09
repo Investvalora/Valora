@@ -5,14 +5,18 @@ import { Modal } from '../../../shared/components/Modal'
 import { useStrategies, type ValuationStrategy } from '../hooks/useStrategies'
 import { StrategyForm } from './StrategyForm'
 import { CUSTOM_METRICS } from '../utils/customStrategy'
+import { useAuthStore } from '../../auth/store'
+import { clearStrategyDraft } from '../utils/strategyDraft'
 
-export function StrategyManager() {
+function StrategyManagerContent() {
+  const userId = useAuthStore(state => state.user?.id)
   const navigate = useNavigate()
   const { strategies, isLoading, isError, save, remove } = useStrategies()
   const [deleting, setDeleting] = useState<ValuationStrategy | null>(null)
   const [editing, setEditing] = useState<ValuationStrategy | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [toggleError, setToggleError] = useState('')
+  function closeEditing() { clearStrategyDraft(userId, editing); setEditing(null) }
 
   async function toggle(strategy: ValuationStrategy) {
     setToggleError('')
@@ -183,7 +187,7 @@ export function StrategyManager() {
       <Modal
         isOpen={editing !== null}
         title="Editar estratégia"
-        onClose={() => setEditing(null)}
+        onClose={closeEditing}
         dismissible
         variant="score"
       >
@@ -191,10 +195,15 @@ export function StrategyManager() {
           <StrategyForm
             editing={editing}
             onSuccess={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
+            onCancel={closeEditing}
           />
         )}
       </Modal>
     </section>
   )
+}
+
+export function StrategyManager() {
+  const userId = useAuthStore(state => state.user?.id)
+  return <StrategyManagerContent key={userId ?? 'anonymous'} />
 }

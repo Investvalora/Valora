@@ -13,7 +13,7 @@ const apple = { ticker: 'AAPL', asset: { name: 'Apple Inc', type: 'stock_us', cu
 beforeEach(() => { mocks.list.mockReset().mockResolvedValue([]); mocks.set.mockReset().mockResolvedValue(undefined) })
 function show(child = <FavoriteButton ticker="AAPL" />) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(<QueryClientProvider client={client}><MemoryRouter><Routes><Route path="/" element={child} /><Route path="/ativo/AAPL" element={<h1>Resumo Apple</h1>} /></Routes></MemoryRouter></QueryClientProvider>)
+  render(<QueryClientProvider client={client}><MemoryRouter><Routes><Route path="/" element={child} /><Route path="/ativos/explorar/AAPL" element={<h1>Resumo Apple</h1>} /></Routes></MemoryRouter></QueryClientProvider>)
   return client
 }
 it('persiste por conta, atualiza estado só após sucesso e permite remover', async () => {
@@ -46,7 +46,9 @@ it('lista nome, classe e moeda e abre resumo sem criar posição', async () => {
   mocks.list.mockResolvedValue([apple]); show(<FavoritesList />)
   const user = userEvent.setup()
   await user.click(screen.getByRole('button', { name: 'Abrir favoritos' }))
-  await user.click(await screen.findByRole('link', { name: 'AAPL Apple Inc Stocks US · USD' }))
+  const favorite = await screen.findByRole('link', { name: 'AAPL Apple Inc Stocks US · USD' })
+  expect(favorite).toHaveAttribute('href', '/ativos/explorar/AAPL?q=AAPL')
+  await user.click(favorite)
   expect(await screen.findByRole('heading', { name: 'Resumo Apple' })).toBeInTheDocument()
   expect(mocks.set).not.toHaveBeenCalled()
 })

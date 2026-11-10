@@ -1,3 +1,4 @@
+import { ConfiguredAlerts } from './ConfiguredAlerts'
 import { useEffect, useState } from 'react'
 import { Bell, BellRing, TrendingDown, TrendingUp, AlertTriangle, Clock, Plus, RefreshCw, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -14,6 +15,9 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import type { Alert, AlertCondition, AlertType } from '../types'
 import { EditAlertButton } from './EditAlertButton'
+import { usePriceAlertDraft } from '../hooks/usePriceAlertDraft'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { draftKey, removeDraft } from '../../../shared/utils/sessionDraft'
 
 // ─── Formatadores ────────────────────────────────────────────────────────────
 
@@ -59,6 +63,8 @@ function triggerHapticFeedback() {
 }
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
+  indicator: { label: 'Indicador', tickerColor: 'text-nf-blue', Icon: BellRing },
+  event: { label: 'Evento', tickerColor: 'text-nf-blue', Icon: BellRing },
   position_no_transactions: {
     label: 'Inconsistência',
     tickerColor: 'text-amber-300',
@@ -234,11 +240,19 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
   const [condition, setCondition] = useState<AlertCondition>('below')
 
   const fields = useAlertPriceFields({ ticker, price, onTickerChange: setTicker, onPriceChange: setPrice })
+  const draft = usePriceAlertDraft('sheet', { ticker, price, condition })
+  const clearDraft = draft.clear
+  function close() { draft.clear(); onClose() }
+  function restore() {
+    const saved = draft.restore()
+    if (!saved) return
+    fields.changeTicker(saved.ticker); fields.changePrice(saved.price); setCondition(saved.condition)
+  }
   useEffect(() => {
-    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') onClose() }
+    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') { clearDraft(); onClose() } }
     window.addEventListener('keydown', onEscape)
     return () => window.removeEventListener('keydown', onEscape)
-  }, [onClose])
+  }, [onClose, clearDraft])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -247,7 +261,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
     if (!trimmedTicker || Number.isNaN(parsedPrice) || parsedPrice <= 0) return
     createAlert.mutate(
       { ticker: trimmedTicker, targetPrice: parsedPrice, condition },
-      { onSuccess: onClose },
+      { onSuccess: close },
     )
   }
 
@@ -270,7 +284,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           aria-label="Fechar formulário"
           className="grid h-10 w-10 place-items-center rounded-xl border border-white/25 text-white transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:border-0 md:text-nf-muted md:focus-visible:ring-nf-purple"
         >
@@ -279,6 +293,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
         <AlertAssetField model={fields} />
 
         {/* ── Condição ────────────────────────────────────────────────────── */}
@@ -330,7 +345,7 @@ function PriceTargetForm({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-white/30 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:min-h-11 md:flex-none"
           >
             Cancelar
@@ -367,6 +382,10 @@ export function AlertsPage() {
   function openPriceTargetForm() {
     triggerHapticFeedback()
     setShowForm(true)
+  }
+  function closePriceTargetForm() {
+    if (user?.id) removeDraft(draftKey(user.id, 'global', 'price-alert:sheet:'))
+    setShowForm(false)
   }
 
   function selectFilter(nextFilter: typeof filter) {
@@ -421,7 +440,7 @@ export function AlertsPage() {
 
           <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => showForm ? closePriceTargetForm() : setShowForm(true)}
             className={secondaryButton}
           >
             {showForm ? <X className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
@@ -479,10 +498,10 @@ export function AlertsPage() {
         <div
           className="fixed inset-0 z-50 flex min-h-[100svh] min-h-[100dvh] items-end bg-black/70 md:items-stretch md:justify-end md:bg-black/55"
           onClick={(event) => {
-            if (event.target === event.currentTarget) setShowForm(false)
+            if (event.target === event.currentTarget) closePriceTargetForm()
           }}
         >
-          <PriceTargetForm onClose={() => setShowForm(false)} />
+          <PriceTargetForm key={user?.id ?? 'anonymous'} onClose={closePriceTargetForm} />
         </div>
       )}
 
@@ -512,6 +531,8 @@ export function AlertsPage() {
           </button>
         </div>
       )}
+
+      <ConfiguredAlerts />
 
       {/* Lista de alertas */}
       {isLoading ? (

@@ -1,3 +1,5 @@
+import { FundamentalsPanel } from "./FundamentalsPanel";
+import { ScoreBreakdown } from "../../score/components/ScoreBreakdown";
 import {
   useEffect,
   useLayoutEffect,
@@ -1950,7 +1952,7 @@ export function AtivoDetailPage({
   const valuation = useAtivosValuation(selectedWallet?.id ?? "", true);
   const positions = valuation.positions;
   const quotesQuery = useLatestQuotes([ticker]);
-  const { data: fundamentalsList = [] } = useFundamentals([ticker]);
+  const { data: fundamentalsList = [], isLoading: fundamentalsLoading, isError: fundamentalsError } = useFundamentals([ticker]);
 
   // ── Score ───────────────────────────────────────────────────────────────────
   const { data: allRules = [] } = useScoreRules();
@@ -2030,15 +2032,16 @@ export function AtivoDetailPage({
     if (myPosition) m.set(ticker, quantity);
     return m;
   }, [myPosition, ticker, quantity]);
-  const dividendTotalsMap = useDividendTotals([ticker], quantityByTickerMap);
-  const proventos12m = dividendTotalsMap.get(ticker) ?? 0;
+  const dividendCurrencyMap = useMemo(() => new Map([[ticker, asset?.currency ?? 'BRL']]), [ticker, asset?.currency]);
+  const dividendTotalsMap = useDividendTotals([ticker], quantityByTickerMap, dividendCurrencyMap);
+  const proventos12m = dividendTotalsMap.has(ticker) ? dividendTotalsMap.get(ticker)! : 0;
 
   // Rentabilidade vs CDI
   const { summary: perfSummary } = usePerformance("1A");
   const cdiReturnPct = perfSummary.cdiReturnPct;
 
   const rentTotal =
-    ganhoCapital != null && valorInvestido != null && valorInvestido > 0
+    ganhoCapital != null && proventos12m != null && valorInvestido != null && valorInvestido > 0
       ? ((ganhoCapital + proventos12m) / valorInvestido) * 100
       : null;
   const vscdipp =
@@ -2165,6 +2168,8 @@ export function AtivoDetailPage({
 
       {/* ── Conteúdo da tab ─────────────────────────────────────────────── */}
       {activeTab === "visao-geral" && (
+        <>
+        <FundamentalsPanel row={fundamental} type={asset.type} loading={fundamentalsLoading} error={fundamentalsError} />
         <VisaoGeral
           ticker={ticker}
           quantity={quantity}
@@ -2188,6 +2193,7 @@ export function AtivoDetailPage({
           activeScoreName={activeScoreName}
           navigate={navigate}
         />
+        </>
       )}
 
       {activeTab === "lancamentos" && (
@@ -2220,6 +2226,7 @@ export function AtivoDetailPage({
       )}
 
       {activeTab === "score" && (
+        <>
         <TabScore
           ticker={ticker}
           activeScoreName={activeScoreName}
@@ -2227,6 +2234,8 @@ export function AtivoDetailPage({
           bazin={bazin}
           currency={currency}
         />
+        <PanelCard><ScoreBreakdown rules={activeRules} row={fundamental} /></PanelCard>
+        </>
       )}
 
       {activeTab === "alertas" && <TabAlertas ticker={ticker} />}

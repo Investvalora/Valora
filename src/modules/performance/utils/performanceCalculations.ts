@@ -2,6 +2,8 @@ import type { WealthPoint } from '../../wealth/types'
 import type { DividendRow } from '../../dividends/types'
 import type { PositionWithAsset } from '../../portfolio/types'
 import type { BenchmarkRow, NormalizedPoint, PerformanceSeries, AssetReturnRow } from '../types'
+import { dividendTotals } from '../../dividends/utils/dividendCurrency'
+import type { DatedRate } from '../../dashboard/historicalValuation'
 
 // ---------------------------------------------------------------------------
 // normalizeToBase100
@@ -180,16 +182,16 @@ export function computeAssetRows(
   dividendRows: DividendRow[],
   _periodStart?: string,
   _periodEnd?: string,
+  rates: DatedRate[] = [],
 ): AssetReturnRow[] {
   void _periodStart
   void _periodEnd
 
   // Pré-computa proventos por ticker para O(n) em vez de O(n²)
-  const dividendsByTicker = new Map<string, number>()
-  for (const row of dividendRows) {
-    const prev = dividendsByTicker.get(row.ticker) ?? 0
-    dividendsByTicker.set(row.ticker, prev + row.total_value)
-  }
+  const tickers = positions.map(position => position.ticker)
+  const currencies = new Map(positions.map(position => [position.ticker, position.asset?.currency ?? 'unknown']))
+  const dividendsByTicker = dividendTotals(dividendRows, tickers, rates)
+  const localDividends = dividendTotals(dividendRows, tickers, rates, currencies)
 
   // Filtra posições que existiam durante o período.
   // Não usa acquisition_date como filtro pois esse campo pode não refletir
@@ -211,17 +213,18 @@ export function computeAssetRows(
         : null
 
     // Proventos recebidos (0 é resultado válido — não é ausência)
-    const dividendsReceived = dividendsByTicker.get(p.ticker) ?? 0
+    const dividendsReceived = dividendsByTicker.has(p.ticker) ? dividendsByTicker.get(p.ticker)! : 0
+    const localIncome = localDividends.has(p.ticker) ? localDividends.get(p.ticker)! : 0
 
     // Proventos %
     const dividendsPct =
-      avgPrice > 0 && qty > 0
-        ? (dividendsReceived / (avgPrice * qty)) * 100
+      localIncome !== null && avgPrice > 0 && qty > 0
+        ? (localIncome / (avgPrice * qty)) * 100
         : null
 
     // Retorno total
     const totalReturnPct =
-      capitalGainPct !== null || dividendsPct !== null
+      localIncome !== null && (capitalGainPct !== null || dividendsPct !== null)
         ? (capitalGainPct ?? 0) + (dividendsPct ?? 0)
         : null
 

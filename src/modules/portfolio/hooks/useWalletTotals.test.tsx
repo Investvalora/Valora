@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -8,6 +8,7 @@ import { fixedIncomeService } from '../services/fixedIncomeService'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { useWalletTotals } from './useWalletTotals'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
+import { incomeHistoryService } from '../../dividends/services/incomeHistoryService'
 import type { WealthChartFilters } from '../../dashboard/hooks/useDashboard'
 import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
 import { useAssetFilters } from '../../ativos/hooks/useAssetFilters'
@@ -23,8 +24,13 @@ vi.mock('../services/positionService', () => ({
 }))
 vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPositions: vi.fn(), listHistory: vi.fn() } }))
 vi.mock('../services/transactionsService', () => ({ transactionsService: { listAll: async () => [] } }))
+vi.mock('./useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' }, wallets: [{ id: 'w1' }, { id: 'w2' }] }) }))
 vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: async () => [], macro: async () => [] } }))
 vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: async () => [] } }))
+vi.mock('../../dividends/services/incomeHistoryService', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../dividends/services/incomeHistoryService')>(),
+  incomeHistoryService: { list: vi.fn(async () => ({ entries: [], coverage: [] })) },
+}))
 vi.mock('../../wealth/hooks/useWealthHistory', () => ({ useWealthHistory: (period: string) => ({
   positions: [{ ticker: 'BR', quantity: 1, currency: 'BRL', type: 'stock_br' }],
   lastPricesMap: new Map([['BR', 11575.73]]), usdRate: 5,
@@ -43,6 +49,9 @@ let annualHistory: typeof history | undefined
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(incomeHistoryService.list).mockResolvedValue({ entries: [], coverage: [] })
+  // Unit fixtures must never depend on the local Supabase project or network.
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('Unexpected network request in wallet totals test') }))
   useAssetFilters.getState().clear()
   close = 11524.60
   history = []
@@ -55,6 +64,11 @@ beforeEach(() => {
   ] as Awaited<ReturnType<typeof positionService.listLatestQuotes>>)
   vi.mocked(fixedIncomeService.listPositions).mockResolvedValue(fixed)
   vi.mocked(fixedIncomeService.listHistory).mockResolvedValue({ positions: fixed.map((position) => ({ ...position, indexer: 'pre', rate: 0, active: true })), events: [] })
+})
+
+afterEach(() => {
+  expect(fetch).not.toHaveBeenCalled()
+  vi.unstubAllGlobals()
 })
 
 function show(filters?: WealthChartFilters) {
@@ -190,4 +204,15 @@ it('respeita a data final histórica sem inserir o patrimônio atual nem posiç�
   const { result } = show({ type: 'stock_br', from: '2000-01-01', to: '2000-01-20' })
   await waitFor(() => expect(result.current.dashboard.isLoading).toBe(false))
   expect(result.current.dashboard.monthlySeries).toEqual([{ month: '2000-01', totalBRL: 11000, investedBRL: 10000 }])
+})
+
+// Older receipts must not disappear from all-time profit when the 12M window moves.
+it('separa recebimentos totais de 12M e inclui o histórico inteiro no lucro', async () => {
+  const day = (offset: number) => { const date = new Date(); date.setDate(date.getDate() + offset); return date.toISOString().slice(0, 10) }
+  const receipt = (id: string, date: string, net: number) => ({ id, ticker: 'BR', type: 'dividend', record_date: date, payment_date: date, quantity: 1, value_per_share: net, gross_amount: net, net_amount: net, currency: 'BRL' as const, asset: { type: 'stock_br' as const } })
+  vi.mocked(incomeHistoryService.list).mockResolvedValue({ entries: [receipt('old', day(-400), 170.05), receipt('recent', day(-10), 603.54)], coverage: [{ covered_from: '1970-01-01', covered_until: day(0) }] })
+  const { result } = show()
+  await waitFor(() => expect(result.current.dashboard.proventosTotalBRL).toBeCloseTo(773.59))
+  expect(result.current.dashboard.proventos12mBRL).toBeCloseTo(603.54)
+  expect(result.current.dashboard.lucroTotalBRL).toBeCloseTo(result.current.dashboard.ganhoCapitalBRL! + 773.59)
 })

@@ -69,6 +69,9 @@ export const FIXED_INCOME_TYPE_INDEXER: Record<FixedIncomeType, FixedIncomeIndex
 
 /** Linha de `public.fixed_income_positions`. */
 export interface FixedIncomePosition {
+  treasury_quantity?: number | null
+  valuation_method?: 'contract' | 'market'
+  valuation_price_date?: string | null
   remaining_principal?: number | null
   id: string
   user_id: string
@@ -108,6 +111,7 @@ export type NewFixedIncomeEvent = Pick<FixedIncomeEvent, 'id' | 'position_id' | 
 
 /** Payload de criação de posição de renda fixa. */
 export interface NewFixedIncomePosition {
+  treasury_quantity?: number | null
   name: string
   type: FixedIncomeType
   indexer: FixedIncomeIndexer
@@ -222,7 +226,7 @@ export interface PositionSort {
  */
 export interface PositionRow {
   /** Identidade do produto para agrupar lotes sem alterar seus lançamentos. */
-  fixedIncome?: { type: FixedIncomeType; indexer: FixedIncomeIndexer; rate: number }
+  fixedIncome?: { type: FixedIncomeType; indexer: FixedIncomeIndexer; rate: number; treasury_quantity?: number | null; maturity_date?: string | null; valuation_method?: string; valuation_price_date?: string | null }
   id: string
   ticker: string
   name: string | null
@@ -275,12 +279,12 @@ export interface PositionRow {
   /** Proventos recebidos nos últimos 12M em BRL (qty × value_per_share). */
   proventosRecebidosBRL?: number | null
   /**
-   * Payout % = (dividendos_por_ação / lpa) × 100.
+   * Payout % da empresa, informado pela fonte fundamentalista.
    * `null` quando lpa ausente ou ≤ 0.
    */
   payoutPercent?: number | null
   /**
-   * Yield on Cost % = (proventos_recebidos / custo_total) × 100.
+   * Yield on Cost % = (recebimentos 12M / custo atual) × 100, na moeda do custo.
    * custo_total = averagePrice × quantity.
    */
   yieldOnCostPercent?: number | null

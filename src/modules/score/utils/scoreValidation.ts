@@ -1,7 +1,8 @@
+import { INDICATOR_IDS, INDICATOR_OPERATORS } from '../../../shared/indicators/catalog'
 import { z } from 'zod'
 
-const VALID_METRICS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin'] as const
-const VALID_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'between'] as const
+const VALID_METRICS = INDICATOR_IDS
+const VALID_OPERATORS = INDICATOR_OPERATORS
 
 /**
  * Schema Zod para criação e edição de regras de score.
@@ -14,20 +15,20 @@ const VALID_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'between'] as const
 export const scoreRuleSchema = z
   .object({
     name: z.string().min(1, 'Nome é obrigatório'),
-    metric: z.enum(VALID_METRICS, { errorMap: () => ({ message: 'Métrica inválida' }) }),
+    metric: z.enum(VALID_METRICS, { error: 'Métrica inválida' }),
     operator: z.enum(VALID_OPERATORS, {
-      errorMap: () => ({ message: 'Operador inválido' }),
+      error: 'Operador inválido',
     }),
     threshold_min: z
-      .number({ invalid_type_error: 'Informe um número', required_error: 'Limiar obrigatório' })
+      .number({ error: issue => issue.input === undefined ? 'Limiar obrigatório' : 'Informe um número' })
       .finite('Deve ser um número finito'),
     threshold_max: z
-      .number({ invalid_type_error: 'Informe um número' })
+      .number({ error: 'Informe um número' })
       .finite('Deve ser um número finito')
       .optional()
       .nullable(),
     points: z
-      .number({ invalid_type_error: 'Informe um número', required_error: 'Pontos obrigatórios' })
+      .number({ error: issue => issue.input === undefined ? 'Pontos obrigatórios' : 'Informe um número' })
       .int('Pontos devem ser número inteiro'),
   })
   .superRefine((data, ctx) => {

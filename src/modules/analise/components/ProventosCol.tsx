@@ -4,7 +4,7 @@
  */
 import { useMemo } from 'react'
 import { ArrowRight } from 'lucide-react'
-import { useDividends } from '../../dividends/hooks/useDividends'
+import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
@@ -59,7 +59,7 @@ function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total:
 export function ProventosCol() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
-  const { rows: divRows, isLoading: divLoading } = useDividends('1A')
+  const { rows: divRows, isLoading: divLoading, isError: divError, refetch } = useBrlDividends('1A')
   const dashboard = useDashboard(walletId)
   const monthlyBars = useMemo(() => buildMonthlyBars(divRows), [divRows])
 
@@ -88,7 +88,7 @@ export function ProventosCol() {
       <div className="px-4 pt-4 pb-2">
         {divLoading ? (
           <div className="h-[120px] animate-pulse rounded-lg bg-white/[0.04]" />
-        ) : monthlyBars.length > 0 ? (
+        ) : divError ? <p role="alert" className="text-xs text-amber-200">Dados ou câmbio histórico indisponíveis. <button onClick={refetch} className="min-h-11 underline">Tentar novamente</button></p> : monthlyBars.length > 0 ? (
           <MiniBarChart months={monthlyBars} />
         ) : (
           <div className="flex h-[120px] items-center justify-center">
@@ -116,7 +116,7 @@ export function ProventosCol() {
           </div>
         )}
 
-        {!divLoading && recentRows.length === 0 && (
+        {!divLoading && !divError && recentRows.length === 0 && (
           <div className="flex h-20 items-center justify-center">
             <p className="text-[12px] text-[#8F8F8F]">Sem proventos cadastrados</p>
           </div>

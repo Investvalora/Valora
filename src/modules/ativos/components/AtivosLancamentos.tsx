@@ -9,6 +9,7 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
 import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
@@ -423,7 +424,7 @@ export function AtivosLancamentos() {
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
-    for (const v of dividendTotalsByTicker.values()) total += v
+    for (const v of dividendTotalsByTicker.values()) { if (v === null) return null; total += v }
     return total > 0 ? total : null
   }, [dividendTotalsByTicker])
 
@@ -597,15 +598,15 @@ export function AtivosLancamentos() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
             {/* Busca */}
-            <div className="relative">
+            <div className="relative w-full min-w-0 sm:w-52">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar ativo…"
-                className="w-52 rounded-full border border-white/[0.18] bg-transparent py-1.5 pl-3 pr-8 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="w-full min-w-0 rounded-full border border-white/[0.18] bg-transparent py-1.5 pl-3 pr-8 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
               />
               <Search
                 className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500"
@@ -614,11 +615,12 @@ export function AtivosLancamentos() {
             </div>
 
             {/* Botão + Lançamento */}
+            <Link to="/ativos/importar" className="shrink-0 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-xs text-white">Importar CSV</Link>
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
               className="
-                flex items-center gap-1.5 rounded-full
+                flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full
                 bg-nf-blue px-3.5 py-1.5 text-[12px] font-medium text-white
                 transition-opacity hover:opacity-90
               "

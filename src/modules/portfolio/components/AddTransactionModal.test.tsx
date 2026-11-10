@@ -24,6 +24,8 @@ const holders = vi.hoisted(() => ({
 vi.mock('../hooks/useTransactions', () => ({
   useAddTransaction: () => holders.addTx,
 }))
+vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'u' } }) }))
+vi.mock('../hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w' } }) }))
 vi.mock('../hooks/useFixedIncomePositions', () => ({
   useAddFixedIncomePosition: () => holders.addFI,
 }))
@@ -53,7 +55,7 @@ function renderModal(props: {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
-  render(
+  const view = render(
     <AddTransactionModal
       isOpen
       onClose={onClose}
@@ -63,7 +65,7 @@ function renderModal(props: {
     />,
     { wrapper },
   )
-  return { onClose }
+  return { onClose, ...view }
 }
 
 /** Dispara `change` num campo pelo id — funciona p/ input, select e date. */
@@ -78,6 +80,7 @@ function selectCategory(category: 'fixed_income' | 'tesouro_direto') {
 }
 
 beforeEach(() => {
+  sessionStorage.clear()
   holders.addFI.mutate.mockImplementation(
     (_payload: unknown, opts?: { onSuccess?: () => void; onError?: () => void }) => {
       opts?.onSuccess?.()
@@ -93,6 +96,52 @@ beforeEach(() => {
 // ─── seletor sem ticker ─────────────────────────────────────────────────────
 
 describe('AddTransactionModal — seletor sem ticker', () => {
+  it('mantém rascunhos separados ao alternar entre renda fixa e Tesouro', () => {
+    renderModal(); selectCategory('fixed_income')
+    change('rf-emissor', 'Banco A'); change('rf-valor', '250')
+    selectCategory('tesouro_direto')
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+    change('td-ativo', 'tesouro_pre'); change('td-price', '500')
+    selectCategory('fixed_income')
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    expect(document.getElementById('rf-emissor')).toHaveValue('Banco A')
+    expect(document.getElementById('rf-valor')).toHaveValue(250)
+  })
+
+  it('remove rascunho após salvar com sucesso sem reaplicar ao reabrir', async () => {
+    const first = renderModal(); selectCategory('fixed_income')
+    change('rf-emissor', 'Banco A'); change('rf-tipo', 'rdb_cdi'); change('rf-taxa', '115'); change('rf-valor', '250')
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
+    await waitFor(() => expect(first.onClose).toHaveBeenCalled())
+    first.unmount(); renderModal(); selectCategory('fixed_income')
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
+  it.each(['fixed_income', 'tesouro_direto'] as const)('recupera rascunho de %s após remontar sem enviar e limpa ao cancelar', category => {
+    const first = renderModal()
+    selectCategory(category)
+    if (category === 'fixed_income') {
+      change('rf-emissor', 'Banco teste'); change('rf-tipo', 'rdb_cdi'); change('rf-taxa', '115'); change('rf-valor', '123.45')
+    } else {
+      change('td-ativo', 'tesouro_ipca'); change('td-taxa', '7.19'); change('td-qty', '0.03'); change('td-price', '3400.03')
+    }
+    first.unmount()
+    const second = renderModal()
+    fireEvent.click(screen.getByRole('button', { name: category === 'fixed_income' ? 'Abrir rascunho de renda fixa' : 'Abrir rascunho de Tesouro Direto' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    if (category === 'fixed_income') {
+      expect(document.getElementById('rf-emissor')).toHaveValue('Banco teste')
+      expect(document.getElementById('rf-taxa')).toHaveValue(115)
+      expect(document.getElementById('rf-valor')).toHaveValue(123.45)
+    } else {
+      expect(document.getElementById('td-ativo')).toHaveValue('tesouro_ipca')
+      expect(document.getElementById('td-qty')).toHaveValue(0.03)
+      expect(document.getElementById('td-price')).toHaveValue(3400.03)
+    }
+    expect(holders.addFI.mutate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    second.unmount(); renderModal(); selectCategory(category)
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
   it('oferece só Renda Fixa e Tesouro Direto (sem renda variável)', () => {
     renderModal()
     const select = document.getElementById('cat-select') as HTMLSelectElement
@@ -124,6 +173,33 @@ describe('AddTransactionModal — seletor sem ticker', () => {
 // ─── ticker pré-preenchido (caminho inalterado) ──────────────────────────────
 
 describe('AddTransactionModal — ticker pré-preenchido', () => {
+  it('restaura quantidade, preço manual e custos após remontar sem enviar; cancelar limpa', async () => {
+    const first = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    change('txn-qty', '2.5')
+    change('txn-price', '40.12')
+    change('txn-fee', '1.25')
+    first.unmount()
+    holders.latestPrice = 99
+    const second = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    expect(document.getElementById('txn-qty')).toHaveValue(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+    expect(document.getElementById('txn-qty')).toHaveValue(2.5)
+    expect(document.getElementById('txn-price')).toHaveValue(40.12)
+    expect(document.getElementById('txn-fee')).toHaveValue(1.25)
+    expect(holders.addTx.mutateAsync).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    second.unmount()
+    renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
+
+  it('não oferece rascunho de outro ativo', () => {
+    const first = renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+    change('txn-qty', '2')
+    first.unmount()
+    renderModal({ ticker: 'VALE3', assetType: 'stock_br' })
+    expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  })
   it('não mostra o seletor e renderiza o formulário de renda variável', () => {
     renderModal({ ticker: 'PETR4', assetType: 'stock_br', assetName: 'Petrobras PN' })
     expect(document.getElementById('cat-select')).toBeNull()
@@ -156,7 +232,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
     change('rf-taxa', '115')
     change('rf-valor', '1000')
     change('rf-date', '2026-01-15')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalled())
     expect(holders.addFI.mutate.mock.calls[0][0]).toMatchObject({ type, indexer, principal: 1000, maturity_date: null })
   })
@@ -168,7 +244,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
     change('rf-taxa', '110')
     change('rf-valor', '1000')
     change('rf-date', '2026-01-15')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -200,7 +276,7 @@ describe('AddTransactionModal — Renda Fixa', () => {
   it('não submete e mostra erros quando campos obrigatórios faltam', async () => {
     renderModal()
     selectCategory('fixed_income')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() =>
       expect(screen.getByText('Informe o emissor')).toBeInTheDocument(),
@@ -221,7 +297,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
     change('td-qty', '0.5')
     change('td-price', '14000')
     change('td-maturity', '2029-01-01')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -246,7 +322,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
     change('td-date', '2026-01-15')
     change('td-qty', '1')
     change('td-price', '100')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() => expect(holders.addFI.mutate).toHaveBeenCalledTimes(1))
     const payload = holders.addFI.mutate.mock.calls[0][0] as NewFixedIncomePosition
@@ -273,7 +349,7 @@ describe('AddTransactionModal — Tesouro Direto', () => {
   it('não submete e mostra erro quando o ativo não é selecionado', async () => {
     renderModal()
     selectCategory('tesouro_direto')
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alteração' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
 
     await waitFor(() =>
       expect(screen.getByText('Selecione o ativo')).toBeInTheDocument(),

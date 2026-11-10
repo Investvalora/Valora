@@ -11,18 +11,18 @@ export function useImportTransactions() {
   const userId = user?.id
   const { selectedWallet } = useWallets()
 
-  return useMutation<number, Error, ParsedTransactionRow[]>({
-    mutationFn: (rows) => {
+  return useMutation<{ count: number; duplicate: boolean }, Error, { rows: ParsedTransactionRow[]; fileName: string; walletId: string }>({
+    mutationFn: ({ rows, fileName, walletId }) => {
       if (!userId) throw new Error('Sessão ausente. Entre novamente para importar transações.')
-      if (!selectedWallet) throw new Error('Selecione uma carteira.')
-      return transactionsService.importTransactions(userId, rows, selectedWallet.id)
+      if (!selectedWallet || selectedWallet.id !== walletId) throw new Error('A carteira mudou. Confira o destino.')
+      return transactionsService.importTransactions(userId, rows, walletId, fileName)
     },
-    onSuccess: (_, rows) => {
+    onSuccess: (result, { rows }) => {
       queryClient.invalidateQueries({ queryKey: ['portfolio', 'positions', userId] })
       queryClient.invalidateQueries({ queryKey: ['portfolio', 'transactions-all', userId] })
       queryClient.invalidateQueries({ queryKey: ['wealth', 'positions-snapshot', userId] })
-      if (userId) void (async () => {
-        for (const ticker of new Set(rows.filter(row => row.type === 'buy').map(row => row.ticker))) await syncAssetData(queryClient, userId, ticker)
+      if (userId && !result.duplicate) void (async () => {
+        for (const ticker of new Set(rows.filter(row => row.type === 'buy' && row.selected && !row.skipped && !row.errors.length).map(row => row.ticker))) await syncAssetData(queryClient, userId, ticker)
       })()
     },
   })

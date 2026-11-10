@@ -1,5 +1,35 @@
 # TODO de segurança
 
+## Lista ativa — penteste de 06/11/2026
+
+Evidências iniciais em [penteste controlado](penteste-controlado-2026-11-06.md); execução e limites em [correções de segurança](correcoes-seguranca-2026-11-06.md). Banco, autorização dos jobs e limite de login já aplicados. Correções do frontend estão locais e dependem de PR/deploy. A lista anterior continua preservada abaixo.
+
+Atualização: o frontend acima foi publicado pela PR #108 e homologado no recorte registrado em [validação de produção](validacao-producao-pr108.md), incluindo confirmação do responsável para Google e push/PWA. Referências a “local” nas evidências iniciais descrevem o estado anterior à publicação.
+
+### Prioridade alta
+
+- [x] **SEG-01 — Ferramentas e transitivas corrigidas localmente.** Versões fixadas, host padrão loopback, instalação frozen e build/PWA passaram. Auditoria passou de 27 ocorrências para zero; regressão completa passou. A atualização do app publicado acompanha o próximo deploy.
+- [x] **SEG-05 — Jobs legados protegidos e publicados.** B3 v18 e Bolsai v9 exigem credencial interna exata ou digest autorizado. Testes locais de sessão comum/falsa e serviço passaram; quatro chamadas públicas recusadas. Vault autorizado e agendamento preservado, sem disparar job global extra.
+
+### Prioridade média
+
+- [x] **SEG-02 — Dependências do app corrigidas localmente.** Router/Zod/resolvers atualizados, formulários adaptados, versões e transitivas sem avisos conhecidos na auditoria. Tipos, regressão e build passaram; publicação acompanha o frontend.
+- [x] **SEG-04 — Cabeçalhos publicados e homologados na PR #108.** Headers reais conferidos; navegação autenticada, score, regras e fontes observadas sem violação de CSP. Responsável confirmou OAuth Google e PWA (ajudas, score e push abrindo Alertas). Escopo e evidências em [validação da PR #108](validacao-producao-pr108.md). Não equivale a teste de todas as APIs/dispositivos.
+- [ ] **SEG-07 — Proteção nativa contra senhas vazadas.** Avaliação concluída: painel exige plano Pro ou superior. Ativação adiada sem contratar plano; requisitos atuais de senha preservados. Não é falha corrigível apenas pelo frontend.
+
+### Prioridade baixa e prevenção
+
+- [x] **SEG-03 — Propriedade do score corrigida no banco.** FK composta aplicada; INSERT/UPDATE de referência alheia/inexistente rejeitados, referência própria e exclusão preservadas. Retestes SQL sintéticos com rollback passaram.
+- [x] **SEG-06 — Fórmulas neutralizadas no CSV local.** Células textuais protegidas, números preservados; testes passaram. Depende de publicação do frontend.
+- [x] **SEG-08 — Cache de identidade corrigido localmente.** Consultas canceladas e cache limpo na saída/troca; refresh da mesma conta preservado. Testes cobrem troca e resposta inicial atrasada após logout. Depende de publicação do frontend.
+- [x] **SEG-09 — Extensões avaliadas e ajuste suportado aplicado.** `pg_trgm` movida para `extensions`; índice e similaridade válidos. `pg_net` não é relocável: mantida, sem drop/recriação que prejudicaria jobs. Aviso residual documentado.
+- [x] **SEG-10 — CI conferida no GitHub.** Após completar os mocks e incluir a tabela de benchmarks no harness, execução `42321229897` passou nos jobs app e database-isolation: scanner, auditoria, testes, build e RLS em Postgres temporário. Actions atualizadas para runtime Node 24 e Ubuntu fixado em 24.04; Docker local continua indisponível, sem impedir o ensaio isolado na CI.
+- [x] **SEG-11 — Proteção de tentativas de login.** Limite servidor salvo e reconferido: 15 cadastros/logins por IP/5 min; refresh preservado. Espera progressiva 2–60s, tratamento de 429 e bloqueio de concorrência implementados no desktop/PWA e serviço, com testes e conferência no navegador compilado. A parte visual depende de deploy. Não equivale a proteção completa contra DDoS; CAPTCHA gratuito é possível, mas exige chaves/configuração conjunta antes de habilitar.
+
+**Retestes:** auditoria de dependências com zero avisos, 999 testes na regressão completa, 37 testes direcionados adicionais com sobreposição, tipos/build/PWA/lint e SQL sintético aprovados. Nenhum usuário de fixture permaneceu. Nenhum acesso foi revogado ou credencial rotacionada. Permanecem os passos de publicação/homologação, primeira CI e a funcionalidade de senha restrita ao plano pago.
+
+## Histórico — 27/10/2026
+
 Levantamento de 27/10/2026. Esta lista registra achados; não autoriza alterações de permissões ou rotação de credenciais.
 
 - [x] **Alta — autenticação das sincronizações Yahoo.** Corrigida e publicada em `sync-dividends-yahoo` v4 e `sync-yahoo-fundamentals` v5. Sessões são validadas no Supabase Auth; prefixos ou claims não verificados não autorizam. Fundamentos só aceita a chave interna exata. O botão de proventos permanece disponível para sessões válidas, com escopo limitado aos ativos das carteiras da conta; tickers externos são negados. Jobs mantidos nos mesmos horários, usando a credencial existente do Vault. Verificação em produção: ambas retornaram 401 sem sessão e com token falso, sem executar sincronização. 14 testes passaram (autorização, escopo, jobs e consulta de proventos), além de `deno check` das duas funções e TypeScript do app. `fetch-dividends-yahoo`, cálculos e demais configurações não foram alterados. Chamadas de job com credencial válida foram verificadas por testes locais; não foi disparada uma sincronização global extra em produção.

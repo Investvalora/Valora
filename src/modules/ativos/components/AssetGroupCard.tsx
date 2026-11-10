@@ -96,7 +96,7 @@ export function AssetGroupCard({
         {/* % carteira */}
         {portfolioPct !== null && (
           <span className="min-w-[38px] text-right text-[11px] text-white/40 tabular-nums">
-            {portfolioPct.toFixed(1)}%
+            {portfolioPct.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
           </span>
         )}
 

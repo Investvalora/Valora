@@ -1,3 +1,4 @@
+import { InflationComparison } from '../../performance/components/InflationComparison'
 /**
  * DesempenhoRentabilidade — sub-rota /desempenho/rentabilidade.
  * Gráfico de linha comparativo, tabela mensal e tabela por ativo.
@@ -64,7 +65,7 @@ const CLASS_COLORS: Record<string, string> = {
 function fmtPct(v: number | null | undefined, decimals = 2): string {
   if (v == null || !Number.isFinite(v)) return '—'
   const sign = v > 0 ? '+' : ''
-  return `${sign}${v.toFixed(decimals)}%`
+  return `${sign}${v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`
 }
 
 function fmtBRL(v: number): string {
@@ -87,7 +88,7 @@ export function DesempenhoRentabilidade() {
   const [period, setPeriod] = useState<PerformancePeriod>('Tudo')
   const [typeFilter, setTypeFilter] = useState('Todos os tipos')
 
-  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete, historyIssues } =
+  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete, historyIssues, refetch } =
     usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
 
   // Positions para obter o type do ativo (classe)
@@ -156,7 +157,7 @@ export function DesempenhoRentabilidade() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ReturnHistoryNotice incomplete={historyIncomplete} issues={historyIssues} />
+      <ReturnHistoryNotice incomplete={historyIncomplete} issues={historyIssues} onRetry={refetch} />
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Rentabilidade</h2>
@@ -293,6 +294,8 @@ export function DesempenhoRentabilidade() {
         )}
       </PanelCard>
 
+      <InflationComparison portfolio={portfolioSeries} />
+
       {/* ── Tabela por ativo ── */}
       <PanelCard>
         <div className="mb-4 flex items-center justify-between">
@@ -313,6 +316,11 @@ export function DesempenhoRentabilidade() {
             Exportar CSV
           </button>
         </div>
+
+        <p className="mb-4 text-[12px] text-white/50">
+          Resultado da posição atual sobre o preço médio, incluindo proventos elegíveis recebidos no período selecionado.
+          O retorno histórico da carteira considera as movimentações e pode ser diferente.
+        </p>
 
         {isLoading ? (
           <div className="flex flex-col gap-2">
@@ -379,7 +387,7 @@ export function DesempenhoRentabilidade() {
                         }`}
                       >
                         {vscdipp != null
-                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)} pp`
+                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`
                           : 'vs CDI: —'}
                       </span>
                     </div>
@@ -498,7 +506,7 @@ export function DesempenhoRentabilidade() {
                               : 'text-nf-pink'
                         }`}
                       >
-                        {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toFixed(1)}pp` : '—'}
+                        {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp` : '—'}
                       </td>
                       {/* Barra de desempenho */}
                       <td className="hidden md:table-cell px-3 py-2.5 min-w-[100px]">

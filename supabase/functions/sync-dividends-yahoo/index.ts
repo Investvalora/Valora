@@ -90,7 +90,7 @@ async function fetchYahooDividends(
       },
     })
     clearTimeout(timer)
-    if (!resp.ok) return []
+    if (!resp.ok) throw new Error('dividend_provider_unavailable')
 
     const data = await resp.json() as {
       chart: {
@@ -101,7 +101,7 @@ async function fetchYahooDividends(
       }
     }
 
-    if (data.chart.error || !data.chart.result?.[0]) return []
+    if (data.chart.error || !data.chart.result?.[0]) throw new Error('dividend_provider_invalid_response')
 
     const raw = data.chart.result[0].events?.dividends ?? {}
     const payments: Array<{ ex_date: string; value_per_share: number }> = []
@@ -118,7 +118,7 @@ async function fetchYahooDividends(
     return payments
   } catch {
     clearTimeout(timer)
-    return []
+    throw new Error('dividend_provider_unavailable')
   }
 }
 
@@ -137,12 +137,12 @@ async function upsertDividends(rows: DividendRow[]): Promise<number> {
   const CHUNK = 200
   let total = 0
   for (let i = 0; i < rows.length; i += CHUNK) {
-    const r = await rest('dividends?on_conflict=ticker,ex_date,type', {
+    const r = await rest('rpc/store_yahoo_dividend_events', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(rows.slice(i, i + CHUNK)),
+      body: JSON.stringify({ p_events: rows.slice(i, i + CHUNK) }),
     })
-    if (r.ok) total += Math.min(CHUNK, rows.length - i)
+    if (!r.ok) throw new Error('dividend_storage_unavailable')
+    total += Number(await r.json())
   }
   return total
 }
@@ -153,9 +153,11 @@ async function runSync(tickers: Array<{ ticker: string; currency: string }>) {
   let totalInserted = 0
   let synced = 0
   const processed: string[] = []
+  const errors: Array<{ ticker: string; reason: string }> = []
 
   for (let i = 0; i < tickers.length; i++) {
     const { ticker, currency } = tickers[i]
+    try {
     const payments = await fetchYahooDividends(ticker, currency)
 
     if (payments.length > 0) {
@@ -173,10 +175,13 @@ async function runSync(tickers: Array<{ ticker: string; currency: string }>) {
     }
 
     processed.push(ticker)
+    } catch {
+      errors.push({ ticker, reason: 'provider_or_storage_unavailable' })
+    }
     if (i < tickers.length - 1) await sleep(PAUSE_MS)
   }
 
-  return { synced, inserted: totalInserted, tickers_processed: processed }
+  return { synced, inserted: totalInserted, tickers_processed: processed, failed: errors.length, errors }
 }
 
 // ─── handler ─────────────────────────────────────────────────────────────────
@@ -234,5 +239,5 @@ Deno.serve(async (req: Request) => {
   }
 
   const result = await runSync(tickers)
-  return json({ ...result, mode: syncMode, executado_em: new Date().toISOString() })
+  return json({ ...result, mode: syncMode, executado_em: new Date().toISOString() }, result.failed ? 503 : 200)
 })

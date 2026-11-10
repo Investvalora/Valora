@@ -219,6 +219,7 @@ export function CarteiraPage() {
     () => new Map(positions.map((p) => [p.ticker, p.asset?.currency ?? 'BRL'])),
     [positions],
   )
+  const dividendLocalTotalsByTicker = useDividendTotals(tickers, quantityByTicker, currencyByTickerForBazin)
   const { bazinByTicker } = useBazin(tickers, 0.06, currencyByTickerForBazin)
 
   // ── Enriquecimento com pl, pvp, dy, proventos, payout, yieldOnCost, graham, bazin
@@ -227,9 +228,10 @@ export function CarteiraPage() {
       rows: derived.rows,
       fundamentalsByTicker,
       dividendTotalsByTicker: dividendTotals,
+      dividendLocalTotalsByTicker,
       bazinByTicker,
     }),
-    [derived.rows, fundamentalsByTicker, dividendTotals, bazinByTicker],
+    [derived.rows, fundamentalsByTicker, dividendTotals, dividendLocalTotalsByTicker, bazinByTicker],
   )
 
   // ── Score ──────────────────────────────────────────────────────────────────

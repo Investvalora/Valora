@@ -10,6 +10,19 @@ const PAGE_SIZE = 500
 const BENCHMARK_COLUMNS = 'name, date, value, source'
 
 export const benchmarkService = {
+  async listMonthlyInflation(since: string): Promise<{ date: string; value: number }[]> {
+    const rows: { date: string; value: number }[] = []
+    const until = `${toIsoDate(new Date()).slice(0, 7)}-01`
+    for (let start = 0; ; start += PAGE_SIZE) {
+      const { data, error } = await supabase.from('macro_rates').select('date,value')
+        .eq('series', 'ipca').gte('date', `${since.slice(0, 7)}-01`).lt('date', until)
+        .order('date', { ascending: true }).range(start, start + PAGE_SIZE - 1)
+      if (error) throw error
+      const page = (data ?? []) as { date: string; value: number }[]
+      rows.push(...page)
+      if (page.length < PAGE_SIZE) return rows
+    }
+  },
   /**
    * Retorna os pontos de todos os benchmarks (CDI, IBOV, IFIX) no intervalo
    * `[since, hoje]`, ordenados por `(name ASC, date ASC)`.

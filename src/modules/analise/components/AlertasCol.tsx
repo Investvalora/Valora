@@ -21,6 +21,8 @@ type AlertConfig = {
 }
 
 const ALERT_CONFIG: Record<AlertType, AlertConfig> = {
+  indicator: { label: 'Indicador', color: '#7987FF', Icon: BellRing },
+  event: { label: 'Evento', color: '#7987FF', Icon: BellRing },
   position_no_transactions: { label: 'Inconsistência', color: '#FFD95A', Icon: AlertTriangle },
   stale_quote:              { label: 'Cotação antiga', color: '#FFD95A', Icon: Clock },
   opportunity:              { label: 'Oportunidade',   color: '#63D16B', Icon: TrendingDown },

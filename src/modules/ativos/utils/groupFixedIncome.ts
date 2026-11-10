@@ -4,8 +4,15 @@ export function groupFixedIncome(rows: PositionRow[]) {
   const groups = new Map<string, PositionRow[]>()
   for (const row of rows) {
     const product = row.fixedIncome
-    const key = product && Number.isFinite(product.rate)
-      ? JSON.stringify([(row.name ?? row.ticker).trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR'), product.type, product.indexer, product.rate])
+    // A Treasury bond is identified by its type and maturity. Purchase yields
+    // belong to each lot and must not split holdings of the same bond.
+    // Keep coupon/other variants and incomplete identities separate.
+    const consolidatedTreasury = product?.type.startsWith('tesouro_') &&
+      product.maturity_date && !/juros|renda\+|educa/i.test(row.name ?? row.ticker)
+    const key = product && consolidatedTreasury
+      ? JSON.stringify(['treasury', product.type, product.indexer, product.maturity_date])
+      : product && Number.isFinite(product.rate)
+      ? JSON.stringify([(row.name ?? row.ticker).trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR'), product.type, product.indexer, product.rate, ...(product.type.startsWith('tesouro_') ? [product.maturity_date ?? null] : [])])
       : row.id
     groups.set(key, [...(groups.get(key) ?? []), row])
   }

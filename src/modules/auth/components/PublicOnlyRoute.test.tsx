@@ -1,11 +1,21 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Link, Route, Routes } from 'react-router-dom'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
 
-vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({ isAuthenticated: false, loading: false }),
-}))
+const auth = vi.hoisted(() => ({ isAuthenticated: false, loading: false }))
+vi.mock('../hooks/useAuth', () => ({ useAuth: () => auth }))
+beforeEach(() => { auth.isAuthenticated = false })
+
+it('permite solicitar novo link com uma sessão anterior aberta', () => {
+  auth.isAuthenticated = true
+  render(<MemoryRouter initialEntries={['/recuperar-senha']}><Routes>
+    <Route element={<PublicOnlyRoute />}><Route path="/recuperar-senha" element={<main>Recuperação disponível</main>} /></Route>
+    <Route path="/inicio" element={<main>Início</main>} />
+  </Routes></MemoryRouter>)
+  expect(screen.getByText('Recuperação disponível')).toBeInTheDocument()
+  expect(screen.queryByText('Início')).not.toBeInTheDocument()
+})
 
 it('mantém o fundo montado enquanto as cores mudam entre as telas de autenticação', () => {
   const { container } = render(

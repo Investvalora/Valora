@@ -1,5 +1,6 @@
+import { INDICATOR_LABELS, type IndicatorId } from '../../shared/indicators/catalog'
 /** Métricas fundamentalistas disponíveis para regras de score. */
-export type ScoreMetric = 'pl' | 'pvp' | 'roe' | 'dy' | 'debt_equity' | 'net_margin'
+export type ScoreMetric = IndicatorId
 
 /** Operadores de comparação para regras de score. */
 export type ScoreOperator = 'lt' | 'lte' | 'gt' | 'gte' | 'between'
@@ -38,14 +39,7 @@ export type UpsertUserPreferences = Partial<
 >
 
 /** Rótulos legíveis para exibição na UI. */
-export const METRIC_LABELS: Record<ScoreMetric, string> = {
-  pl: 'P/L',
-  pvp: 'P/VP',
-  roe: 'ROE (%)',
-  dy: 'DY (%)',
-  debt_equity: 'Dívida/PL',
-  net_margin: 'Margem Líquida (%)',
-}
+export const METRIC_LABELS = INDICATOR_LABELS
 
 export const OPERATOR_LABELS: Record<ScoreOperator, string> = {
   lt: 'menor que (<)',
@@ -57,6 +51,11 @@ export const OPERATOR_LABELS: Record<ScoreOperator, string> = {
 
 /** Linha da tabela `fundamentals` (apenas o registro mais recente por ticker). */
 export interface FundamentalsRow {
+  /** Competência do VPA oficial usado somente quando o provedor não trouxe VPA. */
+  cvm_reference_date?: string | null
+  /** Payout da empresa em %, informado pelo provedor; não é recebimento pessoal. */
+  payout_ratio?: number | null
+  source?: string
   ticker: string
   reference_date: string
   pl: number | null

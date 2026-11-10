@@ -1,3 +1,4 @@
+import { PageTitle } from './shared/components/PageTitle'
 import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { AppShellNovo } from './shared/layout/AppShellNovo'
@@ -7,23 +8,27 @@ import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
 import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
-import { AlertsPage } from './modules/alerts/components/AlertsPage'
-import { PatrimonioPage } from './modules/wealth/components/PatrimonioPage'
-import { ProventosPage } from './modules/dividends/components/ProventosPage'
-import { RentabilidadePage } from './modules/performance/components/RentabilidadePage'
-import { ScorePage } from './modules/score/components/ScorePage'
-import { EstrategiasPage } from './modules/valuation/components/EstrategiasPage'
-import { NovoInsightPage } from './modules/valuation/components/NovoInsightPage'
-import { NovaEstrategiaPage } from './modules/valuation/components/NovaEstrategiaPage'
-import { AtivoDetailPage } from './modules/assets/components/AtivoDetailPage'
-import { LancamentosPage } from './modules/portfolio/components/LancamentosPage'
-import { AccountPage } from './modules/preferences/components/AccountPage'
-import { InicioPage } from './modules/inicio/components/InicioPage'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
-import { WalletsPage } from './modules/portfolio/components/WalletsPage'
 import { PublicInfoPage } from './modules/public/components/PublicInfoPage'
+import { RouteLoadingFallback as LoadingFallback } from './shared/components/RouteLoadingFallback'
+
+// Páginas menos frequentes são carregadas somente ao acessar a rota.
+const AlertsPage = lazy(() => import('./modules/alerts/components/AlertsPage').then(m => ({ default: m.AlertsPage })))
+const PatrimonioPage = lazy(() => import('./modules/wealth/components/PatrimonioPage').then(m => ({ default: m.PatrimonioPage })))
+const ProventosPage = lazy(() => import('./modules/dividends/components/ProventosPage').then(m => ({ default: m.ProventosPage })))
+const RentabilidadePage = lazy(() => import('./modules/performance/components/RentabilidadePage').then(m => ({ default: m.RentabilidadePage })))
+const ScorePage = lazy(() => import('./modules/score/components/ScorePage').then(m => ({ default: m.ScorePage })))
+const EstrategiasPage = lazy(() => import('./modules/valuation/components/EstrategiasPage').then(m => ({ default: m.EstrategiasPage })))
+const NovoInsightPage = lazy(() => import('./modules/valuation/components/NovoInsightPage').then(m => ({ default: m.NovoInsightPage })))
+const NovaEstrategiaPage = lazy(() => import('./modules/valuation/components/NovaEstrategiaPage').then(m => ({ default: m.NovaEstrategiaPage })))
+const AtivoDetailPage = lazy(() => import('./modules/assets/components/AtivoDetailPage').then(m => ({ default: m.AtivoDetailPage })))
+const LancamentosPage = lazy(() => import('./modules/portfolio/components/LancamentosPage').then(m => ({ default: m.LancamentosPage })))
+const AccountPage = lazy(() => import('./modules/preferences/components/AccountPage').then(m => ({ default: m.AccountPage })))
+const InicioPage = lazy(() => import('./modules/inicio/components/InicioPage').then(m => ({ default: m.InicioPage })))
+const WalletsPage = lazy(() => import('./modules/portfolio/components/WalletsPage').then(m => ({ default: m.WalletsPage })))
+const TransactionImportPage = lazy(() => import('./modules/portfolio/components/TransactionImportPage').then(m => ({ default: m.TransactionImportPage })))
 
 // ── Lazy imports para sub-rotas de Ativos ─────────────────────────────────
 const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
@@ -31,14 +36,6 @@ const AtivosComposicao = lazy(() => import('./modules/ativos/components/AtivosCo
 const AtivosLancamentos = lazy(() => import('./modules/ativos/components/AtivosLancamentos').then((m) => ({ default: m.AtivosLancamentos })))
 const AtivosExplorar = lazy(() => import('./modules/ativos/components/AtivosExplorar').then((m) => ({ default: m.AtivosExplorar })))
 
-
-function LoadingFallback() {
-  return (
-    <div className="flex h-40 items-center justify-center">
-      <span className="text-sm text-white/40 animate-pulse">Carregando…</span>
-    </div>
-  )
-}
 
 // ── Lazy imports para sub-rotas de Desempenho ─────────────────────────────
 const DesempenhoVisaoGeral    = lazy(() => import('./modules/desempenho/components/DesempenhoVisaoGeral').then((m) => ({ default: m.DesempenhoVisaoGeral })))
@@ -48,6 +45,7 @@ const DesempenhoProventos     = lazy(() => import('./modules/desempenho/componen
 // ── Lazy imports para sub-rotas de Análise ────────────────────────────────
 const AnaliseVisaoGeral = lazy(() => import('./modules/analise/components/AnaliseVisaoGeral').then((m) => ({ default: m.AnaliseVisaoGeral })))
 const AnaliseScore   = lazy(() => import('./modules/analise/components/AnaliseScore').then((m) => ({ default: m.AnaliseScore })))
+const AssetComparison = lazy(() => import('./modules/analise/components/AssetComparison').then(m => ({ default: m.AssetComparison })))
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 const ScoreRulePage  = lazy(() => import('./modules/score/components/ScoreRulePage').then((m) => ({ default: m.ScoreRulePage })))
 
@@ -63,7 +61,9 @@ function IndexRoute() {
 
 export function AppRoutes() {
   return (
-    <Routes>
+    <>
+    <PageTitle />
+    <Suspense fallback={<LoadingFallback />}><Routes>
       {/* ── Rotas públicas ── */}
       <Route path="/sobre" element={<PublicInfoPage page="about" />} />
       <Route path="/privacidade" element={<PublicInfoPage page="privacy" />} />
@@ -94,6 +94,7 @@ export function AppRoutes() {
           <Route path="estrategias"                 element={<EstrategiasPage />} />
           <Route path="alertas"                     element={<AlertsPage />} />
           <Route path="lancamentos"                 element={<LancamentosPage />} />
+          <Route path="ativos/importar" element={<TransactionImportPage />} />
           <Route path="conta"                       element={<AccountPage />} />
           <Route path="conta/:section"              element={<AccountPage />} />
           <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
@@ -118,6 +119,7 @@ export function AppRoutes() {
 
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
+            <Route path="comparar" element={<Suspense fallback={<LoadingFallback />}><AssetComparison /></Suspense>} />
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
@@ -139,8 +141,10 @@ export function AppRoutes() {
           <h1 className="text-2xl font-semibold">Página não encontrada</h1>
           <p className="mt-3 text-white/60">O endereço pode ter mudado. Acesse o início para continuar.</p>
           <a href="/inicio" className="mt-6 inline-block rounded-xl bg-white px-5 py-3 font-semibold text-zinc-950">Ir para o início</a>
+          <p className="mt-4 text-sm text-white/60">Saiu da conta? <a href="/login" className="text-nf-blue underline">Entrar novamente</a></p>
         </main>
       } />
-    </Routes>
+    </Routes></Suspense>
+    </>
   )
 }

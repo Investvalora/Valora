@@ -5,6 +5,8 @@ export type AlertType =
   | 'opportunity'
   | 'overvalued'
   | 'price_target'
+  | 'indicator'
+  | 'event'
 
 export type AlertCondition = 'above' | 'below'
 

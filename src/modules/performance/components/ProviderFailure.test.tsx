@@ -17,6 +17,7 @@ vi.mock('../../dividends/hooks/useDividends', () => ({
   useHasPositions: () => ({ hasPositions: true, isLoading: false }),
   useSyncDividends: () => ({ isPending: false, isError: false }),
 }))
+vi.mock('../../dividends/hooks/useDividendCurrency', () => ({ useDividendCurrency: () => ({ rates: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: null }) }))
 vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 
@@ -33,7 +34,7 @@ it.each([
   const user = userEvent.setup()
   const { rerender } = render(<Page />)
   expect(screen.getByRole('alert')).toHaveTextContent(`Erro ao carregar ${name}`)
-  expect(screen.getByRole('alert')).toHaveTextContent('Tente novamente em instantes')
+  expect(screen.getByRole('alert')).toHaveTextContent(name === 'proventos' ? 'total não foi somado parcialmente' : 'Tente novamente em instantes')
   expect(screen.queryByText(/non-2xx|detalhe interno/)).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
   expect(state.refetch).toHaveBeenCalledOnce()

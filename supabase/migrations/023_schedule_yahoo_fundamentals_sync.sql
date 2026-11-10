@@ -16,8 +16,8 @@
 BEGIN;
 
 -- Desativar o job bolsai (mantém o registro para auditoria)
-UPDATE cron.job
-SET active = false
+SELECT cron.alter_job(jobid, active := false)
+FROM cron.job
 WHERE jobname = 'sync-bolsai-fundamentals-diario';
 
 -- Remover job anterior do Yahoo se existir (idempotência)

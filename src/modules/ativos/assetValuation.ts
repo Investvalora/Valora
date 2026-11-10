@@ -14,15 +14,15 @@ export function valueAssets(positions: PositionWithAsset[], quotes: LatestQuote[
   }
   const fixedRows: PositionRow[] = fixed.map((position) => {
     const principal = Number(position.remaining_principal ?? position.principal)
-    const value = Number(position.current_value ?? principal)
+    const value = position.current_value === null && Number(position.treasury_quantity)>0 ? NaN : Number(position.current_value ?? principal)
     if (!Number.isFinite(principal)) costComplete = false
     else invested += principal
     return {
       id: position.id, ticker: position.name, name: position.name, type: 'fixed_income', currency: 'BRL',
-      fixedIncome: { type: position.type, indexer: position.indexer, rate: Number(position.rate) },
+      fixedIncome: { type: position.type, indexer: position.indexer, rate: Number(position.rate), treasury_quantity: position.treasury_quantity, maturity_date: position.maturity_date, valuation_method: position.valuation_method, valuation_price_date: position.valuation_price_date },
       quantity: 1, averagePrice: principal, acquisitionDate: position.application_date,
-      quote: null, quotePrice: value, marketValueBRL: Number.isFinite(value) ? value : null,
-      weightPercent: null, changePercent: principal > 0 ? (value / principal - 1) * 100 : null,
+      quote: null, quotePrice: Number.isFinite(value) ? value : 0, marketValueBRL: Number.isFinite(value) ? value : null,
+      weightPercent: null, changePercent: Number.isFinite(value) && principal > 0 ? (value / principal - 1) * 100 : null,
       isStaleQuote: false, usesUSDRate: false,
     }
   })

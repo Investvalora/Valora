@@ -1,3 +1,4 @@
+import { useLoginCooldown } from '../hooks/useLoginCooldown'
 import { useState } from 'react'
 import { ResendConfirmation } from './ResendConfirmation'
 import { useForm } from 'react-hook-form'
@@ -25,6 +26,7 @@ export function LoginForm() {
 }
 
 function DesktopLoginForm() {
+  const cooldown = useLoginCooldown()
   const navigate = useNavigate()
   const location = useLocation()
   const setUser = useAuthStore((state) => state.setUser)
@@ -52,13 +54,13 @@ function DesktopLoginForm() {
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
+    retry: false,
     onSuccess: (data) => {
       setUser(data.user)
       setSession(data.session)
       navigate('/inicio')
     },
     onError: (error: Error, variables) => {
-      console.error('Login error:', error)
 
       const message = error.message?.toLowerCase() ?? ''
 
@@ -79,7 +81,7 @@ function DesktopLoginForm() {
   const onSubmit = (data: LoginSchema) => {
     setErrorMessage('')
     setPendingEmail('')
-    loginMutation.mutate(data)
+    if (!cooldown && !loginMutation.isPending && !googleMutation.isPending) loginMutation.mutate(data)
   }
 
   return (
@@ -117,8 +119,9 @@ function DesktopLoginForm() {
         {(errorMessage || oauthMessage) && <p role="alert" className={authErrorBox}>{errorMessage || oauthMessage}</p>}
         {pendingEmail && <ResendConfirmation key={pendingEmail} email={pendingEmail} />}
 
-        <button type="submit" disabled={loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
-          {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
+        {cooldown > 0 && <p role="status" className="text-sm text-amber-300">Muitas tentativas. Aguarde {cooldown}s antes de tentar novamente.</p>}
+        <button type="submit" disabled={cooldown > 0 || loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
+          {loginMutation.isPending ? 'Entrando...' : cooldown ? `Aguarde ${cooldown}s` : 'Entrar'}
         </button>
         <div className="flex items-center gap-3 py-1" aria-hidden="true">
           <div className="h-px flex-1 bg-white/[0.08]" />

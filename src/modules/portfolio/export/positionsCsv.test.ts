@@ -24,6 +24,11 @@ function row(overrides: Partial<PositionRow> = {}): PositionRow {
 }
 
 describe('serializePositionsCsv', () => {
+  it.each(['=1+1', '+1+1', '-1+1', '@SUM(1)', '\t=1+1', '  =1+1', '\r=1+1'])('neutraliza texto de fórmula %j preservando números', (text) => {
+    const csv = serializePositionsCsv([row({ ticker: text, name: text, changePercent: -2 })])
+    expect(csv).toContain(`'${text}`)
+    expect(csv).toContain(';-2,00%;')
+  })
   it('emite BOM, cabeçalho na ordem da tabela e valores pt-BR', () => {
     const csv = serializePositionsCsv([
       row({

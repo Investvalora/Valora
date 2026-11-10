@@ -11,16 +11,11 @@ import { useStrategies, type ValuationStrategy, type StrategyInput } from '../ho
 import { CustomRuleEditor } from './CustomRuleEditor'
 import { validCustomRules } from '../utils/customStrategy'
 import { STRATEGY_ASSET_LABELS, strategyAssetTypes } from '../utils/strategyAssetTypes'
-
-export const STRATEGY_DEFAULTS: StrategyInput = {
-  name: '',
-  method: 'custom',
-  min_dy: 0.06,
-  safety_discount: 0,
-  show_in_assets: true,
-  custom_rules: [],
-  rule_match: 'all',
-}
+import { useAuthStore } from '../../auth/store'
+import { useFormDraft } from '../../../shared/hooks/useFormDraft'
+import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
+import { strategyDraftKey, validateStrategyDraft } from '../utils/strategyDraft'
+import { STRATEGY_DEFAULTS } from '../utils/strategyDefaults'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-white/15 bg-[#393939] px-3 py-2.5 text-sm text-white focus:border-[#9299ff] focus:outline-none focus:ring-1 focus:ring-[#9299ff]/30'
@@ -37,7 +32,7 @@ interface StrategyFormProps {
   autoFocusDelay?: number
 }
 
-export function StrategyForm({
+function StrategyFormContent({
   editing,
   initialDraft,
   onSuccess,
@@ -51,6 +46,11 @@ export function StrategyForm({
   )
   const [error, setError] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const userId = useAuthStore(state => state.user?.id)
+  const initial = editing ?? initialDraft ?? STRATEGY_DEFAULTS
+  const stored = useFormDraft(strategyDraftKey(userId, editing, initialDraft), draft,
+    JSON.stringify(draft) !== JSON.stringify(initial), validateStrategyDraft)
+  function cancel() { stored.clear(); onCancel() }
 
   useEffect(() => {
     const id = window.setTimeout(() => nameInputRef.current?.focus(), autoFocusDelay)
@@ -64,6 +64,7 @@ export function StrategyForm({
     setError('')
     try {
       await save.mutateAsync({ ...draft, ...(editing ? { id: editing.id } : {}) })
+      stored.clear()
       onSuccess()
     } catch {
       setError(
@@ -83,6 +84,7 @@ export function StrategyForm({
       onSubmit={submit}
       className="flex flex-col gap-5 px-5 pb-32 pt-5 text-sm text-gray-300 md:px-6 md:pb-8"
     >
+      <FormDraftNotice {...stored} onRestore={() => { const value = stored.restore(); if (value) setDraft(value) }} onDiscard={stored.clear} />
       {/* Nome */}
       <label className="block">
         <span className="text-xs font-medium text-white/60">Nome da estratégia</span>
@@ -288,16 +290,16 @@ export function StrategyForm({
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={cancel}
           disabled={save.isPending}
-          className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40 md:flex hidden"
+          className={`flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40 ${fixedActions ? 'hidden md:flex' : 'flex'}`}
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={!canSubmit}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 md:flex hidden"
+          className={`flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 ${fixedActions ? 'hidden md:flex' : 'flex'}`}
         >
           {save.isPending ? (
             <>
@@ -316,7 +318,7 @@ export function StrategyForm({
         <div className="fixed bottom-0 left-0 right-0 z-10 flex gap-3 border-t border-white/[0.08] bg-[#1C1C1C] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 md:hidden">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={cancel}
             disabled={save.isPending}
             className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
           >
@@ -341,4 +343,9 @@ export function StrategyForm({
       )}
     </form>
   )
+}
+
+export function StrategyForm(props: StrategyFormProps) {
+  const userId = useAuthStore(state => state.user?.id)
+  return <StrategyFormContent key={strategyDraftKey(userId, props.editing, props.initialDraft) ?? 'anonymous'} {...props} />
 }

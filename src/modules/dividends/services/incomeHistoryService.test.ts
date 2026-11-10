@@ -11,6 +11,15 @@ const history: IncomeHistory = { entries: [entry], coverage: [{ covered_from: '2
 const estimate: DividendRow = { ticker: 'SOLD', type: 'dividend', ex_date: '2026-01-01', payment_date: '2026-01-15', quantity: 100, value_per_share: 1, total_value: 100 }
 
 describe('private received income', () => {
+  it('replaces only the confirmed event when broker settlement differs from announced payment', () => {
+    const paid: RecordedIncome = { ...entry, ticker: 'JPM', type: 'dividend', record_date: '2026-10-06', payment_date: '2026-11-02', currency: 'USD', gross_amount: 0.13, net_amount: 0.09 }
+    const announced = { ...estimate, ticker: 'JPM', ex_date: '2026-10-06', payment_date: '2026-10-31' }
+    const other = { ...announced, ticker: 'OTHER' }
+    const rows = mergeIncomeHistory([announced, other], { entries: [paid], coverage: [] }, '2026-01-01', '2026-11-07')
+    expect(rows).toHaveLength(2)
+    expect(rows.find(row => row.ticker === 'JPM')).toMatchObject({ total_value: 0.09, gross_amount: 0.13, currency: 'USD', payment_date: '2026-11-02' })
+    expect(rows).toContainEqual(other)
+  })
   it('replaces estimates for the complete covered period and keeps actual net totals of closed positions', () => {
     const rows = mergeIncomeHistory([estimate, { ...estimate, ticker: 'OTHER' }], history, '2024-01-01', '2026-10-26')
     expect(rows).toHaveLength(1)

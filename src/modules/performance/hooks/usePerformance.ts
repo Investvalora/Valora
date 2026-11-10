@@ -1,3 +1,4 @@
+import { useDividendCurrency } from '../../dividends/hooks/useDividendCurrency'
 import { useHistoricalReturns } from './useHistoricalReturns'
 import { returnChartSeries, alignedBenchmarkSeries } from '../utils/returnChartSeries'
 import { useWallets } from '../../portfolio/hooks/useWallets'
@@ -7,7 +8,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { positionService } from '../../portfolio/services/positionService'
-import { dividendService } from '../../dividends/services/dividendService'
+import { useDividends } from '../../dividends/hooks/useDividends'
 import { benchmarkService } from '../services/benchmarkService'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import {
@@ -19,7 +20,6 @@ import { INTERNATIONAL_TYPES } from '../../portfolio/composition'
 import type { PerformancePeriod, PerformanceSeries, PerformanceSummary, AssetReturnRow } from '../types'
 import type { MonthlyTableRow } from '../utils/performanceCalculations'
 import type { AssetType, PositionWithAsset } from '../../portfolio/types'
-import type { DividendRaw } from '../../dividends/types'
 import type { WealthPeriod } from '../../wealth/types'
 
 /** staleTime de 5 minutos — dados de baixa frequência. */
@@ -82,7 +82,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const positionsQuery = useQuery<PositionWithAsset[]>({
     queryKey: ['portfolio', 'positions', userId, effectiveWalletId],
     queryFn: () => positionService.listPositions(userId as string, effectiveWalletId),
-    enabled: Boolean(userId) && walletId !== '',
+    enabled: Boolean(userId) && effectiveWalletId !== '',
     staleTime: STALE_TIME_MS,
   })
 
@@ -91,36 +91,14 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     [positionsQuery.data, assetType],
   )
 
-  const tickers = useMemo(
-    () => positions.map((p) => p.ticker).sort(),
-    [positions],
-  )
+  // Reutiliza os recebimentos elegíveis e importações líquidas da carteira.
+  const dividends = useDividends('Tudo', 'paid', effectiveWalletId)
+  const dividendRows = useMemo(() => dividends.rows.filter(row =>
+    row.payment_date !== null && row.payment_date >= since,
+  ), [dividends.rows, since])
 
-  // 3. Dividendos do período
-  const dividendsQuery = useQuery<DividendRaw[]>({
-    queryKey: ['performance', 'dividends', userId, effectiveWalletId, period, since, assetType, tickers],
-    queryFn: () =>
-      tickers.length > 0
-        ? dividendService.listDividendsByTickers(tickers, since, true)
-        : Promise.resolve([]),
-    enabled: Boolean(userId) && !wealth.isLoading,
-    staleTime: STALE_TIME_MS,
-  })
-
-  const dividendRows = useMemo(() => {
-    const raw = dividendsQuery.data ?? []
-    const qtyMap = new Map<string, number>()
-    for (const p of positions) qtyMap.set(p.ticker, p.quantity)
-    return raw
-      .filter((r) => {
-        const qty = qtyMap.get(r.ticker)
-        return qty !== undefined && qty > 0
-      })
-      .map((r) => {
-        const qty = qtyMap.get(r.ticker)!
-        return { ...r, quantity: qty, total_value: r.value_per_share * qty }
-      })
-  }, [dividendsQuery.data, positions])
+  const incomeCurrencies = useMemo(() => new Map(positions.map(position => [position.ticker, position.asset?.currency ?? 'unknown'])), [positions])
+  const incomeFx = useDividendCurrency(dividendRows, incomeCurrencies, true)
 
   // 4. Benchmarks — busca desde o mês de `since` para ter o mês anterior
   //    como base do primeiro retorno mensal
@@ -198,10 +176,11 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
         dividendRows,
         firstPoint.date,
         lastPoint.date,
+        incomeFx.rates,
       )
     }
-    return computeAssetRows(positions, wealth.lastPricesMap, dividendRows)
-  }, [positions, wealth.lastPricesMap, dividendRows, wealth.series])
+    return computeAssetRows(positions, wealth.lastPricesMap, dividendRows, undefined, undefined, incomeFx.rates)
+  }, [positions, wealth.lastPricesMap, dividendRows, wealth.series, incomeFx.rates])
 
   // Tabela mês a mês (estilo Investidor10)
   const monthlyTableData = useMemo<MonthlyTableRow[]>(
@@ -215,17 +194,17 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   const isLoading = historical.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
-    dividendsQuery.isLoading ||
+    dividends.isLoading || incomeFx.isLoading ||
     benchmarksQuery.isLoading
 
   const isError = historical.isError ||
     wealth.isError ||
     positionsQuery.isError ||
-    dividendsQuery.isError ||
+    dividends.isError || incomeFx.isError ||
     benchmarksQuery.isError
 
   const error = (
-    (positionsQuery.error ?? benchmarksQuery.error ?? dividendsQuery.error) as Error | null
+    (positionsQuery.error ?? benchmarksQuery.error ?? dividends.error) as Error | null
   )
 
   const refetch = () => {
@@ -233,7 +212,8 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
     void wealth.refetch()
     void positionsQuery.refetch()
     void benchmarksQuery.refetch()
-    void dividendsQuery.refetch()
+    dividends.refetch()
+    void incomeFx.refetch()
   }
 
   return {

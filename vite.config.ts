@@ -11,7 +11,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     port: 5173,
     https: devHttps,
   },
@@ -37,5 +37,6 @@ export default defineConfig({
     // dispensa configurar globals no ESLint e no tsconfig dos testes.
     globals: false,
     restoreMocks: true,
+    clearMocks: true,
   },
 })

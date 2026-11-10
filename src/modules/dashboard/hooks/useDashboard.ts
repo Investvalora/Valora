@@ -11,7 +11,7 @@ import { useFixedIncomeHistory } from '../../portfolio/hooks/useFixedIncomeHisto
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useWealthHistory } from '../../wealth/hooks/useWealthHistory'
 import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePositions'
-import { useDividends } from '../../dividends/hooks/useDividends'
+import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
 import { shiftIsoDate } from '../../../shared/utils/isoDate'
@@ -53,6 +53,8 @@ export interface DashboardData {
   lucroTotalBRL: number | null
   /** Soma dos proventos recebidos nos últimos 12 meses. */
   proventos12mBRL: number | null
+  /** Recebimentos de todo o histórico disponível, em BRL. */
+  proventosTotalBRL: number | null
   /** Variação % do patrimônio nos últimos 12M (série histórica). */
   variacaoPct: number | null
   /** Retorno histórico desde o início, com a mesma fórmula de Desempenho. */
@@ -129,13 +131,14 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   const rateFrom = historyFrom ? shiftIsoDate(-10, new Date(`${historyFrom}T12:00:00Z`)) : historyTo
   const hasHistoricalUsd = positions.some((row) => row.asset?.currency === 'USD' || row.asset?.type === 'crypto') || (historicalAssets.data ?? []).some((asset) => asset?.currency === 'USD' || asset?.type === 'crypto')
   const historicalRates = useQuery({
-    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0],
+    queryKey: ['dashboard', 'historical-rates', rateFrom, historyTo, hasHistoricalUsd, historicalFixed.length > 0, fiHistory.dataUpdatedAt],
     queryFn: async () => {
-      const [usd, macro] = await Promise.all([
+      const [usd, macro, treasury] = await Promise.all([
         hasHistoricalUsd ? historicalRatesService.usd(rateFrom, historyTo) : Promise.resolve([]),
         historicalFixed.length ? historicalRatesService.macro(rateFrom, historyTo) : Promise.resolve([]),
+        historicalFixed.some(p => Number(p.treasury_quantity)>0) ? historicalRatesService.treasury(rateFrom,historyTo) : Promise.resolve([]),
       ])
-      return { usd, macro }
+      return { usd, macro, treasury }
     },
     enabled: Boolean(userId) && Boolean(historyFrom) && rateFrom <= historyTo && positionsQuery.isSuccess && transactionsQuery.isSuccess && historicalAssets.isSuccess && fiHistory.isSuccess,
     staleTime: 60 * 60 * 1000,
@@ -147,7 +150,8 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   // que pode ser recente (set/26), enquanto dividendos podem ter sido pagos
   // em dez/25 para ativos que o usuário tinha antes de cadastrar no Valora.
 
-  const dividendsQuery = useDividends('1A', 'paid', walletId)
+  const dividendsQuery = useBrlDividends('1A', 'paid', walletId)
+  const allDividendsQuery = useBrlDividends('Tudo', 'paid', walletId)
 
   // ── Patrimônio atual ──────────────────────────────────────────────────────
   // Mesma consulta e cálculo do seletor. Histórico fica restrito ao gráfico.
@@ -182,15 +186,21 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
 
   // ── Proventos 12M ─────────────────────────────────────────────────────────
   const proventos12mBRL = useMemo(() => {
+    if (dividendsQuery.isLoading || dividendsQuery.isError) return null
     const total = dividendsQuery.rows.reduce((acc, row) => acc + row.total_value, 0)
-    return total > 0 ? total : null
-  }, [dividendsQuery.rows])
+    return Number.isFinite(total) ? total : null
+  }, [dividendsQuery.rows, dividendsQuery.isLoading, dividendsQuery.isError])
+
+  const proventosTotalBRL = useMemo(() => {
+    if (allDividendsQuery.isLoading || allDividendsQuery.isError) return null
+    return allDividendsQuery.rows.reduce((sum, row) => sum + row.total_value, 0)
+  }, [allDividendsQuery.rows, allDividendsQuery.isLoading, allDividendsQuery.isError])
 
   // ── Lucro total = ganho de capital + proventos ────────────────────────────
   const lucroTotalBRL = useMemo(() => {
-    if (ganhoCapitalBRL === null && proventos12mBRL === null) return null
-    return (ganhoCapitalBRL ?? 0) + (proventos12mBRL ?? 0)
-  }, [ganhoCapitalBRL, proventos12mBRL])
+    if (ganhoCapitalBRL === null || proventosTotalBRL === null) return null
+    return ganhoCapitalBRL + proventosTotalBRL
+  }, [ganhoCapitalBRL, proventosTotalBRL])
 
   // ── Variação % 12M ───────────────────────────────────────────────────────
   // Mesma série e fórmula usadas por Desempenho em cada período.
@@ -252,7 +262,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     current.isLoading ||
     wealth.isLoading ||
     positionsQuery.isLoading ||
-    dividendsQuery.isLoading ||
+    dividendsQuery.isLoading || allDividendsQuery.isLoading ||
     fi.isLoading
 
   const isError =
@@ -263,7 +273,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     current.isError ||
     wealth.isError ||
     positionsQuery.isError ||
-    dividendsQuery.isError ||
+    dividendsQuery.isError || allDividendsQuery.isError ||
     fi.isError
 
   const refetch = () => {
@@ -278,6 +288,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     wealth.refetch()
     void positionsQuery.refetch()
     void dividendsQuery.refetch()
+    void allDividendsQuery.refetch()
   }
 
   return {
@@ -288,6 +299,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     ganhoCapitalBRL,
     lucroTotalBRL,
     proventos12mBRL,
+    proventosTotalBRL,
     variacaoPct,
     rentabilidadeTotalPct,
     monthlySeries,

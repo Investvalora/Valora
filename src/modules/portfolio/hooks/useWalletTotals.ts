@@ -55,7 +55,7 @@ export function useWalletTotals() {
     }
     for (const position of fixedIncomeQuery.data ?? []) {
       if (!position.wallet_id) continue
-      const value = Number(position.current_value ?? position.principal)
+      const value = position.current_value === null && Number(position.treasury_quantity)>0 ? NaN : Number(position.current_value ?? position.principal)
       if (!Number.isFinite(value)) {
         result.set(position.wallet_id, null)
       } else if (result.get(position.wallet_id) !== null) {

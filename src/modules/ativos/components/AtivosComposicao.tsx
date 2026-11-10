@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+import { sectorService } from '../services/sectorService'
 import { AssetValuationNotice } from './AssetValuationNotice'
 import { AllocationTargets } from './AllocationTargets'
 import { useAtivosValuation } from '../hooks/useAtivosValuation'
@@ -16,7 +18,7 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
-import { buildAssetSlices, type CompositionSlice } from '../utils/compositionSlices'
+import { buildAssetSlices, buildSectorSlices, type CompositionSlice } from '../utils/compositionSlices'
 import { useAssetFilters } from '../hooks/useAssetFilters'
 
 // ── Donut SVG com label central ────────────────────────────────────────────
@@ -236,7 +238,7 @@ function ClassList({ slices }: { slices: CompositionSlice[] }) {
 
 // ── Página principal ───────────────────────────────────────────────────────
 
-const TOGGLE_OPTIONS = ['Tipo de ativos', 'Ativos', 'Exposição ao exterior'] as const
+const TOGGLE_OPTIONS = ['Tipo de ativos', 'Ativos', 'Setor', 'Exposição ao exterior'] as const
 type ToggleOption = typeof TOGGLE_OPTIONS[number]
 
 export function AtivosComposicao() {
@@ -264,7 +266,7 @@ export function AtivosComposicao() {
 
   const proventos12mBRL = useMemo(() => {
     let total = 0
-    for (const v of dividendTotalsByTicker.values()) total += v
+    for (const v of dividendTotalsByTicker.values()) { if (v === null) return null; total += v }
     return total > 0 ? total : null
   }, [dividendTotalsByTicker])
 
@@ -280,10 +282,15 @@ export function AtivosComposicao() {
   // ── UI state ───────────────────────────────────────────────────────────────
   const [activeToggle, setActiveToggle] = useState<ToggleOption>('Tipo de ativos')
   const [showIdeal, setShowIdeal] = useState(false)
+  const sectorQuery = useQuery({
+    queryKey: ['assets', 'sectors', 'brapi'], queryFn: sectorService.list,
+    enabled: activeToggle === 'Setor', staleTime: 86400000, gcTime: 86400000, retry: 1,
+  })
 
 
   // Filtrar slices pelo toggle ativo
   const visibleSlices = useMemo(() => {
+    if (activeToggle === 'Setor') return buildSectorSlices(compositionRows, totalBRL, sectorQuery.data ?? [])
     if (activeToggle === 'Ativos') return buildAssetSlices(compositionRows, totalBRL)
     const slices = activeToggle === 'Exposição ao exterior'
       ? composition.slices.filter((s) => isInternationalClass(s.type))
@@ -291,7 +298,7 @@ export function AtivosComposicao() {
     return slices.map((slice: AssetClassSlice): CompositionSlice => ({
       ...slice, id: slice.type, color: assetClassColor(slice.type), international: isInternationalClass(slice.type),
     }))
-  }, [composition.slices, activeToggle, compositionRows, totalBRL])
+  }, [composition.slices, activeToggle, compositionRows, totalBRL, sectorQuery.data])
 
   return (
     <div className="flex flex-col gap-5">
@@ -329,7 +336,7 @@ export function AtivosComposicao() {
         {/* Cabeçalho */}
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <h2 className="text-[14px] font-semibold text-white">
-            {activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
+            {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
           </h2>
 
           {/* Toggle segmentado */}
@@ -386,6 +393,13 @@ export function AtivosComposicao() {
           </div>
         </div>
 
+        {activeToggle === 'Setor' && (
+          <div className="mb-4 space-y-2 text-xs text-white/50">
+            <p>Classificação por setor da Brapi para ações brasileiras e BDRs. Sem classificação confiável, empresas e fundos ficam em “Não classificado”. ETFs, cripto e renda fixa ficam em “Sem setor econômico”; o total da carteira é preservado.</p>
+            {sectorQuery.isLoading && <p role="status">Buscando classificação por setor…</p>}
+            {sectorQuery.isError && <p role="alert">Não foi possível atualizar os setores. A classificação já disponível foi mantida. <button type="button" className="underline" onClick={() => void sectorQuery.refetch()}>Tentar novamente</button></p>}
+          </div>
+        )}
         {isLoading ? (
           <div className="flex h-[200px] items-center justify-center">
             <p className="text-[13px] text-[#8F8F8F] animate-pulse">Carregando composição…</p>

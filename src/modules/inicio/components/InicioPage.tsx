@@ -9,7 +9,7 @@ import { AlertasRecentes } from './AlertasRecentes'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHome'
-import { QuickTransactionModal } from '../../portfolio/components/QuickTransactionModal'
+import { DeferredQuickTransactionModal as QuickTransactionModal } from '../../portfolio/components/DeferredQuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 import { useNewAlertsCount } from '../../alerts/hooks/useAlerts'
@@ -87,14 +87,14 @@ export function InicioPage() {
           icon={Coins}
           sub={[
             { label: 'Ganho de capital', value: money(dashboard.ganhoCapitalBRL) },
-            { label: 'Dividendos recebidos', value: money(dashboard.proventos12mBRL), valueColor: 'text-nf-green' },
+            { label: 'Dividendos recebidos', value: money(dashboard.proventosTotalBRL), valueColor: 'text-nf-green' },
           ]}
         />
         <KpiCard
           label="Proventos recebidos (12M)"
           value={money(dashboard.proventos12mBRL)}
           icon={Coins}
-          sub={[{ label: 'Total', value: money(dashboard.proventos12mBRL) }]}
+          sub={[{ label: 'Total', value: money(dashboard.proventosTotalBRL) }]}
         />
         <KpiCard
           label="Rentabilidade"
@@ -109,7 +109,7 @@ export function InicioPage() {
         />
       </div>
 
-      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} />
+      <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
       {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">

@@ -1,3 +1,4 @@
+import type { TreasuryPrice } from '../../../../supabase/functions/_shared/treasury'
 import { supabase } from '../../../shared/services/supabaseClient'
 import type { DatedRate, MacroRate } from '../historicalValuation'
 
@@ -5,6 +6,15 @@ const PTAX = 'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/Cota
 const ptaxDate = (date: string) => `${date.slice(5, 7)}-${date.slice(8, 10)}-${date.slice(0, 4)}`
 
 export const historicalRatesService = {
+  async treasury(from: string, to: string): Promise<TreasuryPrice[]> {
+    const rows: TreasuryPrice[] = []
+    for (let start=0; ; start+=500) {
+      const { data, error } = await supabase.from('treasury_prices').select('type,maturity_date,date,base_price').gte('date',from).lte('date',to).order('date').order('type').order('maturity_date').range(start,start+499)
+      if(error) throw error
+      rows.push(...(data ?? []) as TreasuryPrice[])
+      if(!data || data.length<500) return rows
+    }
+  },
   async usd(from: string, to: string): Promise<DatedRate[]> {
     const result = new Map<string, { stamp: string; value: number }>()
     for (let skip = 0; ; skip += 500) {

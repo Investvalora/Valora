@@ -1,23 +1,15 @@
 import { INTERNATIONAL_TYPES } from '../portfolio/composition'
 import type { WealthPoint, PositionSnapshot, PriceHistoryRow } from './types'
 
-/**
- * Constrói o mapa de último preço conhecido por ticker.
- *
- * Os rows chegam ordenados por `date ASC` (order do service). Iterando de trás
- * para frente, o primeiro preço encontrado para cada ticker é o mais recente.
- *
- * Exportado para ser testável de forma isolada.
- */
+/** Seleciona a cotação válida mais recente de cada ticker, em qualquer ordem. */
 export function buildLastPricesMap(priceRows: PriceHistoryRow[]): Map<string, number> {
-  const map = new Map<string, number>()
-  for (let i = priceRows.length - 1; i >= 0; i--) {
-    const row = priceRows[i]
-    if (!map.has(row.ticker) && Number.isFinite(Number(row.close))) {
-      map.set(row.ticker, Number(row.close))
-    }
+  const latest = new Map<string, PriceHistoryRow>()
+  for (const row of priceRows) {
+    if (!Number.isFinite(Number(row.close))) continue
+    const previous = latest.get(row.ticker)
+    if (!previous || row.date > previous.date) latest.set(row.ticker, row)
   }
-  return map
+  return new Map([...latest].map(([ticker, row]) => [ticker, Number(row.close)]))
 }
 
 /**

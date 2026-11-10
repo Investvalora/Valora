@@ -51,6 +51,19 @@ function makeBenchmarkRow(name: string, date: string, value: number): BenchmarkR
   return { name, date, value, source: 'seed' }
 }
 
+it('rentabilidade do ativo mantém proventos em BRL e percentual na moeda do custo', () => {
+  const p = { ...makePosition('AAPL', 20, 2), asset: { ticker: 'AAPL', name: 'Apple', type: 'stock_us', currency: 'USD' } } as PositionWithAsset
+  const income = [{ ...makeDividend(10), ticker: 'AAPL', source: 'imported', currency: 'BRL' }] as DividendRow[]
+  const [converted] = computeAssetRows([p], new Map([['AAPL', 22]]), income, undefined, undefined, [{ date: '2026-04-01', value: 5 }])
+  expect(converted.dividendsReceived).toBe(10)
+  expect(converted.dividendsPct).toBe(5)
+  expect(converted.totalReturnPct).toBeCloseTo(15)
+  const [missing] = computeAssetRows([p], new Map([['AAPL', 22]]), income)
+  expect(missing.dividendsReceived).toBe(10)
+  expect(missing.dividendsPct).toBeNull()
+  expect(missing.totalReturnPct).toBeNull()
+})
+
 // ---------------------------------------------------------------------------
 // normalizeToBase100
 // ---------------------------------------------------------------------------
@@ -397,6 +410,7 @@ describe('computeAssetRows', () => {
   function makeDividendRow(ticker: string, value_per_share: number, quantity: number): DividendRow {
     return {
       ticker,
+      currency: 'BRL',
       type: 'dividend',
       ex_date: '2026-03-15',
       payment_date: '2026-04-01',
@@ -580,6 +594,7 @@ describe('computeAssetRows', () => {
   function makeDividendForTicker(ticker: string, valuePerShare: number, qty: number): DividendRow {
     return {
       ticker,
+      currency: 'BRL',
       type: 'dividend',
       ex_date: '2026-06-15',
       payment_date: '2026-07-01',

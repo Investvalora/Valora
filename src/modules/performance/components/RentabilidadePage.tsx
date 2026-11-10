@@ -1,3 +1,4 @@
+import { InflationComparison } from './InflationComparison'
 import { lazy, Suspense, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { PeriodSelector } from '../../wealth/components/PeriodSelector'
@@ -342,6 +343,8 @@ export function RentabilidadePage() {
       {monthlyTableData.length > 0 && (
         <MonthlyReturnTable rows={monthlyTableData} />
       )}
+
+      <InflationComparison portfolio={portfolioSeries} />
 
       {/* Tabela de rentabilidade por ativo */}
       <AssetReturnTable rows={assetRows} />

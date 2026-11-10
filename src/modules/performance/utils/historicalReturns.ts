@@ -1,3 +1,4 @@
+import { hasTreasuryQuantity } from '../../../../supabase/functions/_shared/treasury'
 import type { PositionWithAsset, AssetCurrency } from '../../portfolio/types'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import type { PriceHistoryRow } from '../../wealth/types'
@@ -9,6 +10,23 @@ export type ReturnTrade = Pick<Transaction, 'wallet_id' | 'ticker' | 'transactio
 export interface DailyReturn { date: string; value: number | null; returnPct: number | null; issues?: string[] }
 const key = (row: { wallet_id?: string; ticker: string }) => `${row.wallet_id}:${row.ticker}`
 const nextDay = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
+
+function fixedIncomeIssue(position: HistoricalFixedIncome, date: string) {
+  const lot = `${position.name || position.type || 'Renda fixa'} · aplicação ${position.application_date}${position.id ? ` · lote ${position.id}` : ''}`
+  const events = (position.events ?? []).filter(event => event.event_date <= date)
+  let reason: string
+  if (position.active === false && !(position.events ?? []).length) reason = 'título inativo sem evento de resgate; confira data, valor e saldo final no extrato'
+  else if (hasTreasuryQuantity(position)) reason = events.length
+    ? 'evento do Tesouro sem quantidade remanescente suportada; confira cupom/resgate no extrato'
+    : position.maturity_date! <= date ? 'Tesouro vencido sem resgate registrado; confira o encerramento'
+      : 'preço oficial do Tesouro ausente ou com mais de 10 dias; atualize o histórico de preços'
+  else if (!position.indexer || position.rate == null || !Number.isFinite(Number(position.rate)) || Number(position.rate) < 0)
+    reason = 'indexador ou taxa contratada ausente/inválida; confira o cadastro com o extrato'
+  else if (position.indexer === 'cdi' || position.indexer === 'ipca')
+    reason = `série histórica ${position.indexer.toUpperCase()} insuficiente ou inválida para capitalizar desde a aplicação/último evento; atualize os índices`
+  else reason = 'principal ou saldo após evento inválido; confira os valores do cadastro e dos eventos'
+  return `${lot}: ${reason}`
+}
 
 /** Retorno diário sobre capital exposto: (saldo final + saídas + renda) /
  * (saldo anterior + entradas) - 1. Compras entram no início do dia e vendas
@@ -83,8 +101,8 @@ export function historicalReturns(
     for (const position of fixed) {
       if (position.application_date > date) continue
       if (position.application_date === date) purchases += Number(position.principal)
-      const value = fixedIncomeAt(position, date, rates.macro)
-      if (value === null || !Number.isFinite(value)) { complete = false; issues.add('Renda fixa sem taxas ou eventos suficientes') }
+      const value = fixedIncomeAt(position, date, rates.macro, rates.treasury)
+      if (value === null || !Number.isFinite(value)) { complete = false; issues.add(fixedIncomeIssue(position, date)) }
       else total += value
       withdrawals += (position.events ?? []).filter(e => e.event_date === date).reduce((sum, e) => sum + Number(e.amount), 0)
     }
@@ -124,8 +142,20 @@ export function summarizeHistoricalReturns(points: DailyReturn[], since: string,
   const fallbackComplete = fallback.length > 0 && fallback.every(p => p.returnPct !== null)
   const relevant = selected.length ? selected : fallback
   const issues = [...new Set(relevant.flatMap(p => p.issues ?? []))]
+  // Group each actual missing-data cause by affected dates, excluding the open month.
+  const diagnosticIssues = issues.map(issue => {
+    const affected = relevant.filter(point => point.issues?.includes(issue)).map(point => point.date).sort()
+    const ranges: { from: string; to: string }[] = []
+    for (const date of affected) {
+      const last = ranges[ranges.length - 1]
+      if (last && nextDay(last.to) === date) last.to = date
+      else ranges.push({ from: date, to: date })
+    }
+    return `${issue} — datas afetadas: ${ranges.map(range => `${range.from} a ${range.to}`).join('; ')}`
+  })
   return { monthly, missingMonths, incomplete: incomplete || (fallback.length > 0 && !fallbackComplete),
     issues,
+    diagnosticIssues,
     returnPct: selected.length ? incomplete ? null : factor - 1
       : fallbackComplete ? fallback.reduce((f, p) => f * (1 + p.returnPct!), 1) - 1 : null,
     startDate: (selected[0] ?? fallback[0])?.date ?? null }

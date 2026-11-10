@@ -6,9 +6,10 @@ import type { Transaction } from '../services/transactionsService'
 
 const edit = vi.hoisted(() => ({ mutateAsync: vi.fn(), isPending: false }))
 vi.mock('../hooks/useTransactions', () => ({ useEditTransaction: () => edit }))
+vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner' } }) }))
 vi.mock('../../assets/hooks/useAssetDetail', () => ({ useAssetDetail: () => ({ data: { currency: 'USD' } }) }))
 const transaction: Transaction = { id: 'tx',seq: 1,user_id: 'owner',wallet_id: 'w',ticker: 'AAPL',type: 'buy',quantity: 0.0661,price: 302.6,brokerage_fee: 1,tax: 2,transaction_date: '2026-01-05',created_at: '' }
-beforeEach(() => { edit.mutateAsync.mockReset().mockResolvedValue({}); edit.isPending = false })
+beforeEach(() => { sessionStorage.clear(); edit.mutateAsync.mockReset().mockResolvedValue({}); edit.isPending = false })
 async function open() {
   const user = userEvent.setup()
   render(<EditTransactionButton transaction={transaction} />)
@@ -78,4 +79,33 @@ it('não arredonda silenciosamente valores monetários além da precisão do ban
   await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
   expect(screen.getByRole('alert')).toHaveTextContent('até 4 casas decimais')
   expect(edit.mutateAsync).not.toHaveBeenCalled()
+})
+
+it('restaura somente por escolha após remontar, sem enviar, e limpa ao cancelar', async () => {
+  const user = userEvent.setup()
+  const first = render(<EditTransactionButton transaction={transaction} />)
+  await user.click(screen.getByRole('button', { name: /Editar lançamento/ }))
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '0,09' } })
+  first.unmount()
+  render(<EditTransactionButton transaction={transaction} />)
+  await user.click(screen.getByRole('button', { name: /Editar lançamento/ }))
+  expect(screen.getByLabelText('Quantidade')).toHaveValue('0,0661')
+  await user.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
+  expect(screen.getByLabelText('Quantidade')).toHaveValue('0,09')
+  expect(edit.mutateAsync).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+  await user.click(screen.getByRole('button', { name: /Editar lançamento/ }))
+  expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+})
+
+it('não oferece o rascunho quando o lançamento original mudou', async () => {
+  const user = userEvent.setup()
+  const first = render(<EditTransactionButton transaction={transaction} />)
+  await user.click(screen.getByRole('button', { name: /Editar lançamento/ }))
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '0,09' } })
+  first.unmount()
+  render(<EditTransactionButton transaction={{ ...transaction, price: 310 }} />)
+  await user.click(screen.getByRole('button', { name: /Editar lançamento/ }))
+  expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
+  expect(screen.getByLabelText('Preço unitário (USD)')).toHaveValue('310')
 })

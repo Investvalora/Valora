@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 
 export function PublicOnlyRoute() {
   const { isAuthenticated, loading } = useAuth()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
 
   if (loading) {
     return (
@@ -13,7 +13,7 @@ export function PublicOnlyRoute() {
     )
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && pathname !== '/recuperar-senha' && !(pathname === '/login' && new URLSearchParams(search).get('reauth') === '1')) {
     return <Navigate to="/inicio" replace />
   }
 

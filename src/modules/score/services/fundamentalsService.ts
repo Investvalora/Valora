@@ -5,7 +5,7 @@ import type { FundamentalsRow } from '../types'
  * Colunas selecionadas — inclui `lpa` e `vpa` para Graham e Payout.
  */
 const FUNDAMENTALS_COLUMNS =
-  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, updated_at'
+  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, payout_ratio, source, updated_at, cvm_reference_date'
 
 export const fundamentalsService = {
   /**
@@ -23,12 +23,21 @@ export const fundamentalsService = {
     // PostgREST não suporta DISTINCT ON nativamente, mas ao ordenar por ticker
     // e reference_date DESC e depois deduplicar no cliente (map por ticker) o
     // resultado é equivalente e correto. O número de linhas é pequeno (≤50×4).
-    const { data, error } = await supabase
+    const fetchRows = (columns: string) => supabase
       .from('fundamentals')
-      .select(FUNDAMENTALS_COLUMNS)
+      .select(columns)
       .in('ticker', tickers)
       .order('ticker', { ascending: true })
       .order('reference_date', { ascending: false })
+
+    let { data, error } = await fetchRows(FUNDAMENTALS_COLUMNS)
+    // During a coordinated rollout, the UI may arrive before the optional
+    // provenance column. Retry only this missing-column error, never auth/network.
+    if (error && ['42703', 'PGRST204'].includes(error.code) && error.message.includes('cvm_reference_date')) {
+      const compatible = await fetchRows(FUNDAMENTALS_COLUMNS.replace(', cvm_reference_date', ''))
+      data = compatible.data
+      error = compatible.error
+    }
 
     if (error) throw error
 

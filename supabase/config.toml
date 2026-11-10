@@ -1,0 +1,8 @@
+# Local-only defaults. Hosted secrets and project references do not belong here.
+project_id = "valora"
+
+[db]
+major_version = 17
+
+[db.seed]
+enabled = false

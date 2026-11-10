@@ -1,0 +1,61 @@
+name: Security and regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 12 * * 1'
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: ubuntu-24.04
+    env:
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_ANON_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/security-scan.mjs
+      - run: node scripts/build-indicator-contract.mjs --check
+      - run: pnpm audit --audit-level=moderate
+      - run: pnpm exec vitest run --maxWorkers=2
+      - run: pnpm build
+  database-isolation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      # Existing harness: synthetic Postgres, base RLS/transaction matrices;
+      # no credentials or migrations against the hosted project.
+      - run: node supabase/tests/run-rls-tests.mjs
+  migration-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      # Fresh local database: no hosted project, tokens or production Vault.
+      - run: npx --yes supabase@3.0.0 start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/040_migration_replay_test.sql
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/import_batches.sql
+      - run: node supabase/tests/import-concurrency.mjs
+      - if: always()
+        run: npx --yes supabase@3.0.0 stop

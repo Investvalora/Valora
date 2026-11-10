@@ -1,8 +1,11 @@
+import { recoveryErrorMessage } from '../authErrorMessage'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { isRejectedRecoveryReturn, rejectedRecoveryOnStartup } from '../recoveryReturn'
 import { ResetPasswordSchema, resetPasswordSchema } from '../schemas/passwordRecoverySchema'
 import { PASSWORD_HELP } from '../schemas/passwordSchema'
 import { authService } from '../services/authService'
@@ -11,6 +14,9 @@ import { authButton, authErrorBox, authFieldError, authInput, authLabel, authLin
 
 export function ResetPasswordForm() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const auth = useAuth()
+  const [rejectedReturn] = useState(() => rejectedRecoveryOnStartup || isRejectedRecoveryReturn(location.pathname, location.search, location.hash))
   const [successMessage, setSuccessMessage] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
 
@@ -33,11 +39,12 @@ export function ResetPasswordForm() {
     onError: (error: Error) => {
       console.error('Reset password error:', error)
       setSuccessMessage('')
-      setErrorMessage(error.message || 'Link expirado ou inválido. Solicite um novo link de recuperação.')
+      setErrorMessage(recoveryErrorMessage(error, true))
     },
   })
 
   const onSubmit = (data: ResetPasswordSchema) => {
+    if (rejectedReturn || auth.loading || !auth.isAuthenticated) return
     setSuccessMessage('')
     setErrorMessage('')
     resetMutation.mutate(data.password)
@@ -50,7 +57,10 @@ export function ResetPasswordForm() {
       description={PASSWORD_HELP}
       footer={<Link to="/login" className={authLink}>Voltar para login</Link>}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      {successMessage ? <p role="status" className={authSuccessBox}>{successMessage}</p> : rejectedReturn || (!auth.loading && !auth.isAuthenticated) ? <div role="alert" className={authErrorBox}>
+        <p>Link expirado ou inválido. Solicite um novo link de recuperação.</p>
+        <Link to="/recuperar-senha" className={`mt-2 inline-block ${authLink}`}>Solicitar novo link</Link>
+      </div> : auth.loading ? <p role="status" className="text-sm text-white/60">Verificando acesso de recuperação…</p> : <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div>
           <label htmlFor="password" className={authLabel}>Nova senha</label>
           <input id="password" type="password" autoComplete="new-password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'reset-password-error' : undefined} className={authInput} placeholder="Mínimo 8 caracteres" />
@@ -74,7 +84,7 @@ export function ResetPasswordForm() {
         <button type="submit" disabled={resetMutation.isPending} className={authButton}>
           {resetMutation.isPending ? 'Salvando...' : 'Salvar nova senha'}
         </button>
-      </form>
+      </form>}
     </AuthLayout>
   )
 }

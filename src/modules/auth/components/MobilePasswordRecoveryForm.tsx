@@ -1,3 +1,4 @@
+import { recoveryErrorMessage } from '../authErrorMessage'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,12 +31,7 @@ export function MobilePasswordRecoveryForm() {
     },
     onError: (error: Error) => {
       setSuccessEmail('')
-      const msg = error.message?.toLowerCase() ?? ''
-      if (msg.includes('rate limit')) {
-        setErrorMessage('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.')
-      } else {
-        setErrorMessage(error.message || 'Erro ao enviar email. Tente novamente.')
-      }
+      setErrorMessage(recoveryErrorMessage(error))
     },
   })
 
@@ -51,7 +47,7 @@ export function MobilePasswordRecoveryForm() {
           <p className="mt-3 max-w-[280px] text-[14px] leading-relaxed text-white/50">
             Enviamos as instruções para{' '}
             <span className="font-medium text-white">{successEmail}</span>.
-            Verifique sua caixa de entrada.
+            Verifique sua caixa de entrada e spam. Use o link mais recente, uma única vez. Se estiver inválido, solicite outro pela recuperação de senha.
           </p>
           <Link
             to="/login"

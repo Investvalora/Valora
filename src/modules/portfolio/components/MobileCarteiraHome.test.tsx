@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
@@ -63,6 +63,7 @@ const dashboard: DashboardData = {
   ganhoCapitalBRL: 1000,
   lucroTotalBRL: 1200,
   proventos12mBRL: 200,
+  proventosTotalBRL: 300,
   variacaoPct: 10,
   rentabilidadeTotalPct: 25,
   monthlySeries: [{ month: '2026-09', totalBRL: 5000, investedBRL: 4000 }],
@@ -84,8 +85,7 @@ function renderHome(onAddTransaction = vi.fn()) {
 }
 
 function giveSwipeZoneBounds(page: HTMLElement) {
-  const zone = page.querySelector<HTMLElement>('[aria-hidden="true"].pointer-events-none.absolute.right-0')
-  if (!zone) throw new Error('Zona de gesto não encontrada')
+  const zone = within(page).getByRole('button', { name: 'Abrir carteiras' })
   vi.spyOn(zone, 'getBoundingClientRect').mockReturnValue({ left: 250, right: 393, top: 0, bottom: 200 } as DOMRect)
 }
 

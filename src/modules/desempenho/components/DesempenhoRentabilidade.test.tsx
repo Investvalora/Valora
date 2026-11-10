@@ -8,6 +8,7 @@ import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import type { PositionWithAsset } from '../../portfolio/types'
 
+vi.mock('../../performance/components/InflationComparison', () => ({ InflationComparison: () => <div>Comparação IPCA</div> }))
 vi.mock('../../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'wallet' } }) }))
 vi.mock('../../portfolio/hooks/usePositions', () => ({ usePositions: vi.fn(() => ({ data: [
   { ticker: 'AAA3', asset: { type: 'stock_br' } }, { ticker: 'FII11', asset: { type: 'fii' } },
@@ -27,6 +28,17 @@ beforeEach(() => {
   vi.mocked(useLatestQuotes).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useLatestQuotes>)
   vi.mocked(useUSDRate).mockReturnValue({ data: { rate: 5 } } as ReturnType<typeof useUSDRate>)
   vi.mocked(usePerformance).mockReturnValue({ portfolioSeries: { label: 'Carteira', color: 'blue', points: [] }, benchmarkSeries: [], summary: {}, assetRows: [], monthlyTableData: [], isLoading: false } as unknown as ReturnType<typeof usePerformance>)
+})
+
+it('formata retorno negativo em português sem mudar o resultado ou ocultar a explicação do método', () => {
+  vi.mocked(usePerformance).mockReturnValue({
+    portfolioSeries: { label: 'Carteira', color: 'blue', points: [] }, benchmarkSeries: [],
+    summary: { portfolioReturnPct: -0.03275 }, assetRows: [], monthlyTableData: [], isLoading: false,
+  } as unknown as ReturnType<typeof usePerformance>)
+  render(<DesempenhoRentabilidade />)
+  expect(screen.getByText('-3,28%')).toBeInTheDocument()
+  expect(screen.queryByText('-3.28%')).not.toBeInTheDocument()
+  expect(screen.getByText(/O retorno histórico da carteira considera as movimentações/)).toBeInTheDocument()
 })
 
 it('envia período, classe e carteira ao cálculo e mantém as outras classes disponíveis', async () => {

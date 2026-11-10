@@ -16,6 +16,7 @@ const dashboardByWallet: Record<string, DashboardData> = {
     ganhoCapitalBRL: 2343,
     lucroTotalBRL: 2730.43,
     proventos12mBRL: 387.43,
+    proventosTotalBRL: 387.43,
     variacaoPct: 4,
     rentabilidadeTotalPct: 92.65,
     monthlySeries: [{ month: '2026-09', totalBRL: 4872, investedBRL: 2529 }],
@@ -30,6 +31,7 @@ const dashboardByWallet: Record<string, DashboardData> = {
     ganhoCapitalBRL: 200,
     lucroTotalBRL: 200,
     proventos12mBRL: null,
+    proventosTotalBRL: null,
     variacaoPct: null,
     rentabilidadeTotalPct: 25,
     monthlySeries: [],
@@ -85,7 +87,7 @@ describe('Início', () => {
     expect(screen.queryByText('R$ 4.872,00')).not.toBeInTheDocument()
   })
 
-  it('restaura a tela de carteiras no início mobile e atualiza os dados ao trocar de carteira', () => {
+  it('restaura a tela de carteiras no início mobile e atualiza os dados ao trocar de carteira', async () => {
     isMobile = true
     walletId = 'wallet-a'
     const { rerender } = render(<MemoryRouter><InicioPage /></MemoryRouter>)
@@ -105,6 +107,6 @@ describe('Início', () => {
     expect(screen.getByText('Patrimônio mobile: 1000')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '+ Lançamento' }))
-    expect(screen.getByRole('dialog', { name: 'Novo lançamento' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Novo lançamento' })).toBeInTheDocument()
   })
 })

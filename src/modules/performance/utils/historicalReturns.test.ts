@@ -112,3 +112,23 @@ it('explica divergência do razão sem inventar movimento para completar saldo',
   const points = historicalReturns([position('AAA', 2)], [trade('2026-01-02')], [price('2026-01-02')], [], rates, '2026-01-02')
   expect(summarizeHistoricalReturns(points, '2026-01-01', '2026-02-01').issues).toContain('Movimentações divergentes da posição: AAA')
 })
+
+it('identifica lote, taxa e intervalo afetado; não inclui o mês corrente no diagnóstico fechado', () => {
+  const fixed = [{ id: 'lote-a', name: 'RDB Banco', principal: 100, application_date: '2026-01-30', indexer: 'cdi' }] as HistoricalFixedIncome[]
+  const points = historicalReturns([], [], [], fixed, rates, '2026-02-02')
+  const summary = summarizeHistoricalReturns(points, '2026-01-01', '2026-02-03')
+  expect(summary.diagnosticIssues).toEqual([expect.stringContaining('RDB Banco · aplicação 2026-01-30 · lote lote-a: indexador ou taxa contratada ausente/inválida')])
+  expect(summary.diagnosticIssues[0]).toContain('2026-01-31 a 2026-01-31')
+  expect(summary.diagnosticIssues[0]).not.toContain('2026-02-02')
+  expect(summary.returnPct).toBeNull()
+})
+
+it('distingue preço do Tesouro ausente de título inativo sem evento', () => {
+  const fixed = [
+    { id: 'tesouro', name: 'Tesouro IPCA+', type: 'tesouro_ipca', maturity_date: '2029-05-15', treasury_quantity: 0.03, principal: 100, application_date: '2026-01-02' },
+    { id: 'rdb', name: 'RDB', active: false, rate: 100, indexer: 'cdi', principal: 100, application_date: '2026-01-02' },
+  ] as HistoricalFixedIncome[]
+  const points = historicalReturns([], [], [], fixed, rates, '2026-01-03')
+  expect(points[1].issues).toEqual(expect.arrayContaining([expect.stringContaining('lote tesouro: preço oficial do Tesouro'), expect.stringContaining('lote rdb: título inativo sem evento de resgate')]))
+  expect(points[1].value).toBeNull()
+})

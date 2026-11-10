@@ -3,8 +3,9 @@ import { fixedIncomeAt, fixedIncomePrincipalAt, rateAt } from './historicalValua
 import type { HistoricalFixedIncome, HistoricalValuation } from './historicalValuation'
 import type { PriceHistoryRow } from '../wealth/types'
 import type { Transaction } from '../portfolio/services/transactionsService'
+import { acquisitionCostBRL } from '../portfolio/acquisitionCost'
 
-export type HistoricalTransaction = Pick<Transaction, 'ticker' | 'wallet_id' | 'transaction_date' | 'seq' | 'type' | 'quantity' | 'price'> & { currency: 'BRL' | 'USD' | null }
+export type HistoricalTransaction = Pick<Transaction, 'ticker' | 'wallet_id' | 'transaction_date' | 'seq' | 'type' | 'quantity' | 'price'> & Partial<Pick<Transaction, 'brokerage_fee' | 'tax'>> & { currency: 'BRL' | 'USD' | null }
 
 /** Fechamentos mensais reconstruídos por compras/vendas, sem cotações futuras.
  * Usa PTAX histórica e rendimento contratual quando as séries são fornecidas.
@@ -22,7 +23,7 @@ export function buildMonthlyWealth(
   prices = prices.filter((row) => row.date <= until)
   const trades = transactions.filter((row) => row.type === 'buy' || row.type === 'sell').sort((a, b) => a.transaction_date.localeCompare(b.transaction_date) || a.seq - b.seq)
   const tradedKeys = new Set(trades.map((row) => `${row.wallet_id}:${row.ticker}`))
-  const ledger = new Map<string, { ticker: string; currency: HistoricalTransaction['currency']; quantity: number; cost: number }>()
+  const ledger = new Map<string, { wallet_id: string; ticker: string; currency: HistoricalTransaction['currency']; quantity: number; cost: number }>()
   let tradeCursor = 0
   const monthSet = new Set(prices.map((row) => row.date.slice(0, 7)))
   // Cotações antigas não iniciam uma carteira. Quando existe razão de movimentos,
@@ -50,10 +51,10 @@ export function buildMonthlyWealth(
     while (tradeCursor < trades.length && trades[tradeCursor].transaction_date <= until && trades[tradeCursor].transaction_date.slice(0, 7) <= month) {
       const trade = trades[tradeCursor++]
       const key = `${trade.wallet_id}:${trade.ticker}`
-      const state = ledger.get(key) ?? { ticker: trade.ticker, currency: trade.currency, quantity: 0, cost: 0 }
+      const state = ledger.get(key) ?? { wallet_id: trade.wallet_id, ticker: trade.ticker, currency: trade.currency, quantity: 0, cost: 0 }
       const quantity = Number(trade.quantity)
       if (trade.type === 'buy') {
-        state.cost += Math.max(0, quantity + Math.min(state.quantity, 0)) * Number(trade.price)
+        state.cost += Math.max(0, quantity + Math.min(state.quantity, 0)) * (Number(trade.price) + (Number(trade.brokerage_fee ?? 0) + Number(trade.tax ?? 0)) / quantity)
         state.quantity += quantity
       } else {
         if (state.quantity > 0) state.cost -= state.cost / state.quantity * Math.min(quantity, state.quantity)
@@ -69,6 +70,7 @@ export function buildMonthlyWealth(
     let total = 0
     let invested = 0
     let complete = true
+    let costComplete = true
     let hasPosition = false
     // Before a BRL pair's first sync, reuse its USD market history at that
     // month's PTAX. Acquisition costs stay in the original BRL currency.
@@ -82,20 +84,24 @@ export function buildMonthlyWealth(
       if (state.quantity <= 0) continue
       hasPosition = true
       const rate = state.currency === 'USD' ? monthlyUsd : state.currency === 'BRL' ? 1 : null
+      const cost = state.currency === null ? null : acquisitionCostBRL({ wallet_id: state.wallet_id, ticker: state.ticker, quantity: state.quantity, average_price: state.cost / state.quantity, asset: { currency: state.currency } } as PositionWithAsset, trades.filter(t => t.transaction_date <= cutoff), historical?.usd ?? [])
+      if (cost === null) costComplete = false
+      else invested += cost
       const close = closeFor(state.ticker)
       if (rate === null || close === undefined) { complete = false; continue }
       total += state.quantity * close * rate
-      invested += state.cost * rate
     }
     for (const position of positions) {
       if (tradedKeys.has(`${position.wallet_id}:${position.ticker}`)) continue
       if (position.acquisition_date > cutoff) continue
       hasPosition = true
       const rate = position.asset?.currency === 'USD' ? monthlyUsd : 1
+      const cost = acquisitionCostBRL(position, [], historical?.usd ?? [])
+      if (cost === null) costComplete = false
+      else invested += cost
       const close = closeFor(position.ticker)
       if (rate === null || close === undefined) { complete = false; continue }
       total += Number(position.quantity) * close * rate
-      invested += Number(position.quantity) * Number(position.average_price) * rate
     }
     for (const position of fixedIncome) {
       if (position.application_date > cutoff) continue
@@ -108,7 +114,7 @@ export function buildMonthlyWealth(
     return {
       month,
       totalBRL: complete && (hasPosition || ledger.size > 0) ? total : null,
-      investedBRL: complete && (hasPosition || ledger.size > 0) ? invested : null,
+      investedBRL: costComplete && (hasPosition || ledger.size > 0) ? invested : null,
     }
   }).filter((point) => point.totalBRL !== null)
 }

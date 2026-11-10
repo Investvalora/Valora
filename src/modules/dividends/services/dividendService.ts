@@ -5,7 +5,7 @@ import { DIVIDENDS_LIMIT } from '../utils/dividendConstants'
 
 /** Colunas selecionadas — mantido explícito para evitar over-fetching. */
 
-const DIVIDEND_COLUMNS = 'ticker, type, ex_date, payment_date, value_per_share'
+const DIVIDEND_COLUMNS = 'ticker, type, ex_date, record_date, payment_date, value_per_share'
 
 export const dividendService = {
   /**

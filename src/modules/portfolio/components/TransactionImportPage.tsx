@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { draftKey, readDraft, saveDraft, removeDraft } from '../../../shared/utils/sessionDraft'
 import { useNavigate } from 'react-router-dom'
-import { parseCsvTransactions, MAX_PREVIEW_ROWS, type CsvImportError, type ParsedTransactionRow } from '../csv/csvParser'
+import { parseCsvTransactions, MAX_PREVIEW_ROWS, type CsvImportError, type CsvNumberFormat, type ParsedTransactionRow } from '../csv/csvParser'
 import { transactionsService } from '../services/transactionsService'
 import { useImportTransactions } from '../hooks/useImportTransactions'
 import { useWallets } from '../hooks/useWallets'
@@ -49,6 +49,8 @@ export function TransactionImportPage() {
   const [draftWarning, setDraftWarning] = useState('')
   const history = useAllTransactions()
   const [fileName, setFileName] = useState('')
+  const [numberFormat, setNumberFormat] = useState<CsvNumberFormat>('pt-BR')
+  const sourceFile = useRef<File | undefined>(undefined)
   const [previewWallet, setPreviewWallet] = useState<string | null>(null)
   const [acceptDuplicates, setAcceptDuplicates] = useState(false)
   const [rows, setRows] = useState<ParsedTransactionRow[]>([])
@@ -73,6 +75,7 @@ export function TransactionImportPage() {
     if (!storageKey) return
     const saved = draftSchema.safeParse(readDraft(storageKey))
     if (!saved.success) return
+    sourceFile.current = undefined
     const restored = saved.data.rows.map(row => reparseRow({ ...row, errors: [] }, row.date, 'date'))
     setRows(restored)
     setTotalRows(restored.length)
@@ -103,8 +106,9 @@ export function TransactionImportPage() {
     }
   }
 
-  const handleFile = async (file?: File) => {
+  const handleFile = async (file?: File, format: CsvNumberFormat = numberFormat) => {
     if (!file) return
+    sourceFile.current = file
     setIsReading(true)
     setFileName(file.name || 'importacao.csv')
     setDraftAvailable(false)
@@ -113,7 +117,7 @@ export function TransactionImportPage() {
     setSuccessMessage('')
     setFileError('')
     try {
-      const result = parseCsvTransactions(await file.arrayBuffer())
+      const result = parseCsvTransactions(await file.arrayBuffer(), format)
       setRows(result.rows)
       setTotalRows(result.totalRows)
       if (result.errors.length > 0 && result.rows.length === 0) {
@@ -152,6 +156,7 @@ export function TransactionImportPage() {
       setSuccessMessage(duplicate ? `Este lote de ${count} transações já foi importado nesta carteira. Nenhuma transação foi duplicada.` : `${count} ${count === 1 ? 'transação importada' : 'transações importadas'} com sucesso.`)
       setRows([])
       setTotalRows(0)
+      sourceFile.current = undefined
       if (storageKey) removeDraft(storageKey)
       setDraftAvailable(false)
     } catch {
@@ -184,6 +189,19 @@ export function TransactionImportPage() {
       {draftWarning && <p role="status" className="mb-4 text-sm text-amber-200">{draftWarning}</p>}
 
       <section className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-5 sm:p-6" aria-label="Upload de CSV">
+        <label htmlFor="csv-number-format" className="mb-2 block text-sm font-semibold text-white">Formato numérico do arquivo</label>
+        <select id="csv-number-format" value={numberFormat}
+          disabled={isReading || isValidating || importMutation.isPending}
+          onChange={event => {
+            const format = event.target.value as CsvNumberFormat
+            setNumberFormat(format)
+            if (sourceFile.current) void handleFile(sourceFile.current, format)
+          }}
+          className="min-h-11 w-full rounded-xl border border-white/15 bg-[#252525] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-nf-purple">
+          <option value="pt-BR">Vírgula decimal — 1234,56 ou 1.234,56</option>
+          <option value="decimal-point">Ponto decimal — 1234.56 (sem separador de milhar)</option>
+        </select>
+        <p className="mb-5 mt-2 text-xs leading-relaxed text-white/50">Escolha conforme o CSV. Alterar o formato relê o arquivo e substitui as edições da prévia. Na prévia, os decimais usam vírgula; rascunhos restaurados já estão nesse formato.</p>
         <div className="mb-4 flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-nf-purple/10 text-nf-purple"><FileUp className="h-5 w-5" aria-hidden="true" /></span><div><label htmlFor="transaction-csv" className="block text-sm font-semibold text-white">Arquivo CSV</label><p className="mt-1 text-xs text-white/50">Selecione o arquivo e confira a prévia antes de importar.</p></div></div>
         <input
           id="transaction-csv"

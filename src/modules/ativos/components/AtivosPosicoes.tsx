@@ -193,7 +193,7 @@ export function AtivosPosicoes() {
         </label>
         {scoreNames.length === 0 && !rulesQuery.isLoading && <span>Crie suas regras na página Score.</span>}
         {(rulesQuery.isError || preferencesQuery.isError || saveScore.isError) && <span role="alert" className="text-rose-300">Não foi possível carregar ou salvar o score. Tente novamente.</span>}
-        {activeScoreName && <span>Veja a coluna “Meu score” em Editar colunas. Sem fundamentos: —.</span>}
+        {activeScoreName && <span>Veja a coluna “Meu score” em Editar colunas.</span>}
       </div>
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}

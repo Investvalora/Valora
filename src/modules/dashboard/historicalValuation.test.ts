@@ -29,8 +29,8 @@ it('preserva meses anteriores ao resgate e capitaliza o saldo pós-cupom sem dup
 it('usa PTAX do fechamento de cada mês, sem fallback atual nem taxa futura', () => {
   const positions = [{ ticker: 'US', quantity: 2, average_price: 10, acquisition_date: '2026-08-01', asset: { currency: 'USD' } }] as PositionWithAsset[]
   const prices = [{ ticker: 'US', date: '2026-08-31', close: 12 }, { ticker: 'US', date: '2026-09-30', close: 15 }]
-  const result = buildMonthlyWealth(positions, prices, [], 999, '2026-09-30', [], { usd: [{ date: '2026-08-31', value: 5 }, { date: '2026-09-30', value: 6 }, { date: '2026-10-01', value: 1000 }], macro: [] })
-  expect(result).toEqual([{ month: '2026-08', totalBRL: 120, investedBRL: 100 }, { month: '2026-09', totalBRL: 180, investedBRL: 120 }])
+  const result = buildMonthlyWealth(positions, prices, [], 999, '2026-09-30', [], { usd: [{ date: '2026-08-01', value: 5 }, { date: '2026-08-31', value: 5 }, { date: '2026-09-30', value: 6 }, { date: '2026-10-01', value: 1000 }], macro: [] })
+  expect(result).toEqual([{ month: '2026-08', totalBRL: 120, investedBRL: 100 }, { month: '2026-09', totalBRL: 180, investedBRL: 100 }])
   expect(buildMonthlyWealth(positions, prices, [], 999, '2026-09-30', [], { usd: [], macro: [] })).toEqual([])
   expect(rateAt([{ date: '2026-09-25', value: 5 }], '2026-09-27')).toBe(5)
   expect(rateAt([{ date: '2026-09-01', value: 5 }], '2026-09-27')).toBeNull()

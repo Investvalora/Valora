@@ -5,6 +5,7 @@ import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePos
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { matchesAssetFilters, useAssetFilters, useFilteredPositions } from './useAssetFilters'
 import { valueAssets } from '../assetValuation'
+import { useAcquisitionCosts } from '../../portfolio/hooks/useAcquisitionCosts'
 
 export function useAtivosValuation(walletId: string, ignoreFilters = false) {
   const positionQuery = usePositions(walletId)
@@ -22,12 +23,13 @@ export function useAtivosValuation(walletId: string, ignoreFilters = false) {
   const needsUsd = positions.some((position) => position.asset?.currency === 'USD')
   const usdQuery = useUSDRate({ enabled: needsUsd })
   const usdRate = usdQuery.data?.rate ?? null
-  const value = useMemo(() => valueAssets(positions, quotesQuery.data ?? [], fixed, usdRate), [positions, quotesQuery.data, fixed, usdRate])
+  const costs = useAcquisitionCosts(positions, walletId)
+  const value = useMemo(() => valueAssets(positions, quotesQuery.data ?? [], fixed, usdRate, costs.byPosition), [positions, quotesQuery.data, fixed, usdRate, costs.byPosition])
   const isLoading = positionQuery.isLoading || quotesQuery.isLoading || fixedQuery.isLoading || (needsUsd && usdQuery.isLoading)
   const isError = positionQuery.isError || quotesQuery.isError || fixedQuery.isError || (needsUsd && usdQuery.isError)
   const ready = !isLoading && !isError && walletId !== ''
   return { ...value, allPositions: positionQuery.data ?? [], positions, tickers, usdRate, isLoading, isError,
     totalBRL: ready ? value.totalBRL : 0,
     patrimonioBRL: ready ? value.patrimonioBRL : null,
-    valorInvestidoBRL: ready ? value.valorInvestidoBRL : null }
+    valorInvestidoBRL: walletId !== '' && !positionQuery.isLoading && !positionQuery.isError && !fixedQuery.isLoading && !fixedQuery.isError ? value.valorInvestidoBRL : null }
 }

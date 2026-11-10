@@ -41,5 +41,6 @@ describe('Análise', () => {
 
     expect(screen.getByRole('tab', { name: 'Score' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Editor de regra')).toBeInTheDocument()
+    expect(screen.getByRole('tablist').parentElement).toHaveClass('hidden', 'md:block')
   })
 })

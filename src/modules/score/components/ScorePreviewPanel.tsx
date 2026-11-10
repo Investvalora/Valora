@@ -17,8 +17,6 @@ export interface ScorePreviewPanelProps {
   thresholdMax: number | null
   points: number | null
   existingRulesInScore: ScoreRule[]
-  /** No mobile o card de pré-visualização já é renderizado inline — oculta o card interno */
-  hideTitleCard?: boolean
 }
 
 function formatCondition(
@@ -58,7 +56,6 @@ export function ScorePreviewPanel({
   thresholdMax,
   points,
   existingRulesInScore,
-  hideTitleCard = false,
 }: ScorePreviewPanelProps) {
   const { selectedWallet } = useWallets()
   const { data: positions = [], isLoading: positionsLoading } = usePositions(selectedWallet?.id)
@@ -127,23 +124,20 @@ export function ScorePreviewPanel({
   const newPoints = existingPoints + (points ?? 0)
 
   return (
-    <div className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-      {/* Card da regra */}
-      {!hideTitleCard && (
-      <div className="bg-[rgba(121,135,255,0.08)] border border-[rgba(121,135,255,0.5)] rounded-[12px] px-[18px] py-[16px] mb-5">
-        <p className="text-[#B8C0FF] text-[12px] mb-1 truncate">
+    <div className="w-full">
+      <div className="mb-6 border-b border-white/10 pb-6">
+        <p className="mb-2 truncate text-sm text-white/50">
           {scoreName || 'Novo score'}
         </p>
-        <p className="text-white text-[22px] font-semibold leading-snug mb-3 break-words">
+        <p className="mb-3 break-words text-xl font-semibold leading-snug text-white">
           {conditionText}
         </p>
-        <span className="inline-block bg-[rgba(51,170,59,0.18)] text-[#63D16B] px-3 py-1 rounded-[8px] text-[14px] font-semibold">
+        <span className="inline-block rounded-full bg-nf-green/10 px-3 py-1 text-sm font-semibold text-nf-green">
           {points !== null && Number.isFinite(points)
             ? `${points > 0 ? '+' : ''}${points} pts`
             : '? pts'}
         </span>
       </div>
-      )}
 
       {/* Lista de ativos */}
       {isLoading ? (
@@ -212,7 +206,7 @@ export function ScorePreviewPanel({
       )}
 
       {/* Box impacto */}
-      <div className="bg-white/[0.04] border border-white/10 rounded-[12px] px-4 py-[14px]">
+      <div className="border-t border-white/10 pt-5">
         <p className="text-white/50 text-[12px] mb-2">Impacto no score</p>
         <p className="text-[13px]">
           <span className="text-white/50">

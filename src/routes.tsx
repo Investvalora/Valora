@@ -19,7 +19,6 @@ const AlertsPage = lazy(() => import('./modules/alerts/components/AlertsPage').t
 const PatrimonioPage = lazy(() => import('./modules/wealth/components/PatrimonioPage').then(m => ({ default: m.PatrimonioPage })))
 const ProventosPage = lazy(() => import('./modules/dividends/components/ProventosPage').then(m => ({ default: m.ProventosPage })))
 const RentabilidadePage = lazy(() => import('./modules/performance/components/RentabilidadePage').then(m => ({ default: m.RentabilidadePage })))
-const ScorePage = lazy(() => import('./modules/score/components/ScorePage').then(m => ({ default: m.ScorePage })))
 const EstrategiasPage = lazy(() => import('./modules/valuation/components/EstrategiasPage').then(m => ({ default: m.EstrategiasPage })))
 const NovoInsightPage = lazy(() => import('./modules/valuation/components/NovoInsightPage').then(m => ({ default: m.NovoInsightPage })))
 const NovaEstrategiaPage = lazy(() => import('./modules/valuation/components/NovaEstrategiaPage').then(m => ({ default: m.NovaEstrategiaPage })))
@@ -90,7 +89,7 @@ export function AppRoutes() {
           <Route path="patrimonio"                  element={<PatrimonioPage />} />
           <Route path="proventos"                   element={<ProventosPage />} />
           <Route path="rentabilidade"               element={<RentabilidadePage />} />
-          <Route path="score"                       element={<ScorePage />} />
+          <Route path="score"                       element={<Navigate to="/analise/score" replace />} />
           <Route path="estrategias"                 element={<EstrategiasPage />} />
           <Route path="alertas"                     element={<AlertsPage />} />
           <Route path="lancamentos"                 element={<LancamentosPage />} />
@@ -123,12 +122,12 @@ export function AppRoutes() {
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />
             <Route path="score"       element={<Suspense fallback={<LoadingFallback />}><AnaliseScore /></Suspense>} />
+            <Route path="score/nova"  element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
             <Route path="estrategias" element={<EstrategiasPage />} />
             <Route path="alertas"     element={<Suspense fallback={<LoadingFallback />}><AnaliseAlertas /></Suspense>} />
           </Route>
 
-          {/* Rotas de score sem tabs de Análise */}
-          <Route path="analise/score/nova"          element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
+          {/* Edição preserva o modal sobre a análise. */}
           <Route path="analise/score/:id/editar"    element={<Suspense fallback={<LoadingFallback />}><ScoreRulePage /></Suspense>} />
           {/* Rota de novo insight — tela dedicada (mobile) ou painel lateral (desktop) */}
           <Route path="analise/estrategias/novo"    element={<NovoInsightPage />} />

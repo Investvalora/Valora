@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { fnetDocumentIds, fnetPayment, mastercardPayments } from '../../../supabase/functions/sync-dividend-payments/parsers'
 import gare from './fixtures/fnet-gare.html?raw'
 import vghf from './fixtures/fnet-vghf.html?raw'
+import hglg from './fixtures/fnet-hglg-multiclass.html?raw'
 
 const source = (id: number) => `https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?cvm=true&id=${id}`
 const identity = { ticker: 'GARE11', cnpj: '37295919000160', isin: 'BRGARECTF001' }
 describe('payment date sources', () => {
+  it('isola a classe exata num aviso com cotas e recibos de subscrição', () => {
+    const wanted = { ticker: 'HGLG11', cnpj: '11728688000147', isin: 'BRHGLGCTF004' }
+    expect(fnetPayment(hglg, wanted, source(1365796))).toMatchObject({ record_date: '2026-10-30', payment_date: '2026-11-16', value_per_share: 1.17 })
+    expect(() => fnetPayment(hglg, { ...wanted, isin: 'BRHGLGR26M17' }, source(1365796))).toThrow()
+    expect(() => fnetPayment(hglg + hglg, wanted, source(1365796))).toThrow()
+  })
   it('lê os avisos reais FNET com identidade e datas exatas, sem criar ex-date', () => {
     expect(fnetPayment(gare, identity, source(1365436))).toEqual({ record_date: '2026-10-30', payment_date: '2026-11-09', value_per_share: 0.083, source_url: source(1365436) })
     expect(fnetPayment(vghf, { ticker: 'VGHF11', cnpj: '36771692000119', isin: 'BRVGHFCTF005' }, source(1365431)).value_per_share).toBe(0.05)

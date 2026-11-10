@@ -1,5 +1,13 @@
 # Proventos — 10/11/2026
 
+## Atualização após o merge da PR128
+
+A publicação pendente descrita abaixo foi concluída em produção em 10/11: função `sync-dividend-payments` (versão 2), migration `confirmed_dividend_payment_sources` e cron `3-59/5 * * * *` ativos. A fila descobre todos os FIIs com identidade B3/CVM disponível. Não grava receitas pessoais. RLS habilitado e leitura/escrita de usuários comuns negadas, verificadas após aplicação. O advisor informa ausência de políticas nessa tabela restrita ao serviço, por desenho.
+
+A execução real encontrou avisos HGLG11 com blocos de cotas e recibos de subscrição. A leitura agora se restringe ao bloco de ticker+ISIN exatos; continua rejeitando identidades duplicadas e amortizações não suportadas. Fixture oficial multiclasses e cinco testes do parser passaram. HGLG11, MXRF11 e XPSF11 tiveram seus pagamentos de 16/11 preenchidos automaticamente. CXSE3 teve o calendário de 17/11 confirmado pontualmente pelo histórico oficial de RI, sem alterar valor por ação nem criar crédito pessoal; esse reparo pontual não representa um novo adaptador automático de RI para todas as ações.
+
+Homologação na página publicada: novembro mostrou R$ 34,89 a receber + R$ 30,92 recebidos = R$ 65,81. Somente anúncios com data confirmada entram na previsão; ausência de outros anúncios ainda pode deixar a cobertura incompleta. Limitação da Mastercard e conflitos de outros fundos continuam registrados na fila, sem datas presumidas. A execução de HGLG11 retornou HTTP 200, três eventos enriquecidos e zero conflitos. Recebimentos da Nomad e lançamentos da carteira preservados.
+
 ## Causa e reparo aplicado
 
 GARE11, VGHF11 e MA tinham eventos Yahoo com valor e data ex, mas sem pagamento. O filtro de pagos os excluía corretamente. Não se deve substituir pagamento por data ex.

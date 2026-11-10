@@ -8,4 +8,3 @@ export const STARTER_SCORE: NewScoreRule[] = [
   { name: 'Modelo inicial', metric: 'net_margin', operator: 'gte', threshold_min: 5, threshold_max: null, points: 20 },
   { name: 'Modelo inicial', metric: 'dy', operator: 'gte', threshold_min: 4, threshold_max: null, points: 20 },
 ]
-

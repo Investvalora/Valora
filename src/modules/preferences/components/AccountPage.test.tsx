@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authService } from '../../auth/services/authService'
 import { AccountPage } from './AccountPage'
@@ -9,8 +9,6 @@ const logout = vi.fn()
 const user = {
   id: 'user-1',
   email: 'sessao@valora.test',
-  created_at: '2025-01-15T12:00:00Z',
-  last_sign_in_at: '2026-10-16T12:00:00Z',
   user_metadata: { full_name: 'Nome da sessão', phone: '11999990000' },
 }
 
@@ -22,11 +20,16 @@ vi.mock('../../auth/services/authService', () => ({
   authService: { getUserProfile: vi.fn() },
 }))
 
-function renderPage() {
+function renderPage(path = '/conta') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter><AccountPage /></MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/conta" element={<AccountPage />} />
+          <Route path="/conta/:section" element={<AccountPage />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -35,48 +38,51 @@ describe('Perfil e conta', () => {
   beforeEach(() => {
     vi.mocked(authService.getUserProfile).mockReset()
     logout.mockReset()
+    vi.mocked(authService.getUserProfile).mockResolvedValue({
+      id: 'user-1', email: 'perfil@valora.test', full_name: 'Ana Carvalho', phone: '11988887777',
+    } as never)
   })
 
-  it('mostra os dados do perfil cadastrado e o avatar com iniciais', async () => {
-    vi.mocked(authService.getUserProfile).mockResolvedValue({
-      id: 'user-1',
-      email: 'perfil@valora.test',
-      full_name: 'Ana Carvalho',
-      phone: '11988887777',
-      created_at: '2025-01-15T12:00:00Z',
-      updated_at: '2025-01-15T12:00:00Z',
-    })
+  it('mostra o perfil e abre cada seção sem sair da conta', async () => {
     renderPage()
-
     expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
-    expect(screen.getAllByText('sessao@valora.test')).toHaveLength(2)
-    expect(screen.getByText('11988887777')).toBeInTheDocument()
     expect(screen.getByText('AC')).toBeInTheDocument()
-    expect(screen.queryByText('Último acesso')).not.toBeInTheDocument()
-    expect(screen.queryByText('Conta criada em')).not.toBeInTheDocument()
-    expect(screen.queryByText('Seu espaço')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Alterar senha' })).toBeEnabled()
+    expect(screen.getByText('sessao@valora.test')).toBeInTheDocument()
+    expect(screen.getByText('Escolha uma opção ao lado.')).toBeInTheDocument()
+    expect(screen.queryByText('Sua conta, do seu jeito')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Meus dados/ })).toHaveAttribute('href', '/conta/dados')
+    fireEvent.click(screen.getByRole('link', { name: /Meus dados/ }))
+    expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'down')
+    expect(screen.getByRole('link', { name: 'Voltar para perfil e conta' })).toHaveAttribute('href', '/conta')
+    expect(screen.getByLabelText('Nome completo')).toHaveValue('Ana Carvalho')
+    expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('11988887777')
+    fireEvent.click(screen.getByRole('link', { name: /Alterar meu email/ }))
+    expect(screen.getByText('sessao@valora.test', { selector: 'p.font-medium' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Novo email')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: /Alterar minha senha/ }))
+    expect(screen.getByLabelText('Nova senha')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: /Preferências/ }))
+    expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'down')
     fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'compact' } })
     expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('compact')
-    fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'expanded' } })
-    expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('expanded')
-    expect(screen.getByRole('button', { name: 'Sair da conta' })).toHaveClass('text-red-500')
+    fireEvent.click(screen.getByRole('link', { name: /Meus dados/ }))
+    expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'up')
+    fireEvent.click(screen.getByRole('link', { name: 'Voltar para perfil e conta' }))
+    expect(document.querySelector('.account-menu')).toHaveAttribute('data-returning', 'true')
+    expect(screen.getByRole('button', { name: 'Encerrar sessão' })).toBeEnabled()
   })
 
   it('usa os metadados da sessão quando o perfil não está disponível', async () => {
     vi.mocked(authService.getUserProfile).mockResolvedValue(null)
-    renderPage()
-
+    renderPage('/conta/dados')
     expect(await screen.findByRole('heading', { name: 'Nome da sessão' })).toBeInTheDocument()
-    expect(screen.getByText('11999990000')).toBeInTheDocument()
-    expect(screen.getAllByText('sessao@valora.test')).toHaveLength(2)
+    expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('11999990000')
   })
 
   it('respeita o telefone removido no perfil sem recuperar um número antigo da sessão', async () => {
     vi.mocked(authService.getUserProfile).mockResolvedValue({ id: 'user-1', email: 'sessao@valora.test', full_name: 'Ana Carvalho', phone: null } as never)
-    renderPage()
+    renderPage('/conta/dados')
     expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
-    expect(screen.getByText('Não informado')).toBeInTheDocument()
-    expect(screen.queryByText('11999990000')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('')
   })
 })

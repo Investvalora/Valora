@@ -28,4 +28,3 @@ export function clearStrategyDraft(userId: string | undefined, editing?: Valuati
   const key = strategyDraftKey(userId, editing, initial)
   if (key) removeDraft(key)
 }
-

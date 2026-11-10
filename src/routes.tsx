@@ -34,6 +34,7 @@ const TransactionImportPage = lazy(() => import('./modules/portfolio/components/
 const AtivosPosicoes   = lazy(() => import('./modules/ativos/components/AtivosPosicoes').then((m) => ({ default: m.AtivosPosicoes })))
 const AtivosComposicao = lazy(() => import('./modules/ativos/components/AtivosComposicao').then((m) => ({ default: m.AtivosComposicao })))
 const AtivosLancamentos = lazy(() => import('./modules/ativos/components/AtivosLancamentos').then((m) => ({ default: m.AtivosLancamentos })))
+const AtivosExplorar = lazy(() => import('./modules/ativos/components/AtivosExplorar').then((m) => ({ default: m.AtivosExplorar })))
 
 
 // ── Lazy imports para sub-rotas de Desempenho ─────────────────────────────
@@ -95,6 +96,7 @@ export function AppRoutes() {
           <Route path="lancamentos"                 element={<LancamentosPage />} />
           <Route path="ativos/importar" element={<TransactionImportPage />} />
           <Route path="conta"                       element={<AccountPage />} />
+          <Route path="conta/:section"              element={<AccountPage />} />
           <Route path="ativo/:ticker"               element={<AtivoDetailPage />} />
 
           {/* ── Ativos — sub-rotas ── */}
@@ -103,6 +105,8 @@ export function AppRoutes() {
             <Route path="posicoes"    element={<Suspense fallback={<LoadingFallback />}><AtivosPosicoes /></Suspense>} />
             <Route path="composicao"  element={<Suspense fallback={<LoadingFallback />}><AtivosComposicao /></Suspense>} />
             <Route path="lancamentos" element={<Suspense fallback={<LoadingFallback />}><AtivosLancamentos /></Suspense>} />
+            <Route path="explorar" element={<Suspense fallback={<LoadingFallback />}><AtivosExplorar /></Suspense>} />
+            <Route path="explorar/:ticker" element={<Suspense fallback={<LoadingFallback />}><AtivosExplorar /></Suspense>} />
           </Route>
 
           {/* ── Desempenho — sub-rotas ── */}

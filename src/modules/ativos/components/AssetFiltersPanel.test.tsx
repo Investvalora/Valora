@@ -34,7 +34,7 @@ vi.mock('../../valuation/hooks/useStrategies', () => ({ useStrategies: () => ({ 
 beforeEach(() => { scoreState.enabled = false; fixedState.data = []; fixedState.isLoading = false; fixedState.isError = false; useAssetFilters.setState({ query: '', types: [], isOpen: false }); localStorage.clear() })
 
 function show() {
-  return render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
+  return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={['/ativos/posicoes']}><Routes><Route path="/ativos" element={<AtivosPage />}>
     <Route path="posicoes" element={<AtivosPosicoes />} /><Route path="composicao" element={<AtivosComposicao />} />
   </Route></Routes></MemoryRouter></QueryClientProvider>)
 }
@@ -54,13 +54,24 @@ it('reaproveita score preferido, regras e fundamentos na coluna escolhida', asyn
   expect(within(within(screen.getByRole('table', { name: 'Posições de FIIs' })).getByRole('row', { name: /FII11/ })).getAllByRole('cell')[index]).toHaveTextContent('—')
 })
 
-it('os dois botões abrem o painel; aplicar filtra tabela e composição, limpar restaura os dados', async () => {
+it('abre a busca no cabeçalho e reserva a linha inteira no mobile', async () => {
+  const user = userEvent.setup()
+  show()
+  await user.click(screen.getByRole('button', { name: 'Buscar ativo no catálogo' }))
+  expect(screen.getByRole('searchbox', { name: 'Buscar ativo por nome ou ticker' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Ativos' })).toHaveClass('max-w-0', 'opacity-0', 'blur-sm')
+  expect(screen.getByRole('button', { name: 'Abrir favoritos' }).parentElement).toHaveClass('max-w-0', 'opacity-0', 'blur-sm')
+  expect(screen.getByRole('button', { name: /^Filtrar/ })).toBeInTheDocument()
+})
+
+it('o filtro abaixo das abas filtra tabela e composição, limpar restaura os dados', async () => {
   const user = userEvent.setup()
   show()
   const table = screen
+  expect(screen.getByRole('tablist').parentElement).not.toContainElement(screen.getByRole('button', { name: /^Filtrar ativos/ }))
   expect(table.getByRole('link', { name: 'AAA3' })).toBeInTheDocument()
   expect(table.getByRole('link', { name: 'FII11' })).toBeInTheDocument()
-  await user.click(screen.getAllByRole('button', { name: /^Filtrar/ })[1])
+  await user.click(screen.getByRole('button', { name: /^Filtrar/ }))
   const dialog = within(screen.getByRole('dialog', { name: 'Filtrar ativos' }))
   await user.type(dialog.getByLabelText('Ticker ou nome do ativo'), '  fundo beta ')
   await user.click(dialog.getByRole('checkbox', { name: 'FIIs' }))
@@ -76,14 +87,14 @@ it('os dois botões abrem o painel; aplicar filtra tabela e composição, limpar
   expect(within(chart).getByLabelText(/FIIs:/)).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
   expect(chart.querySelectorAll('path')).toHaveLength(2)
-  await user.click(screen.getAllByRole('button', { name: /^Filtrar/ })[0])
+  await user.click(screen.getByRole('button', { name: /^Filtrar/ }))
   expect(screen.getByRole('dialog', { name: 'Filtrar ativos' })).toBeInTheDocument()
 })
 
 it('cancelar descarta o rascunho e busca sem resultados mostra estado específico', async () => {
   const user = userEvent.setup()
   show()
-  await user.click(screen.getAllByRole('button', { name: /^Filtrar/ })[0])
+  await user.click(screen.getByRole('button', { name: /^Filtrar/ }))
   await user.type(screen.getByLabelText('Ticker ou nome do ativo'), 'inexistente')
   await user.click(screen.getByRole('button', { name: 'Cancelar' }))
   expect(useAssetFilters.getState().query).toBe('')

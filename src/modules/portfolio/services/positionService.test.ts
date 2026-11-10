@@ -297,3 +297,9 @@ describe('positionService.searchAssets', () => {
     expect(supabaseMock.callArgs('assets', 'or')).toEqual([])
   })
 })
+
+it('pagina resultados do catálogo sem aplicar o limite das sugestões', async () => {
+  supabaseMock.on('assets', () => ({ data: [], error: null }))
+  await positionService.searchAssetsPage('PETR', 1, 24)
+  expect(supabaseMock.callArgs('assets', 'range')).toContainEqual([24, 48])
+})

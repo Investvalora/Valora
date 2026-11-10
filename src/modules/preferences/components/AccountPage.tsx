@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Bell,
   ChevronRight,
   KeyRound,
   LogOut,
@@ -15,6 +16,7 @@ import { authService } from "../../auth/services/authService";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { EditProfileForm } from "./EditProfileForm";
 import { useSidebarPreference } from "../../../shared/stores/useSidebarPreference";
+import { usePushNotifications } from "../../alerts/hooks/usePushNotifications";
 
 const sections = [
   {
@@ -37,8 +39,8 @@ const sections = [
   },
   {
     id: "preferencias",
-    label: "Preferências",
-    description: "Personalize sua experiência",
+    label: "Preferências e notificações",
+    description: "Menu e alertas neste dispositivo",
     icon: PanelLeft,
   },
 ] as const;
@@ -50,6 +52,7 @@ function textValue(value: unknown): string {
 export function AccountPage() {
   const { user, logout } = useAuth();
   const { compact, setCompact } = useSidebarPreference(user?.id);
+  const push = usePushNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const selectedIndex = sections.findIndex(
@@ -83,6 +86,15 @@ export function AccountPage() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+  const notificationStatus = !push.supported
+    ? "Indisponíveis neste navegador"
+    : !push.configured
+      ? "Indisponíveis neste ambiente"
+      : !push.ready
+        ? "Verificando…"
+        : push.enabled
+          ? "Ativadas neste dispositivo"
+          : "Desativadas neste dispositivo";
 
   const handleLogout = async () => {
     setIsLeaving(true);
@@ -116,23 +128,17 @@ export function AccountPage() {
           <h1 className="mb-6 text-2xl font-semibold text-white md:hidden">
             Perfil e conta
           </h1>
-          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-            <div
-              className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A66AF4] text-lg font-semibold text-white shadow-[0_0_0_4px_rgba(166,106,244,0.12)]"
-              aria-hidden="true"
-            >
+          <div role="group" aria-label="Conta conectada" className="mb-8 flex items-center gap-4 border-b border-white/10 pb-7 md:hidden">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A66AF4] text-lg font-semibold text-white" aria-hidden="true">
               {initials}
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-white">
-                {displayName}
-              </h2>
-              {email && (
-                <p className="mt-0.5 truncate text-sm text-white/50">{email}</p>
-              )}
+              <p className="truncate text-lg font-semibold text-white">{displayName}</p>
+              {email && <p className="mt-0.5 truncate text-sm text-white/60">{email}</p>}
+              <p className="mt-0.5 text-sm text-white/50">{phone || "Telefone não informado"}</p>
             </div>
           </div>
-          <nav aria-label="Opções da conta" className="mt-7 space-y-2">
+          <nav aria-label="Opções da conta" className="space-y-2">
             {sections.map(({ id, label, description, icon: Icon }) => (
               <div key={id}>
                 {id === "dados" && (
@@ -243,44 +249,103 @@ export function AccountPage() {
               )}
               {selected.id === "senha" && <ChangePasswordForm direct />}
               {selected.id === "preferencias" && (
-                <div>
-                  <div className="flex items-center gap-3">
-                    <PanelLeft
-                      className="h-5 w-5 text-[#B88AF6]"
-                      aria-hidden="true"
-                    />
-                    <h3 className="text-sm font-semibold text-white">
-                      Barra lateral
-                    </h3>
-                  </div>
-                  <p
-                    id="sidebar-preference-help"
-                    className="mt-2 text-sm text-white/50"
-                  >
-                    Escolha como o menu deve abrir neste navegador. O botão de
-                    expandir ou recolher também salva sua escolha.
-                  </p>
-                  <label className="mt-5 block text-sm text-white/75">
-                    Estado do menu
-                    <select
-                      aria-describedby="sidebar-preference-help"
-                      value={compact ? "compact" : "expanded"}
-                      onChange={(event) =>
-                        setCompact(event.target.value === "compact")
-                      }
-                      className="mt-2 min-h-11 w-full max-w-sm rounded-xl border border-white/15 bg-[#262626] px-3 text-white outline-none transition-colors focus:border-[#A5A0F5] focus:outline-none focus:ring-0 focus-visible:border-[#A5A0F5] focus-visible:outline-none focus-visible:ring-0"
+                <div className="space-y-8">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <PanelLeft
+                        className="h-5 w-5 text-[#B88AF6]"
+                        aria-hidden="true"
+                      />
+                      <h3 className="text-sm font-semibold text-white">
+                        Barra lateral
+                      </h3>
+                    </div>
+                    <p
+                      id="sidebar-preference-help"
+                      className="mt-2 text-sm text-white/50"
                     >
-                      <option value="expanded">Expandida</option>
-                      <option value="compact">Retraída</option>
-                    </select>
-                  </label>
+                      Escolha como o menu deve abrir neste navegador. O botão de
+                      expandir ou recolher também salva sua escolha.
+                    </p>
+                    <label className="mt-5 block text-sm text-white/75">
+                      Estado do menu
+                      <select
+                        aria-describedby="sidebar-preference-help"
+                        value={compact ? "compact" : "expanded"}
+                        onChange={(event) =>
+                          setCompact(event.target.value === "compact")
+                        }
+                        className="mt-2 min-h-11 w-full max-w-sm rounded-xl border border-white/15 bg-[#262626] px-3 text-white outline-none transition-colors focus:border-[#A5A0F5] focus:outline-none focus:ring-0 focus-visible:border-[#A5A0F5] focus-visible:outline-none focus-visible:ring-0"
+                      >
+                        <option value="expanded">Expandida</option>
+                        <option value="compact">Retraída</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="border-t border-white/10 pt-7">
+                    <div className="flex items-center gap-3">
+                      <Bell className="h-5 w-5 text-[#B8BAFF]" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Notificações</h3>
+                    </div>
+                    <p className="mt-2 text-sm text-white/50">
+                      Receba neste dispositivo os alertas do Valora, mesmo com o app fechado.
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-4">
+                      <div>
+                        <p className="text-sm font-medium text-white">Alertas neste dispositivo</p>
+                        <p className="mt-1 text-xs text-white/50" role="status">{notificationStatus}</p>
+                      </div>
+                      {push.supported && push.configured && (
+                        <button
+                          type="button"
+                          onClick={() => void push.toggle()}
+                          disabled={push.busy || !push.ready}
+                          aria-pressed={push.enabled}
+                          className="min-h-11 rounded-xl border border-[#8F91E9]/40 bg-[#8F91E9]/15 px-4 text-sm font-medium text-[#D5D6FF] transition-colors hover:bg-[#8F91E9]/25 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#A5A0F5] disabled:opacity-50"
+                        >
+                          {push.busy ? "Aguarde…" : push.enabled ? "Desativar notificações" : "Ativar notificações"}
+                        </button>
+                      )}
+                    </div>
+                    {push.error && <p role="alert" className="mt-3 text-sm text-rose-300">{push.error}</p>}
+                    {push.supported && push.configured && (
+                      <p className="mt-3 text-xs text-white/45">
+                        A permissão do navegador também pode ser alterada nas configurações do dispositivo.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           ) : (
-            <p className="pt-7 text-sm text-white/45">
-              Escolha uma opção ao lado.
-            </p>
+            <div className="min-w-0 md:pl-4 lg:pl-8">
+              <div className="flex flex-wrap items-center gap-5 pb-8">
+                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-[#A66AF4] text-2xl font-semibold text-white" aria-hidden="true">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="break-words text-2xl font-semibold tracking-tight text-white">{displayName}</h2>
+                  {email && <p className="mt-1 break-all text-sm text-white/60">{email}</p>}
+                  {phone && <p className="mt-1 text-sm text-white/50">{phone}</p>}
+                </div>
+              </div>
+              <div className="grid border-t border-white/10 md:grid-cols-2">
+                <div className="border-b border-white/10 py-5 md:pr-6">
+                  <div className="flex items-center gap-2 text-white/50">
+                    <PanelLeft className="h-4 w-4" aria-hidden="true" />
+                    <h3 className="text-sm">Barra lateral</h3>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-white">{compact ? "Retraída" : "Expandida"}</p>
+                </div>
+                <div className="border-b border-white/10 py-5 md:pl-6">
+                  <div className="flex items-center gap-2 text-white/50">
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                    <h3 className="text-sm">Notificações</h3>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-white" role="status">{notificationStatus}</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

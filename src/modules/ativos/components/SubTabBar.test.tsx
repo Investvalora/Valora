@@ -22,7 +22,8 @@ describe('Navegação de Ativos no mobile', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('tablist')).toHaveStyle({ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' })
+    expect(screen.getByRole('tablist')).toHaveClass('flex', 'overflow-x-auto')
+    expect(screen.getByRole('tab', { name: 'Posições' })).toHaveClass('flex-1', 'whitespace-nowrap')
     expect(screen.getByRole('tab', { name: 'Posições' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ transform: 'translateX(0%)' })
 
@@ -45,7 +46,8 @@ describe('Navegação de Ativos no mobile', () => {
       { label: 'Alertas', to: '/analise/alertas' },
     ]
     render(<MemoryRouter initialEntries={['/analise/alertas']}><SubTabBar tabs={analysisTabs} mobileVariant="segmented" /></MemoryRouter>)
-    expect(screen.getByRole('tablist')).toHaveStyle({ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' })
+    expect(screen.getByRole('tablist')).toHaveClass('flex', 'overflow-x-auto')
+    expect(screen.getByRole('tab', { name: 'Alertas' })).toHaveClass('flex-1', 'whitespace-nowrap')
     expect(screen.getByTestId('subtab-selection-indicator')).toHaveStyle({ width: '25%', transform: 'translateX(300%)' })
     fireEvent.click(screen.getByRole('tab', { name: 'Estratégias' }))
     expect(screen.getByRole('tab', { name: 'Estratégias' })).toHaveAttribute('aria-selected', 'true')

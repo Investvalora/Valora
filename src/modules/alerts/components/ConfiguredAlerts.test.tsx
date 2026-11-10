@@ -13,7 +13,7 @@ beforeEach(() => { sessionStorage.clear(); vi.clearAllMocks(); mocks.list.mockRe
 function page() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><ConfiguredAlerts /></QueryClientProvider>) }
 it('cria regra por seleção do catálogo sem consultar preço e permite corrigir falha', async () => {
   page()
-  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra' }))
   const dialog = within(screen.getByRole('dialog'))
   fireEvent.change(dialog.getByRole('combobox', { name: 'Ativo (ticker)' }), { target: { value: 'PETR4' } })
   fireEvent.click(within(await dialog.findByRole('listbox')).getByRole('option'))
@@ -28,9 +28,9 @@ it('cria regra por seleção do catálogo sem consultar preço e permite corrigi
 })
 it('edita condição existente e pausa sem alterar os avisos recebidos', async () => {
   mocks.list.mockResolvedValue([rule]); page()
-  fireEvent.click(await screen.findByRole('button', { name: 'Pausar' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Pausar regra de PETR4' }))
   await waitFor(() => expect(mocks.setEnabled).toHaveBeenCalledWith('u', 'r', false))
-  fireEvent.click(screen.getByRole('button', { name: 'Editar regra' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Editar regra de PETR4' }))
   const dialog = within(screen.getByRole('dialog'))
   await waitFor(() => expect(dialog.getByLabelText('Ativo (ticker)')).toHaveValue('PETR4'))
   fireEvent.change(dialog.getByLabelText('Valor de referência'), { target: { value: '8' } })
@@ -38,7 +38,7 @@ it('edita condição existente e pausa sem alterar os avisos recebidos', async (
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith('u', expect.objectContaining({ threshold: 8 }), 'r'))
 })
 it('cria evento sem enviar condição numérica residual', async () => {
-  page(); fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  page(); fireEvent.click(screen.getByRole('button', { name: 'Nova regra' }))
   const dialog = within(screen.getByRole('dialog'))
   fireEvent.change(dialog.getByLabelText('Ativo (ticker)'), { target: { value: 'PETR4' } })
   fireEvent.click(within(await dialog.findByRole('listbox')).getByRole('option'))
@@ -49,13 +49,13 @@ it('cria evento sem enviar condição numérica residual', async () => {
 
 it('restaura condição e exige nova seleção do ativo sem salvar nem buscar cotação', async () => {
   const first = page()
-  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra' }))
   fireEvent.change(screen.getByLabelText('Ativo (ticker)'), { target: { value: 'PETR4' } })
   fireEvent.click(within(await screen.findByRole('listbox')).getByRole('option'))
   fireEvent.change(screen.getByLabelText('Valor de referência'), { target: { value: '8,5' } })
   first.unmount()
   page()
-  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra' }))
   fireEvent.click(screen.getByRole('button', { name: 'Restaurar rascunho' }))
   expect(screen.getByLabelText('Ativo (ticker)')).toHaveValue('PETR4')
   expect(screen.getByLabelText('Valor de referência')).toHaveValue('8,5')
@@ -64,6 +64,6 @@ it('restaura condição e exige nova seleção do ativo sem salvar nem buscar co
   fireEvent.click(screen.getByRole('button', { name: 'Salvar regra' }))
   expect(screen.getByRole('alert')).toHaveTextContent('Selecione um ativo')
   fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Nova regra de alerta' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Nova regra' }))
   expect(screen.queryByText('Restaurar rascunho')).not.toBeInTheDocument()
 })

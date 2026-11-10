@@ -162,7 +162,7 @@ interface InternalSubTabBarProps {
 
 function InternalSubTabBar({ activeTab, onTabChange }: InternalSubTabBarProps) {
   return (
-    <div className="flex gap-6 border-b border-white/[0.08] " role="tablist">
+    <div className="flex w-full max-w-full gap-6 overflow-x-auto overscroll-x-contain border-b border-white/[0.08] touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-x-visible" role="tablist">
       {TAB_KEYS.map((tab) => (
         <button
           key={tab}
@@ -171,7 +171,7 @@ function InternalSubTabBar({ activeTab, onTabChange }: InternalSubTabBarProps) {
           aria-selected={activeTab === tab}
           onClick={() => onTabChange(tab)}
           className={[
-            "pb-2.5 px-0 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
+            "shrink-0 border-b-2 px-0 pb-2.5 text-sm font-medium whitespace-nowrap transition-colors",
             activeTab === tab
               ? "border-nf-blue text-white"
               : "border-transparent text-white/50 hover:text-white/80",

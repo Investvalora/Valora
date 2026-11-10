@@ -75,7 +75,7 @@ export function AnaliseVisaoGeral() {
   )
 
   function openNewRule() {
-    navigate('/analise/score/nova')
+    navigate('/analise/score/nova', { state: { returnTo: '/analise/visao-geral' } })
   }
 
   function openEditRule(rule: ScoreRule) {

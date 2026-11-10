@@ -543,3 +543,46 @@ html.ios-standalone .auth-scene {
   border-radius: 10px;
   background: #626262;
 }
+
+@keyframes favorite-star-pop {
+  0% { transform: scale(1) rotate(0); }
+  38% { transform: scale(1.32) rotate(-12deg); }
+  70% { transform: scale(0.92) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes favorite-burst-ray {
+  0% { opacity: 0; transform: rotate(var(--ray-angle)) translateY(-8px) scaleY(0.5); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--ray-angle)) translateY(-19px) scaleY(0.2); }
+}
+
+@keyframes favorite-star-shrink {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0); }
+}
+
+.favorite-star-pop {
+  animation: favorite-star-pop 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.favorite-burst-ray {
+  background: var(--ray-color);
+  transform-origin: center 0;
+  animation: favorite-burst-ray 540ms ease-out both;
+}
+
+.favorite-star-shrink {
+  transform-origin: center;
+  animation: favorite-star-shrink 420ms cubic-bezier(0.55, 0, 0.9, 0.4) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-star-pop,
+  .favorite-burst-ray,
+  .favorite-star-shrink {
+    animation: none;
+  }
+  .favorite-burst-ray,
+  .favorite-star-shrink { display: none; }
+}

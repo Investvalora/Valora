@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -30,6 +30,17 @@ beforeEach(() => {
   api.create.mockReset().mockResolvedValue({})
   api.update.mockReset().mockResolvedValue({})
   useAuthStore.setState({ user: { id: 'owner' } as never })
+})
+
+it('abre a criação como página e mantém as ações mobile acima da navegação', () => {
+  open()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Voltar para Score' })).toBeInTheDocument()
+  expect(screen.queryByText('Análise › Score')).not.toBeInTheDocument()
+  const actions = screen.getByRole('toolbar', { name: 'Ações da regra' })
+  expect(actions).toHaveClass('fixed', 'md:hidden')
+  expect(within(actions).getByRole('button', { name: 'Criar regra' })).toBeInTheDocument()
+  expect(within(actions).getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
 })
 
 it('restaura criação incompleta após recarga somente por escolha e limpa ao cancelar', async () => {

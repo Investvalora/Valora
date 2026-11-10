@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,9 @@ import { authService } from '../../auth/services/authService'
 import { AccountPage } from './AccountPage'
 
 const logout = vi.fn()
+const push = vi.hoisted(() => ({
+  enabled: false, busy: false, error: '', supported: true, configured: true, ready: true, toggle: vi.fn(),
+}))
 const user = {
   id: 'user-1',
   email: 'sessao@valora.test',
@@ -19,6 +22,7 @@ vi.mock('../../auth/hooks/useAuth', () => ({
 vi.mock('../../auth/services/authService', () => ({
   authService: { getUserProfile: vi.fn() },
 }))
+vi.mock('../../alerts/hooks/usePushNotifications', () => ({ usePushNotifications: () => push }))
 
 function renderPage(path = '/conta') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -38,6 +42,8 @@ describe('Perfil e conta', () => {
   beforeEach(() => {
     vi.mocked(authService.getUserProfile).mockReset()
     logout.mockReset()
+    push.enabled = false
+    push.toggle.mockReset()
     vi.mocked(authService.getUserProfile).mockResolvedValue({
       id: 'user-1', email: 'perfil@valora.test', full_name: 'Ana Carvalho', phone: '11988887777',
     } as never)
@@ -46,9 +52,14 @@ describe('Perfil e conta', () => {
   it('mostra o perfil e abre cada seção sem sair da conta', async () => {
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
-    expect(screen.getByText('AC')).toBeInTheDocument()
-    expect(screen.getByText('sessao@valora.test')).toBeInTheDocument()
-    expect(screen.getByText('Escolha uma opção ao lado.')).toBeInTheDocument()
+    const mobileIdentity = screen.getByRole('group', { name: 'Conta conectada' })
+    expect(mobileIdentity).toHaveClass('md:hidden')
+    expect(within(mobileIdentity).getByText('AC')).toBeInTheDocument()
+    expect(within(mobileIdentity).getByText('Ana Carvalho')).toBeInTheDocument()
+    expect(within(mobileIdentity).getByText('sessao@valora.test')).toBeInTheDocument()
+    expect(within(mobileIdentity).getByText('11988887777')).toBeInTheDocument()
+    expect(screen.getByText('Desativadas neste dispositivo')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Gerenciar preferências e notificações' })).not.toBeInTheDocument()
     expect(screen.queryByText('Sua conta, do seu jeito')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Meus dados/ })).toHaveAttribute('href', '/conta/dados')
     fireEvent.click(screen.getByRole('link', { name: /Meus dados/ }))
@@ -61,10 +72,12 @@ describe('Perfil e conta', () => {
     expect(screen.getByLabelText('Novo email')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('link', { name: /Alterar minha senha/ }))
     expect(screen.getByLabelText('Nova senha')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('link', { name: /Preferências/ }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Opções da conta' })).getByRole('link', { name: /Preferências e notificações/ }))
     expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'down')
     fireEvent.change(screen.getByLabelText('Estado do menu'), { target: { value: 'compact' } })
     expect(localStorage.getItem('valora:sidebar:v1:user-1')).toBe('compact')
+    fireEvent.click(screen.getByRole('button', { name: 'Ativar notificações' }))
+    expect(push.toggle).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByRole('link', { name: /Meus dados/ }))
     expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'up')
     fireEvent.click(screen.getByRole('link', { name: 'Voltar para perfil e conta' }))
@@ -75,14 +88,24 @@ describe('Perfil e conta', () => {
   it('usa os metadados da sessão quando o perfil não está disponível', async () => {
     vi.mocked(authService.getUserProfile).mockResolvedValue(null)
     renderPage('/conta/dados')
-    expect(await screen.findByRole('heading', { name: 'Nome da sessão' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('Nome completo')).toHaveValue('Nome da sessão')
     expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('11999990000')
+  })
+
+  it('permite desativar as notificações já ativadas neste dispositivo', async () => {
+    push.enabled = true
+    renderPage('/conta/preferencias')
+    expect(screen.getByRole('status')).toHaveTextContent('Ativadas neste dispositivo')
+    const button = screen.getByRole('button', { name: 'Desativar notificações' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(button)
+    expect(push.toggle).toHaveBeenCalledOnce()
   })
 
   it('respeita o telefone removido no perfil sem recuperar um número antigo da sessão', async () => {
     vi.mocked(authService.getUserProfile).mockResolvedValue({ id: 'user-1', email: 'sessao@valora.test', full_name: 'Ana Carvalho', phone: null } as never)
     renderPage('/conta/dados')
-    expect(await screen.findByRole('heading', { name: 'Ana Carvalho' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Nome completo')).toHaveValue('Ana Carvalho'))
     expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('')
   })
 })

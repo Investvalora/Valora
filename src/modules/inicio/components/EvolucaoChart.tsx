@@ -69,14 +69,14 @@ export function EvolucaoChart({ data }: { data: MonthlySeries }) {
 
       {points.map((point, index) => {
         const total = Math.max(0, point.totalBRL ?? 0)
-        const invested = Math.min(total, Math.max(0, point.investedBRL ?? 0))
+        const invested = Math.max(0, point.investedBRL ?? 0)
         const gain = total - invested
         const cx = PAD_L + index * colW + colW / 2
         const label = labelForMonth(point.month)
         const x = cx - barWidth / 2
         const y = toY(total)
         const radius = Math.min(4, (baseline - y) / 2)
-        const gainOffset = total > 0 ? `${(gain / total) * 100}%` : '0%'
+        const gainOffset = total > 0 ? `${(Math.max(0, gain) / total) * 100}%` : '0%'
         const fillId = `${chartId}-bar-${index}`
 
         return (

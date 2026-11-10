@@ -138,7 +138,7 @@ export default function WealthBarChart({ data }: WealthBarChartProps) {
   const chartData = data.map((point) => {
     const total = point.totalBRL ?? 0
     const invested = point.investedBRL ?? 0
-    const gain = Math.max(0, total - invested)
+    const gain = total - invested
     return {
       month: point.month,
       invested: Number.isFinite(invested) ? invested : 0,

@@ -75,7 +75,7 @@ it('separa aplicado e ganho de setembro com fechamentos em dias diferentes e sem
     { ticker: 'BR', date: '2026-09-30', close: 12 },
     { ticker: 'BR', date: '2026-10-01', close: 1000 },
     { ticker: 'NEW', date: '2026-10-01', close: 110 },
-  ], [], 5)
+  ], [], 5, '2026-10-31', [], { usd: [{ date: '2026-09-01', value: 5 }, { date: '2026-09-30', value: 5 }, { date: '2026-10-31', value: 5 }], macro: [] })
   expect(result[0]).toEqual({ month: '2026-09', investedBRL: 200, totalBRL: 270 })
   expect(result[0].totalBRL! - result[0].investedBRL!).toBe(70)
   expect(result[1]).toEqual({ month: '2026-10', investedBRL: 300, totalBRL: 10260 })
@@ -100,4 +100,10 @@ it('gera meses de renda fixa mesmo sem cotações de renda variável', () => {
     { month: '2026-09', totalBRL: 1000, investedBRL: 1000 },
     { month: '2026-10', totalBRL: 1000, investedBRL: 1000 },
   ])
+})
+
+it('não usa dólar do fechamento ou atual quando falta câmbio da aquisição', () => {
+  const position = { wallet_id: 'w', ticker: 'US', quantity: 2, average_price: 10, acquisition_date: '2026-09-01', asset: { currency: 'USD' } } as PositionWithAsset
+  const result = buildMonthlyWealth([position], [{ ticker: 'US', date: '2026-09-30', close: 12 }], [], 999, '2026-09-30', [], { usd: [{ date: '2026-09-30', value: 6 }], macro: [] })
+  expect(result).toEqual([{ month: '2026-09', totalBRL: 144, investedBRL: null }])
 })

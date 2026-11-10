@@ -6,3 +6,6 @@ major_version = 17
 
 [db.seed]
 enabled = false
+
+[functions.sync-dividend-payments]
+verify_jwt = false

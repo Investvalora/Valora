@@ -1,9 +1,39 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_IMPORT_ROWS, MAX_PREVIEW_ROWS, parseCsvTransactions } from './csvParser'
+import { parseDecimalPtBr } from '../schemas/positionSchema'
 
 const header = 'data;ticker;tipo;quantidade;preço;corretagem'
 
 describe('parseCsvTransactions', () => {
+  it('normaliza ponto decimal explicitamente escolhido sem perder casas ou mudar a escala', () => {
+    const result = parseCsvTransactions(`${header}\n2026-09-15;AAPL;buy;0.06610000;302.60000000;0\n2026-09-15;BBAS3;buy;46.00000000;21.07000000;0`, 'decimal-point')
+    expect(result.errors).toHaveLength(0)
+    expect(result.rows[0]).toMatchObject({ quantity: '0,06610000', price: '302,60000000' })
+    expect(parseDecimalPtBr(result.rows[0].quantity)).toBe(0.0661)
+    expect(parseDecimalPtBr(result.rows[1].quantity)).toBe(46)
+  })
+
+  it('não adivinha a convenção de um ponto isolado', () => {
+    const csv = `${header}\n2026-01-05;TEST;buy;1.500;10;0`
+    expect(parseCsvTransactions(csv).errors).toEqual(expect.arrayContaining([expect.objectContaining({ column: 'quantidade' })]))
+    expect(parseCsvTransactions(csv, 'decimal-point').rows[0].quantity).toBe('1,500')
+  })
+
+  it.each(['1,500', '1.234,56', '1,234.56', '1e3', 'NaN'])('bloqueia formato incompatível %s sem convertê-lo silenciosamente', value => {
+    const result = parseCsvTransactions(`${header}\n2026-01-05;TEST;buy;${value};10;0`, 'decimal-point')
+    expect(result.rows).toHaveLength(0)
+    expect(result.errors[0]).toMatchObject({ row: 2, column: 'quantidade' })
+  })
+
+  it('mantém precisão de cripto, rejeita zero/negativo e aceita CSV separado por vírgula', () => {
+    const csv = 'data,ticker,tipo,quantidade,preço,corretagem\n2026-01-05,TEST,buy,0.00000001,1234.56,0.01'
+    const result = parseCsvTransactions(csv, 'decimal-point')
+    expect(result.errors).toHaveLength(0)
+    expect(result.rows[0]).toMatchObject({ quantity: '0,00000001', price: '1234,56', brokerageFee: '0,01' })
+    for (const quantity of ['0', '-0.01']) {
+      expect(parseCsvTransactions(`${header}\n2026-01-05;TEST;buy;${quantity};10;0`, 'decimal-point').errors[0].column).toBe('quantidade')
+    }
+  })
   it('aceita BOM UTF-8, separador brasileiro e decimais com virgula', () => {
     const result = parseCsvTransactions(`\uFEFF${header}\n10/09/2026;PETR4;buy;1.000,5;32,10;0,50`)
 

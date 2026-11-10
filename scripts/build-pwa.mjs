@@ -22,6 +22,9 @@ const files = (await listFiles(distPath))
   .sort()
 
 const hash = createHash('sha256')
+const template = await readFile(source, 'utf8')
+// Worker fixes must invalidate the static cache even when app assets are unchanged.
+hash.update(template)
 const urls = []
 for (const file of files) {
   const url = `/${relative(distPath, file).split(sep).join('/')}`
@@ -31,7 +34,6 @@ for (const file of files) {
 }
 
 const cacheName = `valora-static-${hash.digest('hex').slice(0, 12)}`
-const template = await readFile(source, 'utf8')
 const cacheDeclaration = "const CACHE_NAME = 'valora-static-v1'"
 const shellDeclaration = "const APP_SHELL = ['/index.html']"
 if (!template.includes(cacheDeclaration) || !template.includes(shellDeclaration)) {

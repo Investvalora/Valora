@@ -13,6 +13,8 @@ export interface DividendRaw {
   type: string
   /** Primeiro dia ex-direito. É necessário possuir o ativo antes desta data. */
   ex_date: string
+  /** Última data com direito, quando confirmada pela fonte oficial. */
+  record_date?: string | null
   /** Data de pagamento. `YYYY-MM-DD`. */
   payment_date: string | null
   /** Valor do provento por cota/ação. */

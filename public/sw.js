@@ -2,12 +2,32 @@ const CACHE_NAME = 'valora-static-v1'
 const APP_SHELL = ['/index.html']
 const CACHE_PREFIX = 'valora-static-'
 
+function validStaticResponse(request, response) {
+  if (!response || !response.ok) return false
+  const pathname = new URL(typeof request === 'string' ? request : request.url, self.location.origin).pathname
+  const type = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
+  if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
+    return ['application/javascript', 'text/javascript', 'application/ecmascript', 'text/ecmascript'].includes(type)
+  }
+  if (pathname.endsWith('.css')) return type === 'text/css'
+  if (pathname.endsWith('.html')) return type === 'text/html'
+  return type !== 'text/html'
+}
+
+async function precache() {
+  // Validate the entire shell before writing or replacing the active worker.
+  const responses = await Promise.all(APP_SHELL.map(async (url) => {
+    const response = await fetch(new URL(url, self.location.origin).href, { cache: 'reload' })
+    if (!validStaticResponse(url, response)) throw new Error(`Invalid PWA asset: ${url}`)
+    return response
+  }))
+  const cache = await caches.open(CACHE_NAME)
+  await Promise.all(APP_SHELL.map((url, index) => cache.put(url, responses[index])))
+  await self.skipWaiting()
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting()),
-  )
+  event.waitUntil(precache())
 })
 
 self.addEventListener('activate', (event) => {
@@ -54,15 +74,17 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
-      caches.match(request).then(async (cached) => {
-        if (cached) return cached
-        const response = await fetch(request)
-        if (response.ok) {
-          const cache = await caches.open(CACHE_NAME)
-          await cache.put(request, response.clone())
-        }
+      (async () => {
+        const cache = await caches.open(CACHE_NAME)
+        const cached = await cache.match(request)
+        if (validStaticResponse(request, cached)) return cached
+        if (cached) await cache.delete(request)
+        // Bypass a possibly poisoned HTTP cache as well as Cache Storage.
+        const response = await fetch(request, { cache: 'reload' })
+        if (!validStaticResponse(request, response)) return Response.error()
+        await cache.put(request, response.clone())
         return response
-      }),
+      })(),
     )
   }
 })

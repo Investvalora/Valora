@@ -12,6 +12,7 @@ import { incomeHistoryService } from '../../dividends/services/incomeHistoryServ
 import type { WealthChartFilters } from '../../dashboard/hooks/useDashboard'
 import { useAtivosValuation } from '../../ativos/hooks/useAtivosValuation'
 import { useAssetFilters } from '../../ativos/hooks/useAssetFilters'
+import { historicalRatesService } from '../../dashboard/services/historicalRatesService'
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
 vi.mock('../../performance/hooks/useHistoricalReturns', () => ({ useHistoricalReturns: (period: string) => ({
@@ -25,7 +26,7 @@ vi.mock('../services/positionService', () => ({
 vi.mock('../services/fixedIncomeService', () => ({ fixedIncomeService: { listPositions: vi.fn(), listHistory: vi.fn() } }))
 vi.mock('../services/transactionsService', () => ({ transactionsService: { listAll: async () => [] } }))
 vi.mock('./useWallets', () => ({ useWallets: () => ({ selectedWallet: { id: 'w1' }, wallets: [{ id: 'w1' }, { id: 'w2' }] }) }))
-vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: async () => [], macro: async () => [] } }))
+vi.mock('../../dashboard/services/historicalRatesService', () => ({ historicalRatesService: { usd: vi.fn(async () => []), macro: async () => [] } }))
 vi.mock('../../dividends/services/dividendService', () => ({ dividendService: { listDividendsByTickers: async () => [] } }))
 vi.mock('../../dividends/services/incomeHistoryService', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../dividends/services/incomeHistoryService')>(),
@@ -49,6 +50,7 @@ let annualHistory: typeof history | undefined
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(historicalRatesService.usd).mockResolvedValue([])
   vi.mocked(incomeHistoryService.list).mockResolvedValue({ entries: [], coverage: [] })
   // Unit fixtures must never depend on the local Supabase project or network.
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('Unexpected network request in wallet totals test') }))
@@ -148,6 +150,40 @@ it('mantém resumo e seletor iguais mesmo com cache histórico antigo e isola ca
   await act(async () => { await client.invalidateQueries({ queryKey: ['portfolio', 'quotes'] }) })
   await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBeCloseTo(12575.73))
   expect(result.current.selector.totals.get('w1')).toBe(result.current.dashboard.totalPatrimonioBRL)
+})
+
+it('mantém investido histórico em Início e Ativos ao atualizar dólar, cotação e rendimento de renda fixa', async () => {
+  const usd = { ...positions[1], wallet_id: 'w1', acquisition_date: '2026-09-01' }
+  vi.mocked(positionService.listAllPositions).mockResolvedValue([usd])
+  vi.mocked(positionService.listPositions).mockResolvedValue([usd])
+  vi.mocked(historicalRatesService.usd).mockResolvedValue([{ date: '2026-09-01', value: 5 }])
+  const { result, client, rerender } = show()
+  await waitFor(() => expect(result.current.dashboard.valorInvestidoBRL).toBe(1000))
+  await waitFor(() => expect(result.current.assets.valorInvestidoBRL).toBe(1000))
+  expect(result.current.dashboard.totalPatrimonioBRL).toBe(1100)
+  vi.mocked(useUSDRate).mockReturnValue({ data: { rate: 6 }, isLoading: false, isError: false, refetch: vi.fn() } as unknown as ReturnType<typeof useUSDRate>)
+  vi.mocked(positionService.listLatestQuotes).mockResolvedValue([{ ticker: 'USD', close: 15 }] as Awaited<ReturnType<typeof positionService.listLatestQuotes>>)
+  vi.mocked(fixedIncomeService.listPositions).mockResolvedValue([{ ...fixed[0], current_value: 1050 }])
+  rerender()
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['portfolio', 'quotes'] })
+    await client.invalidateQueries({ queryKey: ['portfolio', 'fixed-income', 'user'] })
+  })
+  await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBe(1230))
+  expect(result.current.assets.patrimonioBRL).toBe(1230)
+  expect(result.current.dashboard.valorInvestidoBRL).toBe(1000)
+  expect(result.current.assets.valorInvestidoBRL).toBe(1000)
+  expect(result.current.dashboard.ganhoCapitalBRL).toBe(230)
+})
+
+it('preserva o aplicado quando o patrimônio fica abaixo do custo', async () => {
+  close = 9000
+  const { result } = show()
+  await waitFor(() => expect(result.current.dashboard.totalPatrimonioBRL).toBe(10000))
+  expect(result.current.dashboard.valorInvestidoBRL).toBe(10900)
+  const month = new Date().toISOString().slice(0, 7)
+  expect(result.current.dashboard.monthlySeries.find(p => p.month === month)?.investedBRL).toBe(10900)
+  expect(result.current.dashboard.ganhoCapitalBRL).toBe(-900)
 })
 
 it('não usa câmbio fixo inventado para carteira em USD sem taxa', async () => {

@@ -3,6 +3,7 @@ import type { TransactionType } from '../types'
 
 export const MAX_IMPORT_ROWS = 1000
 export const MAX_PREVIEW_ROWS = 500
+export type CsvNumberFormat = 'pt-BR' | 'decimal-point'
 
 const REQUIRED_COLUMNS = ['data', 'ticker', 'tipo', 'quantidade', 'preço', 'corretagem'] as const
 const TRANSACTION_TYPES: TransactionType[] = ['buy', 'sell', 'dividend', 'jcp', 'bonus']
@@ -100,7 +101,7 @@ function toIsoDate(value: string): string {
   return value
 }
 
-export function parseCsvTransactions(input: string | ArrayBuffer): CsvParseResult {
+export function parseCsvTransactions(input: string | ArrayBuffer, numberFormat: CsvNumberFormat = 'pt-BR'): CsvParseResult {
   const text = decodeCsv(input)
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
   if (lines.length === 0) {
@@ -127,24 +128,39 @@ export function parseCsvTransactions(input: string | ArrayBuffer): CsvParseResul
   }
 
   const indexes = Object.fromEntries(REQUIRED_COLUMNS.map((column) => [column, headers.indexOf(normalizeHeader(column))])) as Record<(typeof REQUIRED_COLUMNS)[number], number>
+  // Normalize only an explicitly selected convention. Never infer whether 1.500
+  // means a decimal or a thousands group from an individual cell.
+  if (numberFormat === 'decimal-point') {
+    const formatErrors = lines.slice(1).flatMap((line, index) => {
+      const values = splitCsvLine(line, separator)
+      return (['quantidade', 'preço', 'corretagem'] as const).flatMap(column => {
+        const value = values[indexes[column]] ?? ''
+        return value && !/^-?\d+(\.\d+)?$/.test(value)
+          ? [error(index + 2, column, 'Formato incompatível com ponto decimal. Não use separador de milhar.', '1234.56 ou 0.06610000')]
+          : []
+      })
+    })
+    if (formatErrors.length) return { rows: [], errors: formatErrors, totalRows, previewRows: 0 }
+  }
+  const normalizeNumber = (value: string) => numberFormat === 'decimal-point' ? value.replace('.', ',') : value
   const rows = lines.slice(1).map((line, index) => {
     const rowNumber = index + 2
     const values = splitCsvLine(line, separator)
     const date = values[indexes.data] ?? ''
     const ticker = (values[indexes.ticker] ?? '').toUpperCase()
     const rawType = (values[indexes.tipo] ?? '').toLowerCase() as TransactionType
-    const quantity = values[indexes.quantidade] ?? ''
-    const price = values[indexes.preço] ?? ''
-    const brokerageFee = values[indexes.corretagem] ?? ''
+    const quantity = normalizeNumber(values[indexes.quantidade] ?? '')
+    const price = normalizeNumber(values[indexes.preço] ?? '')
+    const brokerageFee = normalizeNumber(values[indexes.corretagem] ?? '')
     const errors: CsvImportError[] = []
 
     if (!parseDate(date)) errors.push(error(rowNumber, 'data', 'Data inválida ou futura.', 'DD/MM/AAAA'))
     if (!ticker) errors.push(error(rowNumber, 'ticker', 'Ticker obrigatório.', 'PETR4'))
     if (!TRANSACTION_TYPES.includes(rawType)) errors.push(error(rowNumber, 'tipo', 'Tipo de transação inválido.', 'buy, sell, dividend, jcp ou bonus'))
     const parsedQuantity = parseDecimalPtBr(quantity)
-    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) errors.push(error(rowNumber, 'quantidade', 'Quantidade deve ser maior que zero.', '100 ou 0,5'))
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) errors.push(error(rowNumber, 'quantidade', 'Quantidade deve ser maior que zero. Confira o formato numérico selecionado para o arquivo.', '100 ou 0,5 (vírgula decimal)'))
     const parsedPrice = parseDecimalPtBr(price)
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) errors.push(error(rowNumber, 'preço', 'Preço deve ser um número não negativo.', '32,10'))
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) errors.push(error(rowNumber, 'preço', 'Preço deve ser um número não negativo. Confira o formato numérico selecionado para o arquivo.', '32,10 (vírgula decimal)'))
     const parsedBrokerage = parseDecimalPtBr(brokerageFee || '0')
     if (!Number.isFinite(parsedBrokerage) || parsedBrokerage < 0) errors.push(error(rowNumber, 'corretagem', 'Corretagem deve ser um número não negativo.', '0,00'))
     const type: TransactionType | '' = TRANSACTION_TYPES.includes(rawType) ? rawType : ''

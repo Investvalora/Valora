@@ -2,15 +2,14 @@ import { derivePositionRows } from '../portfolio/positionRows'
 import type { FixedIncomePosition, LatestQuote, PositionRow, PositionWithAsset } from '../portfolio/types'
 
 /** A renda fixa usa o mesmo saldo/principal restante do resumo da carteira. */
-export function valueAssets(positions: PositionWithAsset[], quotes: LatestQuote[], fixed: FixedIncomePosition[], usdRate: number | null) {
+export function valueAssets(positions: PositionWithAsset[], quotes: LatestQuote[], fixed: FixedIncomePosition[], usdRate: number | null, acquisitionCosts?: Map<string, number | null>) {
   const derived = derivePositionRows({ positions, quotes, usdRate })
   let invested = 0
   let costComplete = true
   for (const position of positions) {
-    const rate = position.asset?.currency === 'USD' ? usdRate : 1
-    const cost = Number(position.quantity) * Number(position.average_price)
-    if (rate === null || !Number.isFinite(cost)) costComplete = false
-    else invested += cost * rate
+    const cost = acquisitionCosts ? acquisitionCosts.get(position.id) ?? null : position.asset?.currency === 'USD' ? null : Number(position.quantity) * Number(position.average_price)
+    if (cost === null || !Number.isFinite(cost)) costComplete = false
+    else invested += cost
   }
   const fixedRows: PositionRow[] = fixed.map((position) => {
     const principal = Number(position.remaining_principal ?? position.principal)

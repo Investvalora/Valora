@@ -23,6 +23,9 @@ import {
 } from "recharts";
 import { PeriodSelector } from "../../wealth/components/PeriodSelector";
 import { PanelCard } from "../../../shared/components/PanelCard";
+import { useRetainedChartData } from "../../../shared/hooks/useRetainedChartData";
+import { useChartMorph } from "../../../shared/hooks/useChartMorph";
+import { blendValue, sampleCurve } from "../../../shared/utils/chartMorph";
 import { useAssetDetail } from "../hooks/useAssetDetail";
 import { AddTransactionModal } from "../../portfolio/components/AddTransactionModal";
 import { PriceAlertForm } from "../../alerts/components/PriceAlertForm";
@@ -374,10 +377,26 @@ function AssetKpiGrid({
 // ─── PriceLineChartWithAvg (gráfico com linha de preço médio) ─────────────────
 
 interface PriceLineChartWithAvgProps {
+  ticker: string;
   data: PricePoint[];
   avgPrice: number | null;
   currency?: string;
   period: PriceHistoryPeriod;
+}
+
+function canMorphPrices(from: PricePoint[], to: PricePoint[]) {
+  return from.length > 1 && to.length > 1;
+}
+
+function morphPrices(from: PricePoint[], to: PricePoint[], progress: number): PricePoint[] {
+  return to.map((point, index) => ({
+    ...point,
+    close: blendValue(
+      sampleCurve(from, index / Math.max(1, to.length - 1), (item) => item.close),
+      point.close,
+      progress,
+    ),
+  }));
 }
 
 function formatAxisDate(value: string): string {
@@ -464,15 +483,20 @@ function DualTooltip({
 }
 
 function PriceLineChartWithAvg({
+  ticker,
   data,
   avgPrice,
   currency = "BRL",
   period,
   fullscreen = false,
 }: PriceLineChartWithAvgProps & { fullscreen?: boolean }) {
+  const morphEnabled = typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const animatedData = useChartMorph(ticker, data, morphPrices, canMorphPrices, morphEnabled);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; scrollLeft: number } | null>(null);
-  const axis = useMemo(() => priceAxis(data, avgPrice), [data, avgPrice]);
+  const axis = useMemo(() => priceAxis(animatedData, avgPrice), [animatedData, avgPrice]);
   useLayoutEffect(() => {
     const scrollArea = scrollRef.current;
     if (scrollArea)
@@ -480,8 +504,8 @@ function PriceLineChartWithAvg({
   }, [period]);
   // Enrich data with avgPrice as a constant field
   const chartData = useMemo(
-    () => data.map((p) => ({ ...p, avgPrice: avgPrice ?? undefined })),
-    [data, avgPrice],
+    () => animatedData.map((p) => ({ ...p, avgPrice: avgPrice ?? undefined })),
+    [animatedData, avgPrice],
   );
 
   return (
@@ -561,8 +585,8 @@ function PriceLineChartWithAvg({
           <div
             className={
               fullscreen
-                ? "h-full"
-                : `h-[280px] md:h-[260px] ${MOBILE_CHART_WIDTH[period]} sm:min-w-0`
+                ? "h-full transition-[min-width] duration-[360ms] motion-reduce:transition-none"
+                : `h-[280px] md:h-[260px] transition-[min-width] duration-[360ms] motion-reduce:transition-none ${MOBILE_CHART_WIDTH[period]} sm:min-w-0`
             }
             style={
               fullscreen
@@ -1328,6 +1352,7 @@ interface TabRentabilidadeProps {
   avgPrice: number | null;
   currency: AssetCurrency;
   period: PriceHistoryPeriod;
+  chartPeriod: PriceHistoryPeriod;
   onPeriodChange: (p: PriceHistoryPeriod) => void;
   onExpandChart: () => void;
   valorInvestido: number | null;
@@ -1338,10 +1363,12 @@ interface TabRentabilidadeProps {
 }
 
 function TabRentabilidade({
+  ticker,
   priceHistory,
   avgPrice,
   currency,
   period,
+  chartPeriod,
   onPeriodChange,
   onExpandChart,
   valorInvestido,
@@ -1378,10 +1405,11 @@ function TabRentabilidade({
         {priceHistory.length > 0 ? (
           <ChartErrorBoundary>
             <PriceLineChartWithAvg
+              ticker={ticker}
               data={priceHistory}
               avgPrice={avgPrice}
               currency={currency}
-              period={period}
+              period={chartPeriod}
             />
           </ChartErrorBoundary>
         ) : (
@@ -1569,6 +1597,7 @@ interface VisaoGeralProps {
   currency: AssetCurrency;
   priceHistory: PricePoint[];
   period: PriceHistoryPeriod;
+  chartPeriod: PriceHistoryPeriod;
   onPeriodChange: (p: PriceHistoryPeriod) => void;
   onExpandChart: () => void;
   portfolioWeight: number | null;
@@ -1593,6 +1622,7 @@ function VisaoGeral({
   currency,
   priceHistory,
   period,
+  chartPeriod,
   onPeriodChange,
   onExpandChart,
   portfolioWeight,
@@ -1652,10 +1682,11 @@ function VisaoGeral({
           {priceHistory.length > 0 ? (
             <ChartErrorBoundary>
               <PriceLineChartWithAvg
+                ticker={ticker}
                 data={priceHistory}
                 avgPrice={avgPrice}
                 currency={currency}
-                period={period}
+                period={chartPeriod}
               />
             </ChartErrorBoundary>
           ) : (
@@ -1785,6 +1816,7 @@ function ExpandedPriceChart({
   avgPrice,
   currency,
   period,
+  chartPeriod,
   loading = false,
   onPeriodChange,
   onClose,
@@ -1797,6 +1829,7 @@ function ExpandedPriceChart({
   avgPrice: number | null;
   currency: AssetCurrency;
   period: PriceHistoryPeriod;
+  chartPeriod: PriceHistoryPeriod;
   loading?: boolean;
   onPeriodChange: (period: PriceHistoryPeriod) => void;
   onClose: () => void;
@@ -1894,10 +1927,11 @@ function ExpandedPriceChart({
           ) : data.length ? (
             <ChartErrorBoundary>
               <PriceLineChartWithAvg
+                ticker={ticker}
                 data={data}
                 avgPrice={avgPrice}
                 currency={currency}
-                period={period}
+                period={chartPeriod}
                 fullscreen
               />
             </ChartErrorBoundary>
@@ -1947,7 +1981,9 @@ export function AtivoDetailPage({
 
   // ── Dados do ativo ──────────────────────────────────────────────────────────
   const { data: asset, isLoading: assetLoading } = useAssetDetail(ticker);
-  const { data: priceHistory = [] } = usePriceHistory(ticker, period);
+  const priceHistoryQuery = usePriceHistory(ticker, period);
+  const { data: priceHistory, period: chartPeriod, retained: retainingPriceHistory } =
+    useRetainedChartData(ticker, period, priceHistoryQuery.data ?? [], Boolean(priceHistoryQuery.isLoading));
   const { selectedWallet } = useWallets();
   const valuation = useAtivosValuation(selectedWallet?.id ?? "", true);
   const positions = valuation.positions;
@@ -2065,6 +2101,7 @@ export function AtivoDetailPage({
             avgPrice={null}
             currency="BRL"
             period={period}
+            chartPeriod={period}
             loading
             onPeriodChange={setPeriod}
             onClose={() => setChartExpanded(false)}
@@ -2156,6 +2193,8 @@ export function AtivoDetailPage({
           avgPrice={avgPrice}
           currency={currency}
           period={period}
+          chartPeriod={chartPeriod}
+          loading={Boolean(priceHistoryQuery.isLoading) && !retainingPriceHistory}
           onPeriodChange={setPeriod}
           onClose={() => setChartExpanded(false)}
           onAlert={() => setAlertOpen(true)}
@@ -2178,6 +2217,7 @@ export function AtivoDetailPage({
           currency={currency}
           priceHistory={priceHistory}
           period={period}
+          chartPeriod={chartPeriod}
           onPeriodChange={setPeriod}
           onExpandChart={() => setChartExpanded(true)}
           portfolioWeight={portfolioWeight}
@@ -2215,6 +2255,7 @@ export function AtivoDetailPage({
           avgPrice={avgPrice}
           currency={currency}
           period={period}
+          chartPeriod={chartPeriod}
           onPeriodChange={setPeriod}
           onExpandChart={() => setChartExpanded(true)}
           valorInvestido={valorInvestido}

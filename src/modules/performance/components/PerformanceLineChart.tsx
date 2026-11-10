@@ -11,9 +11,33 @@ import {
 } from 'recharts'
 import type { PerformanceSeries } from '../types'
 import { comparisonChart } from '../utils/comparisonChart'
+import { useChartMorph } from '../../../shared/hooks/useChartMorph'
+import { blendValue, sampleCurve } from '../../../shared/utils/chartMorph'
 
 interface PerformanceLineChartProps {
   series: PerformanceSeries[]
+  animate?: boolean
+  scope?: string
+}
+
+function canMorphPerformance(from: PerformanceSeries[], to: PerformanceSeries[]) {
+  return (from.find((item) => item.label === 'Carteira')?.points.length ?? 0) > 1 &&
+    (to.find((item) => item.label === 'Carteira')?.points.length ?? 0) > 1
+}
+
+function morphPerformance(from: PerformanceSeries[], to: PerformanceSeries[], progress: number): PerformanceSeries[] {
+  const previous = new Map(from.map((item) => [item.label, item.points]))
+  return to.map((item) => ({
+    ...item,
+    points: item.points.map((point, index) => ({
+      ...point,
+      normalized: blendValue(
+        sampleCurve(previous.get(item.label) ?? [], index / Math.max(1, item.points.length - 1), (entry) => entry.normalized),
+        point.normalized,
+        progress,
+      ) as number,
+    })),
+  }))
 }
 
 /**
@@ -72,15 +96,19 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
  * Gráfico de linhas comparativo de rentabilidade.
  *
  * Este arquivo é o alvo do `React.lazy` na `RentabilidadePage`.
- * `isAnimationActive={false}` previne falhas em jsdom nos testes.
+ * A animação é opcional e respeita a preferência de movimento reduzido.
  *
  * Todas as séries são normalizadas a 100 no início do período;
  * o tooltip exibe a variação percentual acumulada de cada uma.
  */
-export default function PerformanceLineChart({ series }: PerformanceLineChartProps) {
+export default function PerformanceLineChart({ series, animate = false, scope = 'default' }: PerformanceLineChartProps) {
+  const morphEnabled = animate && typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const animatedSeries = useChartMorph(scope, series, morphPerformance, canMorphPerformance, morphEnabled)
   // Unifica todas as séries em um único array de pontos para o Recharts,
   // indexado por data. Cada objeto: { date, [label]: normalized, ... }
-  const chart = comparisonChart(series)
+  const chart = comparisonChart(animatedSeries)
   const allDates = chart.dates
 
   if (allDates.length === 0) {

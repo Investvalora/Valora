@@ -27,10 +27,11 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
   return (
     <div
       className={segmented
-        ? 'relative grid w-full border-b border-white/[0.08] md:flex md:w-auto md:gap-6 md:overflow-visible'
+        // Mobile: flex rolável horizontalmente (sem quebra de linha).
+        // Desktop: flex normal com gap, sem overflow.
+        ? 'relative flex w-full gap-0 overflow-x-auto border-b border-white/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-6 md:overflow-visible'
         : 'flex gap-6 overflow-x-auto border-b border-white/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}
       role="tablist"
-      style={segmented ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` } : undefined}
     >
       {segmented && (
         <span
@@ -50,7 +51,9 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
           className={() =>
             segmented
               ? [
-                  'relative z-10 flex min-h-9 min-w-0 items-center justify-center px-1 text-center text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:min-h-0 md:border-b-2 md:px-0 md:pb-2.5 md:text-sm md:whitespace-nowrap',
+                  // Mobile: cada tab tem tamanho igual (flex-1) mas nunca quebra linha.
+                  // Desktop: tamanho natural com whitespace-nowrap.
+                  'relative z-10 flex min-h-9 flex-1 items-center justify-center whitespace-nowrap px-2 text-center text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:min-h-0 md:flex-none md:border-b-2 md:px-0 md:pb-2.5 md:text-sm',
                   matchesPath(to)
                     ? 'text-white md:border-nf-blue'
                     : 'text-white/55 hover:text-white/80 md:border-transparent',

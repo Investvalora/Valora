@@ -15,6 +15,7 @@ import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
 import { useUSDRate } from '../../../shared/hooks/useUSDRate'
 import { derivePositionRows } from '../../portfolio/positionRows'
 import { useWallets } from '../../portfolio/hooks/useWallets'
+import { useRetainedChartData } from '../../../shared/hooks/useRetainedChartData'
 import type { PerformancePeriod } from '../../performance/types'
 import type { AssetType } from '../../portfolio/types'
 
@@ -90,6 +91,8 @@ export function DesempenhoRentabilidade() {
 
   const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete, historyIssues, refetch } =
     usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
+  const comparisonSeries = useMemo(() => [portfolioSeries, ...benchmarkSeries], [portfolioSeries, benchmarkSeries])
+  const comparisonChart = useRetainedChartData(`${walletId}:${typeFilter}`, period, comparisonSeries, isLoading)
 
   // Positions para obter o type do ativo (classe)
   const { data: positions = [], isLoading: positionsLoading, isError: positionsError } = usePositions(walletId)
@@ -214,7 +217,7 @@ export function DesempenhoRentabilidade() {
                 <span className="inline-block h-2 w-6 rounded-sm bg-[#3b82f6]" />
                 Carteira
               </span>
-              {benchmarkSeries.map((s) => (
+              {comparisonChart.data.slice(1).map((s) => (
                 <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-white/60">
                   <span
                     className="inline-block h-2 w-6 rounded-sm"
@@ -255,11 +258,11 @@ export function DesempenhoRentabilidade() {
             </select>
           </div>
         </div>
-        {isLoading ? (
+        {isLoading && !comparisonChart.retained ? (
           <LoadingChart />
         ) : (
           <Suspense fallback={<LoadingChart />}>
-            <PerformanceLineChart series={[portfolioSeries, ...benchmarkSeries]} />
+            <PerformanceLineChart series={comparisonChart.data} scope={`${walletId}:${typeFilter}`} animate />
           </Suspense>
         )}
       </PanelCard>

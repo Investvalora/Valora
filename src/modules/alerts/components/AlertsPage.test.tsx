@@ -44,9 +44,13 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter><AlertsPage /></MemoryRouter>
+      <MemoryRouter><main><AlertsPage /></main></MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+function openAlertForm() {
+  fireEvent.click(screen.getAllByRole('button', { name: 'Novo alerta' })[0])
 }
 
 describe('AlertsPage', () => {
@@ -67,8 +71,77 @@ describe('AlertsPage', () => {
     renderPage()
 
     expect(screen.getByText('Nenhum alerta encontrado')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Atualizar alertas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar alertas →' }))
     expect(mocks.generate).toHaveBeenCalledOnce()
+  })
+
+  it('mantém o cabeçalho mobile no topo e a condição dentro da frase do alerta', () => {
+    mocks.alerts = [{
+      id: 'target', type: 'price_target', ticker: 'PETR4', status: 'lido',
+      title: 'Alerta de preço: PETR4',
+      description: 'Notificar quando PETR4 estiver abaixo de R$ 30,00.',
+      target_price: 30, condition: 'below', created_at: '2026-09-20T10:00:00Z',
+    }]
+
+    renderPage()
+
+    expect(screen.getByRole('heading', { name: 'Alertas e notificações' }).closest('.fixed')).toHaveClass('top-0', 'bg-[#131313]')
+    expect(screen.getByRole('link', { name: 'Abrir minha conta' })).toHaveClass('h-9', 'w-9', 'bg-purple-500', 'text-sm')
+    expect(screen.getByRole('link', { name: 'Abrir minha conta' }).closest('.fixed')).toHaveClass('pt-[calc(env(safe-area-inset-top)+1.5rem)]')
+    const alert = screen.getByRole('article', { name: 'Alerta de preço: PETR4' })
+    expect(alert).toHaveClass('bg-transparent', 'border-b')
+    expect(alert.parentElement).toHaveClass('-mx-4', 'sm:-mx-6', 'border-t')
+    expect(alert).toHaveClass('border-b')
+    expect(alert).toHaveTextContent('Avisar quando estiver abaixo de R$ 30,00')
+    expect(within(alert).getAllByText(/Avisar quando/)).toHaveLength(1)
+    expect(within(alert).getByText('PETR4')).toBeInTheDocument()
+    expect(within(alert).queryByText('Preço-alvo')).not.toBeInTheDocument()
+    const filters = screen.getByRole('group', { name: 'Filtros de alertas' })
+    expect(filters).toHaveClass('overflow-x-auto')
+    expect(filters.closest('.fixed')).toBe(screen.getByRole('heading', { name: 'Alertas e notificações' }).closest('.fixed'))
+    expect(screen.getByText('Acompanhe os eventos importantes da sua carteira e gerencie seus alertas.')).toHaveClass('hidden', 'md:block')
+  })
+
+  it('mostra a divisória sob o cabeçalho e os filtros somente após rolar', () => {
+    renderPage()
+    const header = screen.getByRole('heading', { name: 'Alertas e notificações' }).closest('.fixed')!
+    const scrollArea = header.closest('main')!
+
+    expect(header).toHaveClass('border-transparent')
+    scrollArea.scrollTop = 24
+    fireEvent.scroll(scrollArea)
+    expect(header).toHaveClass('border-white/[0.10]')
+    scrollArea.scrollTop = 0
+    fireEvent.scroll(scrollArea)
+    expect(header).toHaveClass('border-transparent')
+  })
+
+  it('destaca o alerta disparado sem criar uma linha extra e mantém as ações', () => {
+    mocks.alerts = [{
+      id: 'triggered', type: 'price_target', ticker: 'MXRF11', status: 'novo',
+      title: 'Alerta de preço: MXRF11',
+      description: 'Notificar quando MXRF11 estiver abaixo de R$ 8,99.',
+      target_price: 8.99, condition: 'below', created_at: '2026-09-20T10:00:00Z',
+    }]
+
+    renderPage()
+    const alert = screen.getByRole('article', { name: 'Alerta de preço: MXRF11' })
+    expect(within(alert).getByText('Preço-alvo atingido.').parentElement?.parentElement).toHaveClass('bg-nf-green/[0.12]')
+    expect(within(alert).getByText('Preço-alvo atingido.').parentElement?.parentElement).not.toHaveClass('border-t')
+    fireEvent.click(within(alert).getByRole('button', { name: 'Manter ativo' }))
+    expect(mocks.update).toHaveBeenCalledWith({ alertId: 'triggered', status: 'lido' })
+  })
+
+  it('remove completamente o destaque de um filtro desmarcado', () => {
+    renderPage()
+    const filter = screen.getByRole('button', { name: /Não lidas: 0/ })
+
+    fireEvent.click(filter)
+    expect(filter).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(filter)
+    expect(filter).toHaveAttribute('aria-pressed', 'false')
+    expect(filter.className).not.toContain('hover:bg-')
+    expect(filter).not.toHaveClass('border')
   })
 
   it('lista alertas e permite marcar como lido ou ignorar', () => {
@@ -87,7 +160,7 @@ describe('AlertsPage', () => {
     renderPage()
 
     expect(screen.getByRole('article', { name: 'Cotação desatualizada' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar como lido' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lido' }))
     expect(mocks.update).toHaveBeenCalledWith({ alertId: 'alert-1', status: 'lido' })
     fireEvent.click(screen.getByRole('button', { name: 'Ignorar' }))
     expect(mocks.update).toHaveBeenCalledWith({ alertId: 'alert-1', status: 'ignorado' })
@@ -108,12 +181,12 @@ describe('AlertsPage', () => {
     const ignored = screen.getByRole('article', { name: 'Alerta ignorado' })
 
     expect(within(fresh).getByText('Novo')).toHaveClass('text-nf-blue')
-    expect(within(monitoring).getByText('Monitorando')).toHaveClass('text-nf-green')
+    expect(within(monitoring).getByText('Monitorando')).toHaveClass('text-nf-yellow')
     expect(monitoring).not.toHaveClass('opacity-75', 'opacity-60')
-    expect(within(read).getByText('Lido')).toHaveClass('text-zinc-300')
-    expect(read).toHaveClass('opacity-75')
-    expect(within(ignored).getByText('Ignorado')).toHaveClass('text-nf-pink')
-    expect(ignored).toHaveClass('opacity-60')
+    expect(within(read).getByText('Lido')).toHaveClass('text-white/25')
+    expect(read).toHaveClass('opacity-65')
+    expect(within(ignored).getByText('Ignorado')).toHaveClass('text-white/18')
+    expect(ignored).toHaveClass('opacity-45')
   })
 
   it('mantém a lista tratável quando a consulta falha', () => {
@@ -121,20 +194,20 @@ describe('AlertsPage', () => {
     renderPage()
 
     expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível carregar seus alertas.')
-    expect(screen.queryByText('Nenhum alerta encontrado')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
   })
 
   it('abre e fecha o formulário de preço-alvo', () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Alerta de preço' }))
+    openAlertForm()
     expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Fechar formulário' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('filtra alertas novos e ignorados na tela mobile', () => {
+  it('filtra alertas não lidos e pausados na tela mobile', () => {
     mocks.mobile = true
     mocks.alerts = [
       { id: 'new', type: 'overvalued', ticker: 'AAPL', status: 'novo', title: 'Novo AAPL', description: 'Alerta novo', created_at: '2026-09-20T10:00:00Z' },
@@ -143,29 +216,28 @@ describe('AlertsPage', () => {
 
     renderPage()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Novos' }))
+    fireEvent.click(screen.getByRole('button', { name: /Não lidas: 1/ }))
     expect(screen.getByRole('article', { name: 'Novo AAPL' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Ignorado PETR4' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Ignorados' }))
+    fireEvent.click(screen.getByRole('button', { name: /Não lidas: 1/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Pausados: 1/ }))
     expect(screen.queryByRole('article', { name: 'Novo AAPL' })).not.toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Ignorado PETR4' })).toBeInTheDocument()
   })
 
-  it('abre a folha de novo alerta e atualiza a lista pelo botão mobile', () => {
+  it('abre e fecha a folha de novo alerta no mobile', () => {
     mocks.mobile = true
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Criar alerta de preço no celular' }))
+    openAlertForm()
     expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Fechar formulário' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Atualizar alertas no celular' }))
-    expect(mocks.generate).toHaveBeenCalledOnce()
   })
 
-  it('inclui os preços-alvo ativos na atualização mobile', () => {
+  it('inclui os preços-alvo ativos na atualização manual', () => {
     mocks.mobile = true
     mocks.alerts = [{
       id: 'target', type: 'price_target', ticker: 'PETR4', status: 'lido',
@@ -174,7 +246,10 @@ describe('AlertsPage', () => {
     }]
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Atualizar alertas no celular' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Atualizar alertas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Verificar preços-alvo' }))
     expect(mocks.generate).toHaveBeenCalledOnce()
     expect(mocks.checkPrices).toHaveBeenCalledOnce()
   })
@@ -183,7 +258,7 @@ describe('AlertsPage', () => {
     mocks.mobile = true
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Criar alerta de preço no celular' }))
+    openAlertForm()
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'petr4' } })
     fireEvent.click(screen.getByRole('radio', { name: 'Acima de' }))
     fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '42.50' } })
@@ -198,7 +273,7 @@ describe('AlertsPage', () => {
   it.each([false, true])('recupera rascunho sem enviar e limpa no cancelamento (mobile=%s)', mobile => {
     mocks.mobile = mobile
     const first = renderPage()
-    const open = () => fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    const open = openAlertForm
     open()
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'PETR4' } })
     fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '42.50' } })
@@ -216,7 +291,7 @@ describe('AlertsPage', () => {
   it.each([false, true])('bloqueia ticker vazio e preço inválido no formulário atual (mobile=%s)', (mobile) => {
     mocks.mobile = mobile
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    openAlertForm()
     const form = screen.getByRole('dialog').querySelector('form')!
     fireEvent.submit(form)
     expect(mocks.create).not.toHaveBeenCalled()
@@ -238,7 +313,7 @@ describe('AlertsPage', () => {
     mocks.mobile = mobile as boolean
     mocks.createError = { code: code as string, message: 'detalhe interno' }
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: mobile ? 'Criar alerta de preço no celular' : 'Alerta de preço' }))
+    openAlertForm()
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MXRF11' } })
     fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '9' } })
     fireEvent.click(screen.getByRole('button', { name: 'Criar alerta' }))

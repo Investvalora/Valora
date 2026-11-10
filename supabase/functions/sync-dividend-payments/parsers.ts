@@ -20,8 +20,13 @@ export function fnetPayment(html: string, identity: { ticker: string; cnpj: stri
   const fund = rows.find(row => row.some(cell => cell === 'CNPJ do Fundo:'))
   const cnpj = fund?.[fund.indexOf('CNPJ do Fundo:') + 1]?.replace(/\D/g, '')
   if (cnpj !== identity.cnpj || header.length !== 1 || header[0].length !== 6 || header[0][4] !== 'Rendimento') throw new Error('fnet_identity_or_schema_changed')
+  // A notice may contain subscription receipts as well as the ordinary units.
+  // Read only the block with this exact ticker + ISIN, never another class.
+  const start = rows.indexOf(header[0]) + 1
+  const next = rows.findIndex((row, index) => index >= start && row.length === 6 && row[4] === 'Rendimento')
+  const distributionRows = rows.slice(start, next < 0 ? undefined : next)
   const field = (prefix: string) => {
-    const matches = rows.filter(row => row[0]?.startsWith(prefix))
+    const matches = distributionRows.filter(row => row[0]?.startsWith(prefix))
     // Amortizations and multiple classes need their own accounting contract.
     if (matches.length !== 1 || matches[0].length !== 3 || matches[0][2]) throw new Error('fnet_unsupported_distribution')
     return matches[0][1]

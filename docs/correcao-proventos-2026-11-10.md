@@ -22,6 +22,14 @@ Na carteira Investidor10, período Tudo: total passou de R$ 776,35 para R$ 804,5
 
 ## Prevenção preparada, ainda não publicada
 
+### Gráfico mensal de recebidos e a receber
+
+Desempenho › Proventos passa a mostrar uma barra empilhada por mês: recebido em azul forte e pagamentos anunciados restantes do mês atual em azul claro. Mouse, foco ou toque abrem o detalhamento das parcelas e do total. A tabela e os indicadores de recebidos não incluem a previsão. Filtros por ticker/tipo afetam as duas parcelas do gráfico.
+
+Somente anúncios com pagamento futuro conhecido entram na previsão; sem data permanecem na aba de anúncios, com aviso de cobertura incompleta no gráfico. USD futuro usa a PTAX disponível hoje (até dez dias anteriores), explicitamente estimada; se faltar câmbio, a previsão inteira fica indisponível, mantendo os recebidos visíveis. Não repete automaticamente o último dividendo nem presume retenção. A visualização depende do calendário: na homologação atual, a base ainda não tinha pagamentos futuros datados para novembro na carteira; o gráfico informa essa limitação. Não interpretar zero como garantia de ausência de créditos.
+
+20 testes específicos passaram, incluindo separação das parcelas, toque/teclado, exclusão de datas desconhecidas e câmbio estimado. Build e lint dos arquivos alterados passaram. Validação responsiva em 390 px sem transbordamento horizontal da página; a rolagem fica dentro do gráfico.
+
 Nova função `sync-dividend-payments`: descobre FIIs ativos pelo ISIN/CNPJ do cadastro B3/CVM, consulta avisos estruturados ativos do Fundos.NET, valida identidade e enriquece apenas um evento compatível existente. Não se limita à carteira de teste. Limita páginas/documentos/tamanho/tempo; registra falhas e repete a consulta, sem gravar receitas pessoais ou datas presumidas. Fontes sem identidade, documentos incompatíveis e pagamentos ambíguos ficam pendentes.
 
 A consulta HTTP automática do RI Mastercard retornou 403; o calendário atual foi confirmado pela página oficial acessível na pesquisa. O adaptador mantém falha explícita e nova tentativa, sem contornar bloqueios. Isso ainda exige acompanhamento e não representa cobertura automática validada para todas as ações americanas.

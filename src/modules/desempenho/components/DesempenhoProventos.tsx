@@ -1,4 +1,5 @@
 import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
+import { useMonthReceivables } from '../../dividends/hooks/useMonthReceivables'
 /**
  * DesempenhoProventos — sub-rota /desempenho/proventos.
  * Gráfico de barras mensal + tabela (desktop) / cards (mobile) de proventos recebidos com busca e paginação.
@@ -109,6 +110,8 @@ function PaidDividends() {
 
   const { rows, isLoading, isError, refetch, availableTypes } = useBrlDividends(period)
   const syncDividends = useSyncDividends()
+  const receivables = useMonthReceivables()
+  const receivableBars = useMemo(() => buildMonthlyBars(filterAndSort(receivables.rows, tickerFilter, typeFilter, { column: 'ex_date', direction: 'desc' })), [receivables.rows, tickerFilter, typeFilter])
 
   const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
 
@@ -292,9 +295,13 @@ function PaidDividends() {
           <LoadingChart />
         ) : (
           <Suspense fallback={<LoadingChart />}>
-            <ProventosChart bars={monthlyBars} maxBars={12} />
+            <ProventosChart bars={buildMonthlyBars(filteredRows)} receivables={receivables.isError ? [] : receivableBars} maxBars={12} />
           </Suspense>
         )}
+        <p className="mt-3 text-xs text-white/50">Azul claro: pagamentos anunciados restantes do mês atual, antes de impostos. Quantidades com data ex futura e USD convertido pela PTAX disponível hoje são estimativas. A previsão não entra no total recebido acima. Sem data de pagamento, o anúncio fica apenas na aba “Anunciados / a receber”.</p>
+        {receivables.isLoading && <p role="status" className="mt-2 text-xs text-white/50">Carregando valores a receber…</p>}
+        {!receivables.isLoading && receivables.hasUndated && <p className="mt-2 text-xs text-amber-200/80">Há anúncios sem data de pagamento na base. Eles não entram na previsão mensal; R$ 0,00 a receber não significa ausência de pagamentos futuros.</p>}
+        {receivables.isError && <p role="alert" className="mt-2 text-xs text-amber-300">Previsão indisponível. Os recebidos continuam visíveis. <button type="button" onClick={receivables.refetch} className="underline">Tentar novamente</button></p>}
       </PanelCard>
 
       {/* ── Proventos recebidos ── */}

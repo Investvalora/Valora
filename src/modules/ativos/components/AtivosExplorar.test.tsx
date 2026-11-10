@@ -118,7 +118,10 @@ it("mantém o detalhe em Ativos e a guia Explorar volta aos resultados", async (
   const tab = screen.getByRole("tab", { name: "Explorar" });
   expect(tab).toHaveAttribute("aria-selected", "true");
   expect(tab).toHaveAttribute("href", "/ativos/explorar?q=AAA");
-  expect(tab.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+  expect(tab).toHaveClass("md:border-nf-blue");
+  expect(screen.getByTestId("subtab-selection-indicator")).toHaveStyle({
+    transform: "translateX(300%)",
+  });
   await user.click(tab);
   expect(
     await screen.findByRole("link", { name: /AAA0 Ativo 0/ }),

@@ -37,7 +37,7 @@ export function mergeIncomeHistory(estimates: DividendRow[], history: IncomeHist
   const uncovered = estimates.filter(row => {
     const confirmed = history.entries.some(entry => entry.ticker === row.ticker && entry.type === row.type && (
       entry.payment_date === row.payment_date ||
-      (entry.record_date !== null && entry.record_date === (row.record_date ?? row.ex_date))
+      (!row.is_installment && entry.record_date !== null && entry.record_date === (row.record_date ?? row.ex_date))
     ))
     return !confirmed && (!row.payment_date || !history.coverage.some(
       period => row.payment_date! >= period.covered_from && row.payment_date! <= period.covered_until,

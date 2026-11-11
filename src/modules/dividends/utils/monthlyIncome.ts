@@ -13,5 +13,11 @@ export function monthlyIncome(paid: MonthlyBar[], announced: MonthlyBar[]): Mont
       months.set(row.month, month)
     }
   }
-  return [...months.values()].sort((a, b) => a.month.localeCompare(b.month))
+  // Round only the displayed monthly subtotals, after aggregation. The total
+  // must equal the two visible amounts; original receipts and KPIs stay intact.
+  return [...months.values()].map(row => {
+    const receivedCents = Math.round((row.received + Number.EPSILON) * 100)
+    const receivableCents = Math.round((row.receivable + Number.EPSILON) * 100)
+    return { ...row, received: receivedCents / 100, receivable: receivableCents / 100, total: (receivedCents + receivableCents) / 100 }
+  }).sort((a, b) => a.month.localeCompare(b.month))
 }

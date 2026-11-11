@@ -2,6 +2,7 @@ import { supabase } from '../../../shared/services/supabaseClient'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import type { DividendRaw } from '../types'
 import { DIVIDENDS_LIMIT } from '../utils/dividendConstants'
+import { b3PaymentCalendar, type B3Payment } from '../utils/b3PaymentCalendar'
 
 /** Colunas selecionadas — mantido explícito para evitar over-fetching. */
 
@@ -58,7 +59,33 @@ export const dividendService = {
       if (error) throw error
       const page = (data ?? []) as unknown as DividendRaw[]
       rows.push(...page)
-      if (!completeHistory || page.length < DIVIDENDS_LIMIT) return rows
+      if (!completeHistory || page.length < DIVIDENDS_LIMIT) break
     }
+    const payments: B3Payment[] = []
+    for (let start = 0; ; start += DIVIDENDS_LIMIT) {
+      const { data, error } = await supabase.from('b3_cash_announcements')
+        .select('ticker,type,record_date,payment_date,value_per_share,approval_date')
+        .in('ticker', tickers).order('ticker').order('record_date').order('payment_date').order('approval_date').order('type').order('value_per_share')
+        .range(start, start + DIVIDENDS_LIMIT - 1)
+      if (error) throw error
+      const page = (data ?? []) as B3Payment[]
+      payments.push(...page)
+      if (page.length < DIVIDENDS_LIMIT) break
+    }
+    if (!payments.length) return rows
+    const dates = payments.map(row => row.record_date).sort()
+    const lastEx = new Date(Date.parse(`${dates[dates.length - 1]}T12:00:00Z`) + 7 * 86400000).toISOString().slice(0, 10)
+    const anchors: DividendRaw[] = []
+    for (let start = 0; ; start += DIVIDENDS_LIMIT) {
+      const { data, error } = await supabase.from('dividends').select(DIVIDEND_COLUMNS)
+        .in('ticker', [...new Set(payments.map(row => row.ticker))])
+        .gt('ex_date', dates[0]).lte('ex_date', lastEx)
+        .order('ticker').order('ex_date').order('type').range(start, start + DIVIDENDS_LIMIT - 1)
+      if (error) throw error
+      const page = (data ?? []) as DividendRaw[]
+      anchors.push(...page)
+      if (page.length < DIVIDENDS_LIMIT) break
+    }
+    return b3PaymentCalendar(rows, anchors, payments, status, since, today, until)
   },
 }

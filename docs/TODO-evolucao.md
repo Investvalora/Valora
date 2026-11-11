@@ -6,6 +6,8 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Homologação atual:** [PR132 em produção e encaminhamento CDI](homologacao-producao-pr132-133.md). CSV publicado e validado, migration aplicada e sincronização de pagamentos v3 ativa. PR133 foi mergeada em outra branch; CDI ainda fora da main. PR134 aberta para corrigir esse encaminhamento. Essa atualização prevalece sobre menções anteriores a publicação pendente do CSV.
+
 Rodada prioritária em andamento: [correções locais, testes e limites](prioridades-dados-csv-2026-11-11.md). CSV ganhou bloqueio de perda de precisão no parser e migration equivalente; 25 testes aprovados. Replay SQL isolado e publicação pendentes. Diagnóstico dos erros de pagamentos detalhado; automação internacional e calendário CDI ainda abertos.
 
 Atualização após PR132: prévia CSV homologada localmente e replay SQL aprovado na CI; publicação continua pendente. Próxima correção local: [cobertura CDI por dias bancários](cobertura-cdi-dias-uteis-2026-11-11.md), com calendário ANBIMA e detecção de um único dia útil ausente. Quatorze testes aprovados; sem recálculo em produção. Critério CDI permanece aberto até publicação e conferência dos lotes.

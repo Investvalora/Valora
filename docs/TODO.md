@@ -1,5 +1,7 @@
 # TODO do Valora
 
+**Semana 4 — 11/11/2026:** [triagem da quarta bateria](TODO-quarta-bateria.md), com quatro apontamentos classificados, sete correções anteriores confirmadas pelo avaliador e critérios de reteste.
+
 **Segurança — 06/11/2026:** [TODO de segurança](TODO-seguranca.md), com correções, proteção de login e pendências de publicação, e [relatório do penteste controlado](penteste-controlado-2026-11-06.md).
 
 **Lista ativa consolidada em 06/11/2026:** [TODO de evolução](TODO-evolucao.md), com prioridades, critérios de conclusão e todas as melhorias aprovadas para acompanhamento. As seções abaixo preservam o histórico; itens com descrição antiga devem ser lidos com as atualizações posteriores.

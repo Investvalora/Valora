@@ -37,6 +37,7 @@ export function performanceQueryKey(userId: string | undefined, period: Performa
 }
 
 export interface UsePerformanceResult {
+  returnEndDate?: string | null
   historyIssues?: string[]
   historyIncomplete?: boolean
   /** Série diária da carteira, base 100, com lacunas preservadas. */
@@ -217,6 +218,7 @@ export function usePerformance(period: PerformancePeriod, walletId?: string, ass
   }
 
   return {
+    returnEndDate: historical.endDate,
     historyIssues: historical.issues,
     historyIncomplete: historical.incomplete,
     portfolioSeries,

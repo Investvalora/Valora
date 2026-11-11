@@ -117,10 +117,10 @@ function AssetTypeBadge({ assetType }: { assetType: AssetType | null }) {
   )
 }
 
-// ── Ícone de classe ────────────────────────────────────────────────────────
-function ClassIcon({ assetType }: { assetType: AssetType | null }) {
+// ── Avatar do ativo com a cor da classe ────────────────────────────────────
+function AssetIcon({ assetType, ticker }: { assetType: AssetType | null; ticker: string }) {
   const color = assetType ? assetClassColor(assetType) : '#94a3b8'
-  const letter = assetType ? (TYPE_BADGE_LABEL[assetType]?.[0] ?? '?') : '?'
+  const letter = ticker.trim().charAt(0).toUpperCase() || '?'
   return (
     <span
       className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-sm font-bold"
@@ -163,7 +163,7 @@ function TransactionCard({
       <div className="rounded-xl border border-white/[0.08] bg-[#1B1B1B] p-3">
         {/* Linha 1: ícone + ticker + badge classe + tipo de ordem */}
         <div className="flex items-center gap-2">
-          <ClassIcon assetType={assetType} />
+          <AssetIcon assetType={assetType} ticker={txn.ticker} />
           <span className="text-[13px] font-semibold text-white">{txn.ticker}</span>
           <AssetTypeBadge assetType={assetType} />
           <span className={`ml-auto text-[12px] font-medium ${typeColor}`}>
@@ -284,7 +284,7 @@ function TxnRow({
         {/* Ativo */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            <ClassIcon assetType={assetType} />
+            <AssetIcon assetType={assetType} ticker={txn.ticker} />
             <span className="text-sm font-semibold text-white">{txn.ticker}</span>
           </div>
         </td>

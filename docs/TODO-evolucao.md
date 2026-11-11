@@ -8,6 +8,10 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 Rodada prioritária em andamento: [correções locais, testes e limites](prioridades-dados-csv-2026-11-11.md). CSV ganhou bloqueio de perda de precisão no parser e migration equivalente; 25 testes aprovados. Replay SQL isolado e publicação pendentes. Diagnóstico dos erros de pagamentos detalhado; automação internacional e calendário CDI ainda abertos.
 
+Atualização após PR132: prévia CSV homologada localmente e replay SQL aprovado na CI; publicação continua pendente. Próxima correção local: [cobertura CDI por dias bancários](cobertura-cdi-dias-uteis-2026-11-11.md), com calendário ANBIMA e detecção de um único dia útil ausente. Quatorze testes aprovados; sem recálculo em produção. Critério CDI permanece aberto até publicação e conferência dos lotes.
+
+Homologação local CDI concluída no Deno: função verificada, 719 taxas públicas de 2024–2026 aceitas e três remoções controladas em memória detectadas com a data exata. Nenhum saldo real recalculado.
+
 Esta atualização prevalece sobre menções históricas a “local”, “falta publicar” e checkboxes ainda amplos nas seções seguintes.
 
 - Concluídos e homologados no navegador de produção: custo histórico do total investido (PR128), quatro ajustes da semana 4 (PR130), tooltip de proventos e parcelas B3 (PR131). Calendário dos eventos identificados de novembro recuperado; recebimentos Nomad preservados.

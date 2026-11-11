@@ -11,6 +11,7 @@ async function rest(path: string, init: RequestInit = {}) {
 }
 async function publicText(source: string) {
   const response = await fetch(source, { redirect: 'error', signal: AbortSignal.timeout(12000) })
+  if (!response.ok) throw new Error(`payment_source_http_${response.status}`)
   return new TextDecoder().decode(await boundedBytes(response, 2 * 1024 * 1024))
 }
 interface Task { ticker: string; provider: 'fnet' | 'mastercard'; cnpj: string | null; isin: string | null }
@@ -43,17 +44,23 @@ Deno.serve(async request => {
   try {
     const tasks = await (await rest('rpc/claim_dividend_payment_sources', { method: 'POST', body: '{}' })).json() as Task[]
     for (const task of tasks) {
-      let ok = false
+      let ok = false, failure = 'payment_source_unavailable'
       try {
         const events = await payments(task)
         const result = await (await rest('rpc/store_confirmed_dividend_payments', { method: 'POST', body: JSON.stringify({ p_ticker: task.ticker, p_events: events }) })).json()
         enriched += result.enriched; conflicts += result.conflicts
         if (result.conflicts) throw new Error('payment_event_conflict')
         processed++; ok = true
-      } catch { errors.push(task.ticker) }
+      } catch (error) {
+        // Store only bounded machine codes, never provider bodies or credentials.
+        const code = error instanceof Error ? error.message : ''
+        if (/^(payment_source_http_\d{3}|payment_event_conflict|payment_storage_failed|mastercard_[a-z_]+|fnet_[a-z_]+|payment_invalid_[a-z_]+)$/.test(code)) failure = code
+        if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) failure = 'payment_source_timeout'
+        errors.push(task.ticker)
+      }
       await rest(`dividend_payment_sources?ticker=eq.${encodeURIComponent(task.ticker)}`, { method: 'PATCH', body: JSON.stringify({
         next_sync_at: new Date(Date.now() + (ok ? 8 * 3600000 : 3600000)).toISOString(),
-        last_error: ok ? null : 'source_or_event_conflict', ...(ok ? { last_success_at: new Date().toISOString() } : {}),
+        last_error: ok ? null : failure, ...(ok ? { last_success_at: new Date().toISOString() } : {}),
       }) })
     }
     return Response.json({ processed, enriched, conflicts, failed: errors.length, errors, received_income_created: 0 }, { status: errors.length ? 503 : 200 })

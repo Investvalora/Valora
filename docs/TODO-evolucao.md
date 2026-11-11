@@ -6,6 +6,10 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Correção em andamento do bloqueio Nasdaq:** [coletor Node com identidade temporária](coletor-node-internacional-2026-11-11.md). Coleta preparada para runner GitHub e gravação protegida por OIDC da main/lease de uso único; sem exportar service_role. Testes locais aprovados. Validar primeiro o probe hospedado, sem credencial ou gravação, antes de ativar. Cron antigo continua desligado.
+
+**Homologação PR135 encontrou bloqueio:** [resultado de produção](homologacao-producao-pr135.md). Função/migration publicadas e checks aprovados, mas Nasdaq falhou no runtime hospedado (cancelamento/HTTP2/timeout). Zero anúncios gravados. Apenas o novo cron ficou inativo até corrigir e validar acesso hospedado; fontes anteriores e correção MA preservadas. A automação internacional continua em prioridade alta, sem aprovação operacional.
+
 **Correção MA aplicada:** [resultado e testes](investigacao-cobertura-ma-2026-11-11.md#correção-aplicada-após-autorização). Exceção oficial de janeiro/2025 suportada no RPC de produção; anúncio público completado com pagamento07/02/2025, sem mudar ex10/01 nem USD0,76. Recebimentos pessoais preservados. Permanece o HTTP403 e a automação de descoberta de novos comunicados.
 
 **Cobertura MA — causa identificada:** [investigação e solução proposta](investigacao-cobertura-ma-2026-11-11.md). RI retorna403 e o conciliador recusa uma exceção legítima de calendário (record09/01/2025, ex10/01/2025). Preservar a data existente; acrescentar exceção comprovada e alternativa oficial de documentos. CDN/SEC acessíveis, mas descoberta de próximos anúncios ainda precisa implementação/validação. Nenhum dado alterado.

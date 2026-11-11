@@ -6,6 +6,16 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Correção MA aplicada:** [resultado e testes](investigacao-cobertura-ma-2026-11-11.md#correção-aplicada-após-autorização). Exceção oficial de janeiro/2025 suportada no RPC de produção; anúncio público completado com pagamento07/02/2025, sem mudar ex10/01 nem USD0,76. Recebimentos pessoais preservados. Permanece o HTTP403 e a automação de descoberta de novos comunicados.
+
+**Cobertura MA — causa identificada:** [investigação e solução proposta](investigacao-cobertura-ma-2026-11-11.md). RI retorna403 e o conciliador recusa uma exceção legítima de calendário (record09/01/2025, ex10/01/2025). Preservar a data existente; acrescentar exceção comprovada e alternativa oficial de documentos. CDN/SEC acessíveis, mas descoberta de próximos anúncios ainda precisa implementação/validação. Nenhum dado alterado.
+
+**Próxima prioridade implementada localmente:** [anúncios internacionais automáticos](anuncios-internacionais-2026-11-11.md), via catálogo e fonte pública Nasdaq para ações ordinárias compatíveis. Testes locais de parser/segurança e SQL aprovados; AAPL/COST consultados no Deno, MA explicitamente fora da cobertura. Ainda exige revisão, publicação e observação dos jobs; não encerra toda a cobertura internacional.
+
+**Atualização PR134:** correção CDI chegou à main e `calc-fixed-income` v15 foi publicada. [Homologação técnica em produção](homologacao-producao-pr134.md): autenticação e os seis intervalos reais validados em leitura com a série de 540 referências. Nenhum saldo recalculado manualmente. Resta observar o próximo recálculo automático e a CI do merge; não há mais pendência de publicar a função CDI.
+
+**Homologação atual:** [PR132 em produção e encaminhamento CDI](homologacao-producao-pr132-133.md). CSV publicado e validado, migration aplicada e sincronização de pagamentos v3 ativa. PR133 foi mergeada em outra branch; CDI ainda fora da main. PR134 aberta para corrigir esse encaminhamento. Essa atualização prevalece sobre menções anteriores a publicação pendente do CSV.
+
 Rodada prioritária em andamento: [correções locais, testes e limites](prioridades-dados-csv-2026-11-11.md). CSV ganhou bloqueio de perda de precisão no parser e migration equivalente; 25 testes aprovados. Replay SQL isolado e publicação pendentes. Diagnóstico dos erros de pagamentos detalhado; automação internacional e calendário CDI ainda abertos.
 
 Atualização após PR132: prévia CSV homologada localmente e replay SQL aprovado na CI; publicação continua pendente. Próxima correção local: [cobertura CDI por dias bancários](cobertura-cdi-dias-uteis-2026-11-11.md), com calendário ANBIMA e detecção de um único dia útil ausente. Quatorze testes aprovados; sem recálculo em produção. Critério CDI permanece aberto até publicação e conferência dos lotes.

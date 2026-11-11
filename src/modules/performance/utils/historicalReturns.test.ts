@@ -10,6 +10,21 @@ const trade = (date: string, qty = 1, type = 'buy', price = 100): ReturnTrade =>
 const price = (date: string, close = 100, ticker = 'AAA') => ({ date, close, ticker })
 const rates = { usd: [], macro: [] }
 
+it('expõe a data do fechamento que explica lucro atual positivo e retorno histórico negativo', () => {
+  const points = historicalReturns(
+    [{ ...position('AAA', 10), average_price: 40, acquisition_date: '2026-10-20' }],
+    [trade('2026-10-20', 10, 'buy', 40)],
+    [price('2026-10-20', 40), price('2026-10-31', 38.69), price('2026-11-01', 41.72)],
+    [], rates, '2026-11-01',
+  )
+  const summary = summarizeHistoricalReturns(points, '2026-10-20', '2026-11-01')
+  expect(summary.endDate).toBe('2026-10-31')
+  expect(summary.returnPct).toBeCloseTo(-0.03275)
+  expect(10 * (41.72 - 40)).toBeCloseTo(17.20)
+  const initial = summarizeHistoricalReturns(points.filter(p => p.date === '2026-11-01'), '2026-11-01', '2026-11-01')
+  expect(initial.endDate).toBe('2026-11-01')
+})
+
 it('uma divergência futura não apaga o histórico válido anterior ao lançamento afetado', () => {
   const points = historicalReturns([position()], [trade('2026-01-02'), { ...trade('2026-01-04'), ticker: 'BBB' }], [price('2026-01-02'), price('2026-01-03', 110), price('2026-01-04', 110), price('2026-01-04', 100, 'BBB')], [], rates, '2026-01-04')
   expect(points[0].returnPct).toBe(0)

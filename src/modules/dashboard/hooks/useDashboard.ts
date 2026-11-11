@@ -41,6 +41,7 @@ export function aggregateMonthly(
 }
 
 export interface DashboardData {
+  returnEndDate?: string | null
   historyIssues?: string[]
   historyIncomplete?: boolean
   /** Patrimônio total atual em BRL (renda variável + renda fixa). `null` sem cotações. */
@@ -280,6 +281,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   }
 
   return {
+    returnEndDate: performanceHistory.endDate,
     historyIssues: [...new Set([...(performanceHistory.issues ?? []), ...(annualHistory.issues ?? [])])],
     historyIncomplete: performanceHistory.incomplete || annualHistory.incomplete,
     totalPatrimonioBRL,

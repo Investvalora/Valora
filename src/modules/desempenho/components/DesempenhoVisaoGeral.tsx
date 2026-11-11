@@ -4,6 +4,7 @@
  */
 import { lazy, Suspense, useMemo } from 'react'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
+import { ReturnPeriodNotice } from '../../performance/components/ReturnPeriodNotice'
 import { Info } from 'lucide-react'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
@@ -58,7 +59,7 @@ export function DesempenhoVisaoGeral() {
   const { selectedWallet } = useWallets()
   const walletId = selectedWallet?.id ?? ''
 
-  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading, historyIncomplete, historyIssues, refetch } =
+  const { portfolioSeries, benchmarkSeries, summary, monthlyTableData, isLoading, historyIncomplete, historyIssues, refetch, returnEndDate } =
     usePerformance('1A', walletId)
 
   const dashboard = useDashboard(walletId)
@@ -109,7 +110,7 @@ export function DesempenhoVisaoGeral() {
       <div className="grid grid-cols-2 gap-3 md:hidden">
         {[
           {
-            label: 'Rent. total',
+            label: 'Retorno histórico (12M)',
             value: rentFormatted,
             green: rentPositive === true,
             pink: rentPositive === false,
@@ -153,7 +154,7 @@ export function DesempenhoVisaoGeral() {
         <KpiPillBar
           items={[
             {
-              label: 'Rentabilidade (12M)',
+              label: 'Retorno histórico (12M)',
               value: rentFormatted,
               colorClass:
                 rentPositive === null
@@ -163,7 +164,7 @@ export function DesempenhoVisaoGeral() {
                     : 'text-nf-pink',
             },
             {
-              label: 'Lucro',
+              label: 'Lucro atual',
               value: fmtBRL(dashboard.lucroTotalBRL),
             },
             {
@@ -178,6 +179,7 @@ export function DesempenhoVisaoGeral() {
         />
       </div>
 
+      <ReturnPeriodNotice endDate={returnEndDate} />
       {/* ── Grid principal ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Coluna esquerda */}

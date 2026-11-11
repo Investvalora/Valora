@@ -72,7 +72,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       role="tooltip"
       className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm shadow-lg min-w-[160px]"
     >
-      <p className="text-gray-400 mb-2 text-xs">{formatAxisDate(label as string | number)}</p>
+      <p className="text-gray-400 mb-2 text-xs">{new Date(typeof label === 'number' ? label : `${label}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 mb-0.5">
           <span className="flex items-center gap-1.5">
@@ -132,7 +132,7 @@ export default function PerformanceLineChart({ series, animate = false, scope = 
     <div>
     <p className="mb-3 text-xs text-white/50">Período com dados: {allDates[0].split('-').reverse().join('/')} a {allDates[allDates.length - 1].split('-').reverse().join('/')}{unavailable.length > 0 ? `. ${unavailable.join(', ')} sem dados nesse intervalo; comparação indisponível.` : ''}</p>
     <ResponsiveContainer width="100%" height={280}>
-      <LineChart margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+      <LineChart data={chart.data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" vertical={false} />
         <XAxis
           dataKey="date"
@@ -171,8 +171,7 @@ export default function PerformanceLineChart({ series, animate = false, scope = 
           <Line
             key={s.label}
             type="monotone"
-            data={s.points.map((point) => ({ date: timestamp(point.date), normalized: point.normalized }))}
-            dataKey="normalized"
+            dataKey={s.dataKey}
             name={s.label}
             stroke={s.color}
             strokeWidth={2}

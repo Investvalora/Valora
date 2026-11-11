@@ -20,6 +20,10 @@ Detalhes e testes já executados: [melhorias gerais](melhorias-gerais-2026-11-06
 
 ## 2. Alta — confiabilidade dos cálculos e dados
 
+### Quarta bateria — triagem em 11/11/2026
+
+[Lista e critérios de aceite da semana 4](TODO-quarta-bateria.md): tooltip da rentabilidade (S4-01), referência do retorno de meses fechados versus lucro atual (S4-02), título de Explorar (S4-03) e avatar por ticker em Lançamentos (S4-04). Implementados e conferidos localmente em 11/11: 113 testes, build e lint aprovados. Falha original do tooltip reproduzida com a mesma massa antes/depois; meses fechados preservados. Publicação, reteste de produção e toque em aparelho físico permanecem pendentes. Relatório confirma sete correções anteriores.
+
 ### Relatos prioritários — 10/11/2026
 
 Os três pontos abaixo foram relatados pelo responsável e precisam de reprodução e diagnóstico; ainda não representam causas confirmadas ou correções concluídas. Preservar os lançamentos da carteira Investidor10 durante a investigação.

@@ -12,6 +12,7 @@ import { MobileCarteiraHome } from '../../portfolio/components/MobileCarteiraHom
 import { DeferredQuickTransactionModal as QuickTransactionModal } from '../../portfolio/components/DeferredQuickTransactionModal'
 import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
+import { ReturnPeriodNotice } from '../../performance/components/ReturnPeriodNotice'
 import { useNewAlertsCount } from '../../alerts/hooks/useAlerts'
 import { walletPalette } from '../../portfolio/walletPalette'
 
@@ -81,7 +82,7 @@ export function InicioPage() {
           sub={[{ label: 'Valor investido', value: money(dashboard.valorInvestidoBRL) }]}
         />
         <KpiCard
-          label="Lucro total"
+          label="Lucro atual"
           value={money(dashboard.lucroTotalBRL)}
           valueColor={dashboard.lucroTotalBRL !== null && dashboard.lucroTotalBRL < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={Coins}
@@ -97,7 +98,7 @@ export function InicioPage() {
           sub={[{ label: 'Total', value: money(dashboard.proventosTotalBRL) }]}
         />
         <KpiCard
-          label="Rentabilidade"
+          label="Rentabilidade histórica"
           value={percentage(dashboard.rentabilidadeTotalPct)}
           valueColor={dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={BarChart2}
@@ -109,6 +110,7 @@ export function InicioPage() {
         />
       </div>
 
+      <ReturnPeriodNotice endDate={dashboard.returnEndDate} />
       <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
       {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
       {dashboard.isError && (

@@ -158,5 +158,6 @@ export function summarizeHistoricalReturns(points: DailyReturn[], since: string,
     diagnosticIssues,
     returnPct: selected.length ? incomplete ? null : factor - 1
       : fallbackComplete ? fallback.reduce((f, p) => f * (1 + p.returnPct!), 1) - 1 : null,
+    endDate: relevant[relevant.length - 1]?.date ?? null,
     startDate: (selected[0] ?? fallback[0])?.date ?? null }
 }

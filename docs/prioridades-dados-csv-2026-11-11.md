@@ -24,3 +24,9 @@
 - CDI: a guarda atual de dez dias não identifica toda ausência de dia útil. Ainda precisa calendário bancário confiável e tratamento do atraso de publicação; não substituir por segunda–sexta ignorando feriados.
 
 Automação internacional e cobertura CDI permanecem abertas; investigação não equivale a entrega dessas integrações. Carteira Investidor10 e recebimentos Nomad preservados.
+
+## PR132 — conferência após abertura
+
+- [PR132](https://github.com/Investvalora/Valora/pull/132) aberta; checks `app`, `database-isolation`, `migration-replay` e Vercel aprovados no commit c020879.
+- O replay da CI executou a migration e os testes SQL de importação/concorrência em banco descartável. Assim, a proteção no banco possui validação isolada aprovada, embora não tenha sido aplicada ao projeto hospedado.
+- Servidor local reiniciado em http://127.0.0.1:5176/. Conferência visual bloqueada nesta sessão: ferramenta informa uso de navegador desativado nas configurações. Não considerar homologação visual concluída pelos testes automatizados.

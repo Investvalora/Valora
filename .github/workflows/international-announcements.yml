@@ -1,0 +1,50 @@
+name: International announcements
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/international-announcements.yml'
+      - 'scripts/collect-international-announcements.mjs'
+      - 'supabase/functions/sync-international-announcements/**'
+  workflow_dispatch:
+    inputs:
+      probe_only:
+        description: 'Consult public sources without reading or writing the queue'
+        type: boolean
+        default: true
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: international-announcements
+  cancel-in-progress: false
+jobs:
+  public-source-probe:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.probe_only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      - run: node --experimental-strip-types scripts/collect-international-announcements.mjs
+        env:
+          INTERNATIONAL_PROBE_ONLY: 'true'
+  collect:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.probe_only))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      - run: node --experimental-strip-types scripts/collect-international-announcements.mjs

@@ -18,7 +18,7 @@ Deno.serve(async request => {
     }
     if (body.mode !== 'finish' || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(String(body.ticker))
       || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token)) || !Array.isArray(body.events) || body.events.length>100
-      || (body.error !== null && !/^nasdaq_[a-z0-9_]{1,60}$/.test(String(body.error)))) return Response.json({ error: 'invalid_request' }, { status: 400 })
+      || (body.error !== null && !/^(?:nasdaq|jpm)_[a-z0-9_]{1,60}$/.test(String(body.error)))) return Response.json({ error: 'invalid_request' }, { status: 400 })
     const result = await rpc('finish_international_announcements', { p_ticker: body.ticker, p_claim_token: body.claim_token, p_events: body.events, p_error: body.error })
     return Response.json({ ...result, received_income_created: 0 })
   } catch { return Response.json({ error: 'collector_request_failed' }, { status: 503 }) }

@@ -30,3 +30,18 @@ Probe hospedado aprovado na PR136, execução43117923711: runner Ubuntu24.04 com
 Depois de revisar/mergear: aplicar migration e publicar a função com `githubOidc.ts` e os módulos necessários; executar primeiro o probe, depois um lote autenticado. O job da main usa a identidade temporária automática, sem configuração de chave. Conferir assinatura hospedada, gravações, replay e cobertura antes de considerar homologação completa.
 
 Não resolve HTTP403 do RI Mastercard nem cria cobertura Nasdaq para MA/JPM. Essas pendências e o líquido pessoal de MA permanecem separados.
+
+
+## Homologação em produção — PR136 mergeada
+
+Merge confirmado: `b32adf49308ee9a8aaeba20b237e83fb7b6d585a`.
+Migration aplicada como `20261111232926_international_collector_leases`; função `sync-international-announcements` versão5 ACTIVE.
+
+- Probe na main aprovado: execução [43120234959](https://github.com/Investvalora/Valora/actions/runs/43120234959).
+- OIDC real aprovado: execução [43120322405](https://github.com/Investvalora/Valora/actions/runs/43120322405). BB/BMN sem identidade compatível foram marcados sem cobertura, sem gravação nem falso sucesso.
+- Lote de gravação aprovado: execução [43120442027](https://github.com/Investvalora/Valora/actions/runs/43120442027). COST4 eventos/3 gravações; AAPL5 eventos/4 gravações; zero conflitos, zero recebimentos pessoais criados. As duas tarefas foram priorizadas apenas na fila técnica para esse teste.
+- Banco confirmou sete eventos Nasdaq, sucesso das duas tarefas e leases limpos.
+- Endpoint sem autenticação retornou401; anon/authenticated sem EXECUTE no finalizador; tentativa de concluir AAPL sem lease válido recusada em transação com ROLLBACK.
+- Advisor health sem lints. Cron antigo inativo. Workflow da main configurado a cada15min; execução agendada recorrente ainda precisa observação, embora o mesmo job tenha passado por despacho manual.
+
+Homologação técnica da integração aprovada. Não altera posições, compras, vendas ou recebimentos pessoais. Cobertura Nasdaq continua limitada às identidades compatíveis; MA/JPM e descoberta de RI permanecem pendentes.

@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/international-announcements.yml'
       - 'scripts/collect-international-announcements.mjs'
+      - 'scripts/jpmorgan-announcements.mjs'
       - 'supabase/functions/sync-international-announcements/**'
   workflow_dispatch:
     inputs:
@@ -33,6 +34,14 @@ jobs:
       - run: node --experimental-strip-types scripts/collect-international-announcements.mjs
         env:
           INTERNATIONAL_PROBE_ONLY: 'true'
+      - name: Probe official JPM discovery without queue or credentials
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { jpmorganAnnouncements } from './scripts/jpmorgan-announcements.mjs'
+          const events = await jpmorganAnnouncements(new Date().toISOString().slice(0,10))
+          console.log(JSON.stringify({provider:'jpmorgan_ri',events:events.length}))
+          NODE
+
   collect:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.probe_only))
     runs-on: ubuntu-24.04

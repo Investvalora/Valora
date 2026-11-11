@@ -1,8 +1,9 @@
+import { jpmorganAnnouncements } from './jpmorgan-announcements.mjs'
 import { pathToFileURL } from 'node:url'
 import { nasdaqSource } from '../supabase/functions/sync-international-announcements/source.ts'
 import { nasdaqIdentity, nasdaqAnnouncements } from '../supabase/functions/sync-international-announcements/nasdaq.ts'
 
-export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch }) {
+export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements }) {
   const asOf = new Date().toISOString().slice(0,10)
   if (!probeOnly && (endpoint !== 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements' || !token)) throw new Error('collector_configuration_missing')
   async function call(body) {
@@ -16,11 +17,14 @@ export async function collectAnnouncements({ endpoint, token, probeOnly = false,
   for (const task of tasks) {
     let events = [], error = null
     try {
-      nasdaqIdentity(await source(task.ticker, 'info'), task.ticker)
-      events = nasdaqAnnouncements(await source(task.ticker, 'dividends'), asOf)
+      if (task.ticker === 'JPM') events = await issuerSource(asOf)
+      else {
+        nasdaqIdentity(await source(task.ticker, 'info'), task.ticker)
+        events = nasdaqAnnouncements(await source(task.ticker, 'dividends'), asOf)
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : ''
-      error = /^nasdaq_[a-z0-9_]{1,60}$/.test(message) ? message : 'nasdaq_source_unavailable'
+      error = /^(?:nasdaq|jpm)_[a-z0-9_]{1,60}$/.test(message) ? message : (task.ticker === 'JPM' ? 'jpm_source_unavailable' : 'nasdaq_source_unavailable')
     }
     const stored = probeOnly ? {} : await call({ mode: 'finish', ticker: task.ticker, claim_token: task.claim_token, events, error })
     results.push({ ticker: task.ticker, events: events.length, error, ...stored })

@@ -25,7 +25,7 @@ Migration `20261111230331_international_collector_leases.sql` adiciona `claim_to
 
 ## Homologação hospedada e rollout
 
-Ainda não publicado. Abrir PR em rascunho para executar o probe público no runner; sucesso local não basta, como demonstrou a PR135. Se a fonte continuar falhando nesse ambiente, não ativar a coleta nem declarar a solução operacional.
+Probe hospedado aprovado na PR136, execução43117923711: runner Ubuntu24.04 com Node24 retornou AAPL5 eventos e COST4, sem erros. O job de gravação foi corretamente ignorado na PR. [Evidência no GitHub](https://github.com/Investvalora/Valora/actions/runs/43117923711). Isso confirma o acesso à fonte nesse ambiente; a função e a migration ainda não foram publicadas, e a identidade OIDC/gravação real precisam da homologação após merge.
 
 Depois de revisar/mergear: aplicar migration e publicar a função com `githubOidc.ts` e os módulos necessários; executar primeiro o probe, depois um lote autenticado. O job da main usa a identidade temporária automática, sem configuração de chave. Conferir assinatura hospedada, gravações, replay e cobertura antes de considerar homologação completa.
 

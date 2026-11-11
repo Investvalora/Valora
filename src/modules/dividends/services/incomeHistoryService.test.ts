@@ -11,6 +11,12 @@ const history: IncomeHistory = { entries: [entry], coverage: [{ covered_from: '2
 const estimate: DividendRow = { ticker: 'SOLD', type: 'dividend', ex_date: '2026-01-01', payment_date: '2026-01-15', quantity: 100, value_per_share: 1, total_value: 100 }
 
 describe('private received income', () => {
+  it('recebimento de uma parcela antiga não elimina a parcela futura com a mesma data COM', () => {
+    const paid = { ...entry, ticker: 'KLBN4', type: 'dividend', record_date: '2025-12-15', payment_date: '2026-02-27' }
+    const november = { ...estimate, ticker: 'KLBN4', record_date: '2025-12-15', ex_date: '2025-12-16', payment_date: '2026-11-12', is_installment: true }
+    expect(mergeIncomeHistory([november], { entries: [paid], coverage: [] }, '2026-11-01', '2026-11-12')).toEqual([november])
+    expect(mergeIncomeHistory([november], { entries: [{ ...paid, payment_date: '2026-11-12' }], coverage: [] }, '2026-11-01', '2026-11-12')).toHaveLength(1)
+  })
   it('replaces only the confirmed event when broker settlement differs from announced payment', () => {
     const paid: RecordedIncome = { ...entry, ticker: 'JPM', type: 'dividend', record_date: '2026-10-06', payment_date: '2026-11-02', currency: 'USD', gross_amount: 0.13, net_amount: 0.09 }
     const announced = { ...estimate, ticker: 'JPM', ex_date: '2026-10-06', payment_date: '2026-10-31' }

@@ -8,6 +8,8 @@ import type { AssetType } from '../portfolio/types'
  * `value_per_share` é NUMERIC no Postgres e pode chegar como string.
  */
 export interface DividendRaw {
+  /** Multiple official payments share the same entitlement date. */
+  is_installment?: boolean
   ticker: string
   /** Tipo do provento: `dividend`, `jcp`, etc. */
   type: string

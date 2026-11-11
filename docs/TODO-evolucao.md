@@ -22,9 +22,11 @@ Detalhes e testes já executados: [melhorias gerais](melhorias-gerais-2026-11-06
 
 ### Quarta bateria — triagem em 11/11/2026
 
-[Lista e critérios de aceite da semana 4](TODO-quarta-bateria.md): tooltip da rentabilidade (S4-01), referência do retorno de meses fechados versus lucro atual (S4-02), título de Explorar (S4-03) e avatar por ticker em Lançamentos (S4-04). Implementados e conferidos localmente em 11/11: 113 testes, build e lint aprovados. Falha original do tooltip reproduzida com a mesma massa antes/depois; meses fechados preservados. Publicação, reteste de produção e toque em aparelho físico permanecem pendentes. Relatório confirma sete correções anteriores.
+[Lista e critérios de aceite da semana 4](TODO-quarta-bateria.md): tooltip da rentabilidade (S4-01), referência do retorno de meses fechados versus lucro atual (S4-02), título de Explorar (S4-03) e avatar por ticker em Lançamentos (S4-04). Implementados, publicados na PR130 e [homologados em produção](homologacao-producao-pr130.md) em 11/11, em desktop e layout de 390 px. Validação local: 113 testes, build e lint aprovados; meses fechados preservados. Permanece o toque no PWA físico. Relatório confirma sete correções anteriores.
 
 ### Relatos prioritários — 10/11/2026
+
+**Atualização de 11/11 — proventos mensais:** [tooltip e conciliação de novembro](correcao-tooltip-calendario-proventos-2026-11-11.md). Correção local do tooltip fixo no canto e consumo genérico das parcelas oficiais B3, incluindo KLBN4. Calendário público de COST/AAPL reparado pontualmente; recebimentos Nomad preservados. Frontend aguarda publicação/reteste. Prioridade alta: automatizar descoberta de anúncios futuros internacionais com fonte primária e conciliar cobertura/datas ex, sem extrapolar pagamentos nem aplicar imposto presumido como líquido recebido.
 
 Os três pontos abaixo foram relatados pelo responsável e precisam de reprodução e diagnóstico; ainda não representam causas confirmadas ou correções concluídas. Preservar os lançamentos da carteira Investidor10 durante a investigação.
 

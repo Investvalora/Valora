@@ -6,7 +6,7 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
-**Próxima cobertura — JPM implementada localmente:** [descoberta no RI e conciliação segura](cobertura-jpm-ri-2026-11-11.md). Comunicados descobertos pelo índice oficial, sem URLs trimestrais fixas. Completa calendário apenas com ex independente já cadastrada e correspondência única; não presume imposto nem altera recebimentos. Testes locais aprovados; probe hospedado, revisão e publicação pendentes. MA continua separado por bloqueio403.
+**Próxima cobertura — JPM implementada localmente:** [descoberta no RI e conciliação segura](cobertura-jpm-ri-2026-11-11.md). Comunicados descobertos pelo índice oficial, sem URLs trimestrais fixas. Completa calendário apenas com ex independente já cadastrada e correspondência única; não presume imposto nem altera recebimentos. Testes locais e probe hospedado do RI aprovados na PR137; revisão e publicação pendentes. MA continua separado por bloqueio403.
 
 **PR136 homologada em produção:** [evidências do coletor](coletor-node-internacional-2026-11-11.md#homologação-em-produção--pr136-mergeada). Migration aplicada, função v5 ativa e OIDC real aprovado. AAPL/COST: sete gravações, zero conflitos, nenhum recebimento pessoal criado. Cron antigo inativo; novo workflow configurado a cada15min. Resta observar execução agendada e ampliar cobertura fora da Nasdaq (MA/JPM/RI). Esta atualização substitui o bloqueio operacional descrito abaixo.
 

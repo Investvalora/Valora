@@ -17,7 +17,7 @@ Consulta real em 11/11/2026 descobriu:
 
 Regressão de parser/coletor/endpoint aprovada; SQL local com ROLLBACK aprovou enriquecimento, idempotência, preservação de ex e pagamento, bloqueio de fonte externa, ausência/ambiguidade de ex e privilégios privados. Regressões Nasdaq/lease continuam passando. TypeScript e lint dos scripts/testes aprovados.
 
-O workflow da PR ganha probe JPM somente leitura, sem OIDC, consulta à fila ou gravação. A execução hospedada e o rollout ainda não foram homologados nesta etapa.
+O probe JPM somente leitura passou também no GitHub hospedado: [execução43122494929](https://github.com/Investvalora/Valora/actions/runs/43122494929), com dois eventos oficiais descobertos. Não usou OIDC, fila ou gravação. AAPL/COST também passaram no mesmo workflow. O rollout e a gravação JPM em produção ainda não foram homologados nesta etapa.
 
 ## Publicação e limites
 

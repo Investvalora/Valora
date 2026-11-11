@@ -30,3 +30,14 @@ Automação internacional e cobertura CDI permanecem abertas; investigação nã
 - [PR132](https://github.com/Investvalora/Valora/pull/132) aberta; checks `app`, `database-isolation`, `migration-replay` e Vercel aprovados no commit c020879.
 - O replay da CI executou a migration e os testes SQL de importação/concorrência em banco descartável. Assim, a proteção no banco possui validação isolada aprovada, embora não tenha sido aplicada ao projeto hospedado.
 - Servidor local reiniciado em http://127.0.0.1:5176/. Conferência visual bloqueada nesta sessão: ferramenta informa uso de navegador desativado nas configurações. Não considerar homologação visual concluída pelos testes automatizados.
+
+## Homologação visual local concluída
+
+Navegador integrado reativado e servidor local reiniciado em 11/11/2026. Conferido em `/ativos/importar`, sem confirmar importação:
+
+- Quantidade de nove casas, preço de cinco casas e corretagem de cinco casas: erros por coluna, zero linhas selecionadas e confirmação desabilitada.
+- Frações AAPL `0.0661000000` e PETR4 `1.5`: aceitas ao selecionar ponto decimal, zeros finais preservados e confirmação habilitada após validação.
+- 1.001 linhas: rejeição explícita antes da prévia.
+- Exatamente 1.000 linhas: 1.000 encontradas/selecionadas e 500 exibidas, sem truncar o lote; linhas iguais exigem conferência de possível duplicidade.
+
+Nenhum lançamento gravado. Ao terminar, deixada a tela com o arquivo de 1.001 linhas rejeitado, sem confirmação disponível. Evidências locais em `output/qa-pr132/precision.png` e `limit1001.png` (não versionadas). Esta seção encerra a pendência visual registrada acima; publicação da migration/função continua separada.

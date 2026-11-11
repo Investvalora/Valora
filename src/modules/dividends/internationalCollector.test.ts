@@ -30,3 +30,16 @@ it('reports unsupported assets without marking them successful or retrying the s
  expect(result).toMatchObject({failed:0,unsupported:1});expect(source).toHaveBeenCalledTimes(1)
  expect(JSON.parse(String(request.mock.calls[1][1].body))).toMatchObject({events:[],error:'nasdaq_identity_unsupported'})
 })
+
+it('routes JPM to the primary issuer without calling the Nasdaq adapter',async()=>{
+ const source=vi.fn();const issuerSource=vi.fn(async()=>[{record_date:'2026-10-06',payment_date:'2026-10-31',value_per_share:1.65}])
+ const request=vi.fn(async(_url:string,init:RequestInit)=>JSON.parse(String(init.body)).mode==='claim'?Response.json({tasks:[{ticker:'JPM',claim_token:'lease-token'}]}):Response.json({saved:1,conflicts:0,error:null}))
+ const result=await collectAnnouncements({endpoint,token:'fixture-token',source,issuerSource,request})
+ expect(result).toMatchObject({failed:0,results:[{ticker:'JPM',saved:1}]});expect(source).not.toHaveBeenCalled();expect(issuerSource).toHaveBeenCalledOnce()
+})
+it('reports issuer failures without sending partial events or remote bodies',async()=>{
+ const issuerSource=vi.fn(async()=>{throw new Error('jpm_identity_changed')})
+ const request=vi.fn(async(_url:string,init:RequestInit)=>JSON.parse(String(init.body)).mode==='claim'?Response.json({tasks:[{ticker:'JPM',claim_token:'lease-token'}]}):Response.json({saved:0,conflicts:0,error:'jpm_identity_changed'}))
+ expect(await collectAnnouncements({endpoint,token:'fixture-token',issuerSource,request})).toMatchObject({failed:1})
+ expect(JSON.parse(String(request.mock.calls[1][1].body))).toMatchObject({events:[],error:'jpm_identity_changed'})
+})

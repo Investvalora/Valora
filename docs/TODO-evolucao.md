@@ -6,6 +6,10 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Próxima cobertura — JPM implementada localmente:** [descoberta no RI e conciliação segura](cobertura-jpm-ri-2026-11-11.md). Comunicados descobertos pelo índice oficial, sem URLs trimestrais fixas. Completa calendário apenas com ex independente já cadastrada e correspondência única; não presume imposto nem altera recebimentos. Testes locais aprovados; probe hospedado, revisão e publicação pendentes. MA continua separado por bloqueio403.
+
+**PR136 homologada em produção:** [evidências do coletor](coletor-node-internacional-2026-11-11.md#homologação-em-produção--pr136-mergeada). Migration aplicada, função v5 ativa e OIDC real aprovado. AAPL/COST: sete gravações, zero conflitos, nenhum recebimento pessoal criado. Cron antigo inativo; novo workflow configurado a cada15min. Resta observar execução agendada e ampliar cobertura fora da Nasdaq (MA/JPM/RI). Esta atualização substitui o bloqueio operacional descrito abaixo.
+
 **Correção em andamento do bloqueio Nasdaq:** [coletor Node com identidade temporária](coletor-node-internacional-2026-11-11.md). Coleta preparada para runner GitHub e gravação protegida por OIDC da main/lease de uso único; sem exportar service_role. Testes locais aprovados. Validar primeiro o probe hospedado, sem credencial ou gravação, antes de ativar. Cron antigo continua desligado.
 
 **Homologação PR135 encontrou bloqueio:** [resultado de produção](homologacao-producao-pr135.md). Função/migration publicadas e checks aprovados, mas Nasdaq falhou no runtime hospedado (cancelamento/HTTP2/timeout). Zero anúncios gravados. Apenas o novo cron ficou inativo até corrigir e validar acesso hospedado; fontes anteriores e correção MA preservadas. A automação internacional continua em prioridade alta, sem aprovação operacional.

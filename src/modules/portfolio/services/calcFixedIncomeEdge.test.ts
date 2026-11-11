@@ -2,6 +2,22 @@ import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
 
+it('não grava saldo parcial quando falta um único dia útil no meio da série CDI', async () => {
+  let handler!: (request: Request) => Promise<Response>
+  vi.stubGlobal('Deno', { env: { get: (name: string) => name === 'SUPABASE_URL' ? 'https://test' : 'internal' }, serve: (value: typeof handler) => { handler = value } })
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'PATCH') return new Response(null, { status: 204 })
+    if (url.includes('/macro_rates')) return Response.json([{ date: '2026-11-04', value: 13.65 }, { date: '2026-11-06', value: 13.65 }])
+    return Response.json([{ id: 'missing-one-day', type: 'rdb_cdi', indexer: 'cdi', rate: 115, principal: 1000, application_date: '2026-11-04', maturity_date: '2026-11-07', events: [] }])
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  const path = '../../../../supabase/functions/calc-fixed-income/index.ts'
+  await import(path)
+  const response = await handler(new Request('https://test', { method: 'POST', headers: { Authorization: 'Bearer internal' } }))
+  expect(await response.json()).toMatchObject({ posicoes_atualizadas: 0, erros: [expect.stringContaining('2026-11-05')] })
+  expect(fetchMock.mock.calls.some(call => call[1]?.method === 'PATCH')).toBe(false)
+})
+
 it('grava referência CDI e não a data da execução como referência econômica', async () => {
   let handler!: (request: Request) => Promise<Response>
   vi.stubGlobal('Deno',{env:{get:(name:string)=>name==='SUPABASE_URL'?'https://test':'internal'},serve:(h:typeof handler)=>{handler=h}})

@@ -9,3 +9,6 @@ enabled = false
 
 [functions.sync-dividend-payments]
 verify_jwt = false
+
+[functions.sync-international-announcements]
+verify_jwt = false

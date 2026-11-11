@@ -4,6 +4,22 @@ Consolidada em 06/11/2026 a pedido do responsável. Esta é a lista de acompanha
 
 Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de prometer cobertura. Cada entrega deve preservar funcionalidades existentes, receber testes apropriados e seguir por PR; merge pelo responsável.
 
+## Estado consolidado após PR131 — 11/11/2026
+
+Rodada prioritária em andamento: [correções locais, testes e limites](prioridades-dados-csv-2026-11-11.md). CSV ganhou bloqueio de perda de precisão no parser e migration equivalente; 25 testes aprovados. Replay SQL isolado e publicação pendentes. Diagnóstico dos erros de pagamentos detalhado; automação internacional e calendário CDI ainda abertos.
+
+Esta atualização prevalece sobre menções históricas a “local”, “falta publicar” e checkboxes ainda amplos nas seções seguintes.
+
+- Concluídos e homologados no navegador de produção: custo histórico do total investido (PR128), quatro ajustes da semana 4 (PR130), tooltip de proventos e parcelas B3 (PR131). Calendário dos eventos identificados de novembro recuperado; recebimentos Nomad preservados.
+- CSV: formato decimal explícito publicado e arquivo real de 27 linhas validado sem importação; faltam fechar todos os critérios de ALT-03, incluindo persistência/limites na versão atual em ambiente de teste.
+- PWA: correção de cache contaminado publicada na PR128; falta comprovar recuperação de instalação antiga e concluir validação física. Não permanece como código aguardando publicação.
+- Prioridades de dados ainda abertas: automatizar anúncios internacionais futuros e ampliar cobertura de calendários; confirmar líquido pessoal de MA quando houver extrato; conciliar divergência de data ex COST; completar diagnóstico/cobertura CDI e acompanhamento das filas/orçamento dos jobs.
+- Técnicas ainda abertas: critérios restantes do catálogo compartilhado e intenção dos limites antigos de Dívida/PL (RP-04); recuperação/rascunhos e atualização de PWA antigo (RP-06); medição em aparelho/rede reais (RP-07); sessão revogada entre dispositivos reais (RP-09). Testes controlados e entregas parciais já publicados permanecem válidos.
+- Retestes físicos dos gráficos/tooltips das PR130/131 pendentes. Não repetir como pendência geral os fluxos físicos já confirmados pelo responsável em versões anteriores.
+- Backlog de produto, indicadores, referências e simulações preservado nas seções 4–6. Proteção nativa contra senhas vazadas segue adiada por depender do plano pago, conforme TODO de segurança.
+
+Evidências atuais: [PR128](homologacao-producao-pr128.md), [PR130](homologacao-producao-pr130.md), [PR131](homologacao-producao-pr131.md) e [conciliação dos proventos](correcao-tooltip-calendario-proventos-2026-11-11.md).
+
 Segurança foi priorizada em seguida: [estado das correções e pendências](TODO-seguranca.md), incluindo proteção de login, dependências e isolamento entre contas.
 
 ## 1. Concluir a entrega já implementada
@@ -26,7 +42,7 @@ Detalhes e testes já executados: [melhorias gerais](melhorias-gerais-2026-11-06
 
 ### Relatos prioritários — 10/11/2026
 
-**Atualização de 11/11 — proventos mensais:** [tooltip e conciliação de novembro](correcao-tooltip-calendario-proventos-2026-11-11.md). Correção local do tooltip fixo no canto e consumo genérico das parcelas oficiais B3, incluindo KLBN4. Calendário público de COST/AAPL reparado pontualmente; recebimentos Nomad preservados. Frontend aguarda publicação/reteste. Prioridade alta: automatizar descoberta de anúncios futuros internacionais com fonte primária e conciliar cobertura/datas ex, sem extrapolar pagamentos nem aplicar imposto presumido como líquido recebido.
+**Atualização de 11/11 — proventos mensais:** [tooltip e conciliação de novembro](correcao-tooltip-calendario-proventos-2026-11-11.md). Tooltip e consumo genérico das parcelas oficiais B3, incluindo KLBN4, publicados na PR131 e [homologados em produção](homologacao-producao-pr131.md), em desktop e layout de 390 px. Novembro: R$40,55 a receber + R$30,92 recebidos = R$71,47. Calendário público de COST/AAPL reparado pontualmente; recebimentos Nomad preservados. Pendente toque físico. Prioridade alta: automatizar descoberta de anúncios futuros internacionais com fonte primária e conciliar cobertura/datas ex, sem extrapolar pagamentos nem aplicar imposto presumido como líquido recebido.
 
 Os três pontos abaixo foram relatados pelo responsável e precisam de reprodução e diagnóstico; ainda não representam causas confirmadas ou correções concluídas. Preservar os lançamentos da carteira Investidor10 durante a investigação.
 

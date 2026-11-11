@@ -47,3 +47,7 @@ A diferença restante não comprova erro de quantidade:
 - Tooltip e leitura das parcelas B3 dependem da próxima publicação do frontend. As atualizações públicas de COST/AAPL já estão no banco compartilhado.
 - A integração B3 é genérica para os tickers consultados, sem lista fixa de carteira. As correções pontuais de COST/AAPL **não** representam novos adaptadores automáticos de RI para anúncios dos próximos trimestres. Essa cobertura permanece pendente.
 - Reteste em produção após merge e interação por toque físico continuam pendentes.
+
+## Atualização após publicação
+
+PR131 mergeada e [homologada em produção](homologacao-producao-pr131.md) em 11/11/2026: tooltip, soma de novembro e parcela KLBN4 confirmados, com COST/AAPL presentes no calendário. Publicação e reteste no navegador concluídos. Permanecem o toque físico e as limitações de fontes/liquidação descritas acima.

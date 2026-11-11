@@ -7,7 +7,7 @@ INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
 SELECT set_config('request.jwt.claim.sub','ab000000-0000-4000-8000-000000000001',true);
 SET LOCAL ROLE authenticated;
 DO $test$
-DECLARE wallet uuid; other_wallet uuid; result jsonb; payload jsonb; before_count integer;
+DECLARE wallet uuid; other_wallet uuid; result jsonb; payload jsonb; before_count integer; invalid_row jsonb;
 BEGIN
  SELECT id INTO wallet FROM public.wallets WHERE user_id=auth.uid() LIMIT 1;
  payload:='[{"ticker":"QAIMPORT","type":"buy","quantity":1,"price":10,"brokerage_fee":0,"transaction_date":"2026-01-02"},{"ticker":"QAIMPORT","type":"buy","quantity":1,"price":10,"brokerage_fee":0,"transaction_date":"2026-01-02"}]';
@@ -19,6 +19,23 @@ BEGIN
  IF (SELECT count(*) FROM public.transaction_import_batches WHERE wallet_id=wallet)<>1 THEN RAISE EXCEPTION 'Receipt duplicated'; END IF;
  IF (SELECT quantity FROM public.positions WHERE wallet_id=wallet AND ticker='QAIMPORT')<>2 THEN RAISE EXCEPTION 'Position changed incorrectly'; END IF;
  before_count:=(SELECT count(*) FROM public.transaction_import_batches);
+ FOR invalid_row IN SELECT value FROM jsonb_array_elements('[
+   {"quantity":0.000000001,"price":10,"brokerage_fee":0},
+   {"quantity":10000000000,"price":10,"brokerage_fee":0},
+   {"quantity":1,"price":10.12345,"brokerage_fee":0},
+   {"quantity":1,"price":10,"brokerage_fee":0.00001}
+ ]'::jsonb) LOOP
+   BEGIN
+     PERFORM public.import_owned_transactions(wallet,'precision.csv',payload||jsonb_build_array(
+       invalid_row||'{"ticker":"QAIMPORT","type":"buy","transaction_date":"2026-01-02"}'::jsonb));
+     RAISE EXCEPTION 'Silent numeric rounding accepted';
+   EXCEPTION WHEN invalid_parameter_value THEN NULL;
+   END;
+ END LOOP;
+ IF (SELECT count(*) FROM public.transaction_import_batches)<>before_count
+    OR (SELECT count(*) FROM public.transactions WHERE wallet_id=wallet)<>2 THEN
+   RAISE EXCEPTION 'Invalid precision changed receipts or transactions';
+ END IF;
  BEGIN
    PERFORM public.import_owned_transactions(wallet,'invalid.csv',payload||'[{"ticker":"MISSING_QA","type":"buy","quantity":1,"price":10,"brokerage_fee":0,"transaction_date":"2026-01-02"}]'::jsonb);
    RAISE EXCEPTION 'Invalid batch accepted';

@@ -66,6 +66,28 @@ describe('parseCsvTransactions', () => {
     expect(result.errors[0]).toMatchObject({ column: 'arquivo' })
   })
 
+  it('aceita exatamente 1000 linhas sem truncar o lote', () => {
+    const rows = Array.from({ length: MAX_IMPORT_ROWS }, () => '10/09/2026;PETR4;buy;1;1;0')
+    const result = parseCsvTransactions([header, ...rows].join('\n'))
+    expect(result.errors).toHaveLength(0)
+    expect(result.rows).toHaveLength(1000)
+    expect(result.previewRows).toBe(MAX_PREVIEW_ROWS)
+  })
+
+  it('impede arredondamento silencioso e estouro da quantidade no banco', () => {
+    for (const quantity of ['0.000000001', '1.123456789', '10000000000']) {
+      const result = parseCsvTransactions(`${header}\n2026-01-05;TEST;buy;${quantity};10;0`, 'decimal-point')
+      expect(result.errors).toEqual(expect.arrayContaining([expect.objectContaining({ column: 'quantidade' })]))
+      expect(result.rows[0].selected).toBe(false)
+    }
+    expect(parseCsvTransactions(`${header}\n2026-01-05;TEST;buy;0.0661000000;10;0`, 'decimal-point').errors).toHaveLength(0)
+  })
+
+  it('impede perda de precisão em preço e corretagem', () => {
+    const result = parseCsvTransactions(`${header}\n2026-01-05;TEST;buy;1;10.12345;0.00001`, 'decimal-point')
+    expect(result.errors.map(issue => issue.column)).toEqual(['preço', 'corretagem'])
+  })
+
   it('informa linha, coluna, problema e exemplo para uma linha invalida', () => {
     const result = parseCsvTransactions(`${header}\n10/09/2026;PETR4;invalid;0;abc;0`)
 

@@ -101,6 +101,17 @@ function toIsoDate(value: string): string {
   return value
 }
 
+// Check the original decimal text before Number can round it. Trailing zeros
+// are harmless; significant digits beyond the storage scale are not.
+function fitsStorage(value: string, scale: number): boolean {
+  const normalized = value.replace(/\./g, '')
+  const match = /^(\d+)(?:,(\d+))?$/.exec(normalized)
+  if (!match) return false
+  const integer = match[1].replace(/^0+/, '')
+  const fraction = (match[2] ?? '').replace(/0+$/, '')
+  return integer.length <= 18 - scale && fraction.length <= scale
+}
+
 export function parseCsvTransactions(input: string | ArrayBuffer, numberFormat: CsvNumberFormat = 'pt-BR'): CsvParseResult {
   const text = decodeCsv(input)
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
@@ -163,6 +174,13 @@ export function parseCsvTransactions(input: string | ArrayBuffer, numberFormat: 
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) errors.push(error(rowNumber, 'preço', 'Preço deve ser um número não negativo. Confira o formato numérico selecionado para o arquivo.', '32,10 (vírgula decimal)'))
     const parsedBrokerage = parseDecimalPtBr(brokerageFee || '0')
     if (!Number.isFinite(parsedBrokerage) || parsedBrokerage < 0) errors.push(error(rowNumber, 'corretagem', 'Corretagem deve ser um número não negativo.', '0,00'))
+    for (const [column, value, scale] of [
+      ['quantidade', quantity, 8], ['preço', price, 4], ['corretagem', brokerageFee || '0', 4],
+    ] as const) {
+      if (!errors.some(issue => issue.column === column) && !fitsStorage(value, scale)) {
+        errors.push(error(rowNumber, column, `Valor excede a precisão permitida: até ${18 - scale} dígitos inteiros e ${scale} casas decimais. Não será arredondado automaticamente.`, scale === 8 ? '0,00000001' : '0,0001'))
+      }
+    }
     const type: TransactionType | '' = TRANSACTION_TYPES.includes(rawType) ? rawType : ''
 
     return {

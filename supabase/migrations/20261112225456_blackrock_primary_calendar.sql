@@ -63,4 +63,3 @@ begin
   last_success_at=case when failure is null then now() else last_success_at end,next_sync_at=now()+interval '24 hours' where ticker=p_ticker;
  return jsonb_build_object('saved',saved,'conflicts',conflicts,'coverage_gaps',gaps,'error',failure,'received_income_created',0);
 end $$;
-

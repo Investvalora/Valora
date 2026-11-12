@@ -63,6 +63,7 @@ jobs:
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/mastercard_announcements.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/dividend_provider_fallbacks.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/primary_dividend_reconciliation.sql
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/blackrock_primary_calendar.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/marketstack_key_rotation.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/queue_health_and_jobs.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/synthetic_dividends.sql

@@ -35,8 +35,8 @@ Deno.serve(async request => {
       return Response.json({ tasks: tasks.map(t => ({ ticker: t.ticker, claim_token: t.claim_token })) })
     }
     if(body.mode==='finish_primary') {
-      if(!['PRT','META'].includes(body.ticker)||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token))
-       ||!Array.isArray(body.events)||body.events.length>14||(body.error!==null&&!/^issuer_[a-z_]{1,60}$/.test(String(body.error))))return Response.json({error:'invalid_request'},{status:400})
+      if(!['PRT','META','BMN'].includes(body.ticker)||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token))
+       ||!Array.isArray(body.events)||body.events.length>20||(body.error!==null&&!/^issuer_[a-z_]{1,60}$/.test(String(body.error))))return Response.json({error:'invalid_request'},{status:400})
       return Response.json(await rpc('finish_primary_dividends',{p_ticker:body.ticker,p_claim_token:body.claim_token,p_events:body.events,p_error:body.error}))
     }
     if (!['finish','finish_sec'].includes(body.mode) || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(String(body.ticker))

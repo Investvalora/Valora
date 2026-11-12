@@ -5,6 +5,7 @@ on:
       - '.github/workflows/international-announcements.yml'
       - 'scripts/collect-international-announcements.mjs'
       - 'scripts/jpmorgan-announcements.mjs'
+      - 'scripts/sec-dividend-announcements.mjs'
       - 'supabase/functions/sync-international-announcements/**'
   workflow_dispatch:
     inputs:
@@ -42,10 +43,18 @@ jobs:
           console.log(JSON.stringify({provider:'jpmorgan_ri',events:events.length}))
           NODE
 
+      - name: Probe SEC discovery without queue or credentials
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { discoverSecDividends } from './scripts/sec-dividend-announcements.mjs'
+          const r = await discoverSecDividends('COST',new Date().toISOString().slice(0,10))
+          console.log(JSON.stringify({provider:'sec',events:r.events.length,inspected:r.inspected,truncated:r.truncated,unsupported:r.unsupported}))
+          if(!r.events.length) process.exitCode=1
+          NODE
   collect:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.probe_only))
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 5
     permissions:
       contents: read
       id-token: write

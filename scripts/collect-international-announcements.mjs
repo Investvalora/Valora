@@ -1,4 +1,5 @@
 import { jpmorganAnnouncements } from './jpmorgan-announcements.mjs'
+import { collectSecDividends } from './sec-dividend-announcements.mjs'
 import { pathToFileURL } from 'node:url'
 import { nasdaqSource } from '../supabase/functions/sync-international-announcements/source.ts'
 import { nasdaqIdentity, nasdaqAnnouncements } from '../supabase/functions/sync-international-announcements/nasdaq.ts'
@@ -49,7 +50,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const probeOnly = process.env.INTERNATIONAL_PROBE_ONLY === 'true'
     const endpoint = 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements'
-    const result = await collectAnnouncements({ endpoint, token: probeOnly ? undefined : await githubIdentity(endpoint), probeOnly })
-    console.log(JSON.stringify(result)); if (result.failed) process.exitCode = 1
+    const token=probeOnly?undefined:await githubIdentity(endpoint)
+    try {
+      const result = await collectAnnouncements({ endpoint, token, probeOnly })
+      console.log(JSON.stringify(result)); if (result.failed) process.exitCode = 1
+    } catch {console.error('international_primary_collector_failed');process.exitCode=1}
+    if(!probeOnly){const sec=await collectSecDividends({endpoint,token});console.log(JSON.stringify(sec));if(sec.failed)process.exitCode=1}
   } catch { console.error('international_collector_failed'); process.exitCode = 1 }
 }

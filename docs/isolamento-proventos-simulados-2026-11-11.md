@@ -42,3 +42,12 @@ A execução integral anterior terminou com1249 testes aprovados e um timeout de
 
 
 Resultado final após o ajuste:189 arquivos e1250 testes aprovados na execução integral com maxWorkers=2 (279,84s). Falha USD não se repetiu. Validação local concluída: regressão completa, cinco suites SQL com rollback, build/PWA, TypeScript, lint e Deno check aprovados. Nenhuma alteração em produção.
+
+
+## Homologação técnica em produção — PR138
+
+Merge03ccffee59c1b7c763d6e544be011b733ab6ecee, CI da main e Vercel aprovados. Migration aplicada como20261112004558_isolate_synthetic_dividends e sync-asset-data v7 ACTIVE.
+
+Leitura com SET LOCAL ROLE authenticated em transação com ROLLBACK:1428 eventos visíveis, zero seed/synthetic, nove JPM visíveis. Serviço continua vendo os178 simulados para auditoria. Hash de todos os1606 eventos públicos permaneceu igual após deploy;207 recebimentos pessoais também com contagem/hash iguais. Nenhum registro removido e nenhuma posição ou lançamento alterado.
+
+Substituição de uma chave seed pelo RPC testada em transação com ROLLBACK: origem Yahoo e limpeza de payment/record/source_url simulados confirmadas, sem persistir dados de teste. Endpoint sem credencial retornou401 e advisor health sem lints. Homologação técnica aprovada; sem conferência visual autenticada nesta rodada e sem chamada externa de sincronização que persista novas cotações.

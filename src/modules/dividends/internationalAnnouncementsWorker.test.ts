@@ -4,7 +4,7 @@ let handler:(r:Request)=>Promise<Response>
 let fetchMock:ReturnType<typeof vi.fn>
 beforeEach(async()=>{
  vi.resetModules();vi.stubGlobal('Deno',{env:{get:(n:string)=>n==='SUPABASE_URL'?'https://internal.invalid':'internal-test-key'},serve:(h:typeof handler)=>{handler=h}})
- fetchMock=vi.fn(async(url:string)=>url.includes('claim_international')?Response.json([{ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',internal_field:'not-returned'}]):Response.json({saved:1,conflicts:0,error:null}))
+ fetchMock=vi.fn(async(url:string)=>(url.includes('claim_international')||url.includes('claim_sec_dividends'))?Response.json([{ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',internal_field:'not-returned'}]):Response.json({saved:1,conflicts:0,error:null}))
  vi.stubGlobal('fetch',fetchMock);const path='../../../supabase/functions/sync-international-announcements/index.ts';await import(path)
 })
 afterEach(()=>vi.unstubAllGlobals())
@@ -17,5 +17,16 @@ it('sends completion through the atomic lease RPC without personal receipts',asy
 it('accepts bounded issuer diagnostics through the same authenticated lease path',async()=>{
  const r=await invoke({mode:'finish',ticker:'JPM',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:'jpm_identity_changed'})
  expect(r.status).toBe(200);expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toMatchObject({p_ticker:'JPM',p_error:'jpm_identity_changed'})
+})
+it('claims SEC tasks through the same identity without exposing queue metadata',async()=>{
+ expect(await(await invoke({mode:'claim_sec'})).json()).toMatchObject({tasks:[{ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111'}]})
+ expect(fetchMock.mock.calls[0][0]).toContain('/claim_sec_dividends')
+})
+it('stores SEC discovery separately from eligible dividends',async()=>{
+ const r=await invoke({mode:'finish_sec',ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',cik:'0000320193',events:[],error:null,inspected:1,partial:false})
+ expect(r.status).toBe(200);expect(fetchMock.mock.calls[0][0]).toContain('/finish_sec_dividends')
+})
+it.each([{cik:'bad',inspected:1,partial:false},{cik:'0000320193',inspected:5,partial:false},{cik:'0000320193',inspected:1,partial:'false'}])('rejects unbounded SEC metadata %j',async fields=>{
+ expect((await invoke({mode:'finish_sec',ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:null,...fields})).status).toBe(400);expect(fetchMock).not.toHaveBeenCalled()
 })
 it.each([{mode:'unknown'},{mode:'finish',ticker:'AAPL',claim_token:'------------------------------------',events:[],error:null},{mode:'finish',ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:'remote body with secret'}])('rejects invalid mode, lease or unsafe error %j',async body=>{expect((await invoke(body)).status).toBe(400);expect(fetchMock).not.toHaveBeenCalled()})

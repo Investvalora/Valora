@@ -12,13 +12,17 @@ Deno.serve(async request => {
   if (!await authorizeInternationalCollector(request, url, key)) return Response.json({ error: 'unauthorized' }, { status: 401 })
   try {
     const body = JSON.parse(new TextDecoder().decode(await boundedBytes(new Response(request.body), 64*1024)))
-    if (body.mode === 'claim') {
-      const tasks = await rpc('claim_international_announcements', {}) as { ticker: string; claim_token: string }[]
+    if (body.mode === 'claim' || body.mode === 'claim_sec') {
+      const tasks = await rpc(body.mode === 'claim_sec' ? 'claim_sec_dividends' : 'claim_international_announcements', {}) as { ticker: string; claim_token: string }[]
       return Response.json({ tasks: tasks.map(t => ({ ticker: t.ticker, claim_token: t.claim_token })) })
     }
-    if (body.mode !== 'finish' || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(String(body.ticker))
+    if (!['finish','finish_sec'].includes(body.mode) || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(String(body.ticker))
       || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token)) || !Array.isArray(body.events) || body.events.length>100
-      || (body.error !== null && !/^(?:nasdaq|jpm)_[a-z0-9_]{1,60}$/.test(String(body.error)))) return Response.json({ error: 'invalid_request' }, { status: 400 })
+      || (body.error !== null && !(body.mode === 'finish_sec' ? /^sec_[a-z0-9_]{1,60}$/ : /^(?:nasdaq|jpm)_[a-z0-9_]{1,60}$/).test(String(body.error)))) return Response.json({ error: 'invalid_request' }, { status: 400 })
+    if (body.mode === 'finish_sec') {
+      if (body.events.length>4 || !Number.isInteger(body.inspected) || body.inspected<0 || body.inspected>4 || typeof body.partial!=='boolean' || (body.error===null && !/^\d{10}$/.test(String(body.cik)))) return Response.json({error:'invalid_request'},{status:400})
+      return Response.json(await rpc('finish_sec_dividends',{p_ticker:body.ticker,p_claim_token:body.claim_token,p_cik:body.cik??null,p_events:body.events,p_error:body.error,p_inspected:body.inspected,p_partial:body.partial}))
+    }
     const result = await rpc('finish_international_announcements', { p_ticker: body.ticker, p_claim_token: body.claim_token, p_events: body.events, p_error: body.error })
     return Response.json({ ...result, received_income_created: 0 })
   } catch { return Response.json({ error: 'collector_request_failed' }, { status: 503 }) }

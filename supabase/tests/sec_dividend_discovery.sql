@@ -1,0 +1,30 @@
+begin;
+insert into public.assets(ticker,name,type,currency,quote_provider) values('QASEC','SEC fixture','stock_us','USD','finnhub');
+insert into public.sec_dividend_tasks(ticker,claim_token,next_sync_at) values('QASEC','11111111-1111-4111-8111-111111111111',now()+interval '10 minutes');
+set local role service_role;
+do $$ declare e jsonb;r jsonb;begin
+ e:=jsonb_build_array(jsonb_build_object('accession','0000000123-26-000001','declaration_date',current_date-2,'filing_date',current_date-1,'record_date',current_date+5,'payment_date',current_date+10,'value_per_share',30,'distribution','special','source_url','https://www.sec.gov/Archives/edgar/data/123/000000012326000001/example.htm'));
+ begin perform public.finish_sec_dividends('QASEC','22222222-2222-4222-8222-222222222222','0000000123',e,null,1,false);raise exception 'Wrong lease accepted';exception when raise_exception then if sqlerrm<>'SEC lease unavailable' then raise;end if;end;
+ r:=public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000123',e,null,1,false);
+ if (r->>'saved')::int<>1 or (r->>'eligible_dividends_created')::int<>0 then raise exception 'Discovery ledger failed';end if;
+ if exists(select 1 from public.dividends where ticker='QASEC') then raise exception 'Pending announcement treated as eligible';end if;
+ if not exists(select 1 from public.sec_dividend_announcements where ticker='QASEC' and distribution='special' and ex_status='unconfirmed') then raise exception 'Classification missing';end if;
+ begin perform public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000123',e,null,1,false);raise exception 'Replay accepted';exception when raise_exception then if sqlerrm<>'SEC lease unavailable' then raise;end if;end;
+ update public.sec_dividend_tasks set claim_token='11111111-1111-4111-8111-111111111111',next_sync_at=now()+interval '10 minutes' where ticker='QASEC';
+ r:=public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000123',e,null,1,false);
+ if (r->>'saved')::int<>0 or (r->>'conflicts')::int<>0 then raise exception 'Not idempotent';end if;
+ update public.sec_dividend_tasks set claim_token='11111111-1111-4111-8111-111111111111',next_sync_at=now()+interval '10 minutes' where ticker='QASEC';
+ r:=public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000123',jsonb_build_array(e->0||jsonb_build_object('value_per_share',31)),null,1,false);
+ if r->>'error'<>'sec_event_conflict' then raise exception 'Conflict not diagnosed';end if;
+ update public.sec_dividend_tasks set claim_token='11111111-1111-4111-8111-111111111111',next_sync_at=now()+interval '10 minutes' where ticker='QASEC';
+ begin perform public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000999',e,null,1,false);raise exception 'Issuer changed';exception when raise_exception then if sqlerrm<>'SEC identity changed' then raise;end if;end;
+ begin perform public.finish_sec_dividends('QASEC','11111111-1111-4111-8111-111111111111','0000000123',jsonb_build_array(e->0||jsonb_build_object('source_url','https://attacker.invalid/x.htm')),null,1,false);raise exception 'Foreign document accepted';exception when raise_exception then if sqlerrm<>'Invalid SEC announcement' then raise;end if;end;
+end $$;
+reset role;
+set local role authenticated;
+do $$ begin
+ if (select count(*) from public.sec_dividend_announcements where ticker='QASEC')<>1 then raise exception 'Public announcement not readable';end if;
+ if has_table_privilege('authenticated','public.sec_dividend_tasks','SELECT') or has_table_privilege('authenticated','public.sec_dividend_announcements','INSERT') or has_function_privilege('authenticated','public.finish_sec_dividends(text,uuid,text,jsonb,text,integer,boolean)','EXECUTE') then raise exception 'Private task/write access';end if;
+end $$;
+reset role;
+rollback;

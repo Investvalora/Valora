@@ -1,8 +1,23 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack } from '../../../supabase/functions/sync-international-announcements/providers'
+import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure } from '../../../supabase/functions/sync-international-announcements/providers'
 const event = { ex_dividend_date:'2026-11-24',declaration_date:'2026-11-10',record_date:'2026-11-24',payment_date:'2026-12-04',amount:'30.0' }
 const alpha = { symbol:'COST',data:[event] }
 afterEach(()=>vi.unstubAllGlobals())
+it('preserves seven and eight decimal vendor observations without rejecting valid neighboring events',()=>{
+ const data=[{...event,amount:'0.0196242'},{...event,ex_dividend_date:'2026-11-25',record_date:'2026-11-25',amount:'0.00000001'}]
+ expect(providerEvents('alpha_vantage','COST',{symbol:'COST',data},'2026-11-12').map(e=>e.value_per_share)).toEqual([0.0196242,0.00000001])
+ expect(()=>providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount:'0.019624201'}]},'2026-11-12')).toThrow('provider_invalid_amount')
+ expect(()=>providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount:'999999999999.12345678'}]},'2026-11-12')).toThrow('provider_invalid_amount')
+})
+it('does not import vendor-rounded zero or disguise it as a calendar error',()=>{
+ const p={pagination:{total:1,count:1},data:[{symbol:'PRT',date:'2026-10-30',declaration_date:'2026-10-20',record_date:'2026-10-30',payment_date:'2026-11-16',dividend:0}]}
+ expect(()=>providerEvents('marketstack','PRT',p,'2026-11-12')).toThrow('provider_invalid_amount')
+})
+it('distinguishes missing coverage from invalid observations and technical failures',()=>{
+ expect(providerOperationalFailure('provider_calendar_unavailable')).toBe(false)
+ expect(providerOperationalFailure(null)).toBe(false)
+ for(const error of ['provider_invalid_amount','provider_event_conflict','provider_rejected','provider_request_failed','provider_identity_changed']) expect(providerOperationalFailure(error)).toBe(true)
+})
 it('deduplicates list, primary and numbered keys and caps configuration at eight accounts',()=>{
  expect(marketstackKeys('a; b, c\nd','a',[' b ','e'])).toEqual(['a','b','c','d','e'])
  expect(marketstackKeys('a,b,c,d,e,f,g,h,i','',[])).toHaveLength(8)
@@ -65,4 +80,19 @@ it('reserves before fetching and completes vendor failures without leaking respo
  expect(rpc.mock.calls[0][0]).toBe('claim_dividend_provider')
  expect(result.results[0].error).toBe('provider_rejected')
  expect(rpc.mock.calls[1][1]).toMatchObject({p_events:[],p_error:'provider_rejected'})
+})
+it('propagates database conflicts so the workflow and durable audit cannot report success',async()=>{
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:'provider_event_conflict'})
+ vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
+ const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
+ expect(result.results[0]).toMatchObject({events:1,error:'provider_event_conflict'})
+ expect(providerOperationalFailure(result.results[0].error)).toBe(true)
+})
+it('records a missing calendar on the task rather than inventing events or marking coverage complete',async()=>{
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'AMZN',claim_token:'lease'}]:{error:'provider_calendar_unavailable'})
+ vi.stubGlobal('fetch',vi.fn(async()=>Response.json({symbol:'AMZN',data:[]})))
+ const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
+ expect(result.results[0]).toMatchObject({events:0,error:'provider_calendar_unavailable'})
+ expect(rpc.mock.calls[1][1]).toMatchObject({p_events:[],p_error:'provider_calendar_unavailable'})
+ expect(providerOperationalFailure(result.results[0].error)).toBe(false)
 })

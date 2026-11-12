@@ -1,6 +1,13 @@
 import {expect,it,vi} from 'vitest'
 import {jobRun} from '../../supabase/functions/_shared/jobRuns'
 const id='11111111-1111-4111-8111-111111111111'
+it('persists missing vendor coverage as partial while keeping technical errors failed',async()=>{
+ const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
+ await jobRun('https://example.test','private',id,{coverage_gaps:['marketstack:AMZN','https://private.invalid']},request,'international-providers')
+ expect(JSON.parse(String(request.mock.calls[0][1]?.body))).toMatchObject({status:'partial',details:{errors:[],coverage_gaps:['marketstack:AMZN']}})
+ await jobRun('https://example.test','private',id,{coverage_gaps:['marketstack:AMZN'],erros:['provider_invalid_amount']},request,'international-providers')
+ expect(JSON.parse(String(request.mock.calls[1][1]?.body)).status).toBe('failed')
+})
 it('persists a private partial result with bounded diagnostics and no credentials in the stored body',async()=>{
  const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
  expect(await jobRun('https://example.test','private',id,{linhas_gravadas:{cdi:540},recalculo:{posicoes_atualizadas:13,erros:['lote: Preço oficial não encontrado']},erros:['recalculo: falha']},request)).toBe(true)

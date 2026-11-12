@@ -1,5 +1,17 @@
 # TODO ativa de evolução do Valora
 
+## Atualização vigente — PR148 em produção, 12/11
+
+- Aviso de sessão encerrada confirmado pelo responsável após revogação real da conta de teste; login posterior aprovado. Substitui as pendências antigas de publicação/reteste do aviso abaixo.
+- Rascunho do lançamento rápido aprovado após fechar e recriar aba; restauração explícita recuperou quantidade/preço. Cancelar limpou o teste. Barra inferior aprovada após reduzir e restaurar a altura, sem teclado. [Homologação](homologacao-producao-pr148.md).
+  - Reteste físico17h16–17h21: Galaxy A31 restaurou quantidade3 após HOME→launcher/recriação; cancelar limpou, reabertura confirmou campos vazios e nenhuma oferta. Sem gravação no banco. Capturas completas voltaram a funcionar; acesso textual web continua intermitente.
+- Macro/Tesouro automático de 12/11 às 17h aprovado: 13 posições atualizadas, sem erros. Falha do Selic desativado não reapareceu.
+- Permanecem: comprovar atualização a partir de worker antigo; medição física comparável; cobertura das filas dentro das cotas gratuitas, com controle de idade e primeira passagem.
+- Cobertura de proventos: diagnóstico confirmado de PRT (Alpha com sete casas decimais rejeitada pelo limite de seis; Marketstack arredonda pagamentos pequenos para zero) e META (0,53 versus 0,525). Não importar valores arredondados nem descartar silenciosamente eventos problemáticos. [Investigação](diagnostico-cobertura-provedores-2026-11-12.md).
+  - Correção local validada: precisão de oito casas em parser/observações privadas, cobertura ausente como parcial auditada e propagação de conflitos do banco. 32 testes, TypeScript e quatro testes SQL no Supabase isolado aprovados, com replay completo das migrations. Publicação da migration/Edge ainda pendente; não considerar corrigido em produção.
+
+Os registros cronológicos abaixo preservam estados anteriores; esta atualização prevalece para os critérios retestados.
+
 **RP09 — defeito reproduzido em teste real:** responsável confirmou revogação e redirecionamento ao login sem explicação. Correção local mantém motivo em memória e mostra aviso no login móvel/desktop, distinguindo logout voluntário. [Registro](aviso-login-sessao-encerrada-2026-11-12.md). Publicação e reteste pendentes.
 
 **Correção local após teste físico:** lançamento rápido com rascunho de oito horas no dispositivo, restauração explícita e limpeza ao cancelar/logout; barra inferior não confunde janela menor sem edição com teclado. [Escopo e limites](correcao-rascunho-dispositivo-2026-11-12.md). Publicação/reteste pendentes; revogação da conta de teste ainda não executada.

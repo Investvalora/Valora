@@ -6,7 +6,7 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
-**Descoberta SEC genérica implementada localmente:** [escopo, testes e limites](descoberta-sec-dividendos-2026-11-11.md). Catálogo ticker/CIK,8-K e fila por ativo USD compatível; dois anúncios COST localizados sem lista fixa de carteira. Ledger separado distingue ordinário/especial e mantém ex não confirmada fora dos cálculos.70 testes e SQL local aprovados. Probe hospedado, revisão/publicação e futura apresentação/conciliação dos pendentes ainda necessários; não equivale a cobertura integral dos ativos americanos.
+**Descoberta SEC genérica implementada localmente:** [escopo, testes e limites](descoberta-sec-dividendos-2026-11-11.md). Catálogo ticker/CIK,8-K e fila por ativo USD compatível; dois anúncios COST localizados sem lista fixa de carteira. Ledger separado distingue ordinário/especial e mantém ex não confirmada fora dos cálculos.70 testes e SQL local aprovados. Probe hospedado SEC aprovado na PR139; revisão/publicação e futura apresentação/conciliação dos pendentes ainda necessários; não equivale a cobertura integral dos ativos americanos.
 
 **Revisão MA/COST concluída:** [evidências e limites](revisao-cobertura-ma-cost-2026-11-11.md). MA segue bloqueada403, inclusive Node; índice SEC acessível não fornece os comunicados trimestrais esperados. Divergência COST de outubro encerrada: Nasdaq confirma ex/corte30/10 e SEC confirma corte30/10/pagamento13/11/USD1,47, exatamente como no Valora. Nenhuma data alterada.
 

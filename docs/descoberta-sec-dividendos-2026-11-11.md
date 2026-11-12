@@ -38,3 +38,8 @@ Nenhum deles produziu ex-date no parser. Dois documentos inspecionados, sem trun
 Ainda não publicado. Após revisão/merge: aplicar `20261112011747_sec_dividend_discovery.sql`, publicar o endpoint internacional atualizado e validar primeiro o probe público; depois priorizar um ticker apenas na fila técnica e executar um lote OIDC. Conferir ledger, idempotência, ausência de escrita em dividendos/recebimentos e limites antes de homologar produção. Nenhum saldo, lançamento ou recebimento alterado nesta implementação.
 
 Não encerra MA/403 nem garante calendário antecipado de todo emissor. Inclui a capacidade comum de consultar qualquer ativo compatível sem adaptador por carteira; ampliações de formato ficam testáveis e compartilhadas.
+
+
+## Probe hospedado aprovado
+
+[Execução43134534875](https://github.com/Investvalora/Valora/actions/runs/43134534875) em GitHub-hosted retornou SEC events2/inspected2/truncated=false/unsupported0. Nasdaq AAPL/COST e RI JPM também aprovados. Job collect corretamente ignorado na PR; sem OIDC, consulta de fila ou gravação. Confirma acesso hospedado à fonte, mas não equivale a publicação nem ao lote autenticado de produção.

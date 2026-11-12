@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/international-announcements.yml'
       - 'scripts/collect-international-announcements.mjs'
+      - 'scripts/permrock-announcements.mjs'
+      - 'scripts/meta-announcements.mjs'
       - 'scripts/jpmorgan-announcements.mjs'
       - 'scripts/mastercard-announcements.mjs'
       - 'scripts/sec-dividend-announcements.mjs'
@@ -35,6 +37,21 @@ jobs:
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/valora-pdf"
+          "$RUNNER_TEMP/valora-pdf/bin/pip" install --disable-pip-version-check pypdf==6.21.4
+          echo "PDF_PYTHON=$RUNNER_TEMP/valora-pdf/bin/python" >> "$GITHUB_ENV"
+      - name: Probe primary issuer distributions without queue writes
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import {permrockAnnouncements} from './scripts/permrock-announcements.mjs'
+          import {metaAnnouncements} from './scripts/meta-announcements.mjs'
+          for(const [ticker,source] of [['PRT',permrockAnnouncements],['META',metaAnnouncements]]) {
+            const events=await source(new Date().toISOString().slice(0,10))
+            console.log(JSON.stringify({ticker,events:events.length}))
+            if(!events.length)process.exitCode=1
+          }
+          NODE
       - run: node --experimental-strip-types scripts/collect-international-announcements.mjs
         name: Probe public sources without credentials
         env:
@@ -78,4 +95,8 @@ jobs:
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/valora-pdf"
+          "$RUNNER_TEMP/valora-pdf/bin/pip" install --disable-pip-version-check pypdf==6.21.4
+          echo "PDF_PYTHON=$RUNNER_TEMP/valora-pdf/bin/python" >> "$GITHUB_ENV"
       - run: node --experimental-strip-types scripts/collect-international-announcements.mjs

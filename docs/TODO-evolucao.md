@@ -1,5 +1,23 @@
 # TODO ativa de evolução do Valora
 
+## Prioridade alta — nova implementação local, 12/11
+
+- Conciliação PRT por PDFs e calendário oficiais: 12 anúncios identificados, incluindo os 11 valores Yahoo arredondados. Auditoria do valor anterior e proteção contra divergências reais; publicação e reteste em produção pendentes.
+- META: quatro releases oficiais identificados; três têm âncoras compatíveis. **Investigar dezembro/2025:** pagamento 29/12 no Valora versus 23/12 no release. Registro preservado; não encerrar essa divergência.
+- AMZN: evidência datada de ausência de dividendos, com expiração e invalidação por anúncio novo; renovação da evidência continua pendente.
+- Filas: prioridade para primeira passagem e tarefas antigas, janela Alpha de 72h, diagnóstico de cota esgotada e fallback três vezes por hora. Confirmar comportamento e escoamento após publicação, dentro das cotas.
+- [Escopo, fontes e homologação local](consolidacao-fontes-primarias-proventos-2026-11-12.md). Worker antigo e comparação de desempenho físico seguem abertos.
+
+## Atualização PR149 — produção, 12/11
+
+Migration de precisão aplicada e função internacional v11 publicada. CI/main e workflow real43302427965 aprovados. [Homologação e limites](homologacao-producao-pr149.md).
+
+- Precisão PRT confirmada:12 observações gravadas, incluindo0.0196242 preservado; erro de seis casas resolvido.
+- **Alta — conciliar dados de PRT:**11 conflitos com valores Yahoo arredondados, preservados pela proteção. Confirmar fonte primária/precedência antes de corrigir registros públicos; PRT ainda não tem sincronização integral. Não esconder conflito no workflow.
+- AMZN: tratamento de cobertura parcial publicado; ticker não entrou no dispatch desta homologação. Continua sem calendário completo, sem presumir pagamento.
+
+Esta atualização substitui o estado anterior de publicação pendente da correção de precisão/cobertura.
+
 ## Atualização vigente — PR148 em produção, 12/11
 
 - Aviso de sessão encerrada confirmado pelo responsável após revogação real da conta de teste; login posterior aprovado. Substitui as pendências antigas de publicação/reteste do aviso abaixo.

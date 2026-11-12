@@ -25,6 +25,6 @@ do $$ declare task public.dividend_provider_tasks;health jsonb;k text:=repeat('c
 end $$;
 reset role;
 do $$ begin
- if not exists(select 1 from cron.job where jobname='international-provider-fallback' and schedule='11 * * * *' and active and command like '%vault.decrypted_secrets%') then raise exception 'Independent schedule unavailable';end if;
+ if not exists(select 1 from cron.job where jobname='international-provider-fallback' and schedule='11,31,51 * * * *' and active and command like '%vault.decrypted_secrets%') then raise exception 'Independent schedule unavailable';end if;
 end $$;
 rollback;

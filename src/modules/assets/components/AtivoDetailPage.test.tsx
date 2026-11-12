@@ -108,24 +108,20 @@ vi.mock("../../alerts/hooks/useAlertMutations", () => ({
 vi.mock("../../performance/hooks/usePerformance", () => ({
   usePerformance: () => ({ summary: { cdiReturnPct: 0.1 } }),
 }));
-vi.mock("../../portfolio/components/AddTransactionModal", () => ({
-  AddTransactionModal: ({
+vi.mock("../../portfolio/components/DeferredQuickTransactionModal", () => ({
+  DeferredQuickTransactionModal: ({
     isOpen,
-    ticker,
-    assetName,
-    assetType,
+    initialAsset,
     onClose,
   }: {
     isOpen: boolean;
-    ticker: string;
-    assetName: string;
-    assetType: string;
+    initialAsset: { ticker: string; name: string; type: string };
     onClose: () => void;
   }) =>
     isOpen ? (
       <div role="dialog" aria-label="Lançamento">
         <p>
-          {ticker} {assetName} {assetType}
+          {initialAsset.ticker} {initialAsset.name} {initialAsset.type}
         </p>
         <button onClick={onClose}>Cancelar lançamento</button>
       </div>
@@ -142,23 +138,24 @@ it("abre lançamento preenchido e cria alerta com o ticker do detalhe, permitind
       </Routes>
     </MemoryRouter>,
   );
-  await user.click(
-    screen.getByRole("button", { name: "+ Lançamento do ativo" }),
-  );
+  const actions = within(screen.getByRole("group", { name: "Ações do ativo" }));
+  await user.click(actions.getByRole("button", { name: "+ Lançamento do ativo" }));
   expect(
     within(screen.getByRole("dialog", { name: "Lançamento" })).getByText(
       "PETR4 Petrobras stock_br",
     ),
   ).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Cancelar lançamento" }));
-  await user.click(screen.getByRole("button", { name: "Criar alerta" }));
-  const dialog = within(screen.getByRole("dialog", { name: "Criar alerta" }));
+  await user.click(actions.getByRole("button", { name: "Criar alerta" }));
+  const alertPanel = screen.getByRole("dialog", { name: "Novo alerta de preço" });
+  expect(alertPanel).toHaveClass("transaction-drawer-panel");
+  const dialog = within(alertPanel);
   expect(dialog.getByLabelText("Ativo (ticker)")).toHaveValue("PETR4");
   await user.click(dialog.getByRole("button", { name: "Criar alerta" }));
   expect(create).not.toHaveBeenCalled();
   await user.type(dialog.getByRole("spinbutton"), "25");
   await user.click(dialog.getByRole("button", { name: "Criar alerta" }));
-  expect(dialog.getByRole("alert")).toHaveTextContent("Erro ao criar alerta");
+  expect(dialog.getByRole("alert")).toHaveTextContent("Não foi possível criar o alerta");
   await user.click(dialog.getByRole("button", { name: "Criar alerta" }));
   expect(create).toHaveBeenLastCalledWith({
     ticker: "PETR4",
@@ -166,7 +163,7 @@ it("abre lançamento preenchido e cria alerta com o ticker do detalhe, permitind
     condition: "below",
   });
   expect(
-    screen.queryByRole("dialog", { name: "Criar alerta" }),
+    screen.queryByRole("dialog", { name: "Novo alerta de preço" }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Alertas" })).toHaveAttribute(
     "aria-selected",

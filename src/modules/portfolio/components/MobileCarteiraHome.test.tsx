@@ -117,7 +117,7 @@ describe('Carteira inicial no celular', () => {
 
     const actionButton = screen.getByRole('button', { name: '+ Lançamento' })
     fireEvent.click(actionButton)
-    expect(screen.getByRole('button', { name: '+ Lançamento' })).not.toBe(actionButton)
+    expect(screen.getByRole('button', { name: '+ Lançamento' })).toBe(actionButton)
     await waitFor(() => {
       expect(onAddTransaction).toHaveBeenCalledOnce()
     })
@@ -169,6 +169,7 @@ describe('Carteira inicial no celular', () => {
     expect(screen.getByRole('heading', { name: 'Início atual' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ativos' })).toBeInTheDocument()
     const avatar = screen.getByRole('link', { name: 'Abrir minha conta' })
+    const bell = screen.getByRole('link', { name: 'Abrir alertas' })
     expect(avatar.closest('[data-testid="wallet-slide-track"]')).toBeNull()
     expect(avatar.closest('header')?.parentElement).toHaveClass('max-w-md', 'px-4')
     expect(screen.getAllByTestId('wallet-card')).toHaveLength(2)
@@ -180,9 +181,16 @@ describe('Carteira inicial no celular', () => {
 
     expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Abrir minha conta' })).toBe(avatar)
+    expect(screen.queryByRole('link', { name: 'Abrir alertas' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ Carteira' })).toBeInTheDocument()
+    const activeCard = screen.getByRole('button', { name: 'Selecionar Minha Carteira', pressed: true })
+    expect(within(activeCard).getByText('Selecionada')).toBeInTheDocument()
+    expect(screen.getAllByText('Selecionada')).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Selecionar Reserva' }))
     expect(selectWallet).toHaveBeenCalledWith('wallet-2')
     expect(screen.getByRole('heading', { name: 'Início atual' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abrir alertas' })).toBe(bell)
+    expect(screen.queryByRole('button', { name: '+ Carteira' })).not.toBeInTheDocument()
   })
 
   it('mostra uma faixa por carteira real, começando pela principal', () => {

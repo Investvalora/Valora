@@ -15,7 +15,9 @@ interface ModalProps {
    * apareceria no próximo carregamento.
    */
   dismissible?: boolean
-  variant?: 'default' | 'wallet' | 'score' | 'transaction'
+  variant?: 'default' | 'wallet' | 'score' | 'transaction' | 'floating'
+  transactionDrawer?: boolean
+  floatingExpanded?: boolean
   closing?: boolean
   initialFocusSelector?: string
 }
@@ -64,9 +66,11 @@ function lockDocumentTouchScroll() {
  * Não usa `<dialog>` nativo porque o suporte a estilização do backdrop ainda
  * é irregular e o fechamento nativo por Escape escapa ao controle do React.
  */
-export function Modal({ isOpen, title, onClose, children, footer, dismissible = true, variant = 'default', closing = false, initialFocusSelector }: ModalProps) {
+export function Modal({ isOpen, title, onClose, children, footer, dismissible = true, variant = 'default', transactionDrawer = false, floatingExpanded, closing = false, initialFocusSelector }: ModalProps) {
   const isSheet = variant === 'wallet' || variant === 'score'
   const isTransaction = variant === 'transaction'
+  const isFloating = variant === 'floating'
+  const hasCompactLayout = isTransaction || isFloating
   const dialogRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
@@ -114,7 +118,7 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
   useEffect(() => {
     if (!isOpen) return
 
-    if ((isTransaction || isSheet) && window.innerWidth < 768) {
+    if ((hasCompactLayout || isSheet) && window.innerWidth < 768) {
       return lockDocumentTouchScroll()
     }
 
@@ -124,7 +128,7 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [isOpen, isTransaction, isSheet])
+  }, [isOpen, hasCompactLayout, isSheet])
 
   // O teclado do iOS reduz a área visível, mas 100dvh pode continuar alto.
   // Limitamos só a altura do painel; mover o overlay causa deslocamento no PWA.
@@ -151,7 +155,14 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
       const bottomInset = standalone
         ? keyboardOpen ? Math.max(0, fullHeight - viewport.height) : 0
         : Math.max(0, document.documentElement.clientHeight - viewport.offsetTop - viewport.height)
-      overlay.style.bottom = `${bottomInset}px`
+      if (transactionDrawer) {
+        const drawerInset = standalone && !keyboardOpen ? 0 : Math.max(
+          0, (standalone ? fullHeight : document.documentElement.clientHeight) - viewport.offsetTop - viewport.height,
+        )
+        overlay.style.setProperty('--transaction-keyboard-inset', `${drawerInset}px`)
+      } else {
+        overlay.style.bottom = `${bottomInset}px`
+      }
       if (window.scrollY !== 0) window.scrollTo(0, 0)
     }
     syncHeight()
@@ -164,8 +175,9 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
       window.removeEventListener('resize', syncHeight)
       panel.style.removeProperty('max-height')
       overlay.style.removeProperty('bottom')
+      overlay.style.removeProperty('--transaction-keyboard-inset')
     }
-  }, [isOpen, variant])
+  }, [isOpen, variant, transactionDrawer])
 
   // Desabilitar o controle que está com o foco o joga para o `body`, e a partir
   // dali Tab volta a percorrer a página de fundo — o foco escapa do diálogo sem
@@ -220,8 +232,10 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
   return createPortal(
     <div
       ref={overlayRef}
-      className={isTransaction
-        ? 'transaction-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/75 md:items-center md:px-4 md:py-6'
+      className={isFloating
+        ? 'floating-sheet-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/[0.27] px-2'
+        : isTransaction
+        ? `transaction-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/75 ${transactionDrawer ? 'transaction-drawer-overlay md:items-stretch md:justify-end' : 'md:items-center md:px-4 md:py-6'}`
         : isSheet
         ? 'wallet-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/70 md:items-stretch md:justify-end'
         : 'fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center'}
@@ -239,14 +253,16 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className={isTransaction
-          ? 'transaction-modal-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] w-full flex-col overflow-hidden rounded-t-[28px] border border-zinc-700/70 bg-[#181818] shadow-2xl focus:outline-none md:max-h-[calc(100dvh-3rem)] md:max-w-lg md:rounded-[28px]'
+        className={isFloating
+          ? 'floating-sheet-panel flex w-full max-w-[420px] flex-col overflow-hidden border text-white focus:outline-none'
+          : isTransaction
+          ? `transaction-modal-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] w-full flex-col overflow-hidden rounded-t-[28px] border border-zinc-700/70 bg-[#181818] shadow-2xl focus:outline-none ${transactionDrawer ? 'transaction-drawer-panel md:max-h-none md:max-w-[480px] md:rounded-none md:border-y-0 md:border-r-0' : 'md:max-h-[calc(100dvh-3rem)] md:max-w-lg md:rounded-[28px]'}`
           : isSheet
           ? `wallet-modal-panel max-h-[calc(100dvh-env(safe-area-inset-top))] w-full overflow-x-hidden overflow-y-auto rounded-t-3xl border border-zinc-800 bg-[#121212] pb-[env(safe-area-inset-bottom)] shadow-xl focus:outline-none md:max-h-none md:h-dvh md:rounded-none md:border-y-0 md:bg-[#1c1c1c]/95 md:backdrop-blur-md md:pb-0 ${variant === 'score' ? 'md:w-[min(100vw,520px)]' : 'md:w-[min(100vw,400px)]'}`
           : 'max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#121212] shadow-xl focus:outline-none'}
       >
         {isTransaction && <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-zinc-500/70 md:hidden" />}
-        <div className={isTransaction
+        <div className={hasCompactLayout
           ? 'flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-4 md:px-6 md:py-5'
           : 'flex items-start justify-between gap-4 border-b border-zinc-800 p-6'}>
           <h2 id={titleId} className="text-xl font-bold text-white">
@@ -257,7 +273,7 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
             onClick={onClose}
             disabled={!dismissible}
             aria-label="Fechar"
-            className={isTransaction
+            className={hasCompactLayout
               ? 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-2xl leading-none text-gray-300 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40'
               : 'rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent'}
           >
@@ -265,8 +281,10 @@ export function Modal({ isOpen, title, onClose, children, footer, dismissible = 
           </button>
         </div>
 
-        <div className={isTransaction
-          ? 'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 md:px-6 md:py-6'
+        <div data-sheet-expanded={isFloating ? floatingExpanded : undefined} className={isFloating
+          ? 'min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-2'
+          : isTransaction
+          ? `min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 md:px-6 md:py-6 ${transactionDrawer && !footer ? 'max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))]' : ''}`
           : 'p-6'}>{children}</div>
         {footer && <div className="shrink-0 border-t border-white/10 bg-[#181818] px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:py-4">{footer}</div>}
       </div>

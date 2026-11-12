@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import { Modal } from '../../../shared/components/Modal'
+import { assetTransactionDraftSchema } from '../schemas/assetTransactionDraftSchema'
 import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
 import { useFormDraft } from '../../../shared/hooks/useFormDraft'
 import { draftKey, readDraft, removeDraft } from '../../../shared/utils/sessionDraft'
@@ -72,8 +73,7 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-const transactionDraftSchema = z.object({ type: z.enum(['buy', 'sell']), transaction_date: z.string().max(20), quantity: z.string().max(100), price: z.string().max(100), brokerage_fee: z.string().max(100) })
-const validateTransactionDraft = (value: unknown) => { const result = transactionDraftSchema.safeParse(value); return result.success ? result.data : null }
+const validateTransactionDraft = (value: unknown) => { const result = assetTransactionDraftSchema.safeParse(value); return result.success ? result.data : null }
 const draftNumber = (value: number | undefined) => Number.isFinite(value) ? String(value) : ''
 
 // ─── renda fixa schema ────────────────────────────────────────────────────────

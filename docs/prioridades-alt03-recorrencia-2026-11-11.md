@@ -1,5 +1,13 @@
 # Precisão CSV e recorrência — 11/11/2026
 
+## Homologação em produção — PR141
+
+Merge confirmado `37d99cdeab3349cb45b5473996bcc4ce1a8529a5`. [CI da main43146101618](https://github.com/Investvalora/Valora/actions/runs/43146101618) aprovada; Vercel do merge success. Entrada efetivamente carregada `index-PU5NseRi.js` referencia `transactionsService-CdLU58p7.js`; módulo retorna HTTP200/application/javascript e envia quantidade/preço/custo pela normalização textual à RPC.
+
+Navegador integrado autenticado em produção: CSV sintético preservou quantidade `9999999999,12345678`, preço/custo `0,0001`; edição para `9999999999,12345679` permaneceu exata. Linha `0,000000001` diagnosticada e desmarcada. Não foi acionada confirmação de importação; após recarga, o rascunho sintético foi descartado pela interface. Nenhuma operação real criada ou alterada. Persistência e limites foram validados no banco local descartável, conforme evidências abaixo, sem alegar teste de gravação em produção.
+
+Cron novo confirmado na main (blob `cd329b6ebc2e7be9279a38112f971538dae061f3`); consulta GitHub filtrada por workflow/event schedule ainda retorna lista vazia nesta homologação. A alteração publicada não comprova reativação. Mantém-se pendente observar execução automática; não substituir por dispatch manual para encerrar o critério.
+
 ## CSV: causa e correção
 
 A prévia preservava os dígitos originais, mas `importTransactions` convertia quantidade, preço e corretagem para `Number`. Valores válidos para numeric(18,s), com muitos dígitos, podiam perder casas antes de chegar ao servidor. A correção envia texto decimal normalizado para a RPC existente. Não muda a convenção escolhida pelo usuário nem o lançamento manual.

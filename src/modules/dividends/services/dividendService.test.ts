@@ -12,6 +12,9 @@ it('consulta parcelas B3 e a data ex real mesmo quando o agregado não entrou na
   const paid = await dividendService.listDividendsByTickers(['KLBN4'], '2026-11-01', true)
   expect(paid).toEqual([{ ...anchor, record_date: '2025-12-15', payment_date: '2026-11-12', value_per_share: 0.04559717224, is_installment: true }])
   expect(await dividendService.listDividendsByTickers(['KLBN4'], '2026-11-01', true, 'announced')).toEqual([])
+  for (const chain of supabaseMock.chains.filter(chain => chain.table === 'dividends')) {
+    expect(chain.calls).toContainEqual({ method: 'not', args: ['source', 'in', '(seed,synthetic)'] })
+  }
 })
 it('pagos exigem data de pagamento e não misturam anúncios sem data', async () => {
   supabaseMock.on('dividends', () => ({ data: [], error: null }))
@@ -20,6 +23,7 @@ it('pagos exigem data de pagamento e não misturam anúncios sem data', async ()
   expect(filter).toContain('payment_date.gte.2026-01-01')
   expect(filter).toContain('payment_date.lte.')
   expect(filter).not.toContain('payment_date.is.null')
+  expect(supabaseMock.chains[0].calls).toContainEqual({ method: 'not', args: ['source', 'in', '(seed,synthetic)'] })
 })
 it('anúncios incluem pagamentos futuros e datas a definir até o horizonte', async () => {
   supabaseMock.on('dividends', () => ({ data: [], error: null }))
@@ -28,6 +32,7 @@ it('anúncios incluem pagamentos futuros e datas a definir até o horizonte', as
   expect(filter).toContain('payment_date.gt.')
   expect(filter).toContain('payment_date.is.null')
   expect(filter).toContain('payment_date.lte.2027-01-01')
+  expect(supabaseMock.chains[0].calls).toContainEqual({ method: 'not', args: ['source', 'in', '(seed,synthetic)'] })
 })
 it('propaga erro em vez de devolver ausência de proventos', async () => {
   supabaseMock.on('dividends', () => ({ data: null, error: new Error('offline') }))

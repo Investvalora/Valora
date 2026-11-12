@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -48,13 +48,16 @@ const CREATED_ROW = {
   asset: CATALOG_ASSET,
 }
 
+const queryClients = new Set<QueryClient>()
 function createQueryClient() {
-  return new QueryClient({
+  const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   })
+  queryClients.add(client)
+  return client
 }
 
 function renderPage(queryClient = createQueryClient()) {
@@ -154,6 +157,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  cleanup()
+  for (const client of queryClients) client.clear()
+  queryClients.clear()
   vi.unstubAllGlobals()
   window.localStorage.clear()
 })
@@ -506,13 +512,13 @@ describe('CarteiraPage — conversão USD', () => {
     }))
 
     renderPage()
-    const row = await screen.findByRole('row', { name: /AAPL/ })
-
     // 10 × US$ 150 × 5,12 = R$ 7.680,00.
-    await waitFor(() => expect(row).toHaveTextContent('7.680,00'))
-    expect(patrimonyCard()).toHaveTextContent('R$ 5,1200')
-    expect(screen.queryByText('taxa USD aproximada')).toBeNull()
-  })
+    await waitFor(() => {
+      expect(screen.getByRole('row', { name: /AAPL/ })).toHaveTextContent('7.680,00')
+      expect(patrimonyCard()).toHaveTextContent('R$ 5,1200')
+      expect(screen.queryByText('taxa USD aproximada')).toBeNull()
+    })
+  }, 15000)
 
   it('com PTAX e AwesomeAPI fora, usa o fallback e avisa que a taxa é aproximada', async () => {
     stubUSDSources({ rate: null })

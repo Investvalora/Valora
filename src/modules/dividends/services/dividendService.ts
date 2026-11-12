@@ -45,6 +45,7 @@ export const dividendService = {
       const query = supabase
         .from('dividends')
         .select(DIVIDEND_COLUMNS)
+        .not('source', 'in', '(seed,synthetic)')
         .in('ticker', tickers)
         .or(status === 'announced'
           ? `and(payment_date.gt.${today},payment_date.lte.${until ?? '9999-12-31'}),and(payment_date.is.null,ex_date.lte.${until ?? '9999-12-31'})`
@@ -78,6 +79,7 @@ export const dividendService = {
     const anchors: DividendRaw[] = []
     for (let start = 0; ; start += DIVIDENDS_LIMIT) {
       const { data, error } = await supabase.from('dividends').select(DIVIDEND_COLUMNS)
+        .not('source', 'in', '(seed,synthetic)')
         .in('ticker', [...new Set(payments.map(row => row.ticker))])
         .gt('ex_date', dates[0]).lte('ex_date', lastEx)
         .order('ticker').order('ex_date').order('type').range(start, start + DIVIDENDS_LIMIT - 1)

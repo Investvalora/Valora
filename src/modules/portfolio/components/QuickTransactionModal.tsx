@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { draftKey, readDraft, saveDraft, removeDraft } from '../../../shared/utils/sessionDraft'
+import { draftKey, readDeviceDraft as readDraft, saveDeviceDraft as saveDraft, removeDeviceDraft as removeDraft } from '../../../shared/utils/sessionDraft'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import { toIsoDate } from '../../../shared/utils/isoDate'
 import { useQuery } from '@tanstack/react-query'
@@ -420,7 +420,7 @@ function QuickTransactionForm({ isOpen, onClose, initialFixedIncome }: QuickTran
     >
       <form id="quick-transaction-form" onSubmit={submit} className="space-y-5">
         {draftAvailable && <div role="status" className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
-          Há um rascunho desta carteira guardado nesta aba por até 8 horas. Confira os dados antes de salvar.
+          Há um rascunho desta carteira guardado neste dispositivo por até 8 horas. Confira os dados antes de salvar.
           <button type="button" className="ml-2 underline" onClick={restoreDraft}>Restaurar rascunho</button>
           <button type="button" className="ml-2 underline" onClick={() => { if (storageKey) removeDraft(storageKey); setDraftAvailable(false) }}>Descartar rascunho</button>
         </div>}

@@ -1,4 +1,5 @@
 import { supabase } from '../../../shared/services/supabaseClient'
+import { beginIntentionalLogout, endIntentionalLogout } from '../intentionalLogout'
 import { LoginFormData, SignupFormData, UserProfile } from '../types'
 import { authRedirect } from './authRedirect'
 import { passwordSchema } from '../schemas/passwordSchema'
@@ -83,8 +84,11 @@ export const authService = {
   },
 
   async logout() {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    beginIntentionalLogout()
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    } finally { endIntentionalLogout() }
   },
 
   async requestPasswordRecovery(email: string) {

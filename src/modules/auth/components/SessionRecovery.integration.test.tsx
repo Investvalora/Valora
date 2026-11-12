@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AuthProvider } from './AuthProvider'
 import { SessionRecovery } from './SessionRecovery'
+import { SessionEndedNotice } from './SessionEndedNotice'
+import { beginIntentionalLogout, endIntentionalLogout } from '../intentionalLogout'
 import { useAuthStore } from '../store'
 import { draftKey, readDraft, saveDraft } from '../../../shared/utils/sessionDraft'
 
@@ -13,16 +15,41 @@ let authEvent: (event: string, session: unknown) => void
 const session = (id: string, token: string) => ({ user: { id }, access_token: token })
 beforeEach(() => {
   vi.clearAllMocks(); sessionStorage.clear()
-  useAuthStore.setState({ session: null, user: null, loading: true })
+  useAuthStore.setState({ session: null, user: null, loading: true, sessionEnded: false })
   mocks.getSession.mockResolvedValue({ data: { session: session('a', 'old') } })
   mocks.onAuthStateChange.mockImplementation(callback => { authEvent = callback; return { data: { subscription: { unsubscribe: vi.fn() } } } })
 })
 afterEach(() => { vi.useRealTimers(); useAuthStore.setState({ session: null, user: null }) })
 function mount() {
   const client = new QueryClient()
-  render(<QueryClientProvider client={client}><MemoryRouter><AuthProvider><input aria-label="formulário aberto" defaultValue="preservar"/><SessionRecovery/></AuthProvider></MemoryRouter></QueryClientProvider>)
+  render(<QueryClientProvider client={client}><MemoryRouter><AuthProvider><input aria-label="formulário aberto" defaultValue="preservar"/><SessionRecovery/><SessionEndedNotice/></AuthProvider></MemoryRouter></QueryClientProvider>)
   return client
 }
+it('explica perda involuntária da sessão mesmo após SIGNED_OUT e limpa o aviso no novo login', async () => {
+  mocks.getUser.mockResolvedValue({error:null,data:{user:{id:'a'}}})
+  mount()
+  await waitFor(()=>expect(useAuthStore.getState().session).not.toBeNull())
+  act(()=>authEvent('SIGNED_OUT',null))
+  expect(screen.getByRole('status')).toHaveTextContent('Sua sessão foi encerrada')
+  act(()=>authEvent('SIGNED_IN',session('a','new')))
+  await waitFor(()=>expect(screen.queryByText('Sua sessão foi encerrada. Entre novamente para continuar.')).not.toBeInTheDocument())
+})
+it('não mostra aviso para saída voluntária', async () => {
+  mocks.getUser.mockResolvedValue({error:null,data:{user:{id:'a'}}})
+  mount()
+  await waitFor(()=>expect(useAuthStore.getState().session).not.toBeNull())
+  beginIntentionalLogout()
+  try { act(()=>authEvent('SIGNED_OUT',null)) } finally { endIntentionalLogout() }
+  expect(useAuthStore.getState().sessionEnded).toBe(false)
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+it('não mostra aviso numa visita inicial sem sessão', async () => {
+  mocks.getSession.mockResolvedValue({data:{session:null}})
+  mount()
+  await waitFor(()=>expect(useAuthStore.getState().loading).toBe(false))
+  expect(useAuthStore.getState().sessionEnded).toBe(false)
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
 it('evento de novo login da mesma conta recupera a tela e preserva formulário, cache e rascunho', async () => {
   mocks.getUser.mockImplementation(async token => ({ error: token === 'old' ? { code: 'session_not_found' } : null, data: { user: { id: 'a' } } }))
   const client = mount()

@@ -1,5 +1,9 @@
 # TODO ativa de evolução do Valora
 
+**RP09 — defeito reproduzido em teste real:** responsável confirmou revogação e redirecionamento ao login sem explicação. Correção local mantém motivo em memória e mostra aviso no login móvel/desktop, distinguindo logout voluntário. [Registro](aviso-login-sessao-encerrada-2026-11-12.md). Publicação e reteste pendentes.
+
+**Correção local após teste físico:** lançamento rápido com rascunho de oito horas no dispositivo, restauração explícita e limpeza ao cancelar/logout; barra inferior não confunde janela menor sem edição com teclado. [Escopo e limites](correcao-rascunho-dispositivo-2026-11-12.md). Publicação/reteste pendentes; revogação da conta de teste ainda não executada.
+
 **Android físico12/11 — parcial:** Galaxy A31/PWA instalado: início, score, lançamento sem salvar, teclado e retorno pelos recentes passaram. Reabertura via launcher recriou a tela sem rascunho; investigar separadamente. Tempos de Activity não são benchmark web. Worker antigo e revogação da conta de teste ainda não validados. [Registro](homologacao-android-fisico-2026-11-12.md).
 
 Reteste físico complementar: quantidade3 preservada no retorno normal pelos recentes e cancelada sem salvar. Três aberturas detectaram valores do início em até6,51/4,83/5,05s, incluindo observação ADB; sem métricas web ou comparação antes/depois. Fallback internacional observado às13h11/14h11 com sucesso. Não encerra atualização de worker antigo, recriação da sessão de aba, fila integral ou revogação entre dispositivos.

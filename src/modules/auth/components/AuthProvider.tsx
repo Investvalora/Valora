@@ -3,6 +3,7 @@ import { supabase } from '../../../shared/services/supabaseClient'
 import { useAuthStore } from '../store'
 import { useQueryClient } from '@tanstack/react-query'
 import { clearSessionDrafts } from '../../../shared/utils/sessionDraft'
+import { isIntentionalLogout } from '../intentionalLogout'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -17,6 +18,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const acceptSession = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
       if (!active) return
       const nextIdentity = session?.user.id ?? null
+      if (identity !== null && nextIdentity === null) {
+        useAuthStore.setState({ sessionEnded: !isIntentionalLogout() })
+      }
       if (identity !== nextIdentity || nextIdentity === null) {
         if (identity !== null || nextIdentity === null) clearSessionDrafts()
         // Cancel in-flight requests before removing data from the previous identity.

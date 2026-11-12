@@ -69,8 +69,11 @@ type Rpc = (name: string, body: unknown) => Promise<unknown>
 export function marketstackKeys(list: string, primary: string, numbered: string[]): string[] {
   return [...new Set([primary, ...list.split(/[\s,;]+/), ...numbered].map(k => k.trim()).filter(Boolean))].slice(0,8)
 }
+async function keyEntries(keys: string[]) {
+  return Promise.all(keys.map(async key => ({ key, id: Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key)))).map(b=>b.toString(16).padStart(2,'0')).join('') })))
+}
 export async function rotatingMarketstack(rpc: Rpc, keys: string[], ticker: string, today: string, request = fetch): Promise<ProviderEvent[]> {
-  const entries = await Promise.all(keys.map(async key => ({ key, id: Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key)))).map(b=>b.toString(16).padStart(2,'0')).join('') })))
+  const entries = await keyEntries(keys)
   let lastError = 'provider_keys_unavailable'
   for (let attempt=0; attempt<entries.length; attempt++) {
     const id = await rpc('reserve_marketstack_key', { p_key_ids: entries.map(e=>e.id) })
@@ -92,6 +95,9 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
     const key = await secret(provider === 'alpha_vantage' ? 'ALPHA_VANTAGE_API_KEY' : 'MARKETSTACK_API_KEY')
     const keys = provider === 'marketstack' ? marketstackKeys(await secret('MARKETSTACK_API_KEYS'),key,await Promise.all(Array.from({length:7},(_,i)=>secret(`MARKETSTACK_API_KEY_${i+2}`)))) : []
     if (provider === 'marketstack' ? !keys.length : !key) continue
+    // Avoid leasing/defering an asset when every account is already out of budget.
+    // This is a preflight only; the atomic reservation remains mandatory before HTTP.
+    if (provider === 'marketstack' && await rpc('marketstack_budget_available', {p_key_ids:(await keyEntries(keys)).map(k=>k.id)}) !== true) continue
     const tasks = await rpc('claim_dividend_provider', { p_provider: provider }) as { ticker: string; claim_token: string }[]
     if (!Array.isArray(tasks) || tasks.length > 1) throw new Error('provider_invalid_task')
     for (const task of tasks) {

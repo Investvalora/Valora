@@ -11,12 +11,20 @@ afterEach(()=>vi.unstubAllGlobals())
 const invoke=(body:unknown)=>handler(new Request('https://internal.invalid',{method:'POST',headers:{Authorization:'Bearer internal-test-key'},body:JSON.stringify(body)}))
 it('rejects unauthenticated collection before accessing queue',async()=>{expect((await handler(new Request('https://internal.invalid',{method:'POST'}))).status).toBe(401);expect(fetchMock).not.toHaveBeenCalled()})
 it('returns only leased tickers and claim tokens',async()=>{expect(await(await invoke({mode:'claim'})).json()).toEqual({tasks:[{ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111'}]});expect(fetchMock).toHaveBeenCalledTimes(1)})
+it('exposes queue health only through the authenticated collector',async()=>{
+ expect((await invoke({mode:'health'})).status).toBe(200)
+ expect(fetchMock.mock.calls[0][0]).toContain('international_queue_health')
+})
 it('keeps provider credentials at the Edge and does not return Vault values to the collector',async()=>{
  vi.stubGlobal('Deno',{env:{get:()=>undefined}})
- fetchMock.mockImplementation(async(url:string)=>url.includes('get_dividend_provider_key')?Response.json('private-vendor-key'):Response.json([]))
+ let auditId=''
+ fetchMock.mockImplementation(async(url:string,init?:RequestInit)=>{
+  if(url.includes('operational_job_runs')){const b=JSON.parse(String(init?.body));if(b.id)auditId=b.id;return Response.json([{id:auditId}])}
+  return url.includes('get_dividend_provider_key')?Response.json('private-vendor-key'):Response.json([])
+ })
  const response=await invoke({mode:'providers'})
  expect(response.status).toBe(200)
- expect(await response.json()).toEqual({results:[],received_income_created:0})
+ expect(await response.json()).toEqual({results:[],received_income_created:0,audit_saved:true})
  expect(fetchMock.mock.calls.map(c=>String(c[0])).filter(url=>url.includes('get_dividend_provider_key'))).toHaveLength(3)
  expect(fetchMock.mock.calls.every(c=>!String(c[0]).includes('private-vendor-key'))).toBe(true)
 })

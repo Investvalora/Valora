@@ -63,6 +63,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const r=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'providers'}),signal:AbortSignal.timeout(60000)})
       if(!r.ok)throw new Error('provider_collection_failed')
       const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>r.error && !['provider_keys_unavailable','provider_quota_exhausted'].includes(r.error)))process.exitCode=1
+      const health=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'health'}),signal:AbortSignal.timeout(20000)})
+      if(!health.ok)throw new Error('collector_health_failed')
+      console.log(JSON.stringify({health:await health.json()}))
     }
   } catch { console.error('international_collector_failed'); process.exitCode = 1 }
 }

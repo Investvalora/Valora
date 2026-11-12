@@ -1,6 +1,6 @@
 import { authorizeInternationalCollector } from './githubOidc.ts'
 import { boundedBytes } from '../_shared/officialFiles.ts'
-import { collectProviderFallbacks } from './providers.ts'
+import { collectProviderFallbacks, providerOperationalFailure } from './providers.ts'
 import { jobRun } from '../_shared/jobRuns.ts'
 const url = Deno.env.get('SUPABASE_URL') ?? '', key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }
@@ -25,8 +25,9 @@ Deno.serve(async request => {
       const value = await rpc('get_dividend_provider_key', { p_provider: name === 'ALPHA_VANTAGE_API_KEY' ? 'alpha_vantage' : name === 'MARKETSTACK_API_KEYS' ? 'marketstack_keys' : 'marketstack' })
       return typeof value === 'string' ? value : ''
       }, new Date().toISOString().slice(0,10))
-      const errors=result.results.filter(r=>r.error&&!['provider_keys_unavailable','provider_quota_exhausted'].includes(r.error)).map(r=>r.error)
-      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors},fetch,'international-providers')
+      const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)
+      const coverage=result.results.filter(r=>r.error==='provider_calendar_unavailable').map(r=>`${r.provider}:${r.ticker}`)
+      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage},fetch,'international-providers')
       return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
     }
     if (body.mode === 'claim' || body.mode === 'claim_sec') {

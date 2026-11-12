@@ -27,6 +27,16 @@ do $$ declare e jsonb;r jsonb;begin
  e:=jsonb_build_object('ex_date',current_date-10,'declaration_date',current_date-20,'record_date',current_date-10,'payment_date',current_date+1,'value_per_share',1.47);
  perform public.finish_dividend_provider('alpha_vantage','COST','11111111-1111-4111-8111-111111111111',jsonb_build_array(e),null);
  if not exists(select 1 from public.dividends where ticker='COST' and ex_date=current_date-10 and payment_date=current_date+1 and value_per_share=1.47 and source='alpha_vantage') then raise exception 'Calendar not enriched';end if;
+ -- Preserve sub-cent dividends end to end, without rounding on insertion.
+ update public.dividend_provider_tasks set claim_token='11111111-1111-4111-8111-111111111111',next_sync_at=now()+interval '10 minutes' where provider='alpha_vantage' and ticker='COST';
+ e:=jsonb_build_object('ex_date',current_date-11,'declaration_date',current_date-21,'record_date',current_date-11,'payment_date',current_date+2,'value_per_share',0.0196242);
+ r:=public.finish_dividend_provider('alpha_vantage','COST','11111111-1111-4111-8111-111111111111',jsonb_build_array(e),null);
+ if r->>'error' is not null or not exists(select 1 from public.dividend_provider_events where provider='alpha_vantage' and ticker='COST' and ex_date=current_date-11 and value_per_share=0.0196242) then raise exception 'Seven decimal observation lost';end if;
+ update public.dividend_provider_tasks set claim_token='11111111-1111-4111-8111-111111111111',next_sync_at=now()+interval '10 minutes' where provider='alpha_vantage' and ticker='COST';
+ begin
+  perform public.finish_dividend_provider('alpha_vantage','COST','11111111-1111-4111-8111-111111111111',jsonb_build_array(e||jsonb_build_object('value_per_share',0.019624201)),null);
+  raise exception 'Excess precision accepted';
+ exception when raise_exception then if sqlerrm<>'Invalid provider event' then raise;end if;end;
  -- Independent global budgets, even if there are many users and concurrent callers.
  insert into public.dividend_provider_usage(provider,usage_day,requests) values('alpha_vantage',current_date,20),('marketstack',current_date,16);
  if exists(select 1 from public.claim_dividend_provider('alpha_vantage')) or exists(select 1 from public.claim_dividend_provider('marketstack')) then raise exception 'Daily quota exceeded';end if;

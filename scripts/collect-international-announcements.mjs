@@ -4,6 +4,7 @@ import { collectSecDividends } from './sec-dividend-announcements.mjs'
 import { pathToFileURL } from 'node:url'
 import { nasdaqSource } from '../supabase/functions/sync-international-announcements/source.ts'
 import { nasdaqIdentity, nasdaqAnnouncements } from '../supabase/functions/sync-international-announcements/nasdaq.ts'
+import { providerOperationalFailure } from '../supabase/functions/sync-international-announcements/providers.ts'
 
 export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements }) {
   const asOf = new Date().toISOString().slice(0,10)
@@ -62,7 +63,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       catch {console.error('sec_collector_failed');process.exitCode=1}
       const r=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'providers'}),signal:AbortSignal.timeout(60000)})
       if(!r.ok)throw new Error('provider_collection_failed')
-      const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>r.error && !['provider_keys_unavailable','provider_quota_exhausted'].includes(r.error)))process.exitCode=1
+      const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>providerOperationalFailure(r.error)))process.exitCode=1
       const health=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'health'}),signal:AbortSignal.timeout(20000)})
       if(!health.ok)throw new Error('collector_health_failed')
       console.log(JSON.stringify({health:await health.json()}))

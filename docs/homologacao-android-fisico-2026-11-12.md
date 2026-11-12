@@ -1,5 +1,23 @@
 # Android físico — Galaxy A31 — 12/11/2026
 
+## Atualização vigente — após PR148
+
+### Reteste físico aprovado — aproximadamente17h16–17h21 Brasília
+
+Capturas ADB voltaram a retornar PNG completo; leitura uiautomator permaneceu sem conteúdo web. Pela imagem real do Galaxy A31, início e barra inferior legíveis; botão central abriu lançamento. Quantidade3 digitada sem ativo e sem salvar, com teclado numérico real. HOME→launcher abriu novamente o início. Novo lançamento ofereceu explicitamente o rascunho no dispositivo; Restaurar recuperou quantidade3. Cancelar retornou ao início; reabertura confirmou quantidade0, campos vazios e ausência da oferta. Cancelado novamente ao final. Nenhum lançamento foi salvo.
+
+Fecha o reteste físico de persistência após recriação da janela e limpeza, mas não comprova versão anterior/atual do worker ou comparação de desempenho. A captura intermediária de splash não é falha; uma captura posterior mostrou início carregado normalmente. Evidências locais output/android-debug-atual.png, android-qty-atual.png, android-draft-oferta.png, android-draft-restaurado.png e android-draft-limpo.png. O registro de tentativas incompletas abaixo permanece histórico.
+
+### Nova tentativa de depuração
+
+ADB reconectado (transport 6). A primeira leitura uiautomator voltou a expor o conteúdo real do início: carteira Investidor10, investido R$18.483,17 e rentabilidade24,09%. A captura permaneceu truncada em62bytes. Três retomadas pelo launcher foram aceitas, porém as leituras seguintes retornaram shell Chrome sem textos; logo, os intervalos observados de8,97/5,00/4,94s não representam tempo até dados disponíveis e não entram no benchmark. Evidência técnica local output/android-debug-reteste-tempos.json. Leitura da interface está intermitente; não comprova tela branca visível ao usuário.
+
+Responsável confirmou o aviso após revogação real em produção. Rascunho após recriar aba e barra após redimensionar passaram na web publicada, conforme homologacao-producao-pr148.md; os estados anteriores abaixo são históricos.
+
+Na retomada por USB, aparelho SM-A315G conectado e getprop respondeu. ADB lançou o PWA instalado com Status ok/WaitTime315ms, que continua sendo medida nativa e não carregamento web. Leitura uiautomator retornou shell Chrome sem textos do aplicativo, inclusive após reabertura; captura binária retornou PNG truncado de 62 bytes. Responsável confirmou que vê o Valora carregado normalmente. Não atribuir esses artefatos incompletos a tela branca no app nem usá-los como tempo de carregamento.
+
+Não foram limpos dados/cache nem reinstalado o PWA. Sem observação instrumental confiável, não foi produzida nova série física ou comparação antes/depois. Prova de atualização de worker antigo e desempenho comparável continuam abertas. As três amostras anteriores permanecem apenas observacionais.
+
 Teste via depuração USB autorizado pelo responsável, aproximadamente14h34–14h40 Brasília. Aparelho Samsung SM-A315G, captura1080×2400; ícone de Wi-Fi visível. PWA instalado identificado pelo domínio investvalora.vercel.app, sem barra de endereço. Conta com carteira Investidor10; por isso não foi usada para revogação.
 
 ## Confirmado

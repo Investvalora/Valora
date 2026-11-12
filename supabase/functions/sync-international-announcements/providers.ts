@@ -1,6 +1,10 @@
 import { boundedBytes } from '../_shared/officialFiles.ts'
 
 export type DividendProvider = 'alpha_vantage' | 'marketstack'
+/** Coverage gaps stay recorded on the task, but are not infrastructure failures. */
+export function providerOperationalFailure(error: string | null): boolean {
+  return !!error && !['provider_calendar_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
+}
 export interface ProviderEvent {
   ex_date: string; declaration_date: string; record_date: string; payment_date: string; value_per_share: number
 }
@@ -27,9 +31,13 @@ export function providerEvents(provider: DividendProvider, ticker: string, paylo
     if (!ex || !declared || !rec || !pay) continue
     if (Math.abs(Date.parse(ex) - Date.parse(today)) > 366 * 86400000) continue
     const raw = provider === 'alpha_vantage' ? row.amount : row.dividend
-    if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,6})?$/.test(String(raw))) throw new Error('provider_invalid_amount')
+    if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,8})?$/.test(String(raw))) throw new Error('provider_invalid_amount')
     const amount = Number(raw)
-    if (!(amount > 0 && amount < 1e12) || declared > today || declared > ex || ex > rec || rec > pay || Date.parse(pay) - Date.parse(ex) > 366 * 86400000) throw new Error('provider_invalid_calendar')
+    if (!(amount > 0 && amount < 1e12)) throw new Error('provider_invalid_amount')
+    const [whole, fraction = ''] = String(raw).split('.')
+    const exact = BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, '0'))
+    if (BigInt(amount.toFixed(8).replace('.', '')) !== exact) throw new Error('provider_invalid_amount')
+    if (declared > today || declared > ex || ex > rec || rec > pay || Date.parse(pay) - Date.parse(ex) > 366 * 86400000) throw new Error('provider_invalid_calendar')
     if (events.some(e => e.ex_date === ex)) throw new Error('provider_ambiguous_distribution')
     events.push({ ex_date: ex, declaration_date: declared, record_date: rec, payment_date: pay, value_per_share: amount })
   }
@@ -104,7 +112,11 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
       let events: ProviderEvent[] = [], error: string | null = null
       try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await fetchProviderEvents(provider, task.ticker, key, today) }
       catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed' }
-      await rpc('finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error })
+      const stored = await rpc('finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error }) as { error?: unknown } | null
+      if (stored?.error) {
+        if (typeof stored.error !== 'string' || !/^provider_[a-z_]+$/.test(stored.error)) throw new Error('provider_storage_failed')
+        error = stored.error
+      }
       results.push({ provider, ticker: task.ticker, events: events.length, error })
     }
   }

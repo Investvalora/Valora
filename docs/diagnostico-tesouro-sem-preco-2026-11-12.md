@@ -29,3 +29,9 @@ Reconsulta gratuita em12/11: Nasdaq info confirma MA/NYSE/Common Stock, mas a re
 Nasdaq COST continua com último anúncio regular USD1,47/ex30/10/pagamento13/11; não há especial USD30 nessa resposta. A data ex do especial continua não confirmada, sem promoção para cálculo. Não inferir pela regra geral de liquidação nem usar terceiros sem fonte independente homologada.
 
 Pendências que não podem ser encerradas nesta entrega: execução schedule internacional observada; descoberta MA acessível ao coletor; ex oficial do especial; extrato do líquido MA e confirmação do cadastro Selic pelo titular. A PR reúne correção verificável e evidências dessas dependências, sem apresentar todas como resolvidas.
+## Encerramento operacional autorizado — 12/11/2026
+
+Após rastreio do cadastro e identificação da conta responsável, o titular do projeto autorizou explicitamente desativar somente a aplicação Selic de principalR$1.010, quantidade100 e vencimento10/10/2027. Operação aplicada em transação com guardas de identidade/valores, ausência de eventos e preservação das demais posições. Apenas `active=false` e o timestamp automático de atualização mudaram. Nome, principal, quantidade, datas, taxa e saldo original foram preservados; nenhuma exclusão realizada e Investidor10 intacta.
+
+Consulta posterior confirmou registro inativo e zero eventos. O cálculo seleciona somente `active=eq.true`, portanto esse cadastro sai das posições elegíveis. Não foi provocado outro recálculo global. Trata-se de desativação autorizada e reversível, não de confirmação da identidade de um título real ou de exclusão de um teste comprovado. Esse estado substitui a pendência cadastral ativa descrita no histórico abaixo.
+

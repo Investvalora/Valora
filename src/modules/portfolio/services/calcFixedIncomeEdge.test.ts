@@ -99,3 +99,21 @@ it('marks confirmed Treasury units at the official D0 base price without changin
  expect(patch).not.toHaveProperty('principal')
  expect(f.mock.calls.some(c=>c[0].includes('macro_rates'))).toBe(false)
 })
+
+it.each([
+ { prices: [], expected: 'Sem preço oficial para tesouro_selic, vencimento 2027-10-10' },
+ { prices: { error: 'bad shape' }, expected: 'Resposta de preços do Tesouro inválida' },
+ { prices: [{ type: 'tesouro_selic', maturity_date: '2027-10-10', date: '2020-01-01', base_price: 15000 }], expected: 'Preço do Tesouro incompatível ou antigo' },
+])('diagnostica $expected sem atualizar saldo nem usar taxa contratual', async ({ prices, expected }) => {
+ let handler: ((r: Request)=>Promise<Response>) | undefined
+ vi.stubGlobal('Deno',{env:{get:(name:string)=>name==='SUPABASE_URL'?'https://test.supabase.co':'test-only-key'},serve:(h:typeof handler)=>{handler=h}})
+ const f=vi.fn(async(url:string, options?:RequestInit)=> options?.method==='PATCH' ? new Response(null,{status:204}) : new Response(JSON.stringify(url.includes('treasury_prices')?prices:[{id:'p',type:'tesouro_selic',indexer:'selic',rate:100,principal:100,application_date:'2026-01-01',maturity_date:'2027-10-10',treasury_quantity:100,events:[]}])) )
+ vi.stubGlobal('fetch',f)
+ const path='../../../../supabase/functions/calc-fixed-income/index.ts';await import(path)
+ const r=await handler!(new Request('https://test/',{method:'POST',headers:{Authorization:'Bearer test-only-key'}}))
+ const result=await r.json()
+ expect(result.posicoes_atualizadas).toBe(0)
+ expect(result.erros[0]).toContain(expected)
+ expect(f.mock.calls.some(c=>c[0].includes('macro_rates'))).toBe(false)
+ expect(f.mock.calls.some(c=>c[1]?.method==='PATCH')).toBe(false)
+})

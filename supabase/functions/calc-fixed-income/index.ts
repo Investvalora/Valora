@@ -227,8 +227,11 @@ async function calcularValor(pos: FiPosition): Promise<number> {
     const query = `${SUPABASE_URL}/rest/v1/treasury_prices?select=type,maturity_date,date,base_price&type=eq.${pos.type}&maturity_date=eq.${pos.maturity_date}&date=lte.${hoje()}&order=date.desc&limit=1`;
     const response = await fetch(query, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error('Preço oficial do Tesouro indisponível');
-    const marked = treasuryValueAt(pos, hoje(), await response.json());
-    if (!marked) throw new Error('Preço oficial do Tesouro ausente ou desatualizado');
+    const prices = await response.json();
+    if (!Array.isArray(prices)) throw new Error('Resposta de preços do Tesouro inválida');
+    if (!prices.length) throw new Error(`Sem preço oficial para ${pos.type}, vencimento ${pos.maturity_date}. Confira título, vencimento e quantidade no extrato; saldo preservado`);
+    const marked = treasuryValueAt(pos, hoje(), prices);
+    if (!marked) throw new Error('Preço do Tesouro incompatível ou antigo; confira referência, vencimento e eventos. Saldo preservado');
     pos.valuation_method = 'market'; pos.valuation_price_date = marked.date;
     return marked.value;
   }

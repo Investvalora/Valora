@@ -26,6 +26,12 @@ export function supportsIndicator(id: IndicatorId, type: AssetType) {
   return INDICATOR_CATALOG[id].classes.includes(type)
 }
 
+/** Display raw catalog units; never rescale a stored value or threshold. */
+export function formatIndicatorValue(id: IndicatorId, value: number | null, maximumFractionDigits = 4): string {
+  if (value === null || !Number.isFinite(value)) return 'Indisponível'
+  return `${value.toLocaleString('pt-BR', { maximumFractionDigits })}${INDICATOR_CATALOG[id].unit === 'percent' ? '%' : ''}`
+}
+
 /** Read raw units without converting user thresholds or silently inventing a source. */
 export function indicatorValue(row: Partial<Record<IndicatorId, number | null>> & { source?: string | null } | null, id: IndicatorId, type?: AssetType | null): number | null {
   if (!row || (type && !supportsIndicator(id, type)) || row.source === 'seed' || row.source === 'synthetic') return null

@@ -1,13 +1,8 @@
 import { PageTitle } from './shared/components/PageTitle'
 import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
-import { AppShellNovo } from './shared/layout/AppShellNovo'
-import { SignupForm } from './modules/auth/components/SignupForm'
-import { LoginForm } from './modules/auth/components/LoginForm'
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
-import { PasswordRecoveryForm } from './modules/auth/components/PasswordRecoveryForm'
-import { ResetPasswordForm } from './modules/auth/components/ResetPasswordForm'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
 import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
@@ -15,6 +10,12 @@ import { PublicInfoPage } from './modules/public/components/PublicInfoPage'
 import { RouteLoadingFallback as LoadingFallback } from './shared/components/RouteLoadingFallback'
 
 // Páginas menos frequentes são carregadas somente ao acessar a rota.
+// A proteção de acesso continua imediata; o shell só é pedido após autenticar.
+const AppShellNovo = lazy(() => import('./shared/layout/AppShellNovo').then(m => ({ default: m.AppShellNovo })))
+const LoginForm = lazy(() => import('./modules/auth/components/LoginForm').then(m => ({ default: m.LoginForm })))
+const SignupForm = lazy(() => import('./modules/auth/components/SignupForm').then(m => ({ default: m.SignupForm })))
+const PasswordRecoveryForm = lazy(() => import('./modules/auth/components/PasswordRecoveryForm').then(m => ({ default: m.PasswordRecoveryForm })))
+const ResetPasswordForm = lazy(() => import('./modules/auth/components/ResetPasswordForm').then(m => ({ default: m.ResetPasswordForm })))
 const AlertsPage = lazy(() => import('./modules/alerts/components/AlertsPage').then(m => ({ default: m.AlertsPage })))
 const PatrimonioPage = lazy(() => import('./modules/wealth/components/PatrimonioPage').then(m => ({ default: m.PatrimonioPage })))
 const ProventosPage = lazy(() => import('./modules/dividends/components/ProventosPage').then(m => ({ default: m.ProventosPage })))

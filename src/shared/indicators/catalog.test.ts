@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest'
-import { INDICATOR_CATALOG, INDICATOR_IDS, indicatorValue, supportsIndicator } from './catalog'
+import { INDICATOR_CATALOG, INDICATOR_IDS, indicatorValue, supportsIndicator, formatIndicatorValue } from './catalog'
+it('formats catalog units without scaling stored values or hiding missing data',()=>{
+ expect(formatIndicatorValue('debt_equity',1.5)).toBe('1,5%')
+ expect(formatIndicatorValue('debt_equity',150)).toBe('150%')
+ expect(formatIndicatorValue('pl',1.5)).toBe('1,5')
+ expect(formatIndicatorValue('dy',0)).toBe('0%')
+ expect(formatIndicatorValue('roe',NaN)).toBe('Indisponível')
+})
 it('não converte percentuais nem usa dívida de fonte sem convenção validada', () => {
   expect(indicatorValue({ debt_equity: 76, source: 'yahoo' }, 'debt_equity')).toBe(76)
   expect(indicatorValue({ debt_equity: 76, source: 'brapi' }, 'debt_equity')).toBeNull()

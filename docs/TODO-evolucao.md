@@ -1,5 +1,7 @@
 # TODO ativa de evolução do Valora
 
+**Homologação local conjunta 12/11:** correções RP-04/06/07/09 aprovadas em 1.334 testes, build/PWA e conferência autenticada sem gravações. [Evidências e limites](homologacao-tecnicas-2026-11-12.md). Publicação e critérios físicos continuam pendentes.
+
 Consolidada em 06/11/2026 a pedido do responsável. Esta é a lista de acompanhamento das melhorias discutidas nesta rodada; os relatórios anteriores preservam evidências e histórico. Checkbox marcado significa critério concluído e documentado, não apenas código iniciado.
 
 Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de prometer cobertura. Cada entrega deve preservar funcionalidades existentes, receber testes apropriados e seguir por PR; merge pelo responsável.
@@ -163,15 +165,19 @@ Rodada técnica local iniciada em 07/11/2026: catálogo compartilhado inicial, r
 Atualização07/11: implementação inicial publicada pela PR110; início, importação, detalhe e rentabilidade conferidos em produção. RP04–07 continuam abertos pelos critérios restantes abaixo; RP09 precisa do reteste específico de sessão revogada, sem revogar sessões reais inadvertidamente.
 
 - [ ] **RP-04 — Catálogo compartilhado de indicadores.** Centralizar fórmula/convenção, unidade, fonte, referência, classes e operadores para tabela, score, estratégias e alertas. Conferir Dívida/PL; confirmar intenção antes de converter limites antigos.
+  - Continuação local12/11: corrigida leitura direta na prévia para usar catálogo/fonte/classe; unidades compartilhadas com fundamentos, ausência distinguida de reprovação e sinal negativo correto.87 testes aprovados e conferência visual local concluída, com edição cancelada e regra original preservada. [Escopo](consistencia-previa-score-2026-11-12.md). Sem converter limites; publicação pendente.
   - PR120: aviso explícito da interpretação percentual de Dívida/PL nas regras de score e alertas, inclusive nos formulários. Um limite 1,5 continua sendo 1,5%; 1,5 vez equivale a 150%. Nenhum limite personalizado foi convertido. A confirmação da intenção dos limites antigos permanece pendente.
 - [x] **RP-05 — Integrar a importação ao fluxo atual.** Entregue na PR114: parser/preview, destino, recibo do lote, duplicação por conteúdo, atomicidade e corrida entre confirmações testados. Homologação com carteira temporária autorizada e limpeza concluída, conforme [registro](homologacao-producao-pr114.md).
 - [ ] **RP-06 — Recuperação de erros e de carregamento do PWA.** Adicionar fallback global e nova tentativa; distinguir offline e falha de versão/chunk, preservando dados de formulário. Não prometer gravação offline sem implementação própria.
+  - Continuação local12/11: ícones também validam MIME e usam somente cache da versão atual; falha de quota ao guardar chunks/ícones não bloqueia resposta válida da rede.16 testes do worker aprovados. [Escopo e limites](recuperacao-cache-icones-2026-11-12.md). Publicação e atualização real de PWA antigo ainda pendentes.
   - Prioridade: corrigir cache de assets com resposta HTML. Homologação PR124 encontrou NovaEstrategiaPage-8fZHJVrF.js com HTTP200, MIME text/html e fromServiceWorker=true; rede direta responde JavaScript. A recarga normal repete a falha. Não concluir homologação integral enquanto persistir. Detalhes em homologacao-producao-pr124.md.
   - Correção local em 10/11: validação de MIME na leitura/gravação de assets e no pré-cache, remoção de entrada inválida, recuperação pela rede sem reutilizar cache HTTP e consulta restrita ao cache da versão atual. A versão do cache também considera o código do worker. Regressão: 12 testes aprovados, incluindo cache contaminado, offline, ativação e clique de notificações. Ainda depende de publicação e reteste do caso real em produção; nenhuma sessão ou carteira foi apagada.
 - [ ] **RP-07 — Melhorar carregamento inicial.** Medir em aparelho/rede limitados, dividir rotas e carregar recursos pesados sob demanda. Comparar com o bundle inicial observado de aproximadamente 1,4 MB sem compressão; manter fluxos existentes.
+  - Continuação local12/11: formulários públicos e shell autenticado carregados por rota, com proteção e fallback existentes. Entrada gzip -14,3%, início -7,4%, login -4,5%; total JS gzip +1,8%.45 testes aprovados. [Medição e limites](carregamento-rotas-publicas-2026-11-12.md). Publicação e medição física pendentes.
 - [x] **RP-08 — CI por PR.** Versionar execução de TypeScript, lint, testes e build/PWA com runtime e lockfile definidos. Testes SQL com fixtures/rollback e tratamento seguro de credenciais. Entregue na PR #108; CI da main e PR aprovadas, com Node 24 nas Actions.
 
 - [ ] **RP-09 — Explicar sessão revogada.** Diferenciar `session_not_found` de indisponibilidade do provedor e orientar novo login. Não aceitar token revogado para silenciar o erro nem alterar o escopo de logout sem decisão explícita.
+  - Continuação local12/11: diálogo de revogação confirmada permanece durante retry e indisponibilidade; libera somente após confirmar usuário da sessão atual.10 testes de recuperação aprovados, preservando formulário e isolamento entre contas. [Escopo](recuperacao-revogacao-confirmada-2026-11-12.md). Homologação conjunta e reteste real entre dispositivos pendentes.
 
 ## 4. Novas funcionalidades de produto
 

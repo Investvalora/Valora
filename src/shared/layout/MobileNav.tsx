@@ -33,7 +33,10 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
       }
       // o Safari pode parar em 793px após um início de 852px no iphone 16 ou dispositivos com a tela nesse tamanho ou aproximado.
       // uma diferença pequena assim já é teclado fechado; não aguardamos altura idêntica.
-      const keyboard = viewport.height < baseline.height - 120
+      const focused = document.activeElement
+      const editing = focused instanceof HTMLElement &&
+        (focused.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea') || focused.isContentEditable)
+      const keyboard = editing && viewport.height < baseline.height - 120
       setKeyboardOpen(keyboard)
     }
     sync()
@@ -41,11 +44,15 @@ export function MobileNav({ alertCount, onNovoLancamento }: MobileNavProps) {
     viewport.addEventListener('scroll', sync)
     window.addEventListener('resize', sync)
     window.addEventListener('scroll', sync)
+    document.addEventListener('focusin', sync)
+    document.addEventListener('focusout', sync)
     return () => {
       viewport.removeEventListener('resize', sync)
       viewport.removeEventListener('scroll', sync)
       window.removeEventListener('resize', sync)
       window.removeEventListener('scroll', sync)
+      document.removeEventListener('focusin', sync)
+      document.removeEventListener('focusout', sync)
     }
   }, [])
 

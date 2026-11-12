@@ -1,6 +1,37 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { clearSessionDrafts, draftKey, readDraft, saveDraft } from './sessionDraft'
-beforeEach(() => { sessionStorage.clear(); vi.restoreAllMocks() })
+import { clearSessionDrafts, draftKey, readDraft, saveDraft, readDeviceDraft, saveDeviceDraft, removeDeviceDraft } from './sessionDraft'
+beforeEach(() => { sessionStorage.clear(); localStorage.clear(); vi.restoreAllMocks() })
+it('recupera lançamento após nova sessão de aba, isolado por conta e carteira', () => {
+  const key = draftKey('a','w','transaction:new')
+  expect(saveDeviceDraft(key,{ quantity:'3' })).toBe(true)
+  sessionStorage.clear()
+  expect(readDeviceDraft(key)).toEqual({quantity:'3'})
+  expect(readDeviceDraft(draftKey('b','w','transaction:new'))).toBeNull()
+  expect(readDeviceDraft(draftKey('a','other','transaction:new'))).toBeNull()
+  localStorage.setItem('unrelated','keep')
+  clearSessionDrafts()
+  expect(readDeviceDraft(key)).toBeNull()
+  expect(localStorage.getItem('unrelated')).toBe('keep')
+})
+it('migra rascunho legado ao gravar e remove ambas as cópias ao cancelar', () => {
+  const key = draftKey('a','w','transaction:new')
+  saveDraft(key,{quantity:'2'})
+  expect(readDeviceDraft(key)).toEqual({quantity:'2'})
+  saveDeviceDraft(key,{quantity:'3'})
+  expect(readDraft(key)).toBeNull()
+  removeDeviceDraft(key)
+  expect(readDeviceDraft(key)).toBeNull()
+})
+it('expira rascunho persistente e informa falha de quota', () => {
+  const key = draftKey('a','w','transaction:new')
+  saveDeviceDraft(key,{quantity:'3'})
+  const now = Date.now()
+  vi.spyOn(Date,'now').mockReturnValue(now+9*60*60*1000)
+  expect(readDeviceDraft(key)).toBeNull()
+  expect(localStorage.getItem(key)).toBeNull()
+  vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw new Error('QuotaExceededError')})
+  expect(saveDeviceDraft(key,{quantity:'3'})).toBe(false)
+})
 it('separa conta/carteira e preserva campos apenas na sessão da aba', () => {
   const key = draftKey('a','wallet-a','csv')
   expect(saveDraft(key,{ quantity: '2' })).toBe(true)

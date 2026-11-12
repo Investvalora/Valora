@@ -1,4 +1,5 @@
 import { useLoginCooldown } from '../hooks/useLoginCooldown'
+import { SessionEndedNotice } from './SessionEndedNotice'
 import { useState } from 'react'
 import { ResendConfirmation } from './ResendConfirmation'
 import { useForm } from 'react-hook-form'
@@ -93,6 +94,7 @@ function DesktopLoginForm() {
         <p>Ainda não tem uma conta? <Link to="/cadastro" className={authLink}>Criar conta</Link></p>
       </>}
     >
+      <SessionEndedNotice />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
           <label htmlFor="email" className={authLabel}>Email</label>

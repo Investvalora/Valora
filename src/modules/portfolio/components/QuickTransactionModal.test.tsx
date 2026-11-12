@@ -10,6 +10,7 @@ afterEach(() => vi.restoreAllMocks())
 const mocks = vi.hoisted(() => ({ save: vi.fn(async () => ({})), suggestions: [] as Asset[], prices: {} as Record<string, number>, latest: vi.fn() }))
 beforeEach(() => {
   sessionStorage.clear()
+  localStorage.clear()
   mocks.save.mockClear()
   mocks.suggestions = []
   mocks.prices = {}
@@ -33,7 +34,23 @@ vi.mock('../services/positionService', () => ({
   },
 }))
 import { QuickTransactionModal } from './QuickTransactionModal'
-import { draftKey, readDraft, saveDraft } from '../../../shared/utils/sessionDraft'
+import { draftKey, readDraft, saveDraft, readDeviceDraft } from '../../../shared/utils/sessionDraft'
+
+it('oferece restauração após recriar a aba e limpa a cópia persistente ao cancelar', async () => {
+  const client = new QueryClient()
+  const first = render(<QueryClientProvider client={client}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.change(screen.getByLabelText('Quantidade'), {target:{value:'3'}})
+  const key = draftKey('draft-owner','wallet','transaction:new')
+  await waitFor(()=>expect(readDeviceDraft(key)).toMatchObject({values:{quantity:'3'}}))
+  first.unmount()
+  sessionStorage.clear()
+  render(<QueryClientProvider client={new QueryClient()}><QuickTransactionModal isOpen onClose={vi.fn()} /></QueryClientProvider>)
+  fireEvent.click(await screen.findByRole('button',{name:'Restaurar rascunho'}))
+  expect(screen.getByLabelText('Quantidade')).toHaveValue(3)
+  expect(mocks.save).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button',{name:'Cancelar'}))
+  expect(readDeviceDraft(key)).toBeNull()
+})
 
 it('restaura campos sem salvar nem substituir preço e descarta ao cancelar', async () => {
   const key = draftKey('draft-owner','wallet','transaction:new')

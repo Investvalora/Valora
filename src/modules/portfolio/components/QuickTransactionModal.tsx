@@ -13,9 +13,9 @@ import { z } from "zod";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
   draftKey,
-  readDraft,
-  saveDraft,
-  removeDraft,
+  readDeviceDraft as readDraft,
+  saveDeviceDraft as saveDraft,
+  removeDeviceDraft as removeDraft,
 } from "../../../shared/utils/sessionDraft";
 import { movementDateSchema } from "../schemas/movementDateSchema";
 import { assetTransactionDraftSchema } from "../schemas/assetTransactionDraftSchema";
@@ -762,7 +762,8 @@ function QuickTransactionForm({
             role="status"
             className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70"
           >
-            Há um rascunho desta carteira guardado nesta aba por até 8 horas.
+            Há um rascunho desta carteira guardado neste dispositivo por até 8
+            horas.
             Confira os dados antes de salvar.
             <button
               type="button"

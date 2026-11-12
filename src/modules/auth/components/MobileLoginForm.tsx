@@ -1,4 +1,5 @@
 import { useLoginCooldown } from '../hooks/useLoginCooldown'
+import { SessionEndedNotice } from './SessionEndedNotice'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -70,6 +71,7 @@ export function MobileLoginForm() {
 
   return (
     <MobileAuthLayout logoId="login-v-gradient">
+      <SessionEndedNotice />
       {/* Título */}
       <div className="mb-7">
         <h1 className="whitespace-nowrap text-[clamp(23px,7vw,30px)] font-bold leading-tight tracking-[-0.035em] text-white">

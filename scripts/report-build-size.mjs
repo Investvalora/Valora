@@ -28,6 +28,10 @@ async function bytes(files) {
 }
 const report = { directory, entry: await bytes(closure([entry])), routes: {} }
 for (const [name, paths] of Object.entries({
+  login: ['modules/auth/components/LoginForm.tsx'],
+  cadastro: ['modules/auth/components/SignupForm.tsx'],
+  recuperarSenha: ['modules/auth/components/PasswordRecoveryForm.tsx'],
+  redefinirSenha: ['modules/auth/components/ResetPasswordForm.tsx'],
   inicio: ['shared/layout/AppShellNovo.tsx', 'modules/inicio/components/InicioPage.tsx'],
   posicoes: ['shared/layout/AppShellNovo.tsx', 'modules/ativos/components/AtivosPage.tsx', 'modules/ativos/components/AtivosPosicoes.tsx'],
 })) {

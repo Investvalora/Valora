@@ -24,7 +24,7 @@ function mount() {
   return client
 }
 it('evento de novo login da mesma conta recupera a tela e preserva formulário, cache e rascunho', async () => {
-  mocks.getUser.mockImplementation(async token => ({ error: token === 'old' ? { code: 'session_not_found' } : null }))
+  mocks.getUser.mockImplementation(async token => ({ error: token === 'old' ? { code: 'session_not_found' } : null, data: { user: { id: 'a' } } }))
   const client = mount()
   expect(await screen.findByRole('dialog')).toBeInTheDocument()
   const key = draftKey('a', 'wallet', 'form')
@@ -37,7 +37,7 @@ it('evento de novo login da mesma conta recupera a tela e preserva formulário, 
   expect(client.getQueryData(['private', 'a'])).toBe('cache')
 })
 it('troca de conta limpa cache e rascunhos anteriores antes de aceitar a nova identidade', async () => {
-  mocks.getUser.mockResolvedValue({ error: null })
+  mocks.getUser.mockResolvedValue({ error: null, data: { user: { id: 'a' } } })
   const client = mount()
   await waitFor(() => expect(useAuthStore.getState().user?.id).toBe('a'))
   const key = draftKey('a', 'wallet', 'form')

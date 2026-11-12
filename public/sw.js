@@ -11,6 +11,7 @@ function validStaticResponse(request, response) {
   }
   if (pathname.endsWith('.css')) return type === 'text/css'
   if (pathname.endsWith('.html')) return type === 'text/html'
+  if (/\.(png|jpe?g|webp|gif|svg|ico)$/.test(pathname)) return type.startsWith('image/')
   return type !== 'text/html'
 }
 
@@ -61,13 +62,21 @@ self.addEventListener('fetch', (event) => {
     // Os ícones mantêm o mesmo nome no Vite; use a versão nova durante o
     // desenvolvimento e recorra ao cache quando a rede estiver indisponível.
     event.respondWith(
-      fetch(request).then(async (response) => {
-        if (response.ok) {
-          const cache = await caches.open(CACHE_NAME)
-          await cache.put(request, response.clone())
-        }
-        return response
-      }).catch(async () => (await caches.match(request)) ?? Response.error()),
+      (async () => {
+        const cache = await caches.open(CACHE_NAME)
+        try {
+          const response = await fetch(request, { cache: 'reload' })
+          if (validStaticResponse(request, response)) {
+            // Storage quota must not turn a successful download into a failure.
+            try { await cache.put(request, response.clone()) } catch { /* best effort */ }
+            return response
+          }
+        } catch { /* recover from the current version only */ }
+        const cached = await cache.match(request)
+        if (validStaticResponse(request, cached)) return cached
+        if (cached) await cache.delete(request)
+        return Response.error()
+      })(),
     )
     return
   }
@@ -82,7 +91,7 @@ self.addEventListener('fetch', (event) => {
         // Bypass a possibly poisoned HTTP cache as well as Cache Storage.
         const response = await fetch(request, { cache: 'reload' })
         if (!validStaticResponse(request, response)) return Response.error()
-        await cache.put(request, response.clone())
+        try { await cache.put(request, response.clone()) } catch { /* cache is optional after download */ }
         return response
       })(),
     )

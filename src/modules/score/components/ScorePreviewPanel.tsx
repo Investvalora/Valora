@@ -7,6 +7,7 @@ import { usePositions } from '../../portfolio/hooks/usePositions'
 import { useFundamentals } from '../hooks/useFundamentals'
 import { evaluateRule } from '../utils/scoreCalculation'
 import { METRIC_LABELS, OPERATOR_LABELS } from '../types'
+import { indicatorValue, formatIndicatorValue } from '../../../shared/indicators/catalog'
 import type { ScoreMetric, ScoreOperator, ScoreRule, FundamentalsRow } from '../types'
 
 export interface ScorePreviewPanelProps {
@@ -34,18 +35,12 @@ function formatCondition(
   if (operator === 'between') {
     const maxStr =
       thresholdMax !== null && Number.isFinite(thresholdMax) ? String(thresholdMax) : '?'
-    return `${metricLabel} entre ${thresholdMin} e ${maxStr}`
+    return `${metricLabel} entre ${formatIndicatorValue(metric, thresholdMin)} e ${thresholdMax !== null && Number.isFinite(thresholdMax) ? formatIndicatorValue(metric, thresholdMax) : maxStr}`
   }
 
   const opSymbols: Record<string, string> = { lt: '<', lte: '≤', gt: '>', gte: '≥' }
   const sym = opSymbols[operator] ?? OPERATOR_LABELS[operator as ScoreOperator] ?? operator
-  return `${metricLabel} ${sym} ${thresholdMin}`
-}
-
-function getMetricValue(row: FundamentalsRow, metric: ScoreMetric): number | null {
-  const value = row[metric as keyof FundamentalsRow]
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  return value
+  return `${metricLabel} ${sym} ${formatIndicatorValue(metric, thresholdMin)}`
 }
 
 export function ScorePreviewPanel({
@@ -111,7 +106,7 @@ export function ScorePreviewPanel({
     if (!row || !tempRule || metric === '') {
       return { ticker: pos.ticker, metricValue: null, meets: false }
     }
-    const metricValue = getMetricValue(row, metric as ScoreMetric)
+    const metricValue = indicatorValue(row, metric as ScoreMetric, pos.asset?.type)
     const meets =
       metricValue !== null && evaluateRule(tempRule, metricValue)
     return { ticker: pos.ticker, metricValue, meets }
@@ -177,21 +172,21 @@ export function ScorePreviewPanel({
                       <span className="text-[13px] font-medium text-white">{item.ticker}</span>
                       {item.metricValue !== null ? (
                         <span className="ml-2 text-[11px] text-white/40">
-                          {item.metricValue.toFixed(2)}
+                          {metric ? formatIndicatorValue(metric, item.metricValue) : 'Indisponível'}
                         </span>
                       ) : (
-                        <span className="ml-2 text-[11px] text-white/25">N/A</span>
+                        <span className="ml-2 text-[11px] text-white/25">Indisponível</span>
                       )}
                     </div>
 
                     {/* Status */}
                     {item.meets ? (
                       <span className="text-[11px] font-semibold text-[#63D16B] shrink-0">
-                        Atende · +{points}
+                        Atende · {points !== null && points > 0 ? '+' : ''}{points}
                       </span>
                     ) : (
                       <span className="text-[11px] font-medium text-white/30 shrink-0">
-                        Não atende · 0
+                        {item.metricValue === null ? 'Sem dados · 0' : 'Não atende · 0'}
                       </span>
                     )}
                   </div>

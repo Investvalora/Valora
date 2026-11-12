@@ -2,10 +2,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import source from '../../../public/sw.js?raw'
 
-function worker(initial?: Response) {
+function worker(initial?: Response, initialPath = '/assets/page.js') {
   const handlers: Record<string, (event: unknown) => void> = {}
   const entries = new Map<string, Response>()
-  if (initial) entries.set('/assets/page.js', initial)
+  if (initial) entries.set(initialPath, initial)
   const key = (request: string | Request) => typeof request === 'string' ? request : new URL(request.url).pathname
   const cache = {
     match: vi.fn(async (request: string | Request) => entries.get(key(request))),
@@ -37,6 +37,32 @@ function worker(initial?: Response) {
 const html = () => new Response('<html>app</html>', { headers: { 'content-type': 'text/html' } })
 
 describe('cache de assets do PWA', () => {
+  it('entrega o chunk baixado mesmo com quota de cache esgotada', async () => {
+    const sw = worker()
+    sw.cache.put.mockRejectedValue(new Error('QuotaExceededError'))
+    expect(await (await sw.asset())?.text()).toBe('export default 1')
+  })
+  it('não guarda HTML como ícone nem recupera ícone de outra versão', async () => {
+    const path = '/icons/valora-192.png'
+    const sw = worker(html(), path)
+    sw.fetch.mockResolvedValue(html())
+    expect((await sw.asset(path))?.type).toBe('error')
+    expect(sw.cache.put).not.toHaveBeenCalled()
+    expect(sw.cache.delete).toHaveBeenCalledWith(expect.any(Request))
+    expect(sw.caches.open).toHaveBeenCalledWith('valora-static-v1')
+  })
+  it('preserva ícone válido offline da versão atual', async () => {
+    const path = '/icons/valora-192.png'
+    const sw = worker(new Response('icon', { headers: { 'content-type': 'image/png' } }), path)
+    sw.fetch.mockRejectedValue(new Error('offline'))
+    expect(await (await sw.asset(path))?.text()).toBe('icon')
+  })
+  it('entrega ícone novo mesmo sem espaço para guardar cache', async () => {
+    const sw = worker()
+    sw.fetch.mockResolvedValue(new Response('new icon', { headers: { 'content-type': 'image/png' } }))
+    sw.cache.put.mockRejectedValue(new Error('QuotaExceededError'))
+    expect(await (await sw.asset('/icons/valora-192.png'))?.text()).toBe('new icon')
+  })
   it('remove HTML contaminado e recupera JavaScript pela rede sem cache HTTP', async () => {
     const sw = worker(html())
     expect(await (await sw.asset())?.text()).toBe('export default 1')

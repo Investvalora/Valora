@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import { AnnouncedDividends } from './AnnouncedDividends'
+vi.mock('./PendingSecAnnouncements', () => ({ PendingSecAnnouncements: () => null }))
 vi.mock('../../dividends/hooks/useDividends', () => ({ useDividends: () => ({ rows: [
   { ticker: 'AAA3', type: 'dividend', ex_date: '2026-01-01', payment_date: null, quantity: 10, value_per_share: 1, total_value: 10, currency: 'BRL' },
   { ticker: 'BBB', type: 'dividend', ex_date: '2099-01-01', payment_date: '2099-02-01', quantity: 2, value_per_share: 1, total_value: 2, currency: 'USD' },

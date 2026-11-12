@@ -6,6 +6,14 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Atualização PR139:** descoberta SEC publicada e homologada em produção: migration aplicada, função v7 e lote OIDC com dois anúncios COST, zero conflitos e recebimentos preservados. Ver evidências em descoberta-sec-dividendos-2026-11-11.md. Essa atualização substitui a publicação pendente nos registros anteriores. Recorrência automática ainda precisa observação.
+
+**Próxima etapa em implementação:** apresentação de declarações SEC com ex a confirmar na aba Anunciados / a receber. Filtragem pela carteira/período/busca, classificação ordinário/especial e documento oficial; sem quantidade elegível, total pessoal, conversão ou participação em gráfico/DY/Bazin. Oculta apenas eventos com calendário/valor já conciliados na base de dividendos. Sem nova migration ou alteração de recebimentos. Homologação visual e publicação permanecem pendentes.
+
+Validação local desta etapa:13 testes aprovados (serviço, troca de conta/carteira, componente e regressão de proventos mensais), TypeScript, ESLint e build/PWA104 arquivos aprovados. Branch `codex/anuncios-sec-pendentes`. Sem sessão local aberta no navegador para conferência visual nesta rodada; não declarar homologação visual ou produção da nova seção concluída.
+
+Homologação visual local concluída após login do responsável: aba Anunciados, busca COST/cost e MA sem correspondência, período6M e layouts estreito/desktop1365px conferidos. COST regular USD1,47 aparece uma única vez na lista conciliada; especial USD30 aparece separado com corte24/11/pagamento04/12, sem quantidade ou total pessoal. Base pública confirma essa separação. Retorno a Pagos preservou R$632,01/151 registros e novembro R$30,92 recebidos + R$40,55 previstos. Sem rolagem horizontal no desktop (scrollWidth=innerWidth=1365). Carteira apenas consultada; nenhum lançamento criado ou alterado. Esta atualização encerra a pendência visual local acima, mas não a publicação da interface.
+
 **Descoberta SEC genérica implementada localmente:** [escopo, testes e limites](descoberta-sec-dividendos-2026-11-11.md). Catálogo ticker/CIK,8-K e fila por ativo USD compatível; dois anúncios COST localizados sem lista fixa de carteira. Ledger separado distingue ordinário/especial e mantém ex não confirmada fora dos cálculos.70 testes e SQL local aprovados. Probe hospedado SEC aprovado na PR139; revisão/publicação e futura apresentação/conciliação dos pendentes ainda necessários; não equivale a cobertura integral dos ativos americanos.
 
 **Revisão MA/COST concluída:** [evidências e limites](revisao-cobertura-ma-cost-2026-11-11.md). MA segue bloqueada403, inclusive Node; índice SEC acessível não fornece os comunicados trimestrais esperados. Divergência COST de outubro encerrada: Nasdaq confirma ex/corte30/10 e SEC confirma corte30/10/pagamento13/11/USD1,47, exatamente como no Valora. Nenhuma data alterada.

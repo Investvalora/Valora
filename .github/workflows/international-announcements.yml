@@ -14,7 +14,9 @@ on:
         type: boolean
         default: true
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    # Re-register scheduling after successful dispatches but no observed schedule
+    # runs. Keep the same 15-minute interval; validate actual runs after merge.
+    - cron: '8,23,38,53 * * * *'
 permissions:
   contents: read
 concurrency:

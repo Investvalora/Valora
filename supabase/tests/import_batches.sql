@@ -49,6 +49,32 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
 END $test$;
+-- Exact decimal strings are the frontend transport; the RPC canonicalizes them
+-- to numeric before fingerprinting, so legacy numeric payloads stay idempotent.
+DO $test$
+DECLARE wallet uuid; result jsonb; payload jsonb; before_rows integer;
+BEGIN
+ SELECT id INTO wallet FROM public.wallets WHERE user_id=auth.uid() LIMIT 1;
+ payload:='[{"ticker":"QAIMPORT","type":"buy","quantity":"0.12345678","price":"12.3456","brokerage_fee":"0.0001","transaction_date":"2026-01-03"}]';
+ result:=public.import_owned_transactions(wallet,'exact.csv',payload);
+ IF (result->>'count')::int<>1 THEN RAISE EXCEPTION 'Exact row missing'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.transactions WHERE wallet_id=wallet AND quantity=0.12345678 AND price=12.3456 AND brokerage_fee=0.0001) THEN RAISE EXCEPTION 'Decimal precision lost'; END IF;
+ result:=public.import_owned_transactions(wallet,'numeric.csv','[{"ticker":"QAIMPORT","type":"buy","quantity":0.12345678,"price":12.3456,"brokerage_fee":0.0001,"transaction_date":"2026-01-03"}]');
+ IF NOT (result->>'duplicate')::boolean THEN RAISE EXCEPTION 'Transport changed fingerprint'; END IF;
+ SELECT count(*) INTO before_rows FROM public.transactions WHERE wallet_id=wallet;
+ SELECT jsonb_agg(payload->0) INTO payload FROM generate_series(1,1001);
+ BEGIN
+   PERFORM public.import_owned_transactions(wallet,'too-many.csv',payload);
+   RAISE EXCEPTION '1001 rows accepted';
+ EXCEPTION WHEN invalid_parameter_value THEN NULL;
+ END;
+ IF (SELECT count(*) FROM public.transactions WHERE wallet_id=wallet)<>before_rows THEN RAISE EXCEPTION 'Oversized batch wrote rows'; END IF;
+ SELECT jsonb_agg(jsonb_build_object('ticker','QAIMPORT','type','buy','quantity','0.00000001','price','0.0001','brokerage_fee','0','transaction_date','2026-01-04')) INTO payload FROM generate_series(1,1000);
+ result:=public.import_owned_transactions(wallet,'boundary.csv',payload);
+ IF (result->>'count')::int<>1000 OR (SELECT count(*) FROM public.transactions WHERE wallet_id=wallet)<>before_rows+1000 THEN RAISE EXCEPTION '1000 rows truncated'; END IF;
+ result:=public.import_owned_transactions(wallet,'boundary-again.csv',payload);
+ IF NOT (result->>'duplicate')::boolean THEN RAISE EXCEPTION 'Boundary batch duplicated'; END IF;
+END $test$;
 SELECT set_config('request.jwt.claim.sub','ab000000-0000-4000-8000-000000000002',true);
 DO $test$ BEGIN
  IF EXISTS(SELECT 1 FROM public.transaction_import_batches) THEN RAISE EXCEPTION 'Other account can read receipts'; END IF;

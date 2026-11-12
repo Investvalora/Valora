@@ -52,12 +52,21 @@ describe('transactionsService', () => {
       {
         ticker: 'PETR4',
         type: 'buy',
-        quantity: 10,
-        price: 32.1,
-        brokerage_fee: 0.5,
+        quantity: '10',
+        price: '32.10',
+        brokerage_fee: '0.50',
         transaction_date: '2026-09-10',
       },
     ] })
     expect(supabaseMock.insertPayloads('transactions')).toEqual([])
+  })
+  it('preserva todos os dígitos do CSV no transporte, inclusive além da precisão de Number', async () => {
+    mocks.rpc.mockResolvedValue({ data: { count: 1, duplicate: false }, error: null })
+    await transactionsService.importTransactions(USER_ID, [{ ...validRow,
+      quantity: '9.999.999.999,12345678', price: '99.999.999.999.999,1234', brokerageFee: '0,0001',
+    }], 'wallet')
+    expect(mocks.rpc.mock.calls[0][1].p_rows[0]).toMatchObject({
+      quantity: '9999999999.12345678', price: '99999999999999.1234', brokerage_fee: '0.0001',
+    })
   })
 })

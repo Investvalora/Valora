@@ -1,5 +1,4 @@
 import { supabase } from '../../../shared/services/supabaseClient'
-import { parseDecimalPtBr } from '../schemas/positionSchema'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import type { NewTransaction } from '../types'
 import type { CsvImportError, ParsedTransactionRow } from '../csv/csvParser'
@@ -88,12 +87,15 @@ export const transactionsService = {
     fileName = 'importacao.csv',
   ) {
     const selected = rows.filter((row) => row.selected && !row.skipped && row.errors.length === 0)
-    const payload: NewTransaction[] = selected.map((row) => ({
+    // Send decimal text: Number can round valid numeric(18,s) values before
+    // PostgreSQL sees them. The RPC validates and canonicalizes exact numerics.
+    const decimal = (value: string) => value.trim().replace(/\./g, '').replace(',', '.')
+    const payload = selected.map((row) => ({
       ticker: row.ticker,
       type: row.type as NewTransaction['type'],
-      quantity: parseDecimalPtBr(row.quantity),
-      price: parseDecimalPtBr(row.price),
-      brokerage_fee: parseDecimalPtBr(row.brokerageFee || '0'),
+      quantity: decimal(row.quantity),
+      price: decimal(row.price),
+      brokerage_fee: decimal(row.brokerageFee || '0'),
       transaction_date: row.date,
     }))
 

@@ -70,7 +70,7 @@ it('does not expose secrets in network exceptions and refuses redirects',async()
 })
 it('does not call vendors without backend secrets or when quota reservation returns no tasks',async()=>{
  const rpc=vi.fn(async()=>[]);vi.stubGlobal('fetch',vi.fn())
- expect(await collectProviderFallbacks(rpc,()=>'', '2026-11-12')).toEqual({results:[],received_income_created:0})
+ expect(await collectProviderFallbacks(rpc,()=>'', '2026-11-12')).toEqual({results:[],skipped:[{provider:'alpha_vantage',reason:'provider_key_missing'},{provider:'marketstack',reason:'provider_key_missing'}],received_income_created:0})
  expect(rpc).not.toHaveBeenCalled()
  await collectProviderFallbacks(rpc,()=> 'private','2026-11-12')
  expect(rpc).toHaveBeenCalledTimes(2);expect(fetch).not.toHaveBeenCalled()
@@ -97,4 +97,12 @@ it('records a missing calendar on the task rather than inventing events or marki
  expect(result.results[0]).toMatchObject({events:0,error:'provider_calendar_unavailable'})
  expect(rpc.mock.calls[1][1]).toMatchObject({p_events:[],p_error:'provider_calendar_unavailable'})
  expect(providerOperationalFailure(result.results[0].error)).toBe(false)
+})
+
+it('reports per-key budget deferral without leasing or requesting vendors',async()=>{
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async()=>false);vi.stubGlobal('fetch',vi.fn())
+ const result=await collectProviderFallbacks(rpc,n=>n==='MARKETSTACK_API_KEY'?'private':'','2026-11-12')
+ expect(result.skipped).toContainEqual({provider:'marketstack',reason:'provider_key_budget_exhausted'})
+ expect(rpc.mock.calls.map(c=>c[0])).toEqual(['marketstack_budget_available'])
+ expect(fetch).not.toHaveBeenCalled()
 })

@@ -27,7 +27,7 @@ Deno.serve(async request => {
       }, new Date().toISOString().slice(0,10))
       const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)
       const coverage=result.results.filter(r=>['provider_calendar_unavailable','provider_precision_limited','provider_precision_unavailable'].includes(r.error??'')).map(r=>`${r.provider}:${r.ticker}`)
-      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage},fetch,'international-providers')
+      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped},fetch,'international-providers')
       return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
     }
     if (body.mode === 'claim' || body.mode === 'claim_sec') {

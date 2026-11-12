@@ -1,5 +1,23 @@
 # TODO ativa de evolução do Valora
 
+## Prioridades altas — diagnóstico de cotas e nova tentativa local, 12/11
+
+Validação local aprovada: 1.368 testes em 200 arquivos (dois workers), TypeScript, lint dos testes alterados, replay integral das migrations e seis testes SQL. Sem publicação ou mutação financeira em produção nesta rodada.
+
+- Marketstack: confirmado esgotamento diário das cinco chaves, embora sobrasse cota global. Correção local distingue espera por chave de fila parada e registra motivos de adiamento na auditoria.
+- Nova tentativa após conciliação primária: implementação local antecipa apenas conflitos com evidência posterior à última consulta, dentro das cotas, sem reaproveitar lease ativa ou criar loop. Publicação e consulta real BMN pendentes.
+- CR investigado: RI confirma o valor público Valora USD 0,255; Alpha retornou USD 0,435. Preservar divergência e dado correto. GOOGL ainda exige nova resposta real Marketstack dentro da cota.
+- AMZN válida até 12/12/2026; diagnóstico local passa a exibir prazos de renovação. Renovação futura e cobertura/cadência integral continuam abertas.
+- [Investigação, implementação e limites](cotas-reconciliacao-automatica-2026-11-12.md).
+
+## Atualização vigente — PR151 em produção, 12/11
+
+- **BMN concluído:** 13 anúncios conciliados em execução real, nove valores anteriores Yahoo auditados, zero conflitos/lacunas.
+- **META concluído:** quatro anúncios conciliados, incluindo pagamento de dezembro/2025 corrigido para 23/12; 29/12 preservado em auditoria. Nenhuma lacuna nesse lote.
+- Migration aplicada e função internacional v13 publicada. CI/main e workflow real `43328937876` aprovados. 208 recebimentos pessoais preservados por checksum.
+- Restam acompanhamento de cadência/primeira passagem das filas e cobertura de outros emissores. O histórico Alpha/BMN aguarda consulta real agendada; replay transacional das observações antigas passou sem conflito, sem apagar histórico ou simular atualização de fornecedor.
+- [Homologação e limites](homologacao-producao-pr151.md). Esta atualização substitui publicação/reteste pendentes de BMN/META nos registros abaixo.
+
 ## Prioridades altas — próxima entrega local, 12/11
 
 Homologação técnica local concluída: 55 testes, build/PWA, replay integral de migrations, cinco testes SQL e dois replays reais aprovados. Navegador integrado indisponível nesta rodada; sem alterações de interface. [Evidências](homologacao-local-blackrock-meta-2026-11-12.md).

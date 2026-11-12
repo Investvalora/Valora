@@ -8,6 +8,8 @@ import type { AssetType } from '../portfolio/types'
  * `value_per_share` é NUMERIC no Postgres e pode chegar como string.
  */
 export interface DividendRaw {
+  /** Confirmed special distributions are excluded from recurring DY/Bazin. */
+  is_special?: boolean
   /** Multiple official payments share the same entitlement date. */
   is_installment?: boolean
   ticker: string

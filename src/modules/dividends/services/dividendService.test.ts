@@ -4,6 +4,14 @@ import { dividendService } from './dividendService'
 vi.mock('../../../shared/services/supabaseClient', () => ({ supabase: supabaseMock.client }))
 beforeEach(() => supabaseMock.reset())
 afterEach(() => vi.useRealTimers())
+it('includes a confirmed SEC special only in personal cashflow, once, without changing the recurring dividend table', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-12T12:00:00Z'))
+  const special={ticker:'COST',confirmed_ex_date:'2026-11-24',record_date:'2026-11-24',payment_date:'2026-12-04',value_per_share:30}
+  supabaseMock.on('sec_dividend_announcements',()=>({data:[special],error:null}))
+  expect(await dividendService.listDividendsByTickers(['COST'],'2026-01-01',true,'announced','2027-01-01')).toEqual([{ticker:'COST',type:'dividend',ex_date:'2026-11-24',record_date:'2026-11-24',payment_date:'2026-12-04',value_per_share:30,is_special:true}])
+  expect(supabaseMock.chains.find(c=>c.table==='sec_dividend_announcements')?.calls).toContainEqual({method:'eq',args:['distribution','special']})
+  expect(supabaseMock.chains.every(c=>c.calls.every(x=>!['insert','update','upsert'].includes(x.method)))).toBe(true)
+})
 it('consulta parcelas B3 e a data ex real mesmo quando o agregado não entrou na consulta de pagos', async () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-12T12:00:00Z'))
   const anchor = { ticker: 'KLBN4', type: 'dividend', ex_date: '2025-12-16', payment_date: null, value_per_share: 0.180583 }

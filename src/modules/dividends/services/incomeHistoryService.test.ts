@@ -11,6 +11,15 @@ const history: IncomeHistory = { entries: [entry], coverage: [{ covered_from: '2
 const estimate: DividendRow = { ticker: 'SOLD', type: 'dividend', ex_date: '2026-01-01', payment_date: '2026-01-15', quantity: 100, value_per_share: 1, total_value: 100 }
 
 describe('private received income', () => {
+  it('usa o líquido MA confirmado pelo titular sem reaplicar imposto ou excluir outros ativos do dia', () => {
+    const paid: RecordedIncome = { ...entry, ticker: 'MA', type: 'dividend', record_date: '2026-10-09', payment_date: '2026-11-09', quantity: 0.06394, value_per_share: 0.87, gross_amount: 0.06, net_amount: 0.04, currency: 'USD' }
+    const ma: DividendRow = { ...estimate, ticker: 'MA', record_date: '2026-10-09', ex_date: '2026-10-09', payment_date: '2026-11-09', total_value: 0.0556278, currency: 'USD' }
+    const other = { ...ma, ticker: 'OTHER' }
+    const rows = mergeIncomeHistory([ma,other], { entries: [paid], coverage: [] }, '2026-11-01', '2026-11-12')
+    expect(rows).toHaveLength(2)
+    expect(rows.find(row=>row.ticker==='MA')).toMatchObject({total_value:0.04,gross_amount:0.06,currency:'USD',source:'imported'})
+    expect(rows).toContainEqual(other)
+  })
   it('recebimento de uma parcela antiga não elimina a parcela futura com a mesma data COM', () => {
     const paid = { ...entry, ticker: 'KLBN4', type: 'dividend', record_date: '2025-12-15', payment_date: '2026-02-27' }
     const november = { ...estimate, ticker: 'KLBN4', record_date: '2025-12-15', ex_date: '2025-12-16', payment_date: '2026-11-12', is_installment: true }

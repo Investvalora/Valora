@@ -62,6 +62,23 @@ export const dividendService = {
       rows.push(...page)
       if (!completeHistory || page.length < DIVIDENDS_LIMIT) break
     }
+    // Special dividends have issuer classification plus an independent ex-date.
+    // Read them here, never in the recurring fundamentals/DY table.
+    const { data: special, error: specialError } = await supabase.from('sec_dividend_announcements')
+      .select('ticker,confirmed_ex_date,record_date,payment_date,value_per_share')
+      .in('ticker', tickers).eq('distribution', 'special').not('confirmed_ex_date', 'is', null)
+      .gte('payment_date', status === 'announced' ? today : since)
+      .lte('payment_date', status === 'announced' ? until ?? '9999-12-31' : today)
+      .order('payment_date').order('ticker').order('accession').limit(501)
+    if (specialError) throw specialError
+    if ((special?.length ?? 0) > 500) throw new Error('Muitos anúncios; reduza o período.')
+    for (const event of special ?? []) {
+      if (status === 'announced' && event.payment_date <= today) continue
+      if (!rows.some(row => row.ticker === event.ticker && row.ex_date === event.confirmed_ex_date && row.payment_date === event.payment_date && Number(row.value_per_share) === Number(event.value_per_share))) {
+        rows.push({ ticker: event.ticker, type: 'dividend', ex_date: event.confirmed_ex_date, record_date: event.record_date,
+          payment_date: event.payment_date, value_per_share: Number(event.value_per_share), is_special: true })
+      }
+    }
     const payments: B3Payment[] = []
     for (let start = 0; ; start += DIVIDENDS_LIMIT) {
       const { data, error } = await supabase.from('b3_cash_announcements')

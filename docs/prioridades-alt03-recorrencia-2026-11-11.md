@@ -22,6 +22,8 @@ Crons macro diário/retry ativos. Em11/11 às20h de Brasília, a chamada retorno
 
 ## Agendamento internacional ainda não comprovado
 
+Atualização12/11: primeiro evento schedule [43209530449](https://github.com/Investvalora/Valora/actions/runs/43209530449) aprovado às08h29 Brasília. Execução efetiva confirmada nos registros das duas filas: BRK.B/CR sem suporte Nasdaq; AAPL SEC1 documento/zero eventos/sem erro.207 recebimentos pessoais e hash preservados. A API ainda retorna somente1 evento schedule;41 tarefas primárias e45 SEC estão vencidas nesta consulta. Assim, disparo automático comprovado; cadência15min e escoamento permanecem em validação. Nenhum dispatch manual ou alteração de credencial foi usado nesta conferência.
+
 Workflow ativo, main correta, repositório público, não fork/arquivado, Actions habilitadas e lotes dispatch aprovados; nenhuma execução schedule internacional encontrada. Esses dados não identificam uma causa única.
 
 A [documentação GitHub](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows) orienta alterar o cron por um usuário com escrita para reiniciar agendamentos. Mudança local dos minutos7/22/37/52 para8/23/38/53 mantém15min e os mesmos controles OIDC, como tentativa de reativação. Precisa merge e observação efetiva de evento schedule; não declarar resolvido por uma execução manual. Não foi criado token permanente nem serviço pago.

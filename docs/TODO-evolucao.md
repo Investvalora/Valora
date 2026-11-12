@@ -6,6 +6,12 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**MA — alternativa gratuita local e líquido conciliado:** [descoberta e limites](cobertura-ma-comunicados-2026-11-12.md). Feed público de comunicados Nasdaq por ticker confirmou dois releases oficiais Business Wire, com parser estrito e ex independente obrigatória no banco; implementação aguarda replay/probe hospedado e publicação. Titular confirmou09/11: bruto USD0,06/imposto0,02/líquido0,04; recebimento pessoal parcial registrado sem alterar os anteriores. COST ainda sem ex primária confirmada; cadastro Selic de outra conta depende de extrato. Novo diagnóstico Tesouro só poderá ser observado após próximo cron às17h Brasília. Finnhub dividendos exige Premium; não resolve essas pendências gratuitamente.
+
+**Primeira execução automática internacional confirmada em12/11 às08h29 Brasília:** [run43209530449](https://github.com/Investvalora/Valora/actions/runs/43209530449), evento schedule, merge9226169, sucesso. SEC AAPL inspecionou1 documento/zero anúncios; last_success_at confirmado no banco. Nasdaq BRK.B/CR diagnosticadas como identidade não suportada, sem gravações.207 recebimentos e hash `b3ba248bfc7107f7a33bee59e66624af` preservados. Encerra a dúvida sobre disparo automático, mas não comprova cadência15min: API retorna somente1 execução schedule, com41 tarefas primárias/45 SEC vencidas. Manter acompanhamento da frequência e escoamento das filas; não declarar cobertura contínua completa.
+
+**PR142 publicada e verificada tecnicamente:** merge9226169, calc-fixed-income v16 ACTIVE, autenticação401 sem token e código remoto com diagnóstico específico confirmados.15 posições com hash integral preservado antes/depois; nenhum recálculo manual.44 testes locais cobrem ausência/preço antigo/resposta inválida e marcação válida. Cadastro Selic sem referência segue aguardando extrato; observar próxima execução e cron internacional permanece pendente. Ver diagnostico-tesouro-sem-preco-2026-11-12.md.
+
 **Exceção Tesouro investigada em12/11:** [diagnóstico](diagnostico-tesouro-sem-preco-2026-11-12.md). Cadastro Selic2027-10-10/quantidade100 sem preço correspondente; três lotes confirmados da Investidor10 atualizados normalmente. Não corrigir título/quantidade por suposição. Diagnóstico mais específico implementado localmente,12 testes aprovados; publicação pendente. Cadastro segue dependente de extrato do titular; nenhum saldo ou lançamento alterado. Cron internacional ainda sem evento schedule observado.
 
 **PR141 publicada e homologada na interface de produção:** merge37d99cd, CI da main43146101618 e deploy aprovados. Bundle de importação corrigido confirmado; prévia/edição preservam decimais e rejeitam nove casas. Nenhuma confirmação de importação real; rascunho sintético removido. Persistência exata e fronteiras1000/1001 comprovadas no SQL local com rollback. Cron atualizado na main, mas ainda sem execução schedule registrada: recorrência internacional continua aberta. Evidências em prioridades-alt03-recorrencia-2026-11-11.md.
@@ -231,3 +237,11 @@ Homologação da edição: PR116 mergeada e publicada (`4b6d55a`), checks e depl
 **Continuação RP-06 local — estratégias:** criação/edição com rascunhos por conta e versão original, parâmetros vindos das calculadoras separados, restauração explícita e limpeza ao cancelar/fechar/salvar. Campos incompletos continuam sujeitos às validações de envio. Corrigidas ações da edição ocultas no mobile. [Escopo, testes e homologação local](rascunhos-estrategias-2026-11-09.md). Ainda não publicado; não encerra a recuperação de todos os formulários.
 
 **PR124 publicada — homologação parcial:** merge `19327c8`, CI da main e Vercel aprovados. Criação/restauração passou com bypass temporário do cache; edição/restauração/limpeza passou com cache normal, preservando inflação original5%. Nova estratégia falha com cache normal por HTML servido como asset JS pelo service worker. Bypass foi removido e nenhum dado foi salvo. [Evidências e pendência prioritária](homologacao-producao-pr124.md). Substitui estado local acima; não declarar tudo aprovado.
+# Complemento de cobertura — Alpha Vantage e Marketstack (12/11/2026)
+
+- [x] Implementar conectores backend com verificação real de MA/COST, chaves fora do Git, cotas globais e cache por ticker.
+- [x] Preparar rodízio Marketstack com até oito contas, contadores persistentes por chave, bloqueio após cota esgotada e renovação mensal. Cinco chaves configuradas no Vault; as quatro adicionais passaram na consulta real mínima. Publicação ainda pendente.
+- [x] Conciliar data ex com declaração SEC sem inferir corte; separar especial de COST do DY/Bazin recorrente.
+- [ ] Publicar migrations/função/workflow e homologar a primeira execução em produção. As duas chaves já estão no Vault.
+
+Detalhes: [implementação e limites](fallbacks-proventos-alpha-marketstack-2026-11-12.md).

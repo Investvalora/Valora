@@ -338,6 +338,36 @@ describe('Modal — estrutura', () => {
     }
   })
 
+  it('encaixa as ações no viewport visível e mantém a superfície do drawer atrás do teclado', () => {
+    const viewport = Object.assign(new EventTarget(), { height: 793, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', viewport)
+    vi.stubGlobal('innerWidth', 393)
+    vi.spyOn(document.body, 'getBoundingClientRect').mockReturnValue({ height: 852 } as DOMRect)
+    document.documentElement.classList.add('ios-standalone')
+    try {
+      renderModal({ variant: 'transaction', transactionDrawer: true })
+      const dialog = screen.getByRole('dialog')
+      const overlay = dialog.parentElement as HTMLElement
+      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('0px')
+
+      viewport.height = 476
+      viewport.offsetTop = 83
+      viewport.dispatchEvent(new Event('resize'))
+      expect(dialog.style.maxHeight).toContain('476px')
+      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('293px')
+      expect(overlay.style.bottom).toBe('')
+
+      viewport.height = 793
+      viewport.offsetTop = 0
+      viewport.dispatchEvent(new Event('resize'))
+      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('0px')
+    } finally {
+      document.documentElement.classList.remove('ios-standalone')
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
+  })
+
   it('não renderiza nada quando fechado', () => {
     render(
       <Modal isOpen={false} title="Adicionar posição" onClose={vi.fn()}>

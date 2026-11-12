@@ -47,6 +47,7 @@ html.ios-standalone .asset-chart-fullscreen {
 }
 
 html.ios-standalone .mobile-navigation,
+html.ios-standalone .floating-sheet-overlay,
 html.ios-standalone .transaction-modal-overlay,
 html.ios-standalone .wallet-modal-overlay {
   position: absolute;
@@ -526,8 +527,123 @@ html.ios-standalone .auth-scene {
 
 .transaction-modal-overlay { animation: wallet-overlay-in 240ms ease-out both; }
 
+.floating-sheet-overlay {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+.floating-sheet-panel {
+  --sheet-bottom-radius: clamp(20px, calc(20px + env(safe-area-inset-bottom)), 38px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - max(8px, env(safe-area-inset-bottom)) - 8px);
+  border-radius: 28px 28px var(--sheet-bottom-radius) var(--sheet-bottom-radius);
+  border-color: rgb(255 255 255 / 14%);
+  background: #181d22;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 32%), inset 0 1px rgb(255 255 255 / 10%);
+}
+
+.floating-sheet-panel [data-sheet-expanded] {
+  height: 14rem;
+}
+
+.floating-sheet-panel [data-sheet-expanded='true'] {
+  height: min(32rem, 65dvh);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .floating-sheet-panel {
+    background: rgb(24 29 34 / 89%);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
+@media (min-width: 768px) {
+  .floating-sheet-overlay { padding-bottom: 24px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .floating-sheet-overlay { animation: wallet-overlay-in 200ms ease-out; }
+  .floating-sheet-panel { animation: wallet-sheet-in 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .floating-sheet-panel [data-sheet-expanded] { transition: height 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .floating-sheet-history { animation: floating-sheet-history-in 180ms ease-out; }
+}
+
+@keyframes floating-sheet-history-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 767px) {
   .transaction-modal-panel { animation: wallet-sheet-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  .transaction-drawer-overlay {
+    padding-bottom: var(--transaction-keyboard-inset, 0px);
+  }
+
+  /* Continua a superfície do painel atrás da barra nativa do teclado. */
+  .transaction-drawer-overlay::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: var(--transaction-keyboard-inset, 0px);
+    background: #181818;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .transaction-drawer-panel { animation: wallet-drawer-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+
+.transaction-date {
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+}
+
+.transaction-date::-webkit-date-and-time-value {
+  min-height: 1.5em;
+  text-align: left;
+}
+
+.transaction-quantity::-webkit-inner-spin-button,
+.transaction-quantity::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.transaction-asset-options {
+  background: #202123;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 12px 28px rgba(0, 0, 0, 0.38);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .transaction-asset-options {
+    background: linear-gradient(155deg, rgba(35, 36, 39, 0.9), rgba(25, 26, 28, 0.94));
+    -webkit-backdrop-filter: blur(12px) saturate(105%);
+    backdrop-filter: blur(12px) saturate(105%);
+  }
+}
+
+@keyframes transaction-options-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes transaction-asset-confirmed {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .transaction-asset-options {
+    transform-origin: top center;
+    animation: transaction-options-in 180ms ease-out both;
+  }
+
+  .transaction-asset-confirmation {
+    animation: transaction-asset-confirmed 220ms ease-out both;
+  }
 }
 
 .wallet-modal-overlay { animation: wallet-overlay-in 300ms ease-out both; }

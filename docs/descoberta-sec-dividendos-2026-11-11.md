@@ -35,7 +35,11 @@ Nenhum deles produziu ex-date no parser. Dois documentos inspecionados, sem trun
 
 ## Publicação
 
-Ainda não publicado. Após revisão/merge: aplicar `20261112011747_sec_dividend_discovery.sql`, publicar o endpoint internacional atualizado e validar primeiro o probe público; depois priorizar um ticker apenas na fila técnica e executar um lote OIDC. Conferir ledger, idempotência, ausência de escrita em dividendos/recebimentos e limites antes de homologar produção. Nenhum saldo, lançamento ou recebimento alterado nesta implementação.
+Publicado e homologado após o merge da PR139 (`25b7b9726c4b1a9a0784ea7a4d268d960e721998`). Migration remota `20261112015842_sec_dividend_discovery`, correspondente ao arquivo local `20261112011747_sec_dividend_discovery.sql`; endpoint internacional v7 ACTIVE.
+
+Lote OIDC [43138216237](https://github.com/Investvalora/Valora/actions/runs/43138216237) aprovado: COST, dois documentos inspecionados, dois anúncios salvos (regular USD1,47 e especial USD30), zero conflitos, zero dividendos elegíveis ou recebimentos criados. Ambos permanecem com `ex_status=unconfirmed`. Repetição transacional dos anúncios retornou zero inserções/conflitos; reutilização do lease foi rejeitada, com ROLLBACK integral do teste.
+
+Endpoint sem autenticação retornou401; RLS ativo nas duas tabelas, sem leitura anon ou INSERT authenticated; advisor health sem lints. Antes/depois:207 recebimentos, hash `b3ba248bfc7107f7a33bee59e66624af`;1606 dividendos, hash `61694e7b6474682c8c93f9c17904d9c3`, ambos inalterados. Nenhum saldo, lançamento ou recebimento alterado. Execução manual aprovada; recorrência automática ainda precisa ser observada. No lote primário, BN/BNC ficaram sem cobertura Nasdaq e com diagnóstico, sem gravação.
 
 Não encerra MA/403 nem garante calendário antecipado de todo emissor. Inclui a capacidade comum de consultar qualquer ativo compatível sem adaptador por carteira; ampliações de formato ficam testáveis e compartilhadas.
 

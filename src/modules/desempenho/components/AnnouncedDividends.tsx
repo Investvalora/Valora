@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useDividends } from '../../dividends/hooks/useDividends'
 import type { DividendPeriod } from '../../dividends/types'
 import { toIsoDate } from '../../../shared/utils/isoDate'
+import { PendingSecAnnouncements } from './PendingSecAnnouncements'
 
 const date = (value: string | null) => value ? value.split('-').reverse().join('/') : 'A definir'
 const money = (value: number, currency = 'BRL') => new Intl.NumberFormat('pt-BR', { style: 'currency', currency, maximumFractionDigits: 4 }).format(value)
@@ -28,5 +29,6 @@ export function AnnouncedDividends() {
         <div className="mt-3 space-y-1"><div>Data ex: {date(row.ex_date)}</div><div>Pagamento: {row.payment_date ? date(row.payment_date) : 'Não informado na base'}</div><div>Valor por cota: {money(row.value_per_share, row.currency)}</div><div>Quantidade {row.ex_date > today ? 'estimada' : 'elegível'}: {row.quantity.toLocaleString('pt-BR', { maximumFractionDigits: 8 })}</div><div className="text-nf-green">{dated ? 'Total estimado' : 'Valor de referência'}: {money(row.total_value, row.currency)}</div></div>
         <p className="mt-2 text-xs text-white/40">{row.payment_date === null ? 'Pode já ter sido pago. Ausência de data não comprova um valor a receber.' : row.ex_date > today ? 'Direito ainda não consolidado.' : 'Pagamento anunciado; confira o crédito na corretora.'}</p>
       </article>)}</div></section>)}</div>}
+    <PendingSecAnnouncements period={period} search={search} />
   </section>
 }

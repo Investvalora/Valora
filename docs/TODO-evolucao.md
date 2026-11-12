@@ -6,6 +6,12 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 
 ## Estado consolidado após PR131 — 11/11/2026
 
+**Isolamento de proventos simulados em andamento:** [inventário e critérios restantes](isolamento-proventos-simulados-2026-11-11.md). Confirmados178 eventos seed/45 ativos. Leituras locais de pagos/anúncios/âncoras B3 excluem seed/synthetic antes da paginação. Proteção RLS, conciliadores e substituição por fonte real preparados na migration local;14 testes e TypeScript aprovados. Cinco regressões SQL locais aprovadas após recuperar Docker; suíte completa1250/1250 e build/PWA aprovados após estabilizar o teste USD. Validação local concluída; publicação pendente. Nenhuma remoção ou alteração em produção.
+
+**PR137 homologada em produção:** [evidências JPM](cobertura-jpm-ri-2026-11-11.md#homologação-de-produção--pr137). Migration aplicada, função v6 ativa, lote OIDC aprovado: dois comunicados JPM/uma atualização de calendário, zero conflitos. Julho completado; outubro preservado; repetição sem nova gravação e207 recebimentos pessoais intactos. Permanecem MA/403, ex independente ausente e observação da recorrência agendada.
+
+**Alta — isolar proventos simulados:** encontrados quatro eventos JPM com `source=seed` em produção, correspondentes à geração trimestral sintética de `supabase/seed.sql`. A consulta de proventos não exclui essa origem. Inventariar os demais ativos, medir impacto em estimativas/cálculos, impedir o consumo como dado real e definir saneamento sem apagar recebimentos pessoais. Nenhum seed removido nesta homologação.
+
 **Próxima cobertura — JPM implementada localmente:** [descoberta no RI e conciliação segura](cobertura-jpm-ri-2026-11-11.md). Comunicados descobertos pelo índice oficial, sem URLs trimestrais fixas. Completa calendário apenas com ex independente já cadastrada e correspondência única; não presume imposto nem altera recebimentos. Testes locais e probe hospedado do RI aprovados na PR137; revisão e publicação pendentes. MA continua separado por bloqueio403.
 
 **PR136 homologada em produção:** [evidências do coletor](coletor-node-internacional-2026-11-11.md#homologação-em-produção--pr136-mergeada). Migration aplicada, função v5 ativa e OIDC real aprovado. AAPL/COST: sete gravações, zero conflitos, nenhum recebimento pessoal criado. Cron antigo inativo; novo workflow configurado a cada15min. Resta observar execução agendada e ampliar cobertura fora da Nasdaq (MA/JPM/RI). Esta atualização substitui o bloqueio operacional descrito abaixo.

@@ -75,11 +75,12 @@ Deno.serve(async request => {
         prices = 'updated'
       }
       if (asset.type !== 'crypto') {
-        const existing = await (await rest(`dividends?ticker=eq.${encodeURIComponent(ticker)}&select=ex_date&limit=5000`)).json() as { ex_date: string }[]
+        const existing = await (await rest(`dividends?ticker=eq.${encodeURIComponent(ticker)}&source=not.in.(seed,synthetic)&select=ex_date&limit=5000`)).json() as { ex_date: string }[]
         const knownDates = new Set(existing.map(row => row.ex_date))
         // Yahoo aggregates cash events and does not identify Brazilian JCP.
         // Preserve dates already covered by another source instead of counting twice.
-        await insertMissing('dividends', 'ticker,ex_date,type', rows.dividends.filter(row => !knownDates.has(row.ex_date)))
+        const missing = rows.dividends.filter(row => !knownDates.has(row.ex_date))
+        for (let i=0;i<missing.length;i+=200) await rest('rpc/store_yahoo_dividend_events', { method:'POST', body:JSON.stringify({p_events:missing.slice(i,i+200)}) })
         dividends = rows.dividends.length ? 'updated' : 'no_events'
       }
     } catch { /* Preserve existing data and report partial availability. */ }

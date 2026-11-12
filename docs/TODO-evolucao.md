@@ -1,5 +1,24 @@
 # TODO ativa de evolução do Valora
 
+## Prioridades altas — próxima entrega local, 12/11
+
+Homologação técnica local concluída: 55 testes, build/PWA, replay integral de migrations, cinco testes SQL e dois replays reais aprovados. Navegador integrado indisponível nesta rodada; sem alterações de interface. [Evidências](homologacao-local-blackrock-meta-2026-11-12.md).
+
+- **BMN:** coletor BlackRock descobre PDFs oficiais e 13 distribuições anunciadas; replay isolado conciliou os nove arredondamentos Yahoo com auditoria. Migration/Edge/workflow e homologação em produção pendentes.
+- **META:** correção da data pública Yahoo para o pagamento oficial, mantendo valor/ex compatíveis e data anterior em auditoria. Outros fornecedores e recebimentos pessoais preservados. Publicação/reteste pendentes.
+- **CDI concluído neste critério:** código publicado v16 igual ao testado; 541 observações verificadas, sem lacunas bancárias de 16/09/2024 a 11/11/2026, referência econômica separada da execução.
+- **Cobertura continua em acompanhamento:** B3 22 tarefas/zero erros e iShares duas/zero erros; primeira passagem internacional ainda incompleta, dentro das cotas. Não considerar cobertura universal concluída.
+- [Fontes, limites e validações](prioridades-bmn-meta-cdi-2026-11-12.md).
+
+## Atualização vigente — PR150 em produção, 12/11
+
+- Migration aplicada e função internacional v12 publicada. PRT aprovado: 12 anúncios conciliados, com 11 valores anteriores Yahoo auditados. META: três anúncios conciliados, uma lacuna de dezembro/2025 preservada (29/12 versus 23/12).
+- **Alta — BMN:** execução real identificou nove diferenças Yahoo/Alpha compatíveis com arredondamento; confirmar fonte primária antes de corrigir. Workflow falhou nessa etapa, sem ocultar o conflito. PRT/META passaram pelos critérios esperados.
+- Cron de fallback três vezes por hora e política AMZN confirmados. Acompanhar cadência/escoamento e renovar evidência AMZN antes da expiração; cobertura não é universal.
+- 208 recebimentos pessoais preservados por checksum. [Homologação e limites](homologacao-producao-pr150.md).
+
+Esta atualização substitui os estados de publicação pendente abaixo; mantém abertas as divergências e as validações operacionais indicadas.
+
 ## Prioridade alta — nova implementação local, 12/11
 
 - Conciliação PRT por PDFs e calendário oficiais: 12 anúncios identificados, incluindo os 11 valores Yahoo arredondados. Auditoria do valor anterior e proteção contra divergências reais; publicação e reteste em produção pendentes.
@@ -184,7 +203,7 @@ Evidências e distinção entre achado de código e impacto ainda não medido: [
 - [x] Publicar correção de proventos totais/lucro: PR110 mergeada e produção conferida, total773,60 e12M603,54. [Evidências](homologacao-producao-pr110.md).
 - [x] Adicionar sincronização BR após fechamento e ampliar janela EUA até22h UTC. Migrations aplicadas; atualização BR pontual40/40 sem falhas. Não alterar cotações americanas que concordam entre fontes só para igualar ao I10.
 - [x] Publicar remoção do CDI fixo10,5%: função publicada e recálculo autorizado executado. Saldo preservado quando faltam dados; nenhuma taxa arbitrária introduzida.
-- [ ] Completar diagnóstico de referência/cobertura CDI: diferenciar data de execução da referência econômica e identificar lacunas internas da série. Publicação do fallback removido não encerra esse critério.
+- [x] Completar diagnóstico de referência/cobertura CDI: código publicado v16 com calendário bancário confirmado e 541 observações verificadas sem lacunas no período disponível até 11/11/2026. Referência econômica separada da execução; ausência futura preserva saldo. [Evidências e limites](prioridades-bmn-meta-cdi-2026-11-12.md).
 - [ ] Integrar fonte gratuita confiável de datas reais de pagamento/valores líquidos para completar proventos após importação (JPM/TFLO). Yahoo ex_date não comprova pagamento; não copiar arredondamentos nem inventar retenção/câmbio.
 - [x] Publicar e homologar a carga inicial das fontes oficiais: migration e10 funções publicadas;4 crons ativos. CVM19301 informes/9 FIIs, B3 diário40 ativos/primeiro lote13 anúncios, iShares20 eventos, cripto12/12. [Evidências e limites](homologacao-producao-pr110.md). Não significa cobertura completa de todos os calendários ou recebimentos líquidos.
 - [ ] Ampliar cobertura de calendário de FIIs brasileiros e outros gestores/JPM; rotação/orçamento global dos jobs de cotação em escala. Confirmar processamento das filas automáticas além do primeiro lote antes de declarar cobertura integral.

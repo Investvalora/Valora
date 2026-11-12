@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,7 +31,7 @@ vi.mock('../hooks/useAlerts', () => ({
 vi.mock('../hooks/useAlertMutations', () => ({
   useGenerateAlerts: () => ({ isError: false, isPending: false, mutate: mocks.generate }),
   useCheckPriceTargets: () => ({ isError: false, isSuccess: false, isPending: false, mutate: mocks.checkPrices }),
-  useCreatePriceTargetAlert: () => ({ isError: Boolean(mocks.createError), error: mocks.createError, isPending: false, mutate: mocks.create }),
+  useCreatePriceTargetAlert: () => ({ isPending: false, mutateAsync: mocks.create }),
   useUpdateAlertStatus: () => ({ isError: false, isPending: false, mutate: mocks.update }),
 }))
 
@@ -62,7 +62,10 @@ describe('AlertsPage', () => {
     mocks.mobile = false
     mocks.generate.mockReset()
     mocks.checkPrices.mockReset()
-    mocks.create.mockReset()
+    mocks.create.mockReset().mockImplementation(() => {
+      if (mocks.createError) throw mocks.createError
+      return Promise.resolve()
+    })
     mocks.createError = null
     mocks.update.mockReset()
   })
@@ -201,9 +204,9 @@ describe('AlertsPage', () => {
     renderPage()
 
     openAlertForm()
-    expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toHaveClass('transaction-drawer-panel')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar formulário' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
@@ -232,7 +235,7 @@ describe('AlertsPage', () => {
 
     openAlertForm()
     expect(screen.getByRole('dialog', { name: 'Novo alerta de preço' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar formulário' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
   })
@@ -254,20 +257,22 @@ describe('AlertsPage', () => {
     expect(mocks.checkPrices).toHaveBeenCalledOnce()
   })
 
-  it('mantém a criação do alerta funcional na folha mobile', () => {
+  it('mantém a criação do alerta funcional na folha mobile', async () => {
     mocks.mobile = true
     renderPage()
 
     openAlertForm()
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'petr4' } })
-    fireEvent.click(screen.getByRole('radio', { name: 'Acima de' }))
+    const above = screen.getByRole('radio', { name: 'Acima de' })
+    fireEvent.click(above)
+    expect(above).toBeChecked()
     fireEvent.change(screen.getByLabelText('Preço-alvo (R$)'), { target: { value: '42.50' } })
     fireEvent.click(screen.getByRole('button', { name: 'Criar alerta' }))
 
     expect(mocks.create).toHaveBeenCalledWith(
       { ticker: 'PETR4', targetPrice: 42.5, condition: 'above' },
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
     )
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Novo alerta de preço' })).not.toBeInTheDocument())
   })
 
   it.each([false, true])('recupera rascunho sem enviar e limpa no cancelamento (mobile=%s)', mobile => {

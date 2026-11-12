@@ -8,19 +8,14 @@ import { Link } from 'react-router-dom'
 import {
   useGenerateAlerts,
   useUpdateAlertStatus,
-  useCreatePriceTargetAlert,
   useCheckPriceTargets,
 } from '../hooks/useAlertMutations'
 import { useAlerts } from '../hooks/useAlerts'
-import { AlertAssetField, AlertTargetPriceField } from './AlertPriceFields'
-import { useAlertPriceFields } from '../hooks/useAlertPriceFields'
 import { useAuth } from '../../auth/hooks/useAuth'
-import type { Alert, AlertCondition, AlertType } from '../types'
+import type { Alert, AlertType } from '../types'
 import { EditAlertButton } from './EditAlertButton'
-import { usePriceAlertDraft } from '../hooks/usePriceAlertDraft'
-import { FormDraftNotice } from '../../../shared/components/FormDraftNotice'
-import { draftKey, removeDraft } from '../../../shared/utils/sessionDraft'
 import { ConfiguredAlerts } from './ConfiguredAlerts'
+import { PriceAlertForm } from './PriceAlertForm'
 import { PriceAlertDescription } from './PriceAlertDescription'
 
 // ─── Formatadores ─────────────────────────────────────────────────────────────
@@ -44,19 +39,6 @@ function getAlertDateMeta(alert: Alert): { label: string; value: string } {
     return { label: 'Disparado em', value: alert.updated_at }
   }
   return { label: 'Criado em', value: alert.created_at }
-}
-
-function formatCreateAlertError(error: unknown) {
-  const cause = typeof error === 'object' && error !== null ? error : null
-  const code = cause && 'code' in cause ? cause.code : null
-  const message = cause && 'message' in cause && typeof cause.message === 'string' ? cause.message : ''
-  if (code === '23505' || (!code && /duplicate|unique/i.test(message))) {
-    return 'Já existe um alerta ativo com esse preço e condição. Edite o alerta existente ou escolha outra condição.'
-  }
-  if (code === '23503') {
-    return 'Ativo não encontrado no catálogo. Confira o ticker e selecione o ativo na busca.'
-  }
-  return 'Não foi possível criar o alerta. Tente novamente.'
 }
 
 function triggerHapticFeedback() {
@@ -322,103 +304,6 @@ function SummaryIndicators({ alerts, isLoading, activeFilters, onToggleFilter }:
           </button>
         )
       })}
-    </div>
-  )
-}
-
-// ─── Formulário de criação de alerta de preço ─────────────────────────────────
-
-function PriceTargetForm({ onClose }: { onClose: () => void }) {
-  const createAlert = useCreatePriceTargetAlert()
-  const [ticker, setTicker] = useState('')
-  const [price, setPrice] = useState('')
-  const [condition, setCondition] = useState<AlertCondition>('below')
-
-  const fields = useAlertPriceFields({ ticker, price, onTickerChange: setTicker, onPriceChange: setPrice })
-  const draft = usePriceAlertDraft('sheet', { ticker, price, condition })
-  const clearDraft = draft.clear
-
-  function close() { draft.clear(); onClose() }
-  function restore() {
-    const saved = draft.restore()
-    if (!saved) return
-    fields.changeTicker(saved.ticker); fields.changePrice(saved.price); setCondition(saved.condition)
-  }
-
-  useEffect(() => {
-    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') { clearDraft(); onClose() } }
-    window.addEventListener('keydown', onEscape)
-    return () => window.removeEventListener('keydown', onEscape)
-  }, [onClose, clearDraft])
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmedTicker = ticker.trim().toUpperCase()
-    const parsedPrice = parseFloat(price.replace(',', '.'))
-    if (!trimmedTicker || Number.isNaN(parsedPrice) || parsedPrice <= 0) return
-    createAlert.mutate(
-      { ticker: trimmedTicker, targetPrice: parsedPrice, condition },
-      { onSuccess: close },
-    )
-  }
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="form-title"
-      className="min-h-[72dvh] max-h-[100dvh] w-full overflow-y-auto overscroll-contain rounded-t-[20px] bg-[#191919] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.4)] md:h-[100dvh] md:min-h-0 md:max-h-[100dvh] md:w-[min(100vw,420px)] md:rounded-none md:border-l md:border-white/[0.07] md:bg-[#141414] md:p-8 md:shadow-[-20px_0_60px_rgba(0,0,0,0.4)]"
-    >
-      <span aria-hidden="true" className="mx-auto mb-5 block h-1 w-9 rounded-full bg-white/25 md:hidden" />
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <div>
-          <h2 id="form-title" className="text-[17px] font-semibold text-white">Novo alerta de preço</h2>
-          <p className="mt-1 text-[12px] leading-relaxed text-white/45">
-            Escolha um ativo e o preço que deseja acompanhar.
-          </p>
-        </div>
-        <button type="button" onClick={close} aria-label="Fechar formulário"
-          className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.1] text-white/50 transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue/50"
-        >
-          <X className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />
-        <AlertAssetField model={fields} />
-        <div>
-          <span className="mb-2 block text-[12px] font-medium text-white/60">Condição</span>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 transition-colors has-[:checked]:border-nf-blue/40 has-[:checked]:bg-nf-blue/[0.08]">
-              <input type="radio" name="pt-condition" value="below" checked={condition === 'below'} onChange={() => setCondition('below')} className="h-3.5 w-3.5 accent-nf-blue" />
-              <TrendingDown className="h-3.5 w-3.5 text-nf-green" aria-hidden="true" />
-              <span className="text-[13px] text-white/80">Abaixo de</span>
-            </label>
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 transition-colors has-[:checked]:border-nf-blue/40 has-[:checked]:bg-nf-blue/[0.08]">
-              <input type="radio" name="pt-condition" value="above" checked={condition === 'above'} onChange={() => setCondition('above')} className="h-3.5 w-3.5 accent-nf-blue" />
-              <TrendingUp className="h-3.5 w-3.5 text-nf-pink" aria-hidden="true" />
-              <span className="text-[13px] text-white/80">Acima de</span>
-            </label>
-          </div>
-        </div>
-        <AlertTargetPriceField model={fields} />
-        {createAlert.isError && (
-          <p className="text-[12px] text-red-300" role="alert">{formatCreateAlertError(createAlert.error)}</p>
-        )}
-        <div className="flex gap-2.5 pt-1">
-          <button type="submit" disabled={createAlert.isPending}
-            className="inline-flex min-h-11 flex-[2] items-center justify-center rounded-xl bg-nf-blue px-3 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-nf-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue/60 disabled:cursor-not-allowed disabled:opacity-50 md:bg-nf-purple md:text-[#131313] md:hover:opacity-90 md:focus-visible:ring-nf-purple"
-          >
-            {createAlert.isPending ? 'Criando...' : 'Criar alerta'}
-          </button>
-          <button type="button" onClick={close}
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-white/[0.12] px-3 py-2.5 text-[13px] font-medium text-white/60 transition-colors hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-          >
-            Cancelar
-          </button>
-        </div>
-      </form>
     </div>
   )
 }
@@ -699,10 +584,7 @@ export function AlertsPage() {
     : user?.email?.[0] ?? 'V').toUpperCase()
 
   function openForm() { triggerHapticFeedback(); setShowForm(true) }
-  function closeForm() {
-    if (user?.id) removeDraft(draftKey(user.id, 'global', 'price-alert:sheet:'))
-    setShowForm(false)
-  }
+  function closeForm() { setShowForm(false) }
 
   const hasActiveFilters = activeFilters.size > 0
 
@@ -877,15 +759,7 @@ export function AlertsPage() {
           </button>
         )}
 
-      {/* Overlay formulário */}
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex min-h-[100svh] min-h-[100dvh] items-end bg-black/65 md:items-stretch md:justify-end md:bg-black/50"
-          onClick={(e) => { if (e.target === e.currentTarget) closeForm() }}
-        >
-          <PriceTargetForm key={user?.id ?? 'anonymous'} onClose={closeForm} />
-        </div>
-      )}
+      {showForm && <PriceAlertForm onClose={closeForm} onDismiss={closeForm} />}
 
       {/* Overlay painel de regras */}
       {showRules && <RulesPanel onClose={() => setShowRules(false)} />}

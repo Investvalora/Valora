@@ -27,11 +27,10 @@ import { useRetainedChartData } from "../../../shared/hooks/useRetainedChartData
 import { useChartMorph } from "../../../shared/hooks/useChartMorph";
 import { blendValue, sampleCurve } from "../../../shared/utils/chartMorph";
 import { useAssetDetail } from "../hooks/useAssetDetail";
-import { AddTransactionModal } from "../../portfolio/components/AddTransactionModal";
+import { DeferredQuickTransactionModal } from "../../portfolio/components/DeferredQuickTransactionModal";
 import { PriceAlertForm } from "../../alerts/components/PriceAlertForm";
 import { EditTransactionButton } from "../../portfolio/components/EditTransactionButton";
 import { FavoriteButton } from "./FavoriteButton";
-import { Modal } from "../../../shared/components/Modal";
 import { usePriceHistory } from "../hooks/usePriceHistory";
 import { useAssetDividends } from "../hooks/useAssetDividends";
 import { useDividends } from "../../dividends/hooks/useDividends";
@@ -284,20 +283,22 @@ function AssetDetailHero({
         {/* Botões de ação — pushed to right on desktop */}
         <div className="flex flex-wrap gap-2 md:ml-auto">
           <FavoriteButton ticker={ticker} />
-          <button
-            type="button"
-            onClick={onTransaction}
-            className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
-          >
-            + Lançamento do ativo
-          </button>
-          <button
-            type="button"
-            onClick={onAlert}
-            className="rounded-[20px] bg-[#393939] px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-[#444] transition-colors"
-          >
-            Criar alerta
-          </button>
+          <div role="group" aria-label="Ações do ativo" className="flex min-w-0 items-stretch gap-2">
+            <button
+              type="button"
+              onClick={onTransaction}
+              className="min-h-10 rounded-full bg-[#393939] px-3 py-2 text-[13px] font-medium text-white/90 transition-colors hover:bg-[#444] hover:text-white sm:px-4 sm:text-sm"
+            >
+              + Lançamento do ativo
+            </button>
+            <button
+              type="button"
+              onClick={onAlert}
+              className="min-h-10 shrink-0 rounded-full border border-white/15 px-3 py-2 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white sm:px-4 sm:text-sm"
+            >
+              Criar alerta
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -2162,29 +2163,23 @@ export function AtivoDetailPage({
         onTransaction={() => setTransactionOpen(true)}
         onAlert={() => setAlertOpen(true)}
       />
-      <AddTransactionModal
-        isOpen={transactionOpen}
-        onClose={() => setTransactionOpen(false)}
-        ticker={asset.ticker}
-        assetType={asset.type}
-        assetName={asset.name}
-      />
-      <Modal
-        isOpen={alertOpen}
-        onClose={() => setAlertOpen(false)}
-        title="Criar alerta"
-      >
-        {alertOpen && (
-          <PriceAlertForm
-            key={ticker}
-            initialTicker={asset.ticker}
-            onClose={() => {
-              setAlertOpen(false);
-              if (!chartExpanded) setActiveTab("alertas");
-            }}
-          />
-        )}
-      </Modal>
+      {transactionOpen && (
+        <DeferredQuickTransactionModal
+          isOpen
+          onClose={() => setTransactionOpen(false)}
+          initialAsset={asset}
+        />
+      )}
+      {alertOpen && (
+        <PriceAlertForm
+          initialTicker={asset.ticker}
+          onDismiss={() => setAlertOpen(false)}
+          onClose={() => {
+            setAlertOpen(false);
+            if (!chartExpanded) setActiveTab("alertas");
+          }}
+        />
+      )}
       {chartExpanded && (
         <ExpandedPriceChart
           ticker={asset.ticker}

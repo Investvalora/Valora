@@ -1,6 +1,7 @@
 import { authorizeInternationalCollector } from './githubOidc.ts'
 import { boundedBytes } from '../_shared/officialFiles.ts'
 import { collectProviderFallbacks } from './providers.ts'
+import { jobRun } from '../_shared/jobRuns.ts'
 const url = Deno.env.get('SUPABASE_URL') ?? '', key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }
 async function rpc(name: string, body: unknown) {
@@ -13,13 +14,21 @@ Deno.serve(async request => {
   if (!await authorizeInternationalCollector(request, url, key)) return Response.json({ error: 'unauthorized' }, { status: 401 })
   try {
     const body = JSON.parse(new TextDecoder().decode(await boundedBytes(new Response(request.body), 64*1024)))
-    if (body.mode === 'providers') return Response.json(await collectProviderFallbacks(rpc, async name => {
+    if (body.mode === 'health') return Response.json(await rpc('international_queue_health', {}))
+    if (body.mode === 'providers') {
+      const runId=crypto.randomUUID()
+      const auditStarted=await jobRun(url,key,runId,undefined,fetch,'international-providers')
+      const result=await collectProviderFallbacks(rpc, async name => {
       const configured = Deno.env.get(name)?.trim()
       if (configured) return configured
       if (/^MARKETSTACK_API_KEY_[2-8]$/.test(name)) return ''
       const value = await rpc('get_dividend_provider_key', { p_provider: name === 'ALPHA_VANTAGE_API_KEY' ? 'alpha_vantage' : name === 'MARKETSTACK_API_KEYS' ? 'marketstack_keys' : 'marketstack' })
       return typeof value === 'string' ? value : ''
-    }, new Date().toISOString().slice(0,10)))
+      }, new Date().toISOString().slice(0,10))
+      const errors=result.results.filter(r=>r.error&&!['provider_keys_unavailable','provider_quota_exhausted'].includes(r.error)).map(r=>r.error)
+      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors},fetch,'international-providers')
+      return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
+    }
     if (body.mode === 'claim' || body.mode === 'claim_sec') {
       const tasks = await rpc(body.mode === 'claim_sec' ? 'claim_sec_dividends' : 'claim_international_announcements', {}) as { ticker: string; claim_token: string }[]
       return Response.json({ tasks: tasks.map(t => ({ ticker: t.ticker, claim_token: t.claim_token })) })

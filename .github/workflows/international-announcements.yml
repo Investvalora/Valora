@@ -36,6 +36,7 @@ jobs:
         with:
           node-version: 24
       - run: node --experimental-strip-types scripts/collect-international-announcements.mjs
+        name: Probe public sources without credentials
         env:
           INTERNATIONAL_PROBE_ONLY: 'true'
       - name: Probe official JPM discovery without queue or credentials

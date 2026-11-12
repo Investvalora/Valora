@@ -1,5 +1,21 @@
 # Alpha Vantage e Marketstack — 12/11/2026
 
+## Homologação em produção concluída — PR143
+
+Merge `ce8b81c71f49d4ed12758198de8c75f3830008d7`, CI da main [43246535177](https://github.com/Investvalora/Valora/actions/runs/43246535177) aprovado. Estado abaixo substitui as pendências históricas de publicação descritas nas seções seguintes.
+
+- Migrations aplicadas pelo plugin Supabase: `mastercard_syndicated_announcements` versão remota `20261112152038`, `dividend_provider_fallbacks` `20261112152044`, `marketstack_key_rotation` `20261112152051`. Os identificadores remotos gerados diferem dos nomes locais; comparar também pelo nome da migration.
+- `sync-international-announcements` v8 ACTIVE, configuração OIDC preservada; POST sem autenticação respondeu 401. RPCs de chave e reserva negadas a `authenticated`.
+- Execução autenticada [43246851128](https://github.com/Investvalora/Valora/actions/runs/43246851128), 12h21 Brasília: Alpha COST cinco eventos, Marketstack AAPL quatro, ambos sem erros. Uma reserva em cada fornecedor e uma chamada Marketstack registrada por chave. Nenhum recebimento criado pelo coletor.
+- COST ordinário USD1,47 ex30/10/pagamento13/11 e especial USD30 ex24/11/pagamento04/12 conciliados com Alpha. Zero linhas do especial na tabela recorrente `dividends`.
+- Navegador integrado de produção: filtro COST mostrou exatamente um ordinário e um especial, aviso de exclusão do DY/Bazin, quantidade futura estimada0,03405616 e previsão brutaUSD1,0217 do especial. Painel de ex pendente sem duplicação do especial confirmado. Interface móvel legível e sem erros de carregamento observados.
+- Dois comunicados públicos MA conciliados contra o banco em transação com rollback: zero alterações e zero conflitos; preservada fonte anterior `mastercard_ri`.
+- Cinco chaves distintas lidas pelo backend. Reservas passaram por todas as cinco no banco publicado em transação revertida; não foi provocada exaustão real no fornecedor nem mantidos consumos fictícios. Cada chave adicional já havia passado em consulta real mínima antes da publicação.
+- Antes/depois: 258 transações, hash `9f8b4b5c9054abba35c53717c12d94ab`; 208 recebimentos, hash `be7d8c15d31326a5ce429486e075884e`. Nenhum lançamento ou crédito pessoal alterado nesta homologação.
+- Advisors de segurança: tabelas operacionais com RLS e sem políticas públicas produzem avisos informativos esperados, por serem exclusivas do backend. Avisos existentes de [pg_net no schema public](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public) e [proteção de senhas vazadas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) permanecem fora desta entrega.
+
+Limites: o teste comprova a execução manual publicada e as reservas no banco, não cadência contínua de 15 minutos, exaustão real das cinco contas ou cobertura imediata de todo o catálogo. Selic sem identificação/extrato e observação do cron Tesouro continuam pendentes separadas.
+
 Implementação local dos dois conectores de calendário de dividendos. Não altera compras, vendas, posições ou créditos pessoais. Complementa Nasdaq/RI/SEC para ações americanas ativas em USD; não fica restrita aos ativos de uma carteira.
 
 ## Cobertura realmente verificada

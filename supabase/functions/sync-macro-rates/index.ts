@@ -1,5 +1,6 @@
 import { yahooCaller } from '../_shared/yahooAuthorization.ts';
 import { macroRows } from './validation.ts';
+import { jobRun } from '../_shared/jobRuns.ts';
 // Edge Function: sync-macro-rates
 //
 // Sincroniza taxas macroeconômicas (CDI, Selic, IPCA) do Banco Central do Brasil
@@ -107,6 +108,8 @@ Deno.serve(async (req: Request) => {
   const caller = await yahooCaller(req, SUPABASE_URL, SERVICE_KEY);
   if (caller.kind !== 'service') return new Response('Não autorizado', { status: caller.kind === 'denied' ? caller.status : 403, headers: CORS });
   const body = await req.json().catch(() => ({}));
+  const runId = crypto.randomUUID();
+  const auditStarted = await jobRun(SUPABASE_URL, SERVICE_KEY, runId);
 
   const resultado: Record<string, number> = {};
   const erros: string[] = [];
@@ -144,8 +147,11 @@ Deno.serve(async (req: Request) => {
       if ((recalculo as { erros?: unknown[] })?.erros?.length) throw new Error('Recálculo parcial');
     } catch { erros.push('recalculo: falha ao recalcular posições'); }
   }
+  const execution = { recalculo, linhas_gravadas: resultado, erros, executado_em: new Date().toISOString() };
+  const auditSaved = auditStarted && await jobRun(SUPABASE_URL, SERVICE_KEY, runId, execution);
+  if (!auditSaved) erros.push('audit: resultado não persistido');
   return new Response(
-    JSON.stringify({ recalculo, linhas_gravadas: resultado, erros, executado_em: new Date().toISOString() }),
+    JSON.stringify({ ...execution, run_id: runId, audit_saved: auditSaved }),
     { status: erros.length ? 503 : 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
   );
 });

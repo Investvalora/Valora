@@ -25,7 +25,8 @@ export function AnnouncedDividends() {
         <h3 className="mb-3 text-sm font-semibold text-white">{dated ? 'Pagamentos futuros com data' : 'Sem data de pagamento · situação desconhecida'}</h3>
         {!filtered.some((row) => Boolean(row.payment_date) === dated) && <p className="text-sm text-white/50">Nenhum registro disponível.</p>}
         <div className="grid gap-3 md:grid-cols-2">{filtered.filter((row) => Boolean(row.payment_date) === dated).map((row) => <article key={`${row.ticker}-${row.type}-${row.ex_date}-${row.payment_date}`} className="rounded-xl border border-white/10 p-4 text-sm text-white/70">
-        <h3 className="font-semibold text-white">{row.ticker} · {row.type.toUpperCase()}</h3>
+        <h3 className="font-semibold text-white">{row.ticker} · {row.is_special ? 'DIVIDENDO ESPECIAL' : row.type.toUpperCase()}</h3>
+        {row.is_special && <p className="mt-1 text-xs text-white/50">Pagamento extraordinário; não compõe o DY recorrente nem o cálculo de Bazin.</p>}
         <div className="mt-3 space-y-1"><div>Data ex: {date(row.ex_date)}</div><div>Pagamento: {row.payment_date ? date(row.payment_date) : 'Não informado na base'}</div><div>Valor por cota: {money(row.value_per_share, row.currency)}</div><div>Quantidade {row.ex_date > today ? 'estimada' : 'elegível'}: {row.quantity.toLocaleString('pt-BR', { maximumFractionDigits: 8 })}</div><div className="text-nf-green">{dated ? 'Total estimado' : 'Valor de referência'}: {money(row.total_value, row.currency)}</div></div>
         <p className="mt-2 text-xs text-white/40">{row.payment_date === null ? 'Pode já ter sido pago. Ausência de data não comprova um valor a receber.' : row.ex_date > today ? 'Direito ainda não consolidado.' : 'Pagamento anunciado; confira o crédito na corretora.'}</p>
       </article>)}</div></section>)}</div>}

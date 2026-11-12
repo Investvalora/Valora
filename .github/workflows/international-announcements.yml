@@ -5,6 +5,7 @@ on:
       - '.github/workflows/international-announcements.yml'
       - 'scripts/collect-international-announcements.mjs'
       - 'scripts/jpmorgan-announcements.mjs'
+      - 'scripts/mastercard-announcements.mjs'
       - 'scripts/sec-dividend-announcements.mjs'
       - 'supabase/functions/sync-international-announcements/**'
   workflow_dispatch:
@@ -43,6 +44,15 @@ jobs:
           import { jpmorganAnnouncements } from './scripts/jpmorgan-announcements.mjs'
           const events = await jpmorganAnnouncements(new Date().toISOString().slice(0,10))
           console.log(JSON.stringify({provider:'jpmorgan_ri',events:events.length}))
+          NODE
+
+      - name: Probe syndicated Mastercard issuer releases without queue or credentials
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { mastercardAnnouncements } from './scripts/mastercard-announcements.mjs'
+          const events = await mastercardAnnouncements(new Date().toISOString().slice(0,10))
+          console.log(JSON.stringify({provider:'mastercard_nasdaq_release',events:events.length}))
+          if(!events.length) process.exitCode=1
           NODE
 
       - name: Probe SEC discovery without queue or credentials

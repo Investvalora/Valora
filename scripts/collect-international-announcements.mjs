@@ -1,10 +1,11 @@
 import { jpmorganAnnouncements } from './jpmorgan-announcements.mjs'
+import { mastercardAnnouncements } from './mastercard-announcements.mjs'
 import { collectSecDividends } from './sec-dividend-announcements.mjs'
 import { pathToFileURL } from 'node:url'
 import { nasdaqSource } from '../supabase/functions/sync-international-announcements/source.ts'
 import { nasdaqIdentity, nasdaqAnnouncements } from '../supabase/functions/sync-international-announcements/nasdaq.ts'
 
-export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements }) {
+export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements }) {
   const asOf = new Date().toISOString().slice(0,10)
   if (!probeOnly && (endpoint !== 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements' || !token)) throw new Error('collector_configuration_missing')
   async function call(body) {
@@ -19,13 +20,14 @@ export async function collectAnnouncements({ endpoint, token, probeOnly = false,
     let events = [], error = null
     try {
       if (task.ticker === 'JPM') events = await issuerSource(asOf)
+      else if (task.ticker === 'MA') events = await maSource(asOf)
       else {
         nasdaqIdentity(await source(task.ticker, 'info'), task.ticker)
         events = nasdaqAnnouncements(await source(task.ticker, 'dividends'), asOf)
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : ''
-      error = /^(?:nasdaq|jpm)_[a-z0-9_]{1,60}$/.test(message) ? message : (task.ticker === 'JPM' ? 'jpm_source_unavailable' : 'nasdaq_source_unavailable')
+      error = /^(?:nasdaq|jpm|ma)_[a-z0-9_]{1,60}$/.test(message) ? message : (task.ticker === 'JPM' ? 'jpm_source_unavailable' : task.ticker==='MA'?'ma_source_unavailable':'nasdaq_source_unavailable')
     }
     const stored = probeOnly ? {} : await call({ mode: 'finish', ticker: task.ticker, claim_token: task.claim_token, events, error })
     results.push({ ticker: task.ticker, events: events.length, error, ...stored })
@@ -55,6 +57,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const result = await collectAnnouncements({ endpoint, token, probeOnly })
       console.log(JSON.stringify(result)); if (result.failed) process.exitCode = 1
     } catch {console.error('international_primary_collector_failed');process.exitCode=1}
-    if(!probeOnly){const sec=await collectSecDividends({endpoint,token});console.log(JSON.stringify(sec));if(sec.failed)process.exitCode=1}
+    if(!probeOnly){
+      try {const sec=await collectSecDividends({endpoint,token});console.log(JSON.stringify(sec));if(sec.failed)process.exitCode=1}
+      catch {console.error('sec_collector_failed');process.exitCode=1}
+      const r=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'providers'}),signal:AbortSignal.timeout(60000)})
+      if(!r.ok)throw new Error('provider_collection_failed')
+      const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>r.error && !['provider_keys_unavailable','provider_quota_exhausted'].includes(r.error)))process.exitCode=1
+    }
   } catch { console.error('international_collector_failed'); process.exitCode = 1 }
 }

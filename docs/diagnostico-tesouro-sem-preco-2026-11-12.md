@@ -1,5 +1,17 @@
 # Exceção Tesouro — 12/11/2026
 
+## Publicação e homologação técnica de produção
+
+Atualização final: [CI43149622133](https://github.com/Investvalora/Valora/actions/runs/43149622133) concluída com sucesso em todos os jobs, incluindo app/build.
+
+PR142 mergeada em `92261690360cc469dcb1c6e790fded31fe702fe0`. Função calc-fixed-income v16 ACTIVE publicada com verify_jwt=true; código remoto recuperado confirma o diagnóstico de referência ausente. POST sem autenticação retorna401. Nenhum recálculo geral disparado nesta validação; comportamento de cálculo e ausência de PATCH nas falhas comprovados nos44 testes locais.
+
+Antes/depois da publicação:15 posições, hash integral `c3005541adb1757b14be1bec40ea795a`, inalterado. Não modifica cadastro desconhecido nem presume preço. CI do merge43149622133: isolamento, replay e identidade aprovados; app no build na conferência inicial. Recorrência internacional continua sem evento schedule registrado. Observar o diagnóstico na próxima execução autorizada/agendada continua separado da verificação técnica de publicação.
+
+## Homologação PR142 antes do merge
+
+PR142 ainda aberta na conferência. [CI43148936887](https://github.com/Investvalora/Valora/actions/runs/43148936887) aprovada em app, isolamento, replay e identidade; prévia Vercel aprovada. Reexecução local dos44 testes e Deno check aprovada. Consulta vazia, resposta inválida e preço antigo mantêm zero PATCH e nenhum fallback contratual; cenário válido continua marcando a mercado sem alterar principal. Nenhuma publicação de função ou recálculo de produção nesta homologação. Após merge, publicar calc-fixed-income e conferir a nova mensagem sem modificar o cadastro desconhecido.
+
 Auditoria somente leitura confirmou um lote tesouro_selic, vencimento2027-10-10, quantidade100, sem correspondência na tabela treasury_prices e sem last_updated_at. É o cadastro anteriormente não reconhecido pelo responsável; não foi atribuído à Investidor10 nem alterado. Ausência na base não prova que nunca existiu um título, mas impede usar outro vencimento por aproximação.
 
 Os três lotes confirmados da Investidor10 (IPCA2029, quantidades0,03/0,01; Prefixado2031,0,14) têm preço oficial10/11 e recálculo automático11/11 às20h Brasília. A falha é específica do cadastro sem referência, não interrupção geral dos preços.

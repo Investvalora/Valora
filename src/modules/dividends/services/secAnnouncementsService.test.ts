@@ -5,6 +5,10 @@ vi.mock('../../../shared/services/supabaseClient', () => ({ supabase: supabaseMo
 beforeEach(() => supabaseMock.reset())
 const special = { ticker: 'COST', accession: 'special', record_date: '2026-11-24', payment_date: '2026-12-04', value_per_share: 30, distribution: 'special' }
 const regular = { ...special, accession: 'regular', value_per_share: 1.47 }
+it('removes confirmed specials from pending while preserving unconfirmed distributions',async()=>{
+ supabaseMock.on('sec_dividend_announcements',()=>({data:[{...special,confirmed_ex_date:'2026-11-24'},regular],error:null}))
+ expect(await listPendingSecAnnouncements(['COST'],'2026-11-12','2027-11-12')).toEqual([regular])
+})
 it('oculta somente anúncio já conciliado com corte, pagamento, valor e ticker iguais', async () => {
   supabaseMock.on('sec_dividend_announcements', () => ({ data: [regular, special], error: null }))
   supabaseMock.on('dividends', () => ({ data: [{ ...regular, ex_date: '2026-11-23' }], error: null }))

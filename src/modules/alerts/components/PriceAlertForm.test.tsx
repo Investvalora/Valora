@@ -16,7 +16,7 @@ beforeEach(() => { sessionStorage.clear(); create.mockReset().mockResolvedValue(
 it.each([
   ['23505', /Já existe um alerta ativo/],
   ['23503', /Ativo não encontrado no catálogo/],
-  ['unexpected', /Erro ao criar alerta. Tente novamente/],
+  ['unexpected', /Não foi possível criar o alerta. Tente novamente/],
 ])('explica a falha %s e permite tentar novamente sem perder os campos', async (code, message) => {
   const user = userEvent.setup()
   const close = vi.fn()

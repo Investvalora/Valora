@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Settings } from 'lucide-react'
+import { Check, Settings } from 'lucide-react'
 import { AlertBell } from '../../../shared/components/AlertBell'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
@@ -141,14 +141,12 @@ export function MobileCarteiraHome({
   const [showWalletForm, setShowWalletForm] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [actionAnimationId, setActionAnimationId] = useState(0)
   const [viewportSize, setViewportSize] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   }))
   const swipeGesture = useRef<SwipeGesture | null>(null)
   const pageRef = useRef<HTMLElement | null>(null)
-  const actionTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     function updateViewportSize() {
@@ -161,14 +159,6 @@ export function MobileCarteiraHome({
     updateViewportSize()
     window.addEventListener('resize', updateViewportSize)
     return () => window.removeEventListener('resize', updateViewportSize)
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (actionTimerRef.current !== null) {
-        window.clearTimeout(actionTimerRef.current)
-      }
-    }
   }, [])
 
   const orderedWallets = [...wallets].sort((first, second) => {
@@ -267,24 +257,6 @@ export function MobileCarteiraHome({
     setShowWalletForm(true)
   }
 
-  function handleHeaderAction() {
-    setActionAnimationId((current) => current + 1)
-
-    if (actionTimerRef.current !== null) {
-      window.clearTimeout(actionTimerRef.current)
-    }
-
-    actionTimerRef.current = window.setTimeout(() => {
-      actionTimerRef.current = null
-
-      if (showWallets) {
-        openWalletForm(null)
-      } else {
-        onAddTransaction()
-      }
-    }, 170)
-  }
-
   return (
     <section
       ref={pageRef}
@@ -319,17 +291,32 @@ export function MobileCarteiraHome({
           >
             {initial}
           </Link>
-          {children && !showWallets
-            ? <AlertBell count={alertCount} />
-            : (!children || showWallets) && <button
-                key={`${showWallets ? 'new-wallet' : 'new-transaction'}-${actionAnimationId}`}
+          <div className="relative h-11 w-36 shrink-0">
+            <div
+              aria-hidden={showWallets}
+              ref={(node) => { if (node) node.inert = showWallets }}
+              className="wallet-header-action absolute inset-y-0 right-0 flex items-center"
+            >
+              {children ? <AlertBell count={alertCount} /> : (
+                <button type="button" onClick={onAddTransaction} className="wallet-action-button h-11 whitespace-nowrap rounded-full px-5 text-sm font-medium">
+                  + Lançamento
+                </button>
+              )}
+            </div>
+            <div
+              aria-hidden={!showWallets}
+              ref={(node) => { if (node) node.inert = !showWallets }}
+              className="wallet-header-action absolute inset-y-0 right-0 flex items-center"
+            >
+              <button
                 type="button"
-                onClick={handleHeaderAction}
-                className="wallet-action-button min-h-11 rounded-full px-5 py-2.5 text-sm font-medium"
+                onClick={() => openWalletForm(null)}
+                className="wallet-action-button h-11 whitespace-nowrap rounded-full px-5 text-sm font-medium"
               >
-                {showWallets ? '+ Carteira' : '+ Lançamento'}
+                + Carteira
               </button>
-          }
+            </div>
+          </div>
         </header>
       </div>
 
@@ -434,6 +421,7 @@ export function MobileCarteiraHome({
         const left = closedLeft + (openCardLeft - closedLeft) * revealProgress
         const top = 90 + (openTop - 90) * revealProgress
         const color = walletPalette[wallet.color].color
+        const selected = wallet.id === selectedWallet?.id
 
         return (
           <div
@@ -470,6 +458,7 @@ export function MobileCarteiraHome({
               aria-label={showWallets
                 ? `Selecionar ${wallet.name}`
                 : `Ver e selecionar carteiras: ${orderedWallets.length}`}
+              aria-pressed={showWallets ? selected : undefined}
               tabIndex={showWallets || index === 0 ? 0 : -1}
             >
               <span
@@ -479,13 +468,21 @@ export function MobileCarteiraHome({
                 {wallet.name}
               </span>
               <span
-                className="text-sm font-medium transition-opacity duration-300"
+                className="flex w-full items-end justify-between gap-2 text-sm font-medium transition-opacity duration-300 motion-reduce:transition-none"
                 style={{ opacity: revealProgress }}
               >
-                Patrimônio total
-                <strong className="mt-1 block text-lg">
-                  {formatWalletTotal(wallet.id, totals, totalsLoading, totalsError)}
-                </strong>
+                <span className="min-w-0">
+                  Patrimônio total
+                  <strong className="mt-1 block break-words text-lg leading-tight">
+                    {formatWalletTotal(wallet.id, totals, totalsLoading, totalsError)}
+                  </strong>
+                </span>
+                {selected && showWallets && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-semibold leading-none text-white">
+                    <Check size={12} aria-hidden="true" />
+                    Selecionada
+                  </span>
+                )}
               </span>
             </button>
             <button

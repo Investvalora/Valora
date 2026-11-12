@@ -7,7 +7,7 @@ Priorizar fontes gratuitas. Disponibilidade de dados será validada antes de pro
 ## Estado atual — após homologação PR143, 12/11/2026
 
 - Concluídos em produção: total investido histórico (PR128), importação CSV e precisão/persistência (PR132/141), fontes alternativas MA/Alpha/Marketstack, líquido informado de MA e especial COST com ex confirmada (PR143).
-- Próxima PR: registro persistente do resultado macro/Tesouro e das duas APIs, cron horário independente no Supabase, diagnóstico de atraso/escoamento e prioridade dos ativos em carteira com calendário incompleto. Implementação e teste locais; publicação e observação real ainda pendentes.
+- PR144 publicada; execução forçada autorizada encerrou a homologação funcional: macro v14 recalculou13 posições e registrou a pendência esperada do Selic. Corrigido 401 do caminho cron por validação segura da credencial legada; internacional v10 retornou200/auditoria salva em repetição real. Cron ativo; cadência contínua fica em acompanhamento, sem bloquear o aceite funcional. Entradas financeiras preservadas.
 - Validação operacional: confirmar execução automática do novo fallback e o próximo macro/Tesouro (17h Brasília; repetição20h). Execução manual aprovada não substitui essas evidências.
 - Dependência externa: Selic vencimento10/10/2027, quantidade100, de outra conta. Cadastro criado06/11; não há evidência para tratar como teste ou corrigir/excluir sem extrato. Preservar.
 - Cobertura não é universal: ausência de calendário permanece explícita; acompanhar ativos não suportados/conflitos, sem presumir pagamentos, impostos ou quantidades.

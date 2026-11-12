@@ -5,8 +5,10 @@ import { pathToFileURL } from 'node:url'
 import { nasdaqSource } from '../supabase/functions/sync-international-announcements/source.ts'
 import { nasdaqIdentity, nasdaqAnnouncements } from '../supabase/functions/sync-international-announcements/nasdaq.ts'
 import { providerOperationalFailure } from '../supabase/functions/sync-international-announcements/providers.ts'
+import { permrockAnnouncements } from './permrock-announcements.mjs'
+import { metaAnnouncements } from './meta-announcements.mjs'
 
-export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements }) {
+export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements, primarySources = { PRT: permrockAnnouncements, META: metaAnnouncements } }) {
   const asOf = new Date().toISOString().slice(0,10)
   if (!probeOnly && (endpoint !== 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements' || !token)) throw new Error('collector_configuration_missing')
   async function call(body) {
@@ -20,7 +22,8 @@ export async function collectAnnouncements({ endpoint, token, probeOnly = false,
   for (const task of tasks) {
     let events = [], error = null
     try {
-      if (task.ticker === 'JPM') events = await issuerSource(asOf)
+      if (primarySources[task.ticker]) events = await primarySources[task.ticker](asOf)
+      else if (task.ticker === 'JPM') events = await issuerSource(asOf)
       else if (task.ticker === 'MA') events = await maSource(asOf)
       else {
         nasdaqIdentity(await source(task.ticker, 'info'), task.ticker)
@@ -28,15 +31,15 @@ export async function collectAnnouncements({ endpoint, token, probeOnly = false,
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : ''
-      error = /^(?:nasdaq|jpm|ma)_[a-z0-9_]{1,60}$/.test(message) ? message : (task.ticker === 'JPM' ? 'jpm_source_unavailable' : task.ticker==='MA'?'ma_source_unavailable':'nasdaq_source_unavailable')
+      error = /^(?:nasdaq|jpm|ma|issuer)_[a-z0-9_]{1,60}$/.test(message) ? message : (primarySources[task.ticker]?'issuer_source_unavailable':task.ticker === 'JPM' ? 'jpm_source_unavailable' : task.ticker==='MA'?'ma_source_unavailable':'nasdaq_source_unavailable')
     }
-    const stored = probeOnly ? {} : await call({ mode: 'finish', ticker: task.ticker, claim_token: task.claim_token, events, error })
+    const stored = probeOnly ? {} : await call({ mode: primarySources[task.ticker]?'finish_primary':'finish', ticker: task.ticker, claim_token: task.claim_token, events, error })
     results.push({ ticker: task.ticker, events: events.length, error, ...stored })
   }
   const unsupported = results.filter(r => ['nasdaq_identity_unsupported','nasdaq_unavailable'].includes(r.error)).length
   return { probeOnly, results, unsupported, failed: results.filter(r => probeOnly
     ? r.error !== null || r.events === 0
-    : (r.error !== null && !['nasdaq_identity_unsupported','nasdaq_unavailable'].includes(r.error)) || Number(r.conflicts)>0).length }
+    : (r.error !== null && !['nasdaq_identity_unsupported','nasdaq_unavailable','issuer_ex_unconfirmed'].includes(r.error)) || Number(r.conflicts)>0).length }
 }
 async function githubIdentity(endpoint) {
   const target = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL ?? '')

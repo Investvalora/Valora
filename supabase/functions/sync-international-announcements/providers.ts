@@ -3,7 +3,7 @@ import { boundedBytes } from '../_shared/officialFiles.ts'
 export type DividendProvider = 'alpha_vantage' | 'marketstack'
 /** Coverage gaps stay recorded on the task, but are not infrastructure failures. */
 export function providerOperationalFailure(error: string | null): boolean {
-  return !!error && !['provider_calendar_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
+  return !!error && !['provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
 }
 export interface ProviderEvent {
   ex_date: string; declaration_date: string; record_date: string; payment_date: string; value_per_share: number
@@ -33,6 +33,7 @@ export function providerEvents(provider: DividendProvider, ticker: string, paylo
     const raw = provider === 'alpha_vantage' ? row.amount : row.dividend
     if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,8})?$/.test(String(raw))) throw new Error('provider_invalid_amount')
     const amount = Number(raw)
+    if(provider==='marketstack'&&amount===0)throw new Error('provider_precision_unavailable')
     if (!(amount > 0 && amount < 1e12)) throw new Error('provider_invalid_amount')
     const [whole, fraction = ''] = String(raw).split('.')
     const exact = BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, '0'))

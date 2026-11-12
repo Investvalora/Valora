@@ -9,12 +9,14 @@ it('preserves seven and eight decimal vendor observations without rejecting vali
  expect(()=>providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount:'0.019624201'}]},'2026-11-12')).toThrow('provider_invalid_amount')
  expect(()=>providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount:'999999999999.12345678'}]},'2026-11-12')).toThrow('provider_invalid_amount')
 })
-it('does not import vendor-rounded zero or disguise it as a calendar error',()=>{
+it('does not import vendor-rounded zero and explicitly reports insufficient precision',()=>{
  const p={pagination:{total:1,count:1},data:[{symbol:'PRT',date:'2026-10-30',declaration_date:'2026-10-20',record_date:'2026-10-30',payment_date:'2026-11-16',dividend:0}]}
- expect(()=>providerEvents('marketstack','PRT',p,'2026-11-12')).toThrow('provider_invalid_amount')
+ expect(()=>providerEvents('marketstack','PRT',p,'2026-11-12')).toThrow('provider_precision_unavailable')
 })
 it('distinguishes missing coverage from invalid observations and technical failures',()=>{
  expect(providerOperationalFailure('provider_calendar_unavailable')).toBe(false)
+ expect(providerOperationalFailure('provider_precision_unavailable')).toBe(false)
+ expect(providerOperationalFailure('provider_precision_limited')).toBe(false)
  expect(providerOperationalFailure(null)).toBe(false)
  for(const error of ['provider_invalid_amount','provider_event_conflict','provider_rejected','provider_request_failed','provider_identity_changed']) expect(providerOperationalFailure(error)).toBe(true)
 })

@@ -1,5 +1,19 @@
 # TODO ativa de evolução do Valora
 
+## Alta — descoberta gratuita JNJ, implementação local em 13/11
+
+- Confirmada lacuna: produção contém fevereiro/maio/agosto de JNJ, mas ainda não contém ex 24/11/pagamento 08/12. Novo coletor descobriu três comunicados reais, inclusive esse futuro, com USD 1,34 por ação e data ex explícita.
+- Origem JNJ/Business Wire verificada pelo feed público Nasdaq, sem chave paga; mantém proteção de identidade e conflitos. Migration e allowlist da função preparadas; nada publicado ou gravado na carteira nesta investigação.
+- 233 testes de proventos, 13 testes de identidade Deno, tipos Node/Deno, lint e 18 baterias SQL aprovados. Replay integral da migration no projeto QA isolado aprovado. [Escopo, limites e publicação](cobertura-jnj-comunicados-2026-11-13.md).
+- Continua pendente reteste HTTP Alpha/CR após renovação da cota às 21h Brasília; KO/NU e outras lacunas não foram encerradas por esta integração.
+
+## PR156 homologada em produção — 13/11, 17h09 Brasília
+
+- Runner executado no merge, com três lotes por fila: seis ativos primários e três SEC; seis lotes, zero falhas operacionais. Tarefas vencidas primárias 27 → 21; SEC 36 → 33. Limitações de cobertura dos seis ativos primários continuam explícitas, sem inventar calendário.
+- Alpha e Marketstack pulados por cota, sem consumo adicional. Lançamentos, posições e 208 recebimentos pessoais preservados por hash. CI/main e health advisor aprovados.
+- Tesouro automático das 17h: sucesso, 13 posições atualizadas e zero erros. Encerra a observação pendente dessa execução.
+- [Evidências](homologacao-producao-pr156.md). Falta acompanhar frequência automática/primeira passagem completa, cobertura e reteste HTTP Alpha/CR após renovação de cota; o teste manual não encerra esses pontos.
+
 ## Alta — recuperação limitada das filas, local em 13/11
 
 - Implementado processamento alternado de até três lotes por fila pública (primária/SEC), com interrupção por fila vazia, falha ou janela entre lotes. Providers pagos conservam uma chamada por execução e suas cotas.

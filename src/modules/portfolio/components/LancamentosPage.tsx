@@ -1,7 +1,8 @@
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
-import { useAllTransactions, buildMonthlyAportes } from '../hooks/useTransactions'
+import { useAllTransactions } from '../hooks/useTransactions'
+import { useMonthlyAportes } from '../hooks/useMonthlyAportes'
 import { usePositions } from '../hooks/usePositions'
 import { useWallets } from '../hooks/useWallets'
 import { useDeleteTransaction } from '../hooks/useTransactions'
@@ -355,7 +356,7 @@ export function LancamentosPage() {
     return map
   }, [positions])
 
-  // Map de ticker → assetType para buildMonthlyAportes
+  // Map de ticker → assetType para os filtros da tabela
   const assetTypeMap = useMemo(() => {
     const map = new Map<string, AssetType | null>()
     for (const [ticker, info] of positionMap) map.set(ticker, info.assetType)
@@ -376,10 +377,8 @@ export function LancamentosPage() {
   }, [transactions, since])
 
   // Dados para o gráfico
-  const chartData = useMemo(
-    () => buildMonthlyAportes(filteredByPeriod, assetTypeMap, assetTypeFilter),
-    [filteredByPeriod, assetTypeMap, assetTypeFilter],
-  )
+  const aportes = useMonthlyAportes(filteredByPeriod, assetTypeFilter)
+  const chartData = aportes.data
 
   // Filtra a tabela
   const tableRows = useMemo(() => {
@@ -482,7 +481,15 @@ export function LancamentosPage() {
           </div>
         </div>
 
-        {chartData.length === 0 ? (
+        <p className="mb-3 text-xs text-white/50">Valores em reais, sem corretagem e taxas. Operações em USD usam a PTAX histórica até a data do lançamento, não o câmbio atual.</p>
+        {chartData.some(point => point.incomplete > 0) && (
+          <p role="status" className="mb-3 text-xs text-amber-300">Há meses sem total disponível por falta de moeda ou câmbio histórico. Esses meses não são exibidos como zero.</p>
+        )}
+        {aportes.loading || aportes.error ? (
+          <div className="flex h-[320px] items-center justify-center text-sm text-gray-400" role="status">
+            {aportes.loading ? 'Carregando câmbio histórico…' : <span>Não foi possível calcular os aportes. <button type="button" className="underline" onClick={aportes.refetch}>Tentar novamente</button></span>}
+          </div>
+        ) : chartData.length === 0 ? (
           <div className="flex h-[300px] items-center justify-center md:h-[320px]">
             <p className="text-sm text-gray-400">Sem lançamentos no período selecionado.</p>
           </div>

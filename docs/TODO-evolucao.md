@@ -1,5 +1,13 @@
 # TODO ativa de evolução do Valora
 
+## Alta — consolidação de aportes em USD, correção local 13/11
+
+- Defeito confirmado: o gráfico somava valores nominais USD e BRL e formatava todos como reais.
+- Corrigido nas duas telas de lançamentos: compras/vendas USD usam PTAX histórica até a data da operação; BRL permanece nominal. O gráfico continua mostrando valores brutos, sem corretagem/taxas, agora com explicação.
+- Catálogo consultado pelos tickers do histórico, incluindo ativos inativos/posições encerradas. Moeda desconhecida ou ausência de câmbio deixa o mês indisponível, sem apresentar total parcial ou zero. Falha de consulta oferece nova tentativa.
+- Lançamentos originais preservados; sem migration ou mutação de dados financeiros. Implementação na branch `codex/aportes-cambio-historico`, ainda sem publicação.
+- Validação técnica local: 41 testes em quatro arquivos, TypeScript, lint e build/PWA aprovados. Conferência visual autenticada e homologação em produção ainda pendentes.
+
 ## Prioridade alta — CR e diagnóstico GOOGL local, 13/11
 
 - **CR:** coletor primário implementado; cinco anúncios reais verificados. Confirma USD 0,255 versus snapshot Alpha USD 0,435, sem inferir data ex. Adjudicação preserva o snapshot divergente e mantém cobertura parcial explícita.

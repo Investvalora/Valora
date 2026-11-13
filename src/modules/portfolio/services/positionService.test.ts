@@ -29,6 +29,15 @@ beforeEach(() => {
   resetSupabaseMock()
 })
 
+describe('positionService.listTransactionAssets', () => {
+  it('busca moeda de ativos históricos, incluindo inativos e sem posição aberta', async () => {
+    supabaseMock.on('assets', () => ({ data: [{ ticker: 'AAPL', currency: 'USD', active: false }], error: null }))
+    expect(await positionService.listTransactionAssets([' aapl ', 'AAPL'])).toEqual([{ ticker: 'AAPL', currency: 'USD', active: false }])
+    expect(supabaseMock.callArgs('assets', 'in')).toEqual([['ticker', ['AAPL']]])
+    expect(supabaseMock.callArgs('assets', 'eq')).toEqual([])
+  })
+})
+
 describe('positionService.addPosition', () => {
   it('grava user_id da sessão e nada além das colunas da posição', async () => {
     supabaseMock.on('positions', () => ({

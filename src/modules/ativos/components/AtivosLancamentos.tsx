@@ -14,7 +14,8 @@ import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
-import { useAllTransactions, buildMonthlyAportes } from '../../portfolio/hooks/useTransactions'
+import { useAllTransactions } from '../../portfolio/hooks/useTransactions'
+import { useMonthlyAportes } from '../../portfolio/hooks/useMonthlyAportes'
 import { useDeleteTransaction } from '../../portfolio/hooks/useTransactions'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
@@ -482,10 +483,8 @@ export function AtivosLancamentos() {
     })
   }, [transactions, since, positionMap, query, types])
 
-  const chartData = useMemo(
-    () => buildMonthlyAportes(filteredByPeriod, assetTypeMap, assetTypeFilter),
-    [filteredByPeriod, assetTypeMap, assetTypeFilter],
-  )
+  const aportes = useMonthlyAportes(filteredByPeriod, assetTypeFilter)
+  const chartData = aportes.data
 
   const tableRows = useMemo(() => {
     let r = filteredByPeriod
@@ -568,7 +567,15 @@ export function AtivosLancamentos() {
           </div>
         </div>
 
-        {chartData.length === 0 ? (
+        <p className="mb-3 text-xs text-white/50">Valores em reais, sem corretagem e taxas. Operações em USD usam a PTAX histórica até a data do lançamento, não o câmbio atual.</p>
+        {chartData.some(point => point.incomplete > 0) && (
+          <p role="status" className="mb-3 text-xs text-amber-300">Há meses sem total disponível por falta de moeda ou câmbio histórico. Esses meses não são exibidos como zero.</p>
+        )}
+        {aportes.loading || aportes.error ? (
+          <div className="flex h-[320px] items-center justify-center text-sm text-gray-400" role="status">
+            {aportes.loading ? 'Carregando câmbio histórico…' : <span>Não foi possível calcular os aportes. <button type="button" className="underline" onClick={aportes.refetch}>Tentar novamente</button></span>}
+          </div>
+        ) : chartData.length === 0 ? (
           <div className="flex h-[320px] items-center justify-center">
             <p className="text-sm text-gray-400">Sem lançamentos no período selecionado.</p>
           </div>

@@ -150,42 +150,4 @@ export function useAllTransactions(walletOverride?: string) {
 // ─── Utilitários de agrupamento para o gráfico ────────────────────────────────
 
 import type { Transaction } from '../services/transactionsService'
-import type { AssetType } from '../types'
-
-export interface MonthlyAportePoint {
-  month: string   // YYYY-MM
-  compras: number // soma de quantity × price de buy
-  vendas: number  // soma de quantity × price de sell (valor positivo)
-}
-
-/**
- * Agrega transações buy/sell por mês para o gráfico de consolidação.
- * Filtra por tipo de ativo se `assetTypeFilter` for informado.
- */
-export function buildMonthlyAportes(
-  transactions: Transaction[],
-  assetTypeMap: Map<string, AssetType | null>,
-  assetTypeFilter: AssetType | 'all' = 'all',
-): MonthlyAportePoint[] {
-  const map = new Map<string, MonthlyAportePoint>()
-
-  for (const txn of transactions) {
-    if (txn.type !== 'buy' && txn.type !== 'sell') continue
-
-    if (assetTypeFilter !== 'all') {
-      const assetType = assetTypeMap.get(txn.ticker)
-      if (assetType !== assetTypeFilter) continue
-    }
-
-    const month = txn.transaction_date.slice(0, 7)
-    const value = Number(txn.quantity) * Number(txn.price)
-    if (!Number.isFinite(value)) continue
-
-    const existing = map.get(month) ?? { month, compras: 0, vendas: 0 }
-    if (txn.type === 'buy') existing.compras += value
-    else existing.vendas += value
-    map.set(month, existing)
-  }
-
-  return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month))
-}
+export { buildMonthlyAportes, type MonthlyAportePoint } from '../monthlyAportes'

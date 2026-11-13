@@ -140,8 +140,8 @@ export default function AportesBarChart({ data }: AportesBarChartProps) {
   // coluna mensal — compras sobe, vendas desce, sem agrupamento lado a lado.
   const chartData = data.map((p) => ({
     month:   p.month,
-    compras: p.compras > 0 ? p.compras : 0,
-    vendas:  p.vendas  > 0 ? -p.vendas  : 0,
+    compras: p.compras === null ? null : Math.max(0, p.compras),
+    vendas:  p.vendas === null ? null : -Math.max(0, p.vendas),
   }))
 
   return (

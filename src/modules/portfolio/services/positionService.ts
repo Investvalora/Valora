@@ -195,6 +195,18 @@ export const positionService = {
    * cadastrável digitando o ticker exato. Os dois caminhos precisam concordar
    * sobre o que é catálogo válido.
    */
+  /** Metadata for the historical ledger, including closed/inactive assets. */
+  async listTransactionAssets(tickers: string[]): Promise<Asset[]> {
+    const wanted = normalizeTickers(tickers)
+    const assets: Asset[] = []
+    for (let start = 0; start < wanted.length; start += 100) {
+      const { data, error } = await supabase.from('assets').select(ASSET_COLUMNS).in('ticker', wanted.slice(start, start + 100))
+      if (error) throw error
+      assets.push(...(data ?? []) as unknown as Asset[])
+    }
+    return assets
+  },
+
   async findAssetByTicker(ticker: string): Promise<Asset | null> {
     const { data, error } = await supabase
       .from('assets')

@@ -3,7 +3,7 @@ import { boundedBytes } from '../_shared/officialFiles.ts'
 export type DividendProvider = 'alpha_vantage' | 'marketstack'
 /** Coverage gaps stay recorded on the task, but are not infrastructure failures. */
 export function providerOperationalFailure(error: string | null): boolean {
-  return !!error && !['provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
+  return !!error && !['provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
 }
 export interface ProviderEvent {
   ex_date: string; declaration_date: string; record_date: string; payment_date: string; value_per_share: number

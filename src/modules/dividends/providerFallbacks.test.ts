@@ -106,3 +106,5 @@ it('reports per-key budget deferral without leasing or requesting vendors',async
  expect(rpc.mock.calls.map(c=>c[0])).toEqual(['marketstack_budget_available'])
  expect(fetch).not.toHaveBeenCalled()
 })
+
+it('keeps primary-rejected vendor observations explicit as partial coverage',()=>{expect(providerOperationalFailure('provider_primary_disagreement')).toBe(false);expect(providerOperationalFailure('provider_event_conflict')).toBe(true)})

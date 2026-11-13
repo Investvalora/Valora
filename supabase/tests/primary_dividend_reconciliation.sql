@@ -47,7 +47,7 @@ do $$ declare e jsonb;r jsonb;link text;lease uuid:='11111111-1111-4111-8111-111
  if not exists(select 1 from public.dividends where ticker='META' and value_per_share=0.525 and source='issuer_primary') then raise exception 'Rounded provider overwrote primary';end if;
  update public.dividend_provider_tasks set claim_token=lease,next_sync_at=now()+interval '10 minutes' where provider='marketstack' and ticker='META';
  r:=public.finish_dividend_provider('marketstack','META',lease,jsonb_build_array(e||jsonb_build_object('value_per_share',0.54)),null);
- if r->>'error'<>'provider_event_conflict' then raise exception 'True conflict hidden';end if;
+ if r->>'error'<>'provider_primary_disagreement' or r->>'primary_rejected'<>'1' then raise exception 'Primary-backed rejection hidden';end if;
  -- An exact provider value must survive another vendor's proven rounding.
  insert into public.dividend_provider_tasks(provider,ticker,claim_token,next_sync_at) values('alpha_vantage','META',lease,now()+interval '10 minutes')
  on conflict(provider,ticker) do update set claim_token=excluded.claim_token,next_sync_at=excluded.next_sync_at;

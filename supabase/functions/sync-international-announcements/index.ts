@@ -26,7 +26,7 @@ Deno.serve(async request => {
       return typeof value === 'string' ? value : ''
       }, new Date().toISOString().slice(0,10))
       const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)
-      const coverage=result.results.filter(r=>['provider_calendar_unavailable','provider_precision_limited','provider_precision_unavailable'].includes(r.error??'')).map(r=>`${r.provider}:${r.ticker}`)
+      const coverage=result.results.filter(r=>['provider_primary_disagreement','provider_calendar_unavailable','provider_precision_limited','provider_precision_unavailable'].includes(r.error??'')).map(r=>`${r.provider}:${r.ticker}`)
       const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped},fetch,'international-providers')
       return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
     }
@@ -35,7 +35,7 @@ Deno.serve(async request => {
       return Response.json({ tasks: tasks.map(t => ({ ticker: t.ticker, claim_token: t.claim_token })) })
     }
     if(body.mode==='finish_primary') {
-      if(!['PRT','META','BMN'].includes(body.ticker)||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token))
+      if(!['PRT','META','BMN','CR'].includes(body.ticker)||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(String(body.claim_token))
        ||!Array.isArray(body.events)||body.events.length>20||(body.error!==null&&!/^issuer_[a-z_]{1,60}$/.test(String(body.error))))return Response.json({error:'invalid_request'},{status:400})
       return Response.json(await rpc('finish_primary_dividends',{p_ticker:body.ticker,p_claim_token:body.claim_token,p_events:body.events,p_error:body.error}))
     }

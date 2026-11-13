@@ -1,5 +1,20 @@
 # TODO ativa de evolução do Valora
 
+## Prioridade alta — CR e diagnóstico GOOGL local, 13/11
+
+- **CR:** coletor primário implementado; cinco anúncios reais verificados. Confirma USD 0,255 versus snapshot Alpha USD 0,435, sem inferir data ex. Adjudicação preserva o snapshot divergente e mantém cobertura parcial explícita.
+- **GOOGL:** diagnóstico privado dos campos conflitantes e solicitação de uma tentativa implementados. Consulta real permanece pendente de publicação e cota disponível; não considerar resolvido.
+- Validação: 209 testes de proventos, TypeScript, lint, replay integral e 16 baterias SQL aprovados. Advisor sem erros novos. Regressão geral interrompida após timeout de interface; arquivo passou isoladamente (27 testes). Migration/Edge/workflow ainda locais.
+- Continuam abertas primeira passagem/cadência das filas, cobertura restante, worker antigo e comparação física antes/depois. [Escopo e evidências](conciliacao-cr-googl-2026-11-13.md).
+
+## Atualização vigente — PR152 em produção, 12/11
+
+- Migration aplicada e função internacional v14 publicada. CI/main e três execuções reais do workflow aprovados.
+- Reteste Alpha **META/PRT/BMN concluído**: quatro/12/12 eventos sem erro, sucessos recentes e tarefas liberadas. Mesma evidência não deixa nova tentativa pendente.
+- Diagnóstico agregado das cinco chaves Marketstack e validade AMZN confirmados. Esgotamento por chave validado em transação com rollback, sem consumir HTTP; orçamento é retrato do preflight com horário explícito.
+- Marketstack/META continua parcial por precisão; NU continua sem calendário. Fallback automático 21h11 executou: GGG aprovado, Marketstack/CR em conflito entre fontes. Cobertura dos demais emissores, primeira passagem das filas e cadência GitHub seguem abertas. AMZN válida até 12/12, sem necessidade de renovar agora.
+- 208 recebimentos pessoais preservados por checksum. [Homologação e limites](homologacao-producao-pr152.md). Substitui publicação e reteste Alpha/BMN pendentes abaixo.
+
 ## Prioridades altas — diagnóstico de cotas e nova tentativa local, 12/11
 
 Validação local aprovada: 1.368 testes em 200 arquivos (dois workers), TypeScript, lint dos testes alterados, replay integral das migrations e seis testes SQL. Sem publicação ou mutação financeira em produção nesta rodada.

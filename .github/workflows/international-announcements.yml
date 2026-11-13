@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/international-announcements.yml'
       - 'scripts/collect-international-announcements.mjs'
+      - 'scripts/drain-public-announcement-queues.mjs'
       - 'scripts/permrock-announcements.mjs'
       - 'scripts/meta-announcements.mjs'
       - 'scripts/blackrock-announcements.mjs'
@@ -19,8 +20,8 @@ on:
         type: boolean
         default: true
   schedule:
-    # Re-register scheduling after successful dispatches but no observed schedule
-    # runs. Keep the same 15-minute interval; validate actual runs after merge.
+    # GitHub may delay/drop scheduled runs. The collector catches up in bounded
+    # public-source batches; paid providers retain one batch and their DB quotas.
     - cron: '8,23,38,53 * * * *'
 permissions:
   contents: read

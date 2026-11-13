@@ -9,6 +9,7 @@ import { permrockAnnouncements } from './permrock-announcements.mjs'
 import { craneAnnouncements } from './crane-announcements.mjs'
 import { blackrockAnnouncements } from './blackrock-announcements.mjs'
 import { metaAnnouncements } from './meta-announcements.mjs'
+import { drainPublicAnnouncementQueues } from './drain-public-announcement-queues.mjs'
 
 export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements, primarySources = { PRT: permrockAnnouncements, META: metaAnnouncements, BMN: blackrockAnnouncements, CR: craneAnnouncements } }) {
   const asOf = new Date().toISOString().slice(0,10)
@@ -59,13 +60,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const probeOnly = process.env.INTERNATIONAL_PROBE_ONLY === 'true'
     const endpoint = 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements'
     const token=probeOnly?undefined:await githubIdentity(endpoint)
-    try {
+    if (probeOnly) {
       const result = await collectAnnouncements({ endpoint, token, probeOnly })
       console.log(JSON.stringify(result)); if (result.failed) process.exitCode = 1
-    } catch {console.error('international_primary_collector_failed');process.exitCode=1}
+    }
     if(!probeOnly){
-      try {const sec=await collectSecDividends({endpoint,token});console.log(JSON.stringify(sec));if(sec.failed)process.exitCode=1}
-      catch {console.error('sec_collector_failed');process.exitCode=1}
+      const drain = await drainPublicAnnouncementQueues({
+        primary: () => collectAnnouncements({ endpoint, token }),
+        sec: () => collectSecDividends({ endpoint, token }),
+        report: batch => console.log(JSON.stringify({ public_queue: batch })),
+      })
+      console.log(JSON.stringify({ public_queue_summary: { batches: drain.batches.length, failed: drain.failed, deadline_reached: drain.deadline_reached } }))
+      if (drain.failed) process.exitCode = 1
       const r=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'providers'}),signal:AbortSignal.timeout(60000)})
       if(!r.ok)throw new Error('provider_collection_failed')
       const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>providerOperationalFailure(r.error)))process.exitCode=1

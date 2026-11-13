@@ -1,5 +1,24 @@
 # TODO ativa de evolução do Valora
 
+## Alta — recuperação limitada das filas, local em 13/11
+
+- Implementado processamento alternado de até três lotes por fila pública (primária/SEC), com interrupção por fila vazia, falha ou janela entre lotes. Providers pagos conservam uma chamada por execução e suas cotas.
+- Homologação local: 217 testes de proventos, incluindo integração dos coletores com nove leases distintas, TypeScript, lint e build/PWA aprovados. Sem migration; falta publicar e observar escoamento real. [Diagnóstico e limites](filas-internacionais-recuperacao-2026-11-13.md).
+- Alpha/CR ainda aguarda nova consulta HTTP após renovação da cota diária às 21h Brasília. Cobertura parcial/precisão e próxima execução do Tesouro continuam abertas; não foram mascaradas ou encerradas pela correção do runner.
+
+## PR155 homologada ponta a ponta — 13/11, 16h23 Brasília
+
+- **GOOGL concluído:** nova consulta real Marketstack retornou cinco eventos, zero erros e uma variação apenas de declaração auditada. Sucesso registrado, lease liberada e tentativa única sem nova pendência.
+- Sétima chave backend adicionada ao rodízio e usada uma vez. Ambas as datas originais preservadas; auditoria parcial explícita. Lançamentos, posições e 208 recebimentos pessoais preservados por checksum.
+- [Evidências](homologacao-producao-pr155.md). Substitui a espera por cota e reteste HTTP abaixo. Cobertura/cadência geral e reteste Alpha/CR continuam separados.
+
+## PR155 publicada — homologação técnica de produção, 13/11
+
+- Migration aplicada e função internacional v17 ativa; CI/main, autenticação e permissões aprovados. Lançamentos, posições e recebimentos preservados.
+- Replay transacional da resposta real GOOGL em produção: zero conflitos, `metadata_variations=1`; rollback sem simular nova consulta do fornecedor.
+- **Resta reteste HTTP GOOGL:** seis chaves sem orçamento efetivo; renovação prevista para 13/11 às 21h Brasília. Solicitação única segue elegível, sem lease presa. Não encerrar essa validação antes da nova resposta real.
+- [Evidências e limites](homologacao-producao-pr155.md). Substitui o estado local/aguardando publicação abaixo.
+
 ## Alta — declaração de proventos, correção local 13/11
 
 - Implementada distinção geral entre conflito econômico e variação apenas da data de declaração. Exige coincidência exata de valor/ex/registro/pagamento entre fornecedores e calendário público já completo; preserva ambas as datas em auditoria privada.

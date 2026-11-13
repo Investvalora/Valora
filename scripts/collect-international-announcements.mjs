@@ -9,9 +9,10 @@ import { permrockAnnouncements } from './permrock-announcements.mjs'
 import { craneAnnouncements } from './crane-announcements.mjs'
 import { blackrockAnnouncements } from './blackrock-announcements.mjs'
 import { metaAnnouncements } from './meta-announcements.mjs'
+import { jnjAnnouncements } from './jnj-announcements.mjs'
 import { drainPublicAnnouncementQueues } from './drain-public-announcement-queues.mjs'
 
-export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements, primarySources = { PRT: permrockAnnouncements, META: metaAnnouncements, BMN: blackrockAnnouncements, CR: craneAnnouncements } }) {
+export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements, primarySources = { PRT: permrockAnnouncements, META: metaAnnouncements, BMN: blackrockAnnouncements, CR: craneAnnouncements, JNJ: jnjAnnouncements } }) {
   const asOf = new Date().toISOString().slice(0,10)
   if (!probeOnly && (endpoint !== 'https://zawjqzekqfnmvwglahnk.supabase.co/functions/v1/sync-international-announcements' || !token)) throw new Error('collector_configuration_missing')
   async function call(body) {

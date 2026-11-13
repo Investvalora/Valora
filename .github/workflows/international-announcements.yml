@@ -7,6 +7,7 @@ on:
       - 'scripts/permrock-announcements.mjs'
       - 'scripts/meta-announcements.mjs'
       - 'scripts/blackrock-announcements.mjs'
+      - 'scripts/crane-announcements.mjs'
       - 'scripts/jpmorgan-announcements.mjs'
       - 'scripts/mastercard-announcements.mjs'
       - 'scripts/sec-dividend-announcements.mjs'
@@ -46,9 +47,10 @@ jobs:
         run: |
           node --experimental-strip-types --input-type=module <<'NODE'
           import {permrockAnnouncements} from './scripts/permrock-announcements.mjs'
+          import {craneAnnouncements} from './scripts/crane-announcements.mjs'
           import {blackrockAnnouncements} from './scripts/blackrock-announcements.mjs'
           import {metaAnnouncements} from './scripts/meta-announcements.mjs'
-          for(const [ticker,source] of [['PRT',permrockAnnouncements],['META',metaAnnouncements],['BMN',blackrockAnnouncements]]) {
+          for(const [ticker,source] of [['PRT',permrockAnnouncements],['META',metaAnnouncements],['BMN',blackrockAnnouncements],['CR',craneAnnouncements]]) {
             const events=await source(new Date().toISOString().slice(0,10))
             console.log(JSON.stringify({ticker,events:events.length}))
             if(!events.length)process.exitCode=1

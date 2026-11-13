@@ -5,6 +5,9 @@ export type DividendProvider = 'alpha_vantage' | 'marketstack'
 export function providerOperationalFailure(error: string | null): boolean {
   return !!error && !['provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
 }
+export function providerCoverageGap(result: { error: string | null; metadata_variations?: number }): boolean {
+  return (result.metadata_variations ?? 0) > 0 || ['provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable'].includes(result.error ?? '')
+}
 export interface ProviderEvent {
   ex_date: string; declaration_date: string; record_date: string; payment_date: string; value_per_share: number
 }
@@ -99,7 +102,7 @@ export async function rotatingMarketstack(rpc: Rpc, keys: string[], ticker: stri
 }
 /** Secrets stay at the Edge. Reservations consume quota before network I/O. */
 export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) => string | Promise<string>, today: string) {
-  const results: { provider: DividendProvider; ticker: string; events: number; error: string | null }[] = []
+  const results: { provider: DividendProvider; ticker: string; events: number; error: string | null; metadata_variations?: number }[] = []
   const skipped: {provider:DividendProvider;reason:'provider_key_missing'|'provider_key_budget_exhausted'|'provider_no_due_task_or_global_budget'}[]=[]
   for (const provider of ['alpha_vantage','marketstack'] as const) {
     const key = await secret(provider === 'alpha_vantage' ? 'ALPHA_VANTAGE_API_KEY' : 'MARKETSTACK_API_KEY')
@@ -115,12 +118,14 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
       let events: ProviderEvent[] = [], error: string | null = null
       try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await fetchProviderEvents(provider, task.ticker, key, today) }
       catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed' }
-      const stored = await rpc('finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error }) as { error?: unknown } | null
+      const stored = await rpc('finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error }) as { error?: unknown; metadata_variations?: unknown } | null
       if (stored?.error) {
         if (typeof stored.error !== 'string' || !/^provider_[a-z_]+$/.test(stored.error)) throw new Error('provider_storage_failed')
         error = stored.error
       }
-      results.push({ provider, ticker: task.ticker, events: events.length, error })
+      const metadata = stored?.metadata_variations ?? 0
+      if (typeof metadata !== 'number' || !Number.isInteger(metadata) || metadata < 0 || metadata > 100) throw new Error('provider_storage_failed')
+      results.push({ provider, ticker: task.ticker, events: events.length, error, ...(metadata > 0 ? { metadata_variations: metadata } : {}) })
     }
   }
   return { results, skipped, received_income_created: 0 }

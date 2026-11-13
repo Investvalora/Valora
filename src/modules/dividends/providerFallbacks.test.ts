@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure } from '../../../supabase/functions/sync-international-announcements/providers'
+import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure, providerCoverageGap } from '../../../supabase/functions/sync-international-announcements/providers'
 const event = { ex_dividend_date:'2026-11-24',declaration_date:'2026-11-10',record_date:'2026-11-24',payment_date:'2026-12-04',amount:'30.0' }
 const alpha = { symbol:'COST',data:[event] }
 afterEach(()=>vi.unstubAllGlobals())
@@ -108,3 +108,13 @@ it('reports per-key budget deferral without leasing or requesting vendors',async
 })
 
 it('keeps primary-rejected vendor observations explicit as partial coverage',()=>{expect(providerOperationalFailure('provider_primary_disagreement')).toBe(false);expect(providerOperationalFailure('provider_event_conflict')).toBe(true)})
+
+it('retains audited declaration metadata without pretending the dates agree',async()=>{
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:null,metadata_variations:1})
+ vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
+ const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
+ expect(result.results[0]).toMatchObject({events:1,error:null,metadata_variations:1})
+ expect(providerCoverageGap(result.results[0])).toBe(true)
+ expect(providerCoverageGap({error:null})).toBe(false)
+ expect(providerOperationalFailure('provider_event_conflict')).toBe(true)
+})

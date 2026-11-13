@@ -1,6 +1,6 @@
 import { authorizeInternationalCollector } from './githubOidc.ts'
 import { boundedBytes } from '../_shared/officialFiles.ts'
-import { collectProviderFallbacks, providerOperationalFailure } from './providers.ts'
+import { collectProviderFallbacks, providerOperationalFailure, providerCoverageGap } from './providers.ts'
 import { jobRun } from '../_shared/jobRuns.ts'
 const url = Deno.env.get('SUPABASE_URL') ?? '', key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }
@@ -26,7 +26,7 @@ Deno.serve(async request => {
       return typeof value === 'string' ? value : ''
       }, new Date().toISOString().slice(0,10))
       const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)
-      const coverage=result.results.filter(r=>['provider_primary_disagreement','provider_calendar_unavailable','provider_precision_limited','provider_precision_unavailable'].includes(r.error??'')).map(r=>`${r.provider}:${r.ticker}`)
+      const coverage=result.results.filter(providerCoverageGap).map(r=>`${r.provider}:${r.ticker}`)
       const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped},fetch,'international-providers')
       return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
     }

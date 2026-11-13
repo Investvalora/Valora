@@ -1,5 +1,25 @@
 # TODO ativa de evolução do Valora
 
+## Alta — declaração de proventos, correção local 13/11
+
+- Implementada distinção geral entre conflito econômico e variação apenas da data de declaração. Exige coincidência exata de valor/ex/registro/pagamento entre fornecedores e calendário público já completo; preserva ambas as datas em auditoria privada.
+- Retorno explícito `metadata_variations` mantém auditoria parcial; diferenças econômicas, ausência de âncora e conflito SEC continuam bloqueando. Sem regra exclusiva para GOOGL ou escolha arbitrária da data correta.
+- Homologação técnica local: 210 testes, TypeScript, lint, replay integral e 17 baterias SQL aprovados. Advisor sem erros novos. Migration e função ainda não publicadas; consulta real após publicação continua pendente. [Escopo e fontes](declaracao-proventos-metadados-2026-11-13.md).
+
+## PR153 em produção — 13/11, CR aprovado e GOOGL diagnosticado
+
+- Migration aplicada e função internacional v15 publicada. Autenticação/privacidade e preservação financeira conferidas.
+- **CR:** cinco anúncios conciliados em produção, zero conflitos/lacunas; replay Alpha com rollback rejeita USD 0,435 mediante prova primária, sem apagar snapshot. Reteste HTTP Alpha aguarda cota.
+- **Rodízio:** sexta chave backend adicionada e usada em uma consulta real GOOGL.
+- **Alta — GOOGL:** resposta real identificou declaração Marketstack 04/02 versus Alpha 27/01/2026; valor USD 0,21 e registro/pagamento coincidem. Investigar distinção entre publicação e deliberação antes de conciliar. Workflow falhou explicitamente, sem ocultar o conflito; tentativa única não fica em loop.
+- [Homologação e limites](homologacao-producao-pr153.md). Substitui os estados de publicação e consulta GOOGL pendentes abaixo; não encerra a divergência identificada.
+
+## PR154 homologada em produção — 13/11
+
+- Conversão USD na consolidação de aportes confirmada no navegador integrado: novembro **R$ 1.127,12**, coincidente com cálculo independente dos lançamentos e PTAX 5,6518.
+- Filtros Stocks US (R$ 245,91) e Ações BR (R$ 211,38) conferidos; tabela preserva valores originais. Sem mutação financeira ou migration.
+- Substitui o estado local/pendente da correção abaixo. [Evidências e limites](homologacao-producao-pr154.md). Demais pendências continuam abertas.
+
 ## Alta — consolidação de aportes em USD, correção local 13/11
 
 - Defeito confirmado: o gráfico somava valores nominais USD e BRL e formatava todos como reais.

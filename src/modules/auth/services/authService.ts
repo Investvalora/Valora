@@ -113,8 +113,26 @@ export const authService = {
     if (error) throw error
   },
 
-  async changePassword(password: string, nonce?: string) {
+  async changePassword(currentPassword: string, password: string, nonce?: string) {
     passwordSchema.parse(password)
+    
+    // Verify current password by attempting to sign in
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.email) throw new Error('User not found')
+    
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    })
+    
+    if (authError) {
+      if (authError.code === 'invalid_credentials') {
+        throw new Error('Senha atual está incorreta')
+      }
+      throw authError
+    }
+    
+    // After successful authentication, update password
     const { error } = await supabase.auth.updateUser({ password, ...(nonce ? { nonce } : {}) })
     if (error) throw error
   },

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { useState, type FormEvent } from "react";
 import { authService } from "../../auth/services/authService";
 import {
   PASSWORD_HELP,

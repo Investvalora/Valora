@@ -1,6 +1,13 @@
 import {expect,it,vi} from 'vitest'
 import {jobRun} from '../../supabase/functions/_shared/jobRuns'
 const id='11111111-1111-4111-8111-111111111111'
+it('records supplemental evidence as partial and strips arbitrary credentials',async()=>{
+ const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
+ await jobRun('https://example.test','private',id,{supplemental:{results:[{provider:'alpaca',ticker:'JNJ',observations:5,error:'supplemental_incomplete',key:'DO_NOT_STORE',raw:{secret:'DO_NOT_STORE'}},{provider:'massive',skipped:'credentials_missing'}]}},request,'international-providers')
+ const body=JSON.parse(String(request.mock.calls[0][1]?.body))
+ expect(body).toMatchObject({status:'partial',details:{supplemental:[{provider:'alpaca',ticker:'JNJ',observations:5,error:'supplemental_incomplete'},{provider:'massive',skipped:'credentials_missing'}]}})
+ expect(JSON.stringify(body)).not.toContain('DO_NOT_STORE')
+})
 it('persists missing vendor coverage as partial while keeping technical errors failed',async()=>{
  const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
  await jobRun('https://example.test','private',id,{coverage_gaps:['marketstack:AMZN','https://private.invalid']},request,'international-providers')

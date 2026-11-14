@@ -10,6 +10,7 @@ import { craneAnnouncements } from './crane-announcements.mjs'
 import { blackrockAnnouncements } from './blackrock-announcements.mjs'
 import { metaAnnouncements } from './meta-announcements.mjs'
 import { jnjAnnouncements } from './jnj-announcements.mjs'
+import { supplementalOperationalFailure } from '../supabase/functions/sync-international-announcements/supplemental.ts'
 import { drainPublicAnnouncementQueues } from './drain-public-announcement-queues.mjs'
 
 export async function collectAnnouncements({ endpoint, token, probeOnly = false, source = nasdaqSource, request = fetch, issuerSource = jpmorganAnnouncements, maSource = mastercardAnnouncements, primarySources = { PRT: permrockAnnouncements, META: metaAnnouncements, BMN: blackrockAnnouncements, CR: craneAnnouncements, JNJ: jnjAnnouncements } }) {
@@ -75,7 +76,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       if (drain.failed) process.exitCode = 1
       const r=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'providers'}),signal:AbortSignal.timeout(60000)})
       if(!r.ok)throw new Error('provider_collection_failed')
-      const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>providerOperationalFailure(r.error)))process.exitCode=1
+      const result=await r.json();console.log(JSON.stringify({providers:result}));if(result.results?.some(r=>providerOperationalFailure(r.error))||result.supplemental?.results?.some(r=>supplementalOperationalFailure(r.error)))process.exitCode=1
       const health=await fetch(endpoint,{method:'POST',redirect:'error',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode:'health'}),signal:AbortSignal.timeout(20000)})
       if(!health.ok)throw new Error('collector_health_failed')
       console.log(JSON.stringify({health:await health.json()}))

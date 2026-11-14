@@ -1,5 +1,17 @@
 # TODO ativa de evolução do Valora
 
+## Massive/Alpaca — integração complementar local, 13/11
+
+- Secrets backend configurados; adapters GET reais aprovaram cinco eventos JNJ por fonte, inclusive o anúncio futuro de dezembro. Alpaca Paper mantém declaração/moeda ausentes como incompletas.
+- Filas, cotas, leases, snapshots por ID/revisão, confirmação oficial e diagnóstico privados implementados. Não promove evidência não confirmada ao calendário nem altera recebimentos pessoais.
+- Bateria SQL nova e replay SQL integral de 83 migrations aprovados no banco QA; regressão e retestes descritos em [escopo e validação](massive-alpaca-proventos-2026-11-13.md). Migration/função da branch ainda não publicadas.
+
+## PR157 homologada em produção — 13/11, 17h57 Brasília
+
+- Migration aplicada e função internacional v19 ativa. Três comunicados JNJ reais conciliados pela função publicada: HTTP 200, zero conflitos/lacunas e lease liberada.
+- Calendário futuro confirmado: USD 1,34/ação, ex 24/11 e pagamento 08/12. Lançamentos, posições e recebimentos pessoais preservados por hash; nenhuma API paga consumida.
+- CI/main, permissões e health advisor aprovados. [Evidências](homologacao-producao-pr157.md). Encerra JNJ; demais fontes, frequência automática e reteste Alpha/CR continuam separados.
+
 ## Alta — descoberta gratuita JNJ, implementação local em 13/11
 
 - Confirmada lacuna: produção contém fevereiro/maio/agosto de JNJ, mas ainda não contém ex 24/11/pagamento 08/12. Novo coletor descobriu três comunicados reais, inclusive esse futuro, com USD 1,34 por ação e data ex explícita.

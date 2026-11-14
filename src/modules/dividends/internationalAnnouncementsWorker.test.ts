@@ -25,7 +25,7 @@ it('keeps provider credentials at the Edge and does not return Vault values to t
  const response=await invoke({mode:'providers'})
  expect(response.status).toBe(200)
  const result=await response.json()
- expect(result).toEqual({results:[],skipped:[{provider:'alpha_vantage',reason:'provider_no_due_task_or_global_budget'},{provider:'marketstack',reason:'provider_key_budget_exhausted'}],received_income_created:0,audit_saved:true})
+ expect(result).toEqual({results:[],skipped:[{provider:'alpha_vantage',reason:'provider_no_due_task_or_global_budget'},{provider:'marketstack',reason:'provider_key_budget_exhausted'}],received_income_created:0,audit_saved:true,supplemental:{results:[{provider:'massive',skipped:'credentials_missing'},{provider:'alpaca',skipped:'credentials_missing'}],received_income_created:0}})
  expect(JSON.stringify(result)).not.toContain('private-vendor-key')
  expect(fetchMock.mock.calls.map(c=>String(c[0])).filter(url=>url.includes('get_dividend_provider_key'))).toHaveLength(3)
  expect(fetchMock.mock.calls.every(c=>!String(c[0]).includes('private-vendor-key'))).toBe(true)

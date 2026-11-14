@@ -751,7 +751,7 @@ END $$;
 INSERT INTO public.transactions (user_id, ticker, type, quantity, price, transaction_date)
 VALUES
   (:'TX_USER_A', 'CMIG4', 'buy',      100, 10.0000, '2026-04-01'),
-  (:'TX_USER_A', 'CMIG4', 'bonus',     10,  0.0000, '2026-04-02'),
+  (:'TX_USER_A', 'CMIG4', 'bonus',     10,  0.0001, '2026-04-02'),
   (:'TX_USER_A', 'CMIG4', 'jcp',      100,  0.3000, '2026-04-03'),
   (:'TX_USER_A', 'CMIG4', 'dividend', 100,  0.5000, '2026-04-04');
 

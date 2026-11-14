@@ -4,8 +4,9 @@ import { ChangePasswordForm } from './ChangePasswordForm'
 import { authService } from '../../auth/services/authService'
 vi.mock('../../auth/services/authService', () => ({ authService: { changePassword: vi.fn(), requestPasswordChangeCode: vi.fn() } }))
 beforeEach(() => vi.resetAllMocks())
-function fill(password = 'Vento!Nuvem82', confirmation = password) {
+function fill(password = 'Vento!Nuvem82', confirmation = password, currentPassword = 'SenhaAtual123!') {
   fireEvent.click(screen.getByRole('button', { name: 'Alterar senha' }))
+  fireEvent.change(screen.getByLabelText('Senha atual'), { target: { value: currentPassword } })
   fireEvent.change(screen.getByLabelText('Nova senha'), { target: { value: password } })
   fireEvent.change(screen.getByLabelText('Confirmar nova senha'), { target: { value: confirmation } })
   fireEvent.click(screen.getByRole('button', { name: 'Salvar nova senha' }))
@@ -34,5 +35,5 @@ it('suporta reautenticação exigida pelo servidor e erro de código', async () 
   fireEvent.change(screen.getByLabelText('Código de confirmação'), { target: { value: '123456' } })
   fireEvent.click(screen.getByRole('button', { name: 'Salvar nova senha' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('inválido ou expirado'))
-  expect(authService.changePassword).toHaveBeenLastCalledWith('Vento!Nuvem82', '123456')
+  expect(authService.changePassword).toHaveBeenLastCalledWith('SenhaAtual123!', 'Vento!Nuvem82', '123456')
 })

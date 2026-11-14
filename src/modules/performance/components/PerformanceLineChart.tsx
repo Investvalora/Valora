@@ -73,8 +73,8 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm shadow-lg min-w-[160px]"
     >
       <p className="text-gray-400 mb-2 text-xs">{new Date(typeof label === 'number' ? label : `${label}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
-      {payload.map((entry) => (
-        <div key={entry.name} className="flex items-center justify-between gap-4 mb-0.5">
+      {payload.map((entry, idx) => (
+        <div key={`${entry.name}-${entry.dataKey || idx}`} className="flex items-center justify-between gap-4 mb-0.5">
           <span className="flex items-center gap-1.5">
             <span
               className="inline-block w-2 h-2 rounded-full flex-shrink-0"

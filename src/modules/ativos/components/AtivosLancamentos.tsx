@@ -10,6 +10,7 @@ import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { getAssetInitial } from '../../../shared/utils/assetInitial'
 import { FixedIncomeHistoryPanel } from './FixedIncomeHistoryPanel'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { matchesAssetFilters, useAssetFilters } from '../hooks/useAssetFilters'
@@ -121,7 +122,7 @@ function AssetTypeBadge({ assetType }: { assetType: AssetType | null }) {
 // ── Avatar do ativo com a cor da classe ────────────────────────────────────
 function AssetIcon({ assetType, ticker }: { assetType: AssetType | null; ticker: string }) {
   const color = assetType ? assetClassColor(assetType) : '#94a3b8'
-  const letter = ticker.trim().charAt(0).toUpperCase() || '?'
+  const letter = getAssetInitial(ticker)
   return (
     <span
       className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-sm font-bold"

@@ -141,7 +141,7 @@ CREATE TABLE public.transactions (
   transaction_date DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT transactions_quantity_positiva      CHECK (quantity > 0),
-  CONSTRAINT transactions_price_nao_negativo     CHECK (price >= 0),
+  CONSTRAINT transactions_price_positivo         CHECK (price > 0),
   CONSTRAINT transactions_brokerage_fee_nao_negativa CHECK (brokerage_fee >= 0),
   CONSTRAINT transactions_tax_nao_negativo       CHECK (tax >= 0)
   -- Sem `CHECK (transaction_date <= CURRENT_DATE)`, pelo mesmo motivo da 006:

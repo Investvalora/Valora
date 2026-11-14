@@ -2,6 +2,7 @@ import { authorizeInternationalCollector } from './githubOidc.ts'
 import { boundedBytes } from '../_shared/officialFiles.ts'
 import { collectProviderFallbacks, providerOperationalFailure, providerCoverageGap } from './providers.ts'
 import { jobRun } from '../_shared/jobRuns.ts'
+import { collectSupplemental, supplementalOperationalFailure } from './supplemental.ts'
 const url = Deno.env.get('SUPABASE_URL') ?? '', key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }
 async function rpc(name: string, body: unknown) {
@@ -14,7 +15,7 @@ Deno.serve(async request => {
   if (!await authorizeInternationalCollector(request, url, key)) return Response.json({ error: 'unauthorized' }, { status: 401 })
   try {
     const body = JSON.parse(new TextDecoder().decode(await boundedBytes(new Response(request.body), 64*1024)))
-    if (body.mode === 'health') return Response.json(await rpc('international_queue_health', {}))
+    if (body.mode === 'health') return Response.json({ ...await rpc('international_queue_health', {}), supplemental:await rpc('supplemental_dividend_health', {}) })
     if (body.mode === 'providers') {
       const runId=crypto.randomUUID()
       const auditStarted=await jobRun(url,key,runId,undefined,fetch,'international-providers')
@@ -27,8 +28,10 @@ Deno.serve(async request => {
       }, new Date().toISOString().slice(0,10))
       const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)
       const coverage=result.results.filter(providerCoverageGap).map(r=>`${r.provider}:${r.ticker}`)
-      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped},fetch,'international-providers')
-      return Response.json({...result,audit_saved:auditSaved},{status:auditSaved?200:503})
+      const supplemental=await collectSupplemental(rpc,async name=>Deno.env.get(name)?.trim()??'',new Date().toISOString().slice(0,10))
+      for(const r of supplemental.results)if('error' in r && supplementalOperationalFailure(r.error))errors.push(String(r.error))
+      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped,supplemental},fetch,'international-providers')
+      return Response.json({...result,supplemental,audit_saved:auditSaved},{status:auditSaved?200:503})
     }
     if (body.mode === 'claim' || body.mode === 'claim_sec') {
       const tasks = await rpc(body.mode === 'claim_sec' ? 'claim_sec_dividends' : 'claim_international_announcements', {}) as { ticker: string; claim_token: string }[]

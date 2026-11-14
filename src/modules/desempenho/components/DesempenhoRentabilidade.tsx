@@ -5,6 +5,7 @@ import { InflationComparison } from '../../performance/components/InflationCompa
  */
 import { lazy, Suspense, useState, useMemo } from 'react'
 import { Download, Info } from 'lucide-react'
+import { getAssetInitial } from '../../../shared/utils/assetInitial'
 import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { KpiPillBar } from '../../../shared/components/KpiPillBar'
@@ -78,8 +79,7 @@ function fmtBRL(v: number): string {
 }
 
 function getInitial(name: string | null, ticker: string): string {
-  if (name) return name.charAt(0).toUpperCase()
-  return ticker.charAt(0).toUpperCase()
+  return getAssetInitial(ticker, name)
 }
 
 export function DesempenhoRentabilidade() {

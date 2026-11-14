@@ -663,8 +663,8 @@ function QuickTransactionForm({
         setError("Quantidade mínima: 0,01.");
         return;
       }
-      if (tdParsedPrice < 0) {
-        setError("Informe o preço.");
+      if (tdParsedPrice <= 0) {
+        setError("Informe um preço válido e positivo.");
         return;
       }
 
@@ -692,8 +692,8 @@ function QuickTransactionForm({
 
     // ── Renda Variável ────────────────────────────────────────────────────
     const norm = ticker.trim().toUpperCase();
-    if (!norm || !date || parsedQty <= 0 || !price.trim() || parsedPrice < 0) {
-      setError("Preencha ativo, data, quantidade e preço válidos.");
+    if (!norm || !date || parsedQty <= 0 || !price.trim() || parsedPrice <= 0) {
+      setError("Preencha ativo, data, quantidade e preço válidos (preço deve ser > 0).");
       return;
     }
     if (type === "sell") {

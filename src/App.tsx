@@ -5,11 +5,13 @@ import { AppRoutes } from './routes'
 import { AuthProvider } from './modules/auth/components/AuthProvider'
 import { SessionRecovery } from './modules/auth/components/SessionRecovery'
 import { AppErrorBoundary } from './shared/components/AppErrorBoundary'
+import { TitleUpdater } from './shared/components/TitleUpdater'
 
 function App() {
   return (
     <AppErrorBoundary><QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <TitleUpdater />
         <AuthProvider>
           <AppRoutes />
           <SessionRecovery />

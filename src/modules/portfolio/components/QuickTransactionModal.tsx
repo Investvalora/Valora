@@ -693,7 +693,7 @@ function QuickTransactionForm({
     // ── Renda Variável ────────────────────────────────────────────────────
     const norm = ticker.trim().toUpperCase();
     if (!norm || !date || parsedQty <= 0 || !price.trim() || parsedPrice <= 0) {
-      setError("Preencha ativo, data, quantidade e preço válidos (preço deve ser > 0).");
+      setError("Preencha ativo, data, quantidade e preço válidos.");
       return;
     }
     if (type === "sell") {

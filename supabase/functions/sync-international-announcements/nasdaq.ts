@@ -14,16 +14,17 @@ function date(value: unknown): string {
 export interface Announcement { ex_date: string; record_date: string; payment_date: string; declaration_date: string; value_per_share: number }
 /** Header summaries can be stale. Only dated USD cash rows are eligible.
  * Identity must first be checked against the separate quote/info response. */
-export function nasdaqAnnouncements(payload: unknown, asOf: string): Announcement[] {
+export function nasdaqAnnouncementBatch(payload: unknown, asOf: string): {events:Announcement[];missing:number} {
   const p = payload as { status?: { rCode?: number }; data?: { dividends?: { rows?: Record<string, unknown>[] } } }
   const rows = p?.data?.dividends?.rows
   if (!validIso(asOf) || p?.status?.rCode !== 200 || !Array.isArray(rows) || rows.length === 0 || rows.length > 1000) throw new Error('nasdaq_unavailable')
-  const result: Announcement[] = []; const seen = new Set<string>()
+  const result: Announcement[] = []; const seen = new Set<string>();let missing=0
   const earliest = new Date(Date.parse(asOf)-366*86400000).toISOString().slice(0,10)
   for (const row of rows) {
     const ex_date = date(row.exOrEffDate)
     // Old, non split-adjusted history is deliberately not ingested.
     if (ex_date < earliest) continue
+    if([row.recordDate,row.paymentDate,row.declarationDate].some(v=>v==null||v===''||v==='N/A')){missing++;continue}
     const record_date = date(row.recordDate), payment_date = date(row.paymentDate), declaration_date = date(row.declarationDate)
     if (row.type !== 'Cash' || row.currency !== 'USD' || typeof row.amount !== 'string' || !/^\$\d+(\.\d{1,6})?$/.test(row.amount)) throw new Error('nasdaq_unsupported_distribution')
     const value_per_share = Number(row.amount.slice(1))
@@ -33,5 +34,10 @@ export function nasdaqAnnouncements(payload: unknown, asOf: string): Announcemen
     if (seen.has(ex_date)) throw new Error('nasdaq_ambiguous_distribution')
     seen.add(ex_date); result.push({ ex_date, record_date, payment_date, declaration_date, value_per_share })
   }
-  return result
+  return {events:result,missing}
+}
+export function nasdaqAnnouncements(payload:unknown,asOf:string):Announcement[]{
+ const batch=nasdaqAnnouncementBatch(payload,asOf)
+ if(batch.missing)throw new Error('nasdaq_partial_coverage')
+ return batch.events
 }

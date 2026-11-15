@@ -1,15 +1,16 @@
 import { secIdentity, secFilings, secAnnouncements } from '../supabase/functions/sync-international-announcements/sec.ts'
 const registry='https://www.sec.gov/files/company_tickers_exchange.json'
 /** SEC asks for an identified agent and <=10 requests/s. Sequential, 250ms spacing. */
-async function publicText(url) {
+export async function publicText(url,request=fetch) {
   const u=new URL(url)
   if(u.protocol!=='https:' || u.username || u.password || u.search || u.hash || !(url===registry || /^https:\/\/data\.sec\.gov\/submissions\/CIK\d{10}\.json$/.test(url) || /^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\/\d+\/\d{18}\/[a-zA-Z0-9_-]+\.html?$/.test(url)))throw new Error('sec_invalid_source')
   await new Promise(resolve=>setTimeout(resolve,250))
-  const r=await fetch(url,{headers:{'User-Agent':'Valora public data collector valorainvestbr@gmail.com',Accept:'application/json,text/html'},redirect:'error',signal:AbortSignal.timeout(15000)})
+  const r=await request(url,{headers:{'User-Agent':'Valora public data collector (https://investvalora.vercel.app)',Accept:'application/json,text/html'},redirect:'error',signal:AbortSignal.timeout(15000)})
   if(!r.ok)throw new Error(`sec_http_${r.status}`)
   const reader=r.body?.getReader();if(!reader)throw new Error('sec_source_unavailable')
+  const maxBytes=u.hostname==='data.sec.gov'?8*1024*1024:4*1024*1024
   const chunks=[];let size=0
-  try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4*1024*1024)throw new Error('sec_response_too_large');chunks.push(value)}}finally{await reader.cancel().catch(()=>{})}
+  try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>maxBytes)throw new Error('sec_response_too_large');chunks.push(value)}}finally{await reader.cancel().catch(()=>{})}
   const b=new Uint8Array(size);let offset=0;for(const part of chunks){b.set(part,offset);offset+=part.length}return new TextDecoder().decode(b)
 }
 export async function discoverSecDividends(ticker,asOf,read=publicText) {

@@ -49,7 +49,11 @@ Deno.serve(async request => {
       if (body.events.length>4 || !Number.isInteger(body.inspected) || body.inspected<0 || body.inspected>4 || typeof body.partial!=='boolean' || (body.error===null && !/^\d{10}$/.test(String(body.cik)))) return Response.json({error:'invalid_request'},{status:400})
       return Response.json(await rpc('finish_sec_dividends',{p_ticker:body.ticker,p_claim_token:body.claim_token,p_cik:body.cik??null,p_events:body.events,p_error:body.error,p_inspected:body.inspected,p_partial:body.partial}))
     }
-    const result = await rpc('finish_international_announcements', { p_ticker: body.ticker, p_claim_token: body.claim_token, p_events: body.events, p_error: body.error })
+    if(body.missing!==undefined&&(!Number.isInteger(body.missing)||body.missing<0||body.missing>1000))return Response.json({error:'invalid_request'},{status:400})
+    if(body.missing>0&&body.error!==null)return Response.json({error:'invalid_request'},{status:400})
+    const result = body.missing>0
+      ? await rpc('finish_partial_international_announcements',{p_ticker:body.ticker,p_claim_token:body.claim_token,p_events:body.events,p_missing:body.missing})
+      : await rpc('finish_international_announcements', { p_ticker: body.ticker, p_claim_token: body.claim_token, p_events: body.events, p_error: body.error })
     return Response.json({ ...result, received_income_created: 0 })
   } catch { return Response.json({ error: 'collector_request_failed' }, { status: 503 }) }
 })

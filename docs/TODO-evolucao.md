@@ -1,5 +1,12 @@
 # TODO ativa de evolução do Valora
 
+## Correções das lacunas internacionais — retomada em 15/11
+
+- Branch isolada `codex/close-dividend-coverage-gaps`; futuros GOOGL/KO/MCD confirmados no RI e correções DIS/GGG preparadas em migration auditável. CR já tem rejeição explícita do valor Alpha incorreto.
+- WMT conserva linhas completas e diagnóstico parcial; SEC/JPM aceita índice grande com teto; Alpaca trata grupo vazio sem afirmar cobertura.
+- 20 baterias SQL passaram novamente no QA, inclusive preservação de compra/provento sintéticos; tipos Edge e os cenários novos passaram. Nenhuma alteração publicada em produção nesta retomada.
+- Falta publicar migration/função e homologar os cinco eventos e os retestes autenticados AMZN/NU. [Evidências](fechamento-lacunas-proventos-2026-11-14.md).
+
 ## Massive/Alpaca — integração complementar local, 13/11
 
 - Secrets backend configurados; adapters GET reais aprovaram cinco eventos JNJ por fonte, inclusive o anúncio futuro de dezembro. Alpaca Paper mantém declaração/moeda ausentes como incompletas.

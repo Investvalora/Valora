@@ -17,7 +17,9 @@ export function supplementalEvents(provider: SupplementalProvider, ticker: strin
   if (!validIso(today) || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker) || !p || typeof p !== 'object') throw new Error('supplemental_invalid_response')
   if (provider === 'massive' && p.status !== 'OK') throw new Error('supplemental_rejected')
   const container = p.corporate_actions as Record<string, unknown> | undefined
-  const rows = provider === 'massive' ? p.results : container?.cash_dividends
+  // Optional action groups are omitted by Alpaca when the calendar is empty.
+  const emptyAlpaca = provider === 'alpaca' && container != null && typeof container === 'object' && !Array.isArray(container) && Object.keys(container).length === 0
+  const rows = provider === 'massive' ? p.results : emptyAlpaca ? [] : container?.cash_dividends
   if (!Array.isArray(rows) || rows.length > 100) throw new Error('supplemental_invalid_response')
   const events: SupplementalEvent[] = [], ids = new Set<string>()
   for (const raw of rows) {

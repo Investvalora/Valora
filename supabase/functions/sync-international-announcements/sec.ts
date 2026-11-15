@@ -18,7 +18,7 @@ export function secFilingUrl(cik: string, accession: string, document: string) {
 export function secFilings(payload: unknown, identity: SecIdentity, asOf: string): { filings: SecFiling[]; truncated: boolean } {
   const p = payload as { cik?: string; tickers?: string[]; filings?: {recent?: Record<string, unknown[]>} }
   const r=p?.filings?.recent
-  if (!validIso(asOf) || String(p?.cik).padStart(10,'0')!==identity.cik || !Array.isArray(p.tickers) || !p.tickers.some(t=>normalized(t)===normalized(identity.ticker)) || !r || !Array.isArray(r.form) || r.form.length>20000 || !['accessionNumber','filingDate','primaryDocument','items'].every(k=>Array.isArray(r[k]) && r[k].length===r.form.length)) throw new Error('sec_submissions_identity_changed')
+  if (!validIso(asOf) || String(p?.cik).padStart(10,'0')!==identity.cik || !Array.isArray(p.tickers) || !p.tickers.some(t=>normalized(t)===normalized(identity.ticker)) || !r || !Array.isArray(r.form) || r.form.length>40000 || !['accessionNumber','filingDate','primaryDocument','items'].every(k=>Array.isArray(r[k]) && r[k].length===r.form.length)) throw new Error('sec_submissions_identity_changed')
   const since=new Date(Date.parse(asOf)-120*86400000).toISOString().slice(0,10)
   const result: SecFiling[]=[]
   for(let i=0;i<r.form.length;i++) {

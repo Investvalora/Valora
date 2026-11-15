@@ -33,6 +33,14 @@ it('keeps provider credentials at the Edge and does not return Vault values to t
 it('sends completion through the atomic lease RPC without personal receipts',async()=>{
  const r=await invoke({mode:'finish',ticker:'AAPL',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:null});expect(await r.json()).toMatchObject({saved:1,received_income_created:0});expect(fetchMock.mock.calls[0][0]).toContain('/finish_international_announcements')
 })
+it('routes partial Nasdaq coverage through the authenticated leased RPC',async()=>{
+ const r=await invoke({mode:'finish',ticker:'WMT',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:null,missing:1})
+ expect(r.status).toBe(200);expect(fetchMock.mock.calls[0][0]).toContain('/finish_partial_international_announcements')
+})
+it.each([-1,1.5,1001,'1'])('rejects malformed missing-field counts %j',async missing=>{
+ expect((await invoke({mode:'finish',ticker:'WMT',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:null,missing})).status).toBe(400)
+ expect(fetchMock).not.toHaveBeenCalled()
+})
 it('accepts bounded issuer diagnostics through the same authenticated lease path',async()=>{
  const r=await invoke({mode:'finish',ticker:'JPM',claim_token:'11111111-1111-4111-8111-111111111111',events:[],error:'jpm_identity_changed'})
  expect(r.status).toBe(200);expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toMatchObject({p_ticker:'JPM',p_error:'jpm_identity_changed'})

@@ -183,14 +183,14 @@ export function DesempenhoVisaoGeral() {
       {/* ── Grid principal ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Coluna esquerda */}
-        <div className="flex flex-col gap-5 lg:col-span-2">
+        <div className="flex min-w-0 flex-col gap-5 lg:col-span-2">
           {/* Gráfico de rentabilidade */}
-          <PanelCard>
+          <PanelCard className="max-md:rounded-none max-md:border-0 max-md:bg-transparent" padding="md:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-[14px] font-semibold text-white">
+              <h3 className="text-lg font-semibold tracking-tight text-white md:text-[14px] md:tracking-normal">
                 Rentabilidade comparada
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="hidden items-center gap-3 md:flex">
                 <span className="flex items-center gap-1.5 text-[11px] text-white/60">
                   <span className="inline-block h-2 w-6 rounded-sm bg-[#3b82f6]" />
                   Carteira
@@ -213,7 +213,7 @@ export function DesempenhoVisaoGeral() {
               <LoadingChart />
             ) : (
               <Suspense fallback={<LoadingChart />}>
-                <PerformanceLineChart series={[portfolioSeries, ...benchmarkSeries]} />
+                <PerformanceLineChart series={[portfolioSeries, ...benchmarkSeries]} scrollOnMobile />
               </Suspense>
             )}
           </PanelCard>

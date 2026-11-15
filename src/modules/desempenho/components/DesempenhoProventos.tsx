@@ -1,53 +1,53 @@
-import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
-import { useMonthReceivables } from '../../dividends/hooks/useMonthReceivables'
+import { useBrlDividends } from "../../dividends/hooks/useBrlDividends";
+import { useMonthReceivables } from "../../dividends/hooks/useMonthReceivables";
 /**
  * DesempenhoProventos — sub-rota /desempenho/proventos.
  * Gráfico de barras mensal + tabela (desktop) / cards (mobile) de proventos recebidos com busca e paginação.
  */
-import { lazy, Suspense, useState, useMemo } from 'react'
-import { Download, RefreshCw, Search } from 'lucide-react'
-import { PanelCard } from '../../../shared/components/PanelCard'
-import { useSyncDividends } from '../../dividends/hooks/useDividends'
-import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
-import { filterAndSort } from '../../dividends/utils/dividendCalculations'
-import type { DividendPeriod } from '../../dividends/types'
-import type { DividendRow } from '../../dividends/types'
-import { AnnouncedDividends } from './AnnouncedDividends'
-import { IncomeBasisSummary } from '../../dividends/components/IncomeBasisSummary'
+import { lazy, Suspense, useState, useMemo } from "react";
+import { Download, RefreshCw, Search } from "lucide-react";
+import { PanelCard } from "../../../shared/components/PanelCard";
+import { useSyncDividends } from "../../dividends/hooks/useDividends";
+import { buildMonthlyBars } from "../../dividends/utils/dividendCalculations";
+import { filterAndSort } from "../../dividends/utils/dividendCalculations";
+import type { DividendPeriod } from "../../dividends/types";
+import type { DividendRow } from "../../dividends/types";
+import { AnnouncedDividends } from "./AnnouncedDividends";
+import { IncomeBasisSummary } from "../../dividends/components/IncomeBasisSummary";
 
 const ProventosChart = lazy(() =>
-  import('./ProventosChart').then((m) => ({ default: m.ProventosChart })),
-)
+  import("./ProventosChart").then((m) => ({ default: m.ProventosChart })),
+);
 
 function LoadingChart() {
   return (
     <div className="flex h-[160px] items-center justify-center">
       <span className="animate-pulse text-sm text-white/40">Carregando…</span>
     </div>
-  )
+  );
 }
 
 function fmtBRL(v: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
     maximumFractionDigits: 2,
-  }).format(v)
+  }).format(v);
 }
 
 function fmtDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  const [y, m, d] = dateStr.split('-')
-  return `${d}/${m}/${y}`
+  if (!dateStr) return "—";
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 const PERIOD_OPTIONS: { label: string; value: DividendPeriod }[] = [
-  { label: '6 meses', value: '6M' },
-  { label: '1 ano', value: '1A' },
-  { label: 'Tudo', value: 'Tudo' },
-]
+  { label: "6 meses", value: "6M" },
+  { label: "1 ano", value: "1A" },
+  { label: "Tudo", value: "Tudo" },
+];
 
-const INITIAL_VISIBLE = 6
+const INITIAL_VISIBLE = 6;
 
 // ── Card mobile de provento ────────────────────────────────────────────────
 function DividendCard({ row }: { row: DividendRow }) {
@@ -62,22 +62,34 @@ function DividendCard({ row }: { row: DividendRow }) {
           </span>
         </div>
         <span className="shrink-0 text-[14px] font-semibold text-nf-green tabular-nums">
-          <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
+          <span
+            title={
+              row.source === "imported"
+                ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}`
+                : undefined
+            }
+          >
+            {fmtBRL(row.total_value)}
+          </span>
         </span>
       </div>
 
       {/* Linha 2: 3 colunas Data ex / Valor/cota / Quantidade */}
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div>
-          <span className="block text-[10px] text-white/40">{row.source === 'imported' ? 'Data COM' : 'Data ex'}</span>
-          <span className="text-[12px] text-white/80 tabular-nums">{fmtDate(row.ex_date)}</span>
+          <span className="block text-[10px] text-white/40">
+            {row.source === "imported" ? "Data COM" : "Data ex"}
+          </span>
+          <span className="text-[12px] text-white/80 tabular-nums">
+            {fmtDate(row.ex_date)}
+          </span>
         </div>
         <div>
           <span className="block text-[10px] text-white/40">Valor/cota</span>
           <span className="text-[12px] text-white/80 tabular-nums">
-            {new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
+            {new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "BRL",
               minimumFractionDigits: 4,
               maximumFractionDigits: 4,
             }).format(row.value_per_share)}
@@ -85,63 +97,110 @@ function DividendCard({ row }: { row: DividendRow }) {
         </div>
         <div>
           <span className="block text-[10px] text-white/40">Quantidade</span>
-          <span className="text-[12px] text-white/80 tabular-nums">{row.quantity}</span>
+          <span className="text-[12px] text-white/80 tabular-nums">
+            {row.quantity}
+          </span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function DesempenhoProventos() {
-  const [view, setView] = useState<'paid' | 'announced'>('paid')
-  return <div className="space-y-5">
-    <div role="group" aria-label="Situação dos proventos" className="flex flex-wrap gap-2">
-      {([['paid', 'Pagos'], ['announced', 'Anunciados / a receber']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)} className={`min-h-11 rounded-xl border border-white/15 px-4 text-sm ${view === value ? 'bg-nf-purple text-white' : 'text-white/60'}`}>{label}</button>)}
+  const [view, setView] = useState<"paid" | "announced">("paid");
+  return (
+    <div className="space-y-5">
+      <div
+        role="group"
+        aria-label="Situação dos proventos"
+        className="flex flex-wrap gap-2"
+      >
+        {(
+          [
+            ["paid", "Pagos"],
+            ["announced", "Anunciados / a receber"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={view === value}
+            onClick={() => setView(value)}
+            className={`min-h-11 rounded-xl border border-white/15 px-4 text-sm ${view === value ? "bg-nf-purple text-white" : "text-white/60"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === "paid" ? <PaidDividends /> : <AnnouncedDividends />}
     </div>
-    {view === 'paid' ? <PaidDividends /> : <AnnouncedDividends />}
-  </div>
+  );
 }
 
 function PaidDividends() {
-  const [period, setPeriod] = useState<DividendPeriod>('1A')
-  const [tickerFilter, setTickerFilter] = useState('')
-  const [typeFilter, setTypeFilter] = useState('')
-  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
+  const [period, setPeriod] = useState<DividendPeriod>("1A");
+  const [tickerFilter, setTickerFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
-  const { rows, isLoading, isError, refetch, availableTypes } = useBrlDividends(period)
-  const syncDividends = useSyncDividends()
-  const receivables = useMonthReceivables()
-  const receivableBars = useMemo(() => buildMonthlyBars(filterAndSort(receivables.rows, tickerFilter, typeFilter, { column: 'ex_date', direction: 'desc' })), [receivables.rows, tickerFilter, typeFilter])
+  const { rows, isLoading, isError, refetch, availableTypes } =
+    useBrlDividends(period);
+  const syncDividends = useSyncDividends();
+  const receivables = useMonthReceivables();
+  const receivableBars = useMemo(
+    () =>
+      buildMonthlyBars(
+        filterAndSort(receivables.rows, tickerFilter, typeFilter, {
+          column: "ex_date",
+          direction: "desc",
+        }),
+      ),
+    [receivables.rows, tickerFilter, typeFilter],
+  );
 
-  const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows])
+  const monthlyBars = useMemo(() => buildMonthlyBars(rows), [rows]);
 
   // KPIs
-  const total12m = useMemo(() => rows.reduce((acc, r) => acc + r.total_value, 0), [rows])
+  const total12m = useMemo(
+    () => rows.reduce((acc, r) => acc + r.total_value, 0),
+    [rows],
+  );
   const mediaMensal = useMemo(() => {
-    if (monthlyBars.length === 0) return 0
-    const total = monthlyBars.reduce((acc, b) => acc + b.total, 0)
-    return total / monthlyBars.length
-  }, [monthlyBars])
+    if (monthlyBars.length === 0) return 0;
+    const total = monthlyBars.reduce((acc, b) => acc + b.total, 0);
+    return total / monthlyBars.length;
+  }, [monthlyBars]);
   const maiorMes = useMemo(() => {
-    if (monthlyBars.length === 0) return null
-    return monthlyBars.reduce((max, b) => (b.total > max.total ? b : max), monthlyBars[0])
-  }, [monthlyBars])
+    if (monthlyBars.length === 0) return null;
+    return monthlyBars.reduce(
+      (max, b) => (b.total > max.total ? b : max),
+      monthlyBars[0],
+    );
+  }, [monthlyBars]);
 
   // Tabela filtrada e ordenada
   const filteredRows = useMemo(
     () =>
       filterAndSort(rows, tickerFilter, typeFilter, {
-        column: 'ex_date',
-        direction: 'desc',
+        column: "ex_date",
+        direction: "desc",
       }),
     [rows, tickerFilter, typeFilter],
-  )
+  );
 
   // Reset paginação ao filtrar
-  const visibleRows = filteredRows.slice(0, visibleCount)
+  const visibleRows = filteredRows.slice(0, visibleCount);
 
   function exportCSV() {
-    const headers = ['Ticker', 'Tipo', 'Data COM / ex', 'Data pagamento', 'Valor/cota', 'Qtd', 'Total']
+    const headers = [
+      "Ticker",
+      "Tipo",
+      "Data COM / ex",
+      "Data pagamento",
+      "Valor/cota",
+      "Qtd",
+      "Total",
+    ];
     const csvRows = filteredRows.map((r) => [
       r.ticker,
       r.type,
@@ -150,56 +209,93 @@ function PaidDividends() {
       r.value_per_share.toFixed(4),
       r.quantity.toString(),
       r.total_value.toFixed(2),
-    ])
-    const csv = [headers, ...csvRows].map((row) => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'proventos.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+    ]);
+    const csv = [headers, ...csvRows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "proventos.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function fmtMes(yyyyMM: string): string {
     const MONTHS: Record<string, string> = {
-      '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
-      '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
-      '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez',
-    }
-    const [y, m] = yyyyMM.split('-')
-    return `${MONTHS[m] ?? m}/${y?.slice(2)}`
+      "01": "Jan",
+      "02": "Fev",
+      "03": "Mar",
+      "04": "Abr",
+      "05": "Mai",
+      "06": "Jun",
+      "07": "Jul",
+      "08": "Ago",
+      "09": "Set",
+      "10": "Out",
+      "11": "Nov",
+      "12": "Dez",
+    };
+    const [y, m] = yyyyMM.split("-");
+    return `${MONTHS[m] ?? m}/${y?.slice(2)}`;
   }
 
-  if (isError) return <div role="alert" className="rounded-xl border border-rose-400/30 p-5 text-sm text-rose-300">Dados ou câmbio histórico indisponíveis. O total não foi somado parcialmente. <button type="button" onClick={refetch} className="underline">Tentar novamente</button></div>
+  if (isError)
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-rose-400/30 p-5 text-sm text-rose-300"
+      >
+        Dados ou câmbio histórico indisponíveis. O total não foi somado
+        parcialmente.{" "}
+        <button type="button" onClick={refetch} className="underline">
+          Tentar novamente
+        </button>
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-5">
       {!isLoading && <IncomeBasisSummary rows={filteredRows} />}
-      <p className="text-xs text-white/50">Valores em reais; USD convertido pela PTAX do pagamento (última publicação anterior, até 10 dias). O histórico importado usa os valores líquidos recebidos, incluindo ativos já vendidos. No período coberto pela importação, substitui as estimativas automáticas. Fora dele, os valores são estimados pelos lançamentos e anúncios; confira os créditos na corretora.</p>
+      <p className="text-xs text-white/50">
+        Valores em reais; USD convertido pela PTAX do pagamento (última
+        publicação anterior, até 10 dias). O histórico importado usa os valores
+        líquidos recebidos, incluindo ativos já vendidos. No período coberto
+        pela importação, substitui as estimativas automáticas. Fora dele, os
+        valores são estimados pelos lançamentos e anúncios; confira os créditos
+        na corretora.
+      </p>
       {/* ── Cabeçalho ── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-[18px] font-semibold text-white">Proventos</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+        <h2 className="text-[22px] font-semibold leading-tight tracking-tight text-white md:text-[18px] md:tracking-normal">
+          Proventos
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            aria-label="Atualizar proventos"
             disabled={syncDividends.isPending}
             onClick={() => syncDividends.mutate()}
-            className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50"
+            className="flex min-h-9 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50 md:min-h-0 md:bg-[#393939] md:px-3 md:text-[12px]"
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 ${syncDividends.isPending ? 'animate-spin' : ''}`}
+              className={`h-3.5 w-3.5 ${syncDividends.isPending ? "animate-spin" : ""}`}
               strokeWidth={1.8}
               aria-hidden="true"
             />
-            Atualizar proventos
+            <span>
+              Atualizar<span className="hidden md:inline"> proventos</span>
+            </span>
           </button>
           <button
             type="button"
             onClick={exportCSV}
-            className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12]"
+            className="flex min-h-9 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-white/[0.12] md:min-h-0 md:bg-[#393939] md:px-3 md:text-[12px]"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+            <Download
+              className="h-3.5 w-3.5"
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
             Exportar CSV
           </button>
         </div>
@@ -212,19 +308,19 @@ function PaidDividends() {
           <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
             <span className="text-[10px] text-white/40">Proventos</span>
             <span className="text-[15px] font-semibold text-nf-green leading-tight">
-              {isLoading ? '—' : fmtBRL(total12m)}
+              {isLoading ? "—" : fmtBRL(total12m)}
             </span>
           </div>
           <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
             <span className="text-[10px] text-white/40">Média</span>
             <span className="text-[15px] font-semibold text-white leading-tight">
-              {isLoading ? '—' : fmtBRL(mediaMensal)}
+              {isLoading ? "—" : fmtBRL(mediaMensal)}
             </span>
           </div>
           <div className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-3 flex flex-col gap-0.5">
             <span className="text-[10px] text-white/40">Maior mês</span>
             <span className="text-[15px] font-semibold text-white leading-tight">
-              {isLoading || !maiorMes ? '—' : fmtBRL(maiorMes.total)}
+              {isLoading || !maiorMes ? "—" : fmtBRL(maiorMes.total)}
             </span>
           </div>
         </div>
@@ -248,60 +344,104 @@ function PaidDividends() {
       {/* Desktop KPI bar (>= md) */}
       <div className="hidden md:block overflow-x-auto rounded-xl border border-white/[0.08] bg-[#1A1A1A] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-0 px-6 py-4">
-        <div className="flex flex-1 flex-col gap-0.5 pr-6">
-          <span className="text-[11px] text-white/50">Proventos recebidos</span>
-          <span className="text-[18px] font-semibold text-nf-green leading-tight">
-            {isLoading ? '—' : fmtBRL(total12m)}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 px-6">
-          <span className="text-[11px] text-white/50">Média mensal</span>
-          <span className="text-[18px] font-semibold text-white leading-tight">
-            {isLoading ? '—' : fmtBRL(mediaMensal)}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 px-6">
-          <span className="text-[11px] text-white/50">Maior mês</span>
-          <span className="text-[18px] font-semibold text-white leading-tight">
-            {isLoading || !maiorMes
-              ? '—'
-              : `${fmtBRL(maiorMes.total)} · ${fmtMes(maiorMes.month)}`}
-          </span>
-        </div>
-        <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-        <div className="flex flex-1 flex-col gap-0.5 pl-6">
-          <span className="text-[11px] text-white/50">Período</span>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as DividendPeriod)}
-            className="mt-1 rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-2 py-1 text-[12px] text-white focus:outline-none"
-          >
-            {PERIOD_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="flex flex-1 flex-col gap-0.5 pr-6">
+            <span className="text-[11px] text-white/50">
+              Proventos recebidos
+            </span>
+            <span className="text-[18px] font-semibold text-nf-green leading-tight">
+              {isLoading ? "—" : fmtBRL(total12m)}
+            </span>
+          </div>
+          <div
+            className="self-stretch border-r border-white/[0.08]"
+            aria-hidden="true"
+          />
+          <div className="flex flex-1 flex-col gap-0.5 px-6">
+            <span className="text-[11px] text-white/50">Média mensal</span>
+            <span className="text-[18px] font-semibold text-white leading-tight">
+              {isLoading ? "—" : fmtBRL(mediaMensal)}
+            </span>
+          </div>
+          <div
+            className="self-stretch border-r border-white/[0.08]"
+            aria-hidden="true"
+          />
+          <div className="flex flex-1 flex-col gap-0.5 px-6">
+            <span className="text-[11px] text-white/50">Maior mês</span>
+            <span className="text-[18px] font-semibold text-white leading-tight">
+              {isLoading || !maiorMes
+                ? "—"
+                : `${fmtBRL(maiorMes.total)} · ${fmtMes(maiorMes.month)}`}
+            </span>
+          </div>
+          <div
+            className="self-stretch border-r border-white/[0.08]"
+            aria-hidden="true"
+          />
+          <div className="flex flex-1 flex-col gap-0.5 pl-6">
+            <span className="text-[11px] text-white/50">Período</span>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as DividendPeriod)}
+              className="mt-1 rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-2 py-1 text-[12px] text-white focus:outline-none"
+            >
+              {PERIOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* ── Gráfico barras ── */}
       <PanelCard>
-        <h3 className="mb-4 text-[14px] font-semibold text-white">Proventos por mês</h3>
+        <h3 className="mb-4 text-[14px] font-semibold text-white">
+          Proventos por mês
+        </h3>
         {isLoading ? (
           <LoadingChart />
         ) : (
           <Suspense fallback={<LoadingChart />}>
-            <ProventosChart bars={buildMonthlyBars(filteredRows)} receivables={receivables.isError ? [] : receivableBars} maxBars={12} />
+            <ProventosChart
+              bars={buildMonthlyBars(filteredRows)}
+              receivables={receivables.isError ? [] : receivableBars}
+              maxBars={12}
+            />
           </Suspense>
         )}
-        <p className="mt-3 text-xs text-white/50">Azul claro: pagamentos anunciados restantes do mês atual, antes de impostos. Quantidades com data ex futura e USD convertido pela PTAX disponível hoje são estimativas. A previsão não entra no total recebido acima. Sem data de pagamento, o anúncio fica apenas na aba “Anunciados / a receber”.</p>
-        {receivables.isLoading && <p role="status" className="mt-2 text-xs text-white/50">Carregando valores a receber…</p>}
-        {!receivables.isLoading && receivables.hasUndated && <p className="mt-2 text-xs text-amber-200/80">Há anúncios sem data de pagamento na base. Eles não entram na previsão mensal; R$ 0,00 a receber não significa ausência de pagamentos futuros.</p>}
-        {receivables.isError && <p role="alert" className="mt-2 text-xs text-amber-300">Previsão indisponível. Os recebidos continuam visíveis. <button type="button" onClick={receivables.refetch} className="underline">Tentar novamente</button></p>}
+        <p className="mt-3 text-xs text-white/50">
+          Azul claro: pagamentos anunciados restantes do mês atual, antes de
+          impostos. Quantidades com data ex futura e USD convertido pela PTAX
+          disponível hoje são estimativas. A previsão não entra no total
+          recebido acima. Sem data de pagamento, o anúncio fica apenas na aba
+          “Anunciados / a receber”.
+        </p>
+        {receivables.isLoading && (
+          <p role="status" className="mt-2 text-xs text-white/50">
+            Carregando valores a receber…
+          </p>
+        )}
+        {!receivables.isLoading && receivables.hasUndated && (
+          <p className="mt-2 text-xs text-amber-200/80">
+            Há anúncios sem data de pagamento na base. Eles não entram na
+            previsão mensal; R$ 0,00 a receber não significa ausência de
+            pagamentos futuros.
+          </p>
+        )}
+        {receivables.isError && (
+          <p role="alert" className="mt-2 text-xs text-amber-300">
+            Previsão indisponível. Os recebidos continuam visíveis.{" "}
+            <button
+              type="button"
+              onClick={receivables.refetch}
+              className="underline"
+            >
+              Tentar novamente
+            </button>
+          </p>
+        )}
       </PanelCard>
 
       {/* ── Proventos recebidos ── */}
@@ -328,8 +468,8 @@ function PaidDividends() {
                 placeholder="Buscar ticker…"
                 value={tickerFilter}
                 onChange={(e) => {
-                  setTickerFilter(e.target.value)
-                  setVisibleCount(INITIAL_VISIBLE)
+                  setTickerFilter(e.target.value);
+                  setVisibleCount(INITIAL_VISIBLE);
                 }}
                 className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] pl-8 pr-3 py-1.5 text-[12px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 w-full md:w-[150px]"
               />
@@ -338,8 +478,8 @@ function PaidDividends() {
             <select
               value={typeFilter}
               onChange={(e) => {
-                setTypeFilter(e.target.value)
-                setVisibleCount(INITIAL_VISIBLE)
+                setTypeFilter(e.target.value);
+                setVisibleCount(INITIAL_VISIBLE);
               }}
               className="rounded-lg border border-white/[0.1] bg-[#2A2A2A] px-3 py-1.5 text-[12px] text-white focus:outline-none w-full md:w-auto"
             >
@@ -356,14 +496,17 @@ function PaidDividends() {
         {isLoading ? (
           <div className="flex flex-col gap-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-10 animate-pulse rounded-xl bg-white/[0.04]" />
+              <div
+                key={i}
+                className="h-10 animate-pulse rounded-xl bg-white/[0.04]"
+              />
             ))}
           </div>
         ) : filteredRows.length === 0 ? (
           <p className="py-8 text-center text-[13px] text-white/40">
             {rows.length === 0
-              ? 'Nenhum provento no período selecionado.'
-              : 'Nenhum resultado para o filtro aplicado.'}
+              ? "Nenhum provento no período selecionado."
+              : "Nenhum resultado para o filtro aplicado."}
           </p>
         ) : (
           <>
@@ -371,7 +514,10 @@ function PaidDividends() {
             <div className="block md:hidden">
               <div className="flex flex-col gap-3">
                 {visibleRows.map((row, i) => (
-                  <DividendCard key={`${row.ticker}-${row.ex_date}-${i}`} row={row} />
+                  <DividendCard
+                    key={`${row.ticker}-${row.ex_date}-${i}`}
+                    row={row}
+                  />
                 ))}
               </div>
               {/* Paginação */}
@@ -380,10 +526,13 @@ function PaidDividends() {
                   {visibleCount < filteredRows.length ? (
                     <button
                       type="button"
-                      onClick={() => setVisibleCount((v) => v + INITIAL_VISIBLE)}
+                      onClick={() =>
+                        setVisibleCount((v) => v + INITIAL_VISIBLE)
+                      }
                       className="text-[12px] text-white/50 hover:text-white transition-colors"
                     >
-                      Mostrando {visibleRows.length} de {filteredRows.length} · Ver mais
+                      Mostrando {visibleRows.length} de {filteredRows.length} ·
+                      Ver mais
                     </button>
                   ) : (
                     <span className="text-[12px] text-white/30">
@@ -399,15 +548,27 @@ function PaidDividends() {
               <table className="w-full min-w-[640px] border-collapse text-[12px]">
                 <thead>
                   <tr className="bg-white/[0.04]">
-                    <th className="px-3 py-2.5 text-left font-medium text-white/50">Ticker</th>
-                    <th className="px-3 py-2.5 text-left font-medium text-white/50">Tipo</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Data COM / ex</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-white/50">
+                      Ticker
+                    </th>
+                    <th className="px-3 py-2.5 text-left font-medium text-white/50">
+                      Tipo
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      Data COM / ex
+                    </th>
                     <th className="px-3 py-2.5 text-right font-medium text-white/50">
                       Data pagamento
                     </th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Valor/cota</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Qtd</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-white/50">Total</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      Valor/cota
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      Qtd
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,10 +576,12 @@ function PaidDividends() {
                     <tr
                       key={`${row.ticker}-${row.ex_date}-${i}`}
                       className={`border-t border-white/[0.04] ${
-                        i % 2 === 1 ? 'bg-white/[0.02]' : ''
+                        i % 2 === 1 ? "bg-white/[0.02]" : ""
                       }`}
                     >
-                      <td className="px-3 py-2.5 font-semibold text-white">{row.ticker}</td>
+                      <td className="px-3 py-2.5 font-semibold text-white">
+                        {row.ticker}
+                      </td>
                       <td className="px-3 py-2.5">
                         <span className="rounded-full border border-nf-blue/40 bg-nf-blue/12 px-2 py-0.5 text-[10px] font-medium text-nf-blue">
                           {row.type.toUpperCase()}
@@ -431,9 +594,9 @@ function PaidDividends() {
                         {fmtDate(row.payment_date)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-white/70">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
                           minimumFractionDigits: 4,
                           maximumFractionDigits: 4,
                         }).format(row.value_per_share)}
@@ -442,7 +605,15 @@ function PaidDividends() {
                         {row.quantity}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-nf-green">
-                        <span title={row.source === 'imported' ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}` : undefined}>{fmtBRL(row.total_value)}</span>
+                        <span
+                          title={
+                            row.source === "imported"
+                              ? `Líquido importado • Bruto: ${fmtBRL(row.gross_amount ?? row.total_value)}`
+                              : undefined
+                          }
+                        >
+                          {fmtBRL(row.total_value)}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -453,5 +624,5 @@ function PaidDividends() {
         )}
       </PanelCard>
     </div>
-  )
+  );
 }

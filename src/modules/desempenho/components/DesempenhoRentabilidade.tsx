@@ -1,166 +1,237 @@
-import { InflationComparison } from '../../performance/components/InflationComparison'
+import { InflationComparison } from "../../performance/components/InflationComparison";
 /**
  * DesempenhoRentabilidade — sub-rota /desempenho/rentabilidade.
  * Gráfico de linha comparativo, tabela mensal e tabela por ativo.
  */
-import { lazy, Suspense, useState, useMemo } from 'react'
-import { Download, Info } from 'lucide-react'
-import { getAssetInitial } from '../../../shared/utils/assetInitial'
-import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryNotice'
-import { PanelCard } from '../../../shared/components/PanelCard'
-import { KpiPillBar } from '../../../shared/components/KpiPillBar'
-import { usePerformance } from '../../performance/hooks/usePerformance'
-import { TabelaMensal } from './TabelaMensal'
-import { usePositions } from '../../portfolio/hooks/usePositions'
-import { useLatestQuotes } from '../../portfolio/hooks/useLatestQuotes'
-import { useUSDRate } from '../../../shared/hooks/useUSDRate'
-import { derivePositionRows } from '../../portfolio/positionRows'
-import { useWallets } from '../../portfolio/hooks/useWallets'
-import { useRetainedChartData } from '../../../shared/hooks/useRetainedChartData'
-import type { PerformancePeriod } from '../../performance/types'
-import type { AssetType } from '../../portfolio/types'
+import { lazy, Suspense, useState, useMemo } from "react";
+import { Download, Info } from "lucide-react";
+import { getAssetInitial } from "../../../shared/utils/assetInitial";
+import { ReturnHistoryNotice } from "../../performance/components/ReturnHistoryNotice";
+import { PanelCard } from "../../../shared/components/PanelCard";
+import { KpiPillBar } from "../../../shared/components/KpiPillBar";
+import { usePerformance } from "../../performance/hooks/usePerformance";
+import { TabelaMensal } from "./TabelaMensal";
+import { usePositions } from "../../portfolio/hooks/usePositions";
+import { useLatestQuotes } from "../../portfolio/hooks/useLatestQuotes";
+import { useUSDRate } from "../../../shared/hooks/useUSDRate";
+import { derivePositionRows } from "../../portfolio/positionRows";
+import { useWallets } from "../../portfolio/hooks/useWallets";
+import { useRetainedChartData } from "../../../shared/hooks/useRetainedChartData";
+import type { PerformancePeriod } from "../../performance/types";
+import type { AssetType } from "../../portfolio/types";
 
 const PerformanceLineChart = lazy(
-  () => import('../../performance/components/PerformanceLineChart'),
-)
+  () => import("../../performance/components/PerformanceLineChart"),
+);
 
 function LoadingChart() {
   return (
     <div className="flex h-[280px] items-center justify-center">
       <span className="animate-pulse text-sm text-white/40">Carregando…</span>
     </div>
-  )
+  );
 }
 
 const PERIOD_OPTIONS: { label: string; value: PerformancePeriod }[] = [
-  { label: '1 mês', value: '1M' },
-  { label: '3 meses', value: '3M' },
-  { label: '6 meses', value: '6M' },
-  { label: '1 ano', value: '1A' },
-  { label: 'Desde o início', value: 'Tudo' },
-]
+  { label: "1 mês", value: "1M" },
+  { label: "3 meses", value: "3M" },
+  { label: "6 meses", value: "6M" },
+  { label: "1 ano", value: "1A" },
+  { label: "Desde o início", value: "Tudo" },
+];
 
 const ASSET_CLASS_LABELS: Record<string, string> = {
-  stock_br: 'Ação',
-  fii: 'FII',
-  bdr: 'BDR',
-  stock_us: 'Stock US',
-  etf_us: 'ETF US',
-  reit: 'REIT',
-  crypto: 'Cripto',
-  fixed_income: 'Renda Fixa',
-  etf_br: 'ETF BR',
-}
+  stock_br: "Ação",
+  fii: "FII",
+  bdr: "BDR",
+  stock_us: "Stock US",
+  etf_us: "ETF US",
+  reit: "REIT",
+  crypto: "Cripto",
+  fixed_income: "Renda Fixa",
+  etf_br: "ETF BR",
+};
 
 const CLASS_COLORS: Record<string, string> = {
-  stock_br: '#3B82F6',
-  fii: '#22c55e',
-  bdr: '#f97316',
-  stock_us: '#a855f7',
-  etf_us: '#ec4899',
-  reit: '#eab308',
-  crypto: '#06b6d4',
-  fixed_income: '#64748b',
-  etf_br: '#84cc16',
-}
+  stock_br: "#3B82F6",
+  fii: "#22c55e",
+  bdr: "#f97316",
+  stock_us: "#a855f7",
+  etf_us: "#ec4899",
+  reit: "#eab308",
+  crypto: "#06b6d4",
+  fixed_income: "#64748b",
+  etf_br: "#84cc16",
+};
 
 function fmtPct(v: number | null | undefined, decimals = 2): string {
-  if (v == null || !Number.isFinite(v)) return '—'
-  const sign = v > 0 ? '+' : ''
-  return `${sign}${v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`
+  if (v == null || !Number.isFinite(v)) return "—";
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`;
 }
 
 function fmtBRL(v: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
     maximumFractionDigits: 2,
-  }).format(v)
+  }).format(v);
 }
 
 function getInitial(name: string | null, ticker: string): string {
-  return getAssetInitial(ticker, name)
+  return getAssetInitial(ticker, name);
 }
 
 export function DesempenhoRentabilidade() {
-  const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
+  const { selectedWallet } = useWallets();
+  const walletId = selectedWallet?.id ?? "";
 
-  const [period, setPeriod] = useState<PerformancePeriod>('Tudo')
-  const [typeFilter, setTypeFilter] = useState('Todos os tipos')
+  const [period, setPeriod] = useState<PerformancePeriod>("Tudo");
+  const [typeFilter, setTypeFilter] = useState("Todos os tipos");
 
-  const { portfolioSeries, benchmarkSeries, summary, assetRows, monthlyTableData, isLoading, historyIncomplete, historyIssues, refetch } =
-    usePerformance(period, walletId, Object.entries(ASSET_CLASS_LABELS).find(([, label]) => label === typeFilter)?.[0] as AssetType | undefined)
-  const comparisonSeries = useMemo(() => [portfolioSeries, ...benchmarkSeries], [portfolioSeries, benchmarkSeries])
-  const comparisonChart = useRetainedChartData(`${walletId}:${typeFilter}`, period, comparisonSeries, isLoading)
+  const {
+    portfolioSeries,
+    benchmarkSeries,
+    summary,
+    assetRows,
+    monthlyTableData,
+    isLoading,
+    historyIncomplete,
+    historyIssues,
+    refetch,
+  } = usePerformance(
+    period,
+    walletId,
+    Object.entries(ASSET_CLASS_LABELS).find(
+      ([, label]) => label === typeFilter,
+    )?.[0] as AssetType | undefined,
+  );
+  const comparisonSeries = useMemo(
+    () => [portfolioSeries, ...benchmarkSeries],
+    [portfolioSeries, benchmarkSeries],
+  );
+  const comparisonChart = useRetainedChartData(
+    `${walletId}:${typeFilter}`,
+    period,
+    comparisonSeries,
+    isLoading,
+  );
 
   // Positions para obter o type do ativo (classe)
-  const { data: positions = [], isLoading: positionsLoading, isError: positionsError } = usePositions(walletId)
-  const tickers = useMemo(() => positions.map((position) => position.ticker), [positions])
-  const quotes = useLatestQuotes(tickers)
-  const needsUsd = positions.some((position) => position.asset?.currency === 'USD')
-  const usd = useUSDRate({ enabled: needsUsd })
+  const {
+    data: positions = [],
+    isLoading: positionsLoading,
+    isError: positionsError,
+  } = usePositions(walletId);
+  const tickers = useMemo(
+    () => positions.map((position) => position.ticker),
+    [positions],
+  );
+  const quotes = useLatestQuotes(tickers);
+  const needsUsd = positions.some(
+    (position) => position.asset?.currency === "USD",
+  );
+  const usd = useUSDRate({ enabled: needsUsd });
   const marketValues = useMemo(() => {
-    const rows = derivePositionRows({ positions, quotes: quotes.data ?? [], usdRate: usd.isError || usd.isLoading ? null : usd.data?.rate ?? null }).rows
-    return new Map(rows.map((row) => [row.ticker, positionsLoading || positionsError || quotes.isLoading || quotes.isError ? null : row.marketValueBRL]))
-  }, [positions, quotes.data, quotes.isLoading, quotes.isError, usd.data?.rate, usd.isLoading, usd.isError, positionsLoading, positionsError])
+    const rows = derivePositionRows({
+      positions,
+      quotes: quotes.data ?? [],
+      usdRate: usd.isError || usd.isLoading ? null : (usd.data?.rate ?? null),
+    }).rows;
+    return new Map(
+      rows.map((row) => [
+        row.ticker,
+        positionsLoading || positionsError || quotes.isLoading || quotes.isError
+          ? null
+          : row.marketValueBRL,
+      ]),
+    );
+  }, [
+    positions,
+    quotes.data,
+    quotes.isLoading,
+    quotes.isError,
+    usd.data?.rate,
+    usd.isLoading,
+    usd.isError,
+    positionsLoading,
+    positionsError,
+  ]);
   const tickerTypeMap = useMemo(() => {
-    const m = new Map<string, string>()
+    const m = new Map<string, string>();
     for (const p of positions) {
-      if (p.asset?.type) m.set(p.ticker, p.asset.type)
+      if (p.asset?.type) m.set(p.ticker, p.asset.type);
     }
-    return m
-  }, [positions])
+    return m;
+  }, [positions]);
 
   // Filtra assetRows pelo tipo selecionado
   const filteredAssetRows = useMemo(() => {
-    if (typeFilter === 'Todos os tipos') return assetRows
+    if (typeFilter === "Todos os tipos") return assetRows;
     return assetRows.filter((r) => {
-      const t = tickerTypeMap.get(r.ticker)
-      return t != null && ASSET_CLASS_LABELS[t] === typeFilter
-    })
-  }, [assetRows, typeFilter, tickerTypeMap])
+      const t = tickerTypeMap.get(r.ticker);
+      return t != null && ASSET_CLASS_LABELS[t] === typeFilter;
+    });
+  }, [assetRows, typeFilter, tickerTypeMap]);
 
   // Tipos disponíveis para o dropdown
   const availableTypes = useMemo(() => {
-    const types = new Set<string>(typeFilter === 'Todos os tipos' ? [] : [typeFilter])
+    const types = new Set<string>(
+      typeFilter === "Todos os tipos" ? [] : [typeFilter],
+    );
     for (const position of positions) {
-      const t = position.asset?.type
-      if (t && ASSET_CLASS_LABELS[t]) types.add(ASSET_CLASS_LABELS[t])
+      const t = position.asset?.type;
+      if (t && ASSET_CLASS_LABELS[t]) types.add(ASSET_CLASS_LABELS[t]);
     }
-    return ['Todos os tipos', ...Array.from(types).sort()]
-  }, [positions, typeFilter])
+    return ["Todos os tipos", ...Array.from(types).sort()];
+  }, [positions, typeFilter]);
 
   // KPIs
-  const rentPct = summary.portfolioReturnPct
-  const rentFormatted = rentPct != null ? fmtPct(rentPct * 100) : '—'
-  const rentPositive = rentPct != null ? rentPct >= 0 : null
+  const rentPct = summary.portfolioReturnPct;
+  const rentFormatted = rentPct != null ? fmtPct(rentPct * 100) : "—";
+  const rentPositive = rentPct != null ? rentPct >= 0 : null;
 
   // Exportar CSV da tabela por ativo
   function exportAssetCSV() {
-    const headers = ['Ticker', 'Nome', 'Classe', 'Rentabilidade (%)', 'vs CDI (p.p.)']
+    const headers = [
+      "Ticker",
+      "Nome",
+      "Classe",
+      "Rentabilidade (%)",
+      "vs CDI (p.p.)",
+    ];
     const rows = filteredAssetRows.map((r) => {
-      const t = tickerTypeMap.get(r.ticker)
-      const classeLabel = t ? (ASSET_CLASS_LABELS[t] ?? t) : '—'
+      const t = tickerTypeMap.get(r.ticker);
+      const classeLabel = t ? (ASSET_CLASS_LABELS[t] ?? t) : "—";
       const vscdipp =
         r.totalReturnPct != null && summary.cdiReturnPct != null
           ? (r.totalReturnPct - summary.cdiReturnPct * 100).toFixed(2)
-          : '—'
-      return [r.ticker, r.name ?? '', classeLabel, r.totalReturnPct?.toFixed(2) ?? '—', vscdipp]
-    })
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'rentabilidade-por-ativo.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+          : "—";
+      return [
+        r.ticker,
+        r.name ?? "",
+        classeLabel,
+        r.totalReturnPct?.toFixed(2) ?? "—",
+        vscdipp,
+      ];
+    });
+    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rentabilidade-por-ativo.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <ReturnHistoryNotice incomplete={historyIncomplete} issues={historyIssues} onRetry={refetch} />
+      <ReturnHistoryNotice
+        incomplete={historyIncomplete}
+        issues={historyIssues}
+        onRetry={refetch}
+      />
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-semibold text-white">Rentabilidade</h2>
@@ -169,7 +240,11 @@ export function DesempenhoRentabilidade() {
           onClick={exportAssetCSV}
           className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12]"
         >
-          <Download className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+          <Download
+            className="h-3.5 w-3.5"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
           Exportar CSV
         </button>
       </div>
@@ -178,37 +253,51 @@ export function DesempenhoRentabilidade() {
       <KpiPillBar
         items={[
           {
-            label: 'Rentabilidade total',
+            label: "Rentabilidade total",
             value: rentFormatted,
-            colorClass: rentPositive === null ? 'text-white' : rentPositive ? 'text-nf-green' : 'text-nf-pink',
+            colorClass:
+              rentPositive === null
+                ? "text-white"
+                : rentPositive
+                  ? "text-nf-green"
+                  : "text-nf-pink",
           },
           {
-            label: 'vs CDI (p.p.)',
-            value: summary.vscdipPp != null ? fmtPct(summary.vscdipPp) : '—',
+            label: "vs CDI (p.p.)",
+            value: summary.vscdipPp != null ? fmtPct(summary.vscdipPp) : "—",
             colorClass:
               summary.vscdipPp == null
-                ? 'text-white'
+                ? "text-white"
                 : summary.vscdipPp >= 0
-                  ? 'text-nf-green'
-                  : 'text-nf-pink',
+                  ? "text-nf-green"
+                  : "text-nf-pink",
           },
           {
-            label: 'IBOV',
-            value: summary.ibovReturnPct != null ? fmtPct(summary.ibovReturnPct * 100) : '—',
+            label: "IBOV",
+            value:
+              summary.ibovReturnPct != null
+                ? fmtPct(summary.ibovReturnPct * 100)
+                : "—",
           },
           {
-            label: 'CDI',
-            value: summary.cdiReturnPct != null ? fmtPct(summary.cdiReturnPct * 100) : '—',
+            label: "CDI",
+            value:
+              summary.cdiReturnPct != null
+                ? fmtPct(summary.cdiReturnPct * 100)
+                : "—",
           },
         ]}
       />
 
       {/* ── Gráfico ── */}
-      <PanelCard>
+      <PanelCard
+        className="max-md:rounded-none max-md:border-0 max-md:bg-transparent"
+        padding="md:p-6"
+      >
         <div className="mb-4">
           {/* Título + legenda */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-[14px] font-semibold text-white">
+            <h3 className="text-lg font-semibold tracking-tight text-white md:text-[14px] md:tracking-normal">
               Rentabilidade comparada com índices
             </h3>
             {/* Legenda inline — visível apenas em md+ */}
@@ -218,7 +307,10 @@ export function DesempenhoRentabilidade() {
                 Carteira
               </span>
               {comparisonChart.data.slice(1).map((s) => (
-                <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-white/60">
+                <span
+                  key={s.label}
+                  className="flex items-center gap-1.5 text-[11px] text-white/60"
+                >
                   <span
                     className="inline-block h-2 w-6 rounded-sm"
                     style={{ backgroundColor: s.color }}
@@ -262,7 +354,12 @@ export function DesempenhoRentabilidade() {
           <LoadingChart />
         ) : (
           <Suspense fallback={<LoadingChart />}>
-            <PerformanceLineChart series={comparisonChart.data} scope={`${walletId}:${typeFilter}`} animate />
+            <PerformanceLineChart
+              series={comparisonChart.data}
+              scope={`${walletId}:${typeFilter}`}
+              animate
+              scrollOnMobile
+            />
           </Suspense>
         )}
       </PanelCard>
@@ -290,14 +387,16 @@ export function DesempenhoRentabilidade() {
         </h3>
         {isLoading ? (
           <div className="flex h-20 items-center justify-center">
-            <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+            <span className="animate-pulse text-sm text-white/40">
+              Carregando…
+            </span>
           </div>
         ) : (
           <TabelaMensal rows={monthlyTableData} />
         )}
       </PanelCard>
 
-      <InflationComparison portfolio={portfolioSeries} />
+      <InflationComparison portfolio={portfolioSeries} scrollOnMobile />
 
       {/* ── Tabela por ativo ── */}
       <PanelCard>
@@ -315,20 +414,28 @@ export function DesempenhoRentabilidade() {
             onClick={exportAssetCSV}
             className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12]"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+            <Download
+              className="h-3.5 w-3.5"
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
             Exportar CSV
           </button>
         </div>
 
         <p className="mb-4 text-[12px] text-white/50">
-          Resultado da posição atual sobre o preço médio, incluindo proventos elegíveis recebidos no período selecionado.
-          O retorno histórico da carteira considera as movimentações e pode ser diferente.
+          Resultado da posição atual sobre o preço médio, incluindo proventos
+          elegíveis recebidos no período selecionado. O retorno histórico da
+          carteira considera as movimentações e pode ser diferente.
         </p>
 
         {isLoading ? (
           <div className="flex flex-col gap-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
+              <div
+                key={i}
+                className="h-12 animate-pulse rounded-xl bg-white/[0.04]"
+              />
             ))}
           </div>
         ) : filteredAssetRows.length === 0 ? (
@@ -340,16 +447,25 @@ export function DesempenhoRentabilidade() {
             {/* ── Cards mobile (< md) ── */}
             <div className="block md:hidden flex flex-col gap-3">
               {filteredAssetRows.map((row) => {
-                const assetType = tickerTypeMap.get(row.ticker)
-                const classeLabel = assetType ? (ASSET_CLASS_LABELS[assetType] ?? assetType) : '—'
-                const classeColor = assetType ? (CLASS_COLORS[assetType] ?? '#6b7280') : '#6b7280'
+                const assetType = tickerTypeMap.get(row.ticker);
+                const classeLabel = assetType
+                  ? (ASSET_CLASS_LABELS[assetType] ?? assetType)
+                  : "—";
+                const classeColor = assetType
+                  ? (CLASS_COLORS[assetType] ?? "#6b7280")
+                  : "#6b7280";
                 const vscdipp =
                   row.totalReturnPct != null && summary.cdiReturnPct != null
                     ? row.totalReturnPct - summary.cdiReturnPct * 100
-                    : null
-                const rentPositiveAsset = row.totalReturnPct != null ? row.totalReturnPct >= 0 : null
+                    : null;
+                const rentPositiveAsset =
+                  row.totalReturnPct != null ? row.totalReturnPct >= 0 : null;
                 const rentClsAsset =
-                  rentPositiveAsset === null ? 'text-white' : rentPositiveAsset ? 'text-nf-green' : 'text-nf-pink'
+                  rentPositiveAsset === null
+                    ? "text-white"
+                    : rentPositiveAsset
+                      ? "text-nf-green"
+                      : "text-nf-pink";
                 return (
                   <div
                     key={row.ticker}
@@ -366,169 +482,211 @@ export function DesempenhoRentabilidade() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[13px] font-semibold text-white">{row.ticker}</span>
+                          <span className="text-[13px] font-semibold text-white">
+                            {row.ticker}
+                          </span>
                           <span
                             className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                            style={{ backgroundColor: `${classeColor}22`, color: classeColor }}
+                            style={{
+                              backgroundColor: `${classeColor}22`,
+                              color: classeColor,
+                            }}
                           >
                             {classeLabel}
                           </span>
                         </div>
                         {row.name && (
-                          <p className="text-[10px] text-white/40 truncate">{row.name}</p>
+                          <p className="text-[10px] text-white/40 truncate">
+                            {row.name}
+                          </p>
                         )}
                       </div>
-                      <span className={`shrink-0 text-[14px] font-semibold tabular-nums ${rentClsAsset}`}>
-                        {row.totalReturnPct != null ? fmtPct(row.totalReturnPct) : '—'}
+                      <span
+                        className={`shrink-0 text-[14px] font-semibold tabular-nums ${rentClsAsset}`}
+                      >
+                        {row.totalReturnPct != null
+                          ? fmtPct(row.totalReturnPct)
+                          : "—"}
                       </span>
                     </div>
                     {/* Linha 2: vs CDI */}
                     <div className="mt-1 text-right">
                       <span
                         className={`text-[11px] tabular-nums ${
-                          vscdipp == null ? 'text-white/40' : vscdipp >= 0 ? 'text-nf-green' : 'text-nf-pink'
+                          vscdipp == null
+                            ? "text-white/40"
+                            : vscdipp >= 0
+                              ? "text-nf-green"
+                              : "text-nf-pink"
                         }`}
                       >
                         {vscdipp != null
-                          ? `vs CDI: ${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`
-                          : 'vs CDI: —'}
+                          ? `vs CDI: ${vscdipp >= 0 ? "+" : ""}${vscdipp.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`
+                          : "vs CDI: —"}
                       </span>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
 
             {/* ── Tabela desktop (>= md) ── */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-[12px]">
-              <thead>
-                <tr className="bg-white/[0.04]">
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Ativo</th>
-                  <th className="px-3 py-2.5 text-left font-medium text-white/50">Classe</th>
-                  <th className="hidden md:table-cell px-3 py-2.5 text-right font-medium text-white/50">Valor atual</th>
-                  <th className="px-3 py-2.5 text-right font-medium text-white/50">
-                    Rentabilidade
-                  </th>
-                  <th className="px-3 py-2.5 text-right font-medium text-white/50">vs CDI</th>
-                  <th className="hidden md:table-cell px-3 py-2.5 text-left font-medium text-white/50">Desempenho</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAssetRows.map((row, i) => {
-                  const assetType = tickerTypeMap.get(row.ticker)
-                  const classeLabel = assetType ? (ASSET_CLASS_LABELS[assetType] ?? assetType) : '—'
-                  const classeColor = assetType ? (CLASS_COLORS[assetType] ?? '#6b7280') : '#6b7280'
+                <thead>
+                  <tr className="bg-white/[0.04]">
+                    <th className="px-3 py-2.5 text-left font-medium text-white/50">
+                      Ativo
+                    </th>
+                    <th className="px-3 py-2.5 text-left font-medium text-white/50">
+                      Classe
+                    </th>
+                    <th className="hidden md:table-cell px-3 py-2.5 text-right font-medium text-white/50">
+                      Valor atual
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      Rentabilidade
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-white/50">
+                      vs CDI
+                    </th>
+                    <th className="hidden md:table-cell px-3 py-2.5 text-left font-medium text-white/50">
+                      Desempenho
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAssetRows.map((row, i) => {
+                    const assetType = tickerTypeMap.get(row.ticker);
+                    const classeLabel = assetType
+                      ? (ASSET_CLASS_LABELS[assetType] ?? assetType)
+                      : "—";
+                    const classeColor = assetType
+                      ? (CLASS_COLORS[assetType] ?? "#6b7280")
+                      : "#6b7280";
 
-                  // vs CDI em pontos percentuais
-                  const vscdipp =
-                    row.totalReturnPct != null && summary.cdiReturnPct != null
-                      ? row.totalReturnPct - summary.cdiReturnPct * 100
-                      : null
+                    // vs CDI em pontos percentuais
+                    const vscdipp =
+                      row.totalReturnPct != null && summary.cdiReturnPct != null
+                        ? row.totalReturnPct - summary.cdiReturnPct * 100
+                        : null;
 
-                  const rentPositive =
-                    row.totalReturnPct != null ? row.totalReturnPct >= 0 : null
-                  const rentCls =
-                    rentPositive === null
-                      ? 'text-white'
-                      : rentPositive
-                        ? 'text-nf-green'
-                        : 'text-nf-pink'
+                    const rentPositive =
+                      row.totalReturnPct != null
+                        ? row.totalReturnPct >= 0
+                        : null;
+                    const rentCls =
+                      rentPositive === null
+                        ? "text-white"
+                        : rentPositive
+                          ? "text-nf-green"
+                          : "text-nf-pink";
 
-                  const marketValue = marketValues.get(row.ticker) ?? null
+                    const marketValue = marketValues.get(row.ticker) ?? null;
 
-                  // Barra de desempenho — escala relativa ao máximo absoluto
-                  const maxRent = Math.max(
-                    ...filteredAssetRows
-                      .map((r) => Math.abs(r.totalReturnPct ?? 0))
-                      .filter((v) => v > 0),
-                    1,
-                  )
-                  const barWidth =
-                    row.totalReturnPct != null
-                      ? Math.round((Math.abs(row.totalReturnPct) / maxRent) * 100)
-                      : 0
-                  const barColor = rentPositive ? '#4ADE80' : '#F472B6'
+                    // Barra de desempenho — escala relativa ao máximo absoluto
+                    const maxRent = Math.max(
+                      ...filteredAssetRows
+                        .map((r) => Math.abs(r.totalReturnPct ?? 0))
+                        .filter((v) => v > 0),
+                      1,
+                    );
+                    const barWidth =
+                      row.totalReturnPct != null
+                        ? Math.round(
+                            (Math.abs(row.totalReturnPct) / maxRent) * 100,
+                          )
+                        : 0;
+                    const barColor = rentPositive ? "#4ADE80" : "#F472B6";
 
-                  return (
-                    <tr
-                      key={row.ticker}
-                      className={`border-t border-white/[0.04] ${
-                        i % 2 === 1 ? 'bg-white/[0.02]' : ''
-                      }`}
-                    >
-                      {/* Avatar + Ticker/Nome */}
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
-                            style={{ backgroundColor: `${classeColor}33` }}
-                            aria-hidden="true"
-                          >
-                            {getInitial(row.name, row.ticker)}
-                          </span>
-                          <div>
-                            <span className="font-semibold text-white">{row.ticker}</span>
-                            {row.name && (
-                              <p className="text-[10px] text-white/40 truncate max-w-[140px]">
-                                {row.name}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      {/* Classe badge */}
-                      <td className="px-3 py-2.5">
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                          style={{
-                            backgroundColor: `${classeColor}22`,
-                            color: classeColor,
-                          }}
-                        >
-                          {classeLabel}
-                        </span>
-                      </td>
-                      {/* Valor atual */}
-                      <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-white">
-                        {marketValue !== null
-                          ? fmtBRL(marketValue)
-                          : '—'}
-                      </td>
-                      {/* Rentabilidade */}
-                      <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${rentCls}`}>
-                        {row.totalReturnPct != null ? fmtPct(row.totalReturnPct) : '—'}
-                      </td>
-                      {/* vs CDI */}
-                      <td
-                        className={`px-3 py-2.5 text-right tabular-nums ${
-                          vscdipp == null
-                            ? 'text-white/50'
-                            : vscdipp >= 0
-                              ? 'text-nf-green'
-                              : 'text-nf-pink'
+                    return (
+                      <tr
+                        key={row.ticker}
+                        className={`border-t border-white/[0.04] ${
+                          i % 2 === 1 ? "bg-white/[0.02]" : ""
                         }`}
                       >
-                        {vscdipp != null ? `${vscdipp >= 0 ? '+' : ''}${vscdipp.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp` : '—'}
-                      </td>
-                      {/* Barra de desempenho */}
-                      <td className="hidden md:table-cell px-3 py-2.5 min-w-[100px]">
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                          <div
-                            className="h-full rounded-full transition-all duration-300"
-                            style={{ width: `${barWidth}%`, backgroundColor: barColor }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        {/* Avatar + Ticker/Nome */}
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                              style={{ backgroundColor: `${classeColor}33` }}
+                              aria-hidden="true"
+                            >
+                              {getInitial(row.name, row.ticker)}
+                            </span>
+                            <div>
+                              <span className="font-semibold text-white">
+                                {row.ticker}
+                              </span>
+                              {row.name && (
+                                <p className="text-[10px] text-white/40 truncate max-w-[140px]">
+                                  {row.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        {/* Classe badge */}
+                        <td className="px-3 py-2.5">
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{
+                              backgroundColor: `${classeColor}22`,
+                              color: classeColor,
+                            }}
+                          >
+                            {classeLabel}
+                          </span>
+                        </td>
+                        {/* Valor atual */}
+                        <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-white">
+                          {marketValue !== null ? fmtBRL(marketValue) : "—"}
+                        </td>
+                        {/* Rentabilidade */}
+                        <td
+                          className={`px-3 py-2.5 text-right tabular-nums font-medium ${rentCls}`}
+                        >
+                          {row.totalReturnPct != null
+                            ? fmtPct(row.totalReturnPct)
+                            : "—"}
+                        </td>
+                        {/* vs CDI */}
+                        <td
+                          className={`px-3 py-2.5 text-right tabular-nums ${
+                            vscdipp == null
+                              ? "text-white/50"
+                              : vscdipp >= 0
+                                ? "text-nf-green"
+                                : "text-nf-pink"
+                          }`}
+                        >
+                          {vscdipp != null
+                            ? `${vscdipp >= 0 ? "+" : ""}${vscdipp.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp`
+                            : "—"}
+                        </td>
+                        {/* Barra de desempenho */}
+                        <td className="hidden md:table-cell px-3 py-2.5 min-w-[100px]">
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{
+                                width: `${barWidth}%`,
+                                backgroundColor: barColor,
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </>
         )}
       </PanelCard>
     </div>
-  )
+  );
 }

@@ -12,12 +12,34 @@ import {
 import type { PerformanceSeries } from '../types'
 import { comparisonChart } from '../utils/comparisonChart'
 import { useChartMorph } from '../../../shared/hooks/useChartMorph'
+import { useIsMobile } from '../../../shared/hooks/useIsMobile'
 import { blendValue, sampleCurve } from '../../../shared/utils/chartMorph'
 
 interface PerformanceLineChartProps {
   series: PerformanceSeries[]
   animate?: boolean
   scope?: string
+  scrollOnMobile?: boolean
+}
+
+const MOBILE_CHART_HEIGHT = 252
+const MOBILE_CHART_TOP = 10
+const MOBILE_DATE_AXIS_HEIGHT = 26
+const axisPercent = new Intl.NumberFormat('pt-BR', {
+  maximumFractionDigits: 1,
+  signDisplay: 'exceptZero',
+})
+
+function formatAxisPercent(value: number) {
+  return axisPercent.format(value - 100) + '%'
+}
+
+function mobileAxisTicks([min, max]: [number, number]) {
+  const roughStep = (max - min) / 5
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep))
+  const step = Math.max(1, ([1, 2, 5, 10].find((factor) => factor * magnitude >= roughStep) ?? 10) * magnitude)
+  const first = 100 + Math.ceil((min - 100) / step) * step
+  return Array.from({ length: Math.floor((max - first) / step) + 1 }, (_, index) => first + index * step)
 }
 
 function canMorphPerformance(from: PerformanceSeries[], to: PerformanceSeries[]) {
@@ -70,9 +92,9 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   return (
     <div
       role="tooltip"
-      className="rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-sm shadow-lg min-w-[160px]"
+      className="min-w-[160px] rounded-xl border border-white/15 bg-[#242424]/85 bg-gradient-to-b from-white/[0.09] to-transparent px-3 py-2 text-sm shadow-[0_8px_24px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-sm"
     >
-      <p className="text-gray-400 mb-2 text-xs">{new Date(typeof label === 'number' ? label : `${label}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
+      <p className="mb-2 text-xs text-white/65">{new Date(typeof label === 'number' ? label : `${label}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
       {payload.map((entry, idx) => (
         <div key={`${entry.name}-${entry.dataKey || idx}`} className="flex items-center justify-between gap-4 mb-0.5">
           <span className="flex items-center gap-1.5">
@@ -81,7 +103,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
               style={{ backgroundColor: entry.color }}
               aria-hidden="true"
             />
-            <span className="text-gray-300">{entry.name}</span>
+            <span className="text-white/85">{entry.name}</span>
           </span>
           <span className="font-semibold text-white tabular-nums">
             {formatNormalized(entry.value)}
@@ -101,7 +123,14 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
  * Todas as séries são normalizadas a 100 no início do período;
  * o tooltip exibe a variação percentual acumulada de cada uma.
  */
-export default function PerformanceLineChart({ series, animate = false, scope = 'default' }: PerformanceLineChartProps) {
+export default function PerformanceLineChart({
+  series,
+  animate = false,
+  scope = 'default',
+  scrollOnMobile = false,
+}: PerformanceLineChartProps) {
+  const isMobile = useIsMobile()
+  const scrollable = scrollOnMobile && isMobile
   const morphEnabled = animate && typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -127,13 +156,24 @@ export default function PerformanceLineChart({ series, animate = false, scope = 
   const ticks = allDates.filter((_, index) => index % tickInterval === 0).map(timestamp)
   const shortPeriod = timestamp(allDates[allDates.length - 1]) - timestamp(allDates[0]) < 120 * 86400000
   const unavailable = chart.series.filter((item) => item.label !== 'Carteira' && !item.points.some((point) => point.normalized !== null && Number.isFinite(point.normalized))).map((item) => item.label)
-
-  return (
-    <div>
-    <p className="mb-3 text-xs text-white/50">Período com dados: {allDates[0].split('-').reverse().join('/')} a {allDates[allDates.length - 1].split('-').reverse().join('/')}{unavailable.length > 0 ? `. ${unavailable.join(', ')} sem dados nesse intervalo; comparação indisponível.` : ''}</p>
-    <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={chart.data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" vertical={false} />
+  const [min, max] = chart.domain
+  const mobileTicks = scrollable ? mobileAxisTicks(chart.domain).map((value) => ({
+    value,
+    top: MOBILE_CHART_TOP + (max - value) / (max - min) *
+      (MOBILE_CHART_HEIGHT - MOBILE_CHART_TOP - MOBILE_DATE_AXIS_HEIGHT),
+  })) : []
+  const chartContent = (
+    <ResponsiveContainer width="100%" height={scrollable ? MOBILE_CHART_HEIGHT : 280}>
+      <LineChart data={chart.data} margin={scrollable
+        ? { top: MOBILE_CHART_TOP, right: 24, left: 20, bottom: 0 }
+        : { top: 8, right: 8, left: 8, bottom: 8 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#2a2a3e"
+          vertical={false}
+          horizontalPoints={scrollable ? mobileTicks.map(({ top }) => top) : undefined}
+        />
         <XAxis
           dataKey="date"
           type="number"
@@ -145,28 +185,26 @@ export default function PerformanceLineChart({ series, animate = false, scope = 
           axisLine={false}
           tickLine={false}
           interval="preserveStartEnd"
+          height={scrollable ? MOBILE_DATE_AXIS_HEIGHT : 30}
         />
         <YAxis
           domain={chart.domain}
-          tickFormatter={(v: number) =>
-            new Intl.NumberFormat('pt-BR', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 1,
-              signDisplay: 'exceptZero',
-            }).format(v - 100) + '%'
-          }
-          tick={{ fill: '#9ca3af', fontSize: 11 }}
+          allowDataOverflow={scrollable}
+          tickFormatter={formatAxisPercent}
+          tick={scrollable ? false : { fill: '#9ca3af', fontSize: 11 }}
           axisLine={false}
           tickLine={false}
-          width={56}
+          width={scrollable ? 0 : 56}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend
-          wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '8px' }}
-          formatter={(value) => (
-            <span style={{ color: '#d1d5db' }}>{value}</span>
-          )}
-        />
+        {!scrollable && (
+          <Legend
+            wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '8px' }}
+            formatter={(value) => (
+              <span style={{ color: '#d1d5db' }}>{value}</span>
+            )}
+          />
+        )}
         {chart.series.map((s) => (
           <Line
             key={s.label}
@@ -183,6 +221,52 @@ export default function PerformanceLineChart({ series, animate = false, scope = 
         ))}
       </LineChart>
     </ResponsiveContainer>
+  )
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-white/50">
+        Período com dados: {allDates[0].split('-').reverse().join('/')} a {allDates[allDates.length - 1].split('-').reverse().join('/')}
+        {unavailable.length > 0 ? `. ${unavailable.join(', ')} sem dados nesse intervalo; comparação indisponível.` : ''}
+      </p>
+      {scrollable ? (
+        <>
+          <div className="-mx-2 flex min-w-0">
+            <div
+              aria-hidden="true"
+              className="relative w-11 shrink-0 text-right text-[11px] tabular-nums text-gray-400"
+            >
+              {mobileTicks.map(({ value, top }) => (
+                <span
+                  key={value}
+                  className="absolute right-0 -translate-y-1/2 whitespace-nowrap"
+                  style={{ top }}
+                >
+                  {formatAxisPercent(value)}
+                </span>
+              ))}
+            </div>
+            <div
+              className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain"
+              role="region"
+              aria-label="Histórico de rentabilidade comparada"
+              tabIndex={0}
+            >
+              <div style={{ minWidth: Math.max(1, ticks.length) * 62 + 20 }}>
+                {chartContent}
+              </div>
+            </div>
+          </div>
+          <ul className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-300">
+            {chart.series.map(({ label, color }) => (
+              <li key={label} className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="h-0.5 w-4 rounded-full" style={{ backgroundColor: color }} />
+                {label}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : chartContent}
     </div>
   )
 }

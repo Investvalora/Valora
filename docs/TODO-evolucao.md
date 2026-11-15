@@ -1,5 +1,19 @@
 # TODO ativa de evolução do Valora
 
+## Prioridade alta — falhas GitHub internacionais, 15/11
+
+- Quatro runs examinadas: causas WMT/data ausente e SEC/JPM/tamanho; correções de leitura já publicadas na PR160. Não foi erro genérico de GitHub, deploy ou simples cota.
+- Pendência recorrente WMT: precisão oficial 0,2475 versus Yahoo 0,248. Conciliação protegida preparada em nova migration; 21 baterias SQL QA aprovadas, lote repetido sem conflitos e dados pessoais preservados.
+- Ainda falta merge/publicação e reteste dirigido WMT na versão nova. A declaração histórica ausente continuará explicitamente parcial, sem disparar falso erro de parsing.
+- [Logs, fonte oficial e testes](falhas-github-internacionais-2026-11-15.md).
+
+## PR160 homologada em produção — 15/11
+
+- Migration aplicada e função v24 ativa; checks da PR e CI/main aprovados. GOOGL/KO/MCD publicados com fonte oficial; DIS corrigido com histórico preservado e consulta real dos dois fornecedores sem erros; GGG 0,295 revisado; CR permanece 0,255 oficial.
+- AMZN/NU retestados na Alpaca: vazio válido, sem erro de formato, sem declarar cobertura completa. SEC/JPM passou com dois filings; leases liberadas e hashes financeiros preservados.
+- **Alta ainda aberta WMT:** parser corrigido, evento futuro salvo, mas três históricos Yahoo estão em 0,248 contra 0,2475 de Nasdaq/Alpha. Bloqueados como conflito; precisam de conciliação com RI. A linha sem declaração continua lacuna parcial, sem data inventada.
+- [Evidências da produção](homologacao-producao-pr160.md). Demais cobertura/cotas/cadência permanecem separadas; não encerrar cobertura total por testes dirigidos.
+
 ## Correções das lacunas internacionais — retomada em 15/11
 
 - Branch isolada `codex/close-dividend-coverage-gaps`; futuros GOOGL/KO/MCD confirmados no RI e correções DIS/GGG preparadas em migration auditável. CR já tem rejeição explícita do valor Alpha incorreto.

@@ -29,7 +29,7 @@ reset role;
 set local role service_role;
 do $$ declare e record;r jsonb;before_hash text;after_hash text;lease uuid:='11111111-1111-4111-8111-111111111111';begin
  select md5(jsonb_build_array((select jsonb_agg(t order by id) from public.transactions t),(select jsonb_agg(t order by id) from public.positions t),(select jsonb_agg(t order by id) from public.wallet_income t))::text) into before_hash;
- for e in select ticker,ex_date from public.cash_issuer_reviews loop
+ for e in select ticker,ex_date from public.cash_issuer_reviews where ticker in('GOOGL','KO','MCD','DIS','GGG') loop
   r:=public.apply_cash_issuer_review(e.ticker,e.ex_date);
   if r->>'saved'<>'1' then raise exception 'Reviewed source not applied: % %',e,r;end if;
   perform public.apply_cash_issuer_review(e.ticker,e.ex_date);

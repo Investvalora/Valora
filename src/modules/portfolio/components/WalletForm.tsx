@@ -9,10 +9,11 @@ const walletColorOptions = Object.keys(walletPalette) as WalletColor[]
 interface WalletFormProps {
   wallet: Wallet | null
   onClose: () => void
+  onSaved?: () => void
   onBusyChange: (busy: boolean) => void
 }
 
-export function WalletForm({ wallet, onClose, onBusyChange }: WalletFormProps) {
+export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFormProps) {
   const [name, setName] = useState(wallet?.name ?? '')
   const [color, setColor] = useState<WalletColor>(wallet?.color ?? 'gold')
   const [error, setError] = useState('')
@@ -36,7 +37,8 @@ export function WalletForm({ wallet, onClose, onBusyChange }: WalletFormProps) {
       } else {
         await createWallet.mutateAsync({ name: trimmedName, color })
       }
-      onClose()
+      if (onSaved) onSaved()
+      else onClose()
     } catch {
       setError('Não foi possível salvar a carteira. Tente novamente.')
     } finally {

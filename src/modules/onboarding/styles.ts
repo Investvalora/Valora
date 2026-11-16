@@ -1,0 +1,1 @@
+export const primaryButton = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#3f7dff] to-[#5cc8ff] px-5 py-2.5 text-sm font-semibold text-[#0b1423] transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5cc8ff] disabled:opacity-50 sm:w-auto'

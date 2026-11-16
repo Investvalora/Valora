@@ -79,26 +79,28 @@ export function PriceAlertActions({
   onCancel,
   pending,
 }: {
-  onCancel: () => void;
+  onCancel?: () => void;
   pending: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 border-t border-white/10 pt-4">
+    <div className={onCancel ? "flex items-center gap-2 border-t border-white/10 pt-4" : "mt-1 flex sm:max-w-xs"}>
       <button
         type="submit"
         disabled={pending}
-        className="min-h-12 flex-[2] rounded-xl bg-nf-blue px-3 text-sm font-semibold text-[#131313] transition-colors hover:bg-[#a5a9ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[#181818] disabled:opacity-50"
+        className={`min-h-12 flex-[2] rounded-xl px-3 text-sm font-semibold text-[#131313] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#181818] disabled:opacity-50 ${onCancel
+          ? "bg-nf-blue transition-colors hover:bg-[#a5a9ff] focus-visible:ring-nf-blue"
+          : "bg-gradient-to-r from-[#3f7dff] to-[#5cc8ff] transition-[filter] hover:brightness-110 focus-visible:ring-[#5cc8ff]"}`}
       >
         {pending ? "Criando…" : "Criar alerta"}
       </button>
-      <button
+      {onCancel && <button
         type="button"
         onClick={onCancel}
         disabled={pending}
         className="min-h-12 flex-1 rounded-xl border border-white/15 px-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50"
       >
         Cancelar
-      </button>
+      </button>}
     </div>
   );
 }

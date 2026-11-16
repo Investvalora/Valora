@@ -7,9 +7,10 @@ interface WalletEditorDialogProps {
   isOpen: boolean
   wallet: Wallet | null
   onClose: () => void
+  onSaved?: () => void
 }
 
-export function WalletEditorDialog({ isOpen, wallet, onClose }: WalletEditorDialogProps) {
+export function WalletEditorDialog({ isOpen, wallet, onClose, onSaved }: WalletEditorDialogProps) {
   const [retained, setRetained] = useState(isOpen)
   const [busy, setBusy] = useState(false)
 
@@ -38,6 +39,7 @@ export function WalletEditorDialog({ isOpen, wallet, onClose }: WalletEditorDial
           key={wallet?.id ?? 'new'}
           wallet={wallet}
           onClose={onClose}
+          onSaved={onSaved}
           onBusyChange={setBusy}
         />
       )}

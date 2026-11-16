@@ -21,6 +21,7 @@ export const authService = {
         emailRedirectTo: authRedirect('/login'),
         data: {
           full_name: fullName,
+          valora_first_access: true,
           phone: phoneSchema.parse(data.phone ?? '') || null,
         },
       },

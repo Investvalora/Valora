@@ -1,6 +1,6 @@
 import { PageTitle } from './shared/components/PageTitle'
 import { lazy, Suspense } from 'react'
-import { Navigate, Routes, Route } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute'
 import { PublicOnlyRoute } from './modules/auth/components/PublicOnlyRoute'
 import { AtivosPage } from './modules/ativos/components/AtivosPage'
@@ -8,6 +8,8 @@ import { DesempenhoPage } from './modules/desempenho/components/DesempenhoPage'
 import { AnalisePage } from './modules/analise/components/AnalisePage'
 import { PublicInfoPage } from './modules/public/components/PublicInfoPage'
 import { RouteLoadingFallback as LoadingFallback } from './shared/components/RouteLoadingFallback'
+import { useAuth } from './modules/auth/hooks/useAuth'
+import { shouldShowFirstAccess } from './modules/onboarding/firstAccess'
 
 // Páginas menos frequentes são carregadas somente ao acessar a rota.
 // A proteção de acesso continua imediata; o shell só é pedido após autenticar.
@@ -27,6 +29,7 @@ const AtivoDetailPage = lazy(() => import('./modules/assets/components/AtivoDeta
 const LancamentosPage = lazy(() => import('./modules/portfolio/components/LancamentosPage').then(m => ({ default: m.LancamentosPage })))
 const AccountPage = lazy(() => import('./modules/preferences/components/AccountPage').then(m => ({ default: m.AccountPage })))
 const InicioPage = lazy(() => import('./modules/inicio/components/InicioPage').then(m => ({ default: m.InicioPage })))
+const FirstAccessPage = lazy(() => import('./modules/onboarding/FirstAccessPage').then(m => ({ default: m.FirstAccessPage })))
 const WalletsPage = lazy(() => import('./modules/portfolio/components/WalletsPage').then(m => ({ default: m.WalletsPage })))
 const TransactionImportPage = lazy(() => import('./modules/portfolio/components/TransactionImportPage').then(m => ({ default: m.TransactionImportPage })))
 
@@ -49,9 +52,13 @@ const AssetComparison = lazy(() => import('./modules/analise/components/AssetCom
 const AnaliseAlertas = lazy(() => import('./modules/analise/components/AnaliseAlertas').then((m) => ({ default: m.AnaliseAlertas })))
 const ScoreRulePage  = lazy(() => import('./modules/score/components/ScoreRulePage').then((m) => ({ default: m.ScoreRulePage })))
 
-function HomeRoute() {
-  // No mobile o novo fluxo tem a InicioPage normalmente na nav
-  return <InicioPage />
+function AppEntryRoute() {
+  const { user } = useAuth()
+  const { pathname } = useLocation()
+  if (['/', '/inicio', '/inicio/'].includes(pathname) && shouldShowFirstAccess(user)) {
+    return <Navigate to="/boas-vindas" replace />
+  }
+  return <AppShellNovo />
 }
 
 function IndexRoute() {
@@ -78,11 +85,12 @@ export function AppRoutes() {
 
       {/* ── App principal — novo fluxo ── */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<AppShellNovo />}>
+        <Route path="/boas-vindas" element={<FirstAccessPage />} />
+        <Route path="/" element={<AppEntryRoute />}>
           <Route index element={<IndexRoute />} />
 
           {/* Novo fluxo */}
-          <Route path="inicio" element={<HomeRoute />} />
+          <Route path="inicio" element={<InicioPage />} />
           <Route path="carteira" element={<Navigate to="/ativos/posicoes" replace />} />
           <Route path="carteiras" element={<WalletsPage />} />
 

@@ -62,6 +62,7 @@ describe('Perfil e conta', () => {
     expect(screen.queryByRole('link', { name: 'Gerenciar preferências e notificações' })).not.toBeInTheDocument()
     expect(screen.queryByText('Sua conta, do seu jeito')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Meus dados/ })).toHaveAttribute('href', '/conta/dados')
+    expect(screen.getByRole('link', { name: 'Apresentação' })).toHaveAttribute('href', '/boas-vindas?rever=1')
     fireEvent.click(screen.getByRole('link', { name: /Meus dados/ }))
     expect(document.querySelector('.account-section-panel')).toHaveAttribute('data-direction', 'down')
     expect(screen.getByRole('link', { name: 'Voltar para perfil e conta' })).toHaveAttribute('href', '/conta')

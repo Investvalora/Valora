@@ -8,6 +8,7 @@ import {
   LogOut,
   Mail,
   PanelLeft,
+  PlayCircle,
   UserRound,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -183,6 +184,16 @@ export function AccountPage() {
                 </Link>
               </div>
             ))}
+            <Link
+              to="/boas-vindas?rever=1"
+              className="account-section-link flex min-h-[72px] items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#242424] px-4 py-3 text-white/85 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8F91E9]"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white/65">
+                <PlayCircle size={20} aria-hidden="true" />
+              </span>
+              <span className="flex-1 text-sm font-medium">Apresentação</span>
+              <ChevronRight size={16} className="shrink-0 text-white/35" aria-hidden="true" />
+            </Link>
           </nav>
           <h3 className="mb-3 mt-7 px-1 text-sm font-medium text-white/45">
             Conta

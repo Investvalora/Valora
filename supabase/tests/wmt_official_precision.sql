@@ -1,4 +1,6 @@
 begin;
+-- This fixture exercises the four installments declared in 2026 only.
+delete from public.cash_issuer_reviews where ticker='WMT' and ex_date<'2026-01-01';
 insert into public.assets(ticker,name,type,currency,quote_provider) values('WMT','Walmart','stock_us','USD','finnhub') on conflict(ticker) do update set active=true,type='stock_us',currency='USD';
 delete from public.issuer_dividend_reconciliations where ticker='WMT';
 delete from public.dividends where ticker='WMT';

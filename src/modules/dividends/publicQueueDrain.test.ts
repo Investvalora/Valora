@@ -5,14 +5,14 @@ import { drainPublicAnnouncementQueues } from '../../../scripts/drain-public-ann
 const work = () => ({ results: [{ ticker: 'fixture' }], failed: 0 })
 const empty = () => ({ results: [], failed: 0 })
 
-it('catches up at most three batches per public queue, alternating for fairness', async () => {
+it('catches up at most eight batches per public queue, alternating for fairness', async () => {
   const order: string[] = []
   const primary = vi.fn(async () => { order.push('primary'); return work() })
   const sec = vi.fn(async () => { order.push('sec'); return work() })
   const result = await drainPublicAnnouncementQueues({ primary, sec })
-  expect(order).toEqual(['primary', 'sec', 'primary', 'sec', 'primary', 'sec'])
+  expect(order).toEqual(Array.from({ length: 8 }, () => ['primary', 'sec']).flat())
   expect(result).toMatchObject({ failed: 0, deadline_reached: false })
-  expect(result.batches).toHaveLength(6)
+  expect(result.batches).toHaveLength(16)
 })
 
 it('stops claiming empty queues while draining the other queue', async () => {
@@ -20,7 +20,7 @@ it('stops claiming empty queues while draining the other queue', async () => {
   const sec = vi.fn(async () => work())
   await drainPublicAnnouncementQueues({ primary, sec })
   expect(primary).toHaveBeenCalledTimes(1)
-  expect(sec).toHaveBeenCalledTimes(3)
+  expect(sec).toHaveBeenCalledTimes(8)
 })
 
 it('does not retry a failing source in the same run or hide its failure', async () => {
@@ -36,7 +36,7 @@ it('isolates collector exceptions and never logs upstream bodies or credentials'
   const report = vi.fn()
   const result = await drainPublicAnnouncementQueues({ primary, sec, report })
   expect(result.failed).toBe(1)
-  expect(sec).toHaveBeenCalledTimes(3)
+  expect(sec).toHaveBeenCalledTimes(8)
   expect(JSON.stringify(report.mock.calls)).not.toContain('secret-upstream-body')
 })
 

@@ -30,7 +30,7 @@ Deno.serve(async request => {
       const coverage=result.results.filter(providerCoverageGap).map(r=>`${r.provider}:${r.ticker}`)
       const supplemental=await collectSupplemental(rpc,async name=>Deno.env.get(name)?.trim()??'',new Date().toISOString().slice(0,10))
       for(const r of supplemental.results)if('error' in r && supplementalOperationalFailure(r.error))errors.push(String(r.error))
-      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped,supplemental},fetch,'international-providers')
+      const auditSaved=auditStarted&&await jobRun(url,key,runId,{linhas_gravadas:Object.fromEntries(result.results.map(r=>[r.provider,r.events])),erros:errors,coverage_gaps:coverage,provider_skips:result.skipped,provider_diagnostics:result.results.filter(r=>r.diagnostic),supplemental},fetch,'international-providers')
       return Response.json({...result,supplemental,audit_saved:auditSaved},{status:auditSaved?200:503})
     }
     if (body.mode === 'claim' || body.mode === 'claim_sec') {

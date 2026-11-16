@@ -1,8 +1,39 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure, providerCoverageGap } from '../../../supabase/functions/sync-international-announcements/providers'
+import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure, providerCoverageGap, ProviderDataError } from '../../../supabase/functions/sync-international-announcements/providers'
 const event = { ex_dividend_date:'2026-11-24',declaration_date:'2026-11-10',record_date:'2026-11-24',payment_date:'2026-12-04',amount:'30.0' }
 const alpha = { symbol:'COST',data:[event] }
 afterEach(()=>vi.unstubAllGlobals())
+it('reports bounded amount diagnostics without logging a secret-bearing value',()=>{
+ for (const [amount,kind,decimal_places] of [['0.16000000001','precision',11],['https://provider.invalid?apikey=PRIVATE','format',null],['0','range',0]] as const) {
+  try { providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount}]},'2026-11-12'); throw new Error('accepted invalid amount') }
+  catch(e) {
+   expect(e).toBeInstanceOf(ProviderDataError)
+   expect((e as ProviderDataError).diagnostic).toEqual({row:0,ex_date:'2026-11-24',kind,value_type:'string',decimal_places})
+   expect(JSON.stringify(e)).not.toContain('PRIVATE')
+  }
+ }
+})
+it('keeps reviewed distribution holds visible as incomplete coverage',()=>{
+ expect(providerOperationalFailure('provider_distribution_unverified')).toBe(false)
+ expect(providerCoverageGap({error:'provider_distribution_unverified'})).toBe(true)
+})
+it('keeps valid rows only when partial collection is explicit, never replacing the invalid amount',()=>{
+ const diagnostics: import('../../../supabase/functions/sync-international-announcements/providers').ProviderDiagnostic[]=[]
+ const payload={symbol:'PR',data:[{...event,amount:'0.16000000001'},{...event,ex_dividend_date:'2026-11-25',record_date:'2026-11-25',amount:'0.16'}]}
+ expect(()=>providerEvents('alpha_vantage','PR',payload,'2026-11-12')).toThrow('provider_invalid_amount')
+ expect(providerEvents('alpha_vantage','PR',payload,'2026-11-12',diagnostics)).toEqual([{ex_date:'2026-11-25',declaration_date:event.declaration_date,record_date:'2026-11-25',payment_date:event.payment_date,value_per_share:0.16}])
+ expect(diagnostics).toMatchObject([{row:0,kind:'precision',decimal_places:11}])
+})
+it('persists partial provider results through the dedicated RPC with sanitized diagnostics',async()=>{
+ vi.stubGlobal('fetch',vi.fn(async()=>Response.json({symbol:'PR',data:[{...event,amount:'SECRET_VALUE'},{...event,ex_dividend_date:'2026-11-25',record_date:'2026-11-25',amount:'0.16'}]})))
+ const rpc=vi.fn(async(name:string)=>name==='claim_dividend_provider'?[{ticker:'PR',claim_token:'fixture'}]:{error:'provider_partial_invalid_amount'})
+ const result=await collectProviderFallbacks(rpc,async name=>name==='ALPHA_VANTAGE_API_KEY'?'PRIVATE_KEY':'','2026-11-12')
+ expect(rpc.mock.calls.map(c=>c[0])).toContain('finish_partial_dividend_provider')
+ expect(result.results[0]).toMatchObject({ticker:'PR',events:1,error:'provider_partial_invalid_amount',diagnostic:{row:0,kind:'format'}})
+ expect(providerOperationalFailure(result.results[0].error)).toBe(false)
+ expect(providerCoverageGap(result.results[0])).toBe(true)
+ expect(JSON.stringify(result)).not.toMatch(/SECRET_VALUE|PRIVATE_KEY/)
+})
 it('preserves seven and eight decimal vendor observations without rejecting valid neighboring events',()=>{
  const data=[{...event,amount:'0.0196242'},{...event,ex_dividend_date:'2026-11-25',record_date:'2026-11-25',amount:'0.00000001'}]
  expect(providerEvents('alpha_vantage','COST',{symbol:'COST',data},'2026-11-12').map(e=>e.value_per_share)).toEqual([0.0196242,0.00000001])

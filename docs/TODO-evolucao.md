@@ -1,5 +1,20 @@
 # TODO ativa de evolução do Valora
 
+## Prioridade alta — PG / falha de 15/11 às 22h51 Brasília
+
+- Run `43788678050` falhou em 39s: Alpha/PG retornou quatro conflitos contra snapshots Marketstack arredondados; seis lotes públicos passaram.
+- SEC confirma janeiro em 1,0568 USD e abril/julho/outubro em 1,0885 USD. Yahoo guarda 1,057/1,089; Marketstack 1,06/1,09.
+- Correção validada: 22 baterias SQL e 270 testes Vitest aprovados. Lote PG repetido com zero conflitos e dados financeiros preservados. Falta publicar e repetir o lote em produção.
+- Run posterior `43832971351` passou, mas pulou os fornecedores; não conta como reteste PG.
+- [Diagnóstico e validação](falha-github-pg-2026-11-16.md).
+
+## PR161 homologada em produção — 15/11, 17h59 Brasília
+
+- Migration aplicada; quatro eventos WMT oficiais em 0,2475 com histórico anterior preservado. CI da PR/main aprovado.
+- Workflow real `43760979726` aprovado em 58s: seis lotes sem falhas; Nasdaq/WMT quatro eventos, zero conflitos e uma lacuna parcial explícita. Alpha/WMT cinco eventos sem erro.
+- Hashes de compras/posições/recebimentos inalterados. Encerra a divergência WMT e o reteste da causa recorrente de falha; não encerra cadência automática ou cobertura geral.
+- [Evidências](homologacao-producao-pr161.md).
+
 ## Prioridade alta — falhas GitHub internacionais, 15/11
 
 - Quatro runs examinadas: causas WMT/data ausente e SEC/JPM/tamanho; correções de leitura já publicadas na PR160. Não foi erro genérico de GitHub, deploy ou simples cota.

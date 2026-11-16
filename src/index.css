@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+.first-access-page[data-keyboard='open'] > footer {
+  display: none;
+}
+
+.first-access-sparkle {
+  transform: translate(var(--spark-x), var(--spark-y));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .first-access-check { animation: first-access-check-in 520ms cubic-bezier(.2, .8, .3, 1.2) both; }
+  .first-access-sparkle { animation: first-access-sparkle-out 850ms ease-out var(--spark-delay) both; }
+  .first-access-reveal {
+    animation: first-access-reveal-in 440ms cubic-bezier(.18, .72, .24, 1) var(--welcome-reveal-delay, 0ms) both;
+  }
+
+  .first-access-reveal[data-reveal='1'] { --welcome-reveal-delay: 100ms; }
+  .first-access-reveal[data-reveal='2'] { --welcome-reveal-delay: 210ms; }
+  .first-access-reveal[data-reveal='3'] { --welcome-reveal-delay: 300ms; }
+  .first-access-reveal[data-reveal='4'] { --welcome-reveal-delay: 400ms; }
+  .first-access-reveal[data-reveal='5'] { --welcome-reveal-delay: 500ms; }
+  .first-access-chart-switch { transition: filter 280ms ease-out; }
+  .first-access-chart-switch[data-blurred='true'] { filter: blur(5px); transition-duration: 160ms; }
+}
+
+@keyframes first-access-reveal-in {
+  from { opacity: 0; transform: translateY(16px); filter: blur(9px); }
+  35% { opacity: .65; filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes first-access-check-in {
+  from { opacity: 0; transform: scale(.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes first-access-sparkle-out {
+  0% { opacity: 0; transform: scale(.3); }
+  55% { opacity: 1; transform: translate(var(--spark-x), var(--spark-y)) rotate(25deg); }
+  100% { opacity: .35; transform: translate(var(--spark-end-x), var(--spark-end-y)) rotate(55deg) scale(.65); }
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -575,18 +616,25 @@ html.ios-standalone .auth-scene {
 @media (max-width: 767px) {
   .transaction-modal-panel { animation: wallet-sheet-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-  .transaction-drawer-overlay {
-    padding-bottom: var(--transaction-keyboard-inset, 0px);
+  .transaction-drawer-overlay,
+  .wallet-keyboard-overlay {
+    padding-bottom: var(--modal-keyboard-inset, 0px);
   }
 
   /* Continua a superfície do painel atrás da barra nativa do teclado. */
-  .transaction-drawer-overlay::after {
+  .transaction-drawer-overlay[data-keyboard-underlay]::after,
+  .wallet-keyboard-overlay[data-keyboard-underlay]::after {
     content: "";
     position: absolute;
     inset: auto 0 0;
-    height: var(--transaction-keyboard-inset, 0px);
+    height: var(--modal-keyboard-inset, 0px);
     background: #181818;
     pointer-events: none;
+  }
+
+  .wallet-keyboard-overlay[data-keyboard-underlay]::after {
+    background: var(--wallet-panel-bg);
+    box-shadow: 0 -1px var(--wallet-panel-bg);
   }
 }
 
@@ -646,7 +694,7 @@ html.ios-standalone .auth-scene {
   }
 }
 
-.wallet-modal-overlay { animation: wallet-overlay-in 300ms ease-out both; }
+.wallet-modal-overlay { --wallet-panel-bg: #0e0e0e; animation: wallet-overlay-in 300ms ease-out both; }
 .wallet-modal-overlay[data-closing='true'] { animation: wallet-overlay-out 300ms ease-in both; }
 
 @media (max-width: 767px) {

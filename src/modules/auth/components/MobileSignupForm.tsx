@@ -37,7 +37,7 @@ export function MobileSignupForm() {
       }
       setUser(data.user)
       setSession(data.session)
-      navigate('/carteira')
+      navigate('/inicio', { replace: true })
     },
     onError: (error: Error) => {
       const msg = error.message?.toLowerCase() ?? ''

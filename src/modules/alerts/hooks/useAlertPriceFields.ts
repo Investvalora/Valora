@@ -3,8 +3,8 @@ import { useAssetSearch } from '../../portfolio/hooks/useAssetSearch'
 import type { Asset } from '../../portfolio/types'
 import { alertQuoteService } from '../services/alertQuoteService'
 
-export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChange, initialTicker = '', fetchQuote = true }: {
-  ticker: string; price: string; onTickerChange: (value: string) => void; onPriceChange: (value: string) => void; initialTicker?: string; fetchQuote?: boolean
+export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChange, initialTicker = '', fetchQuote = true, preserveInitialPrice = false }: {
+  ticker: string; price: string; onTickerChange: (value: string) => void; onPriceChange: (value: string) => void; initialTicker?: string; fetchQuote?: boolean; preserveInitialPrice?: boolean
 }) {
   const [term, setTerm] = useState(ticker)
   useEffect(() => { const timer = setTimeout(() => setTerm(ticker), 250); return () => clearTimeout(timer) }, [ticker])
@@ -43,7 +43,7 @@ export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChan
   useEffect(() => {
     if (!initialTicker) return
     const id = ++request.current
-    const revision = edits.current
+    const revision = preserveInitialPrice ? -1 : edits.current
     setLoading(true)
     void alertQuoteService.resolveAsset(initialTicker).then(asset => {
       if (id !== request.current) return
@@ -59,7 +59,7 @@ export function useAlertPriceFields({ ticker, price, onTickerChange, onPriceChan
       if (id === request.current) { setLoading(false); setError('Não foi possível carregar o ativo. Tente selecioná-lo na busca.') }
     })
     return cancelRequest
-  }, [initialTicker, loadQuote, cancelRequest])
+  }, [initialTicker, loadQuote, cancelRequest, preserveInitialPrice])
   useEffect(() => cancelRequest, [cancelRequest])
 
   function changeTicker(value: string) {

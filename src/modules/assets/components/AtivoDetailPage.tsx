@@ -25,7 +25,7 @@ import { PeriodSelector } from "../../wealth/components/PeriodSelector";
 import { PanelCard } from "../../../shared/components/PanelCard";
 import { useRetainedChartData } from "../../../shared/hooks/useRetainedChartData";
 import { useChartMorph } from "../../../shared/hooks/useChartMorph";
-import { blendValue, sampleCurve } from "../../../shared/utils/chartMorph";
+import { canMorphPrices, morphPrices } from "../priceChartMorph";
 import { useAssetDetail } from "../hooks/useAssetDetail";
 import { DeferredQuickTransactionModal } from "../../portfolio/components/DeferredQuickTransactionModal";
 import { PriceAlertForm } from "../../alerts/components/PriceAlertForm";
@@ -383,21 +383,6 @@ interface PriceLineChartWithAvgProps {
   avgPrice: number | null;
   currency?: string;
   period: PriceHistoryPeriod;
-}
-
-function canMorphPrices(from: PricePoint[], to: PricePoint[]) {
-  return from.length > 1 && to.length > 1;
-}
-
-function morphPrices(from: PricePoint[], to: PricePoint[], progress: number): PricePoint[] {
-  return to.map((point, index) => ({
-    ...point,
-    close: blendValue(
-      sampleCurve(from, index / Math.max(1, to.length - 1), (item) => item.close),
-      point.close,
-      progress,
-    ),
-  }));
 }
 
 function formatAxisDate(value: string): string {

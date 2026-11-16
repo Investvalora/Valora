@@ -6,15 +6,25 @@ import { FirstAccessPage } from './FirstAccessPage'
 import { PortfolioDemo } from './PortfolioDemo'
 import { shouldShowFirstAccess } from './firstAccess'
 
-const mocks = vi.hoisted(() => ({
-  user: { id: 'new-user', user_metadata: { valora_first_access: true } } as User,
-  asset: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' },
-  create: vi.fn(),
-  toggle: vi.fn(),
-  defer: vi.fn(),
-  history: [],
-  wallet: vi.fn(),
-}))
+const mocks = vi.hoisted(() => {
+  const newUser: User = {
+    id: 'new-user',
+    aud: 'authenticated',
+    app_metadata: { provider: 'email' },
+    user_metadata: { valora_first_access: true },
+    created_at: '2026-11-15T00:00:00Z',
+  }
+  return {
+    newUser,
+    user: newUser,
+    asset: { ticker: 'PETR4', name: 'Petrobras', type: 'stock_br', currency: 'BRL' },
+    create: vi.fn(),
+    toggle: vi.fn(),
+    defer: vi.fn(),
+    history: [],
+    wallet: vi.fn(),
+  }
+})
 vi.mock('../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: mocks.user }) }))
 vi.mock('../portfolio/hooks/useAssetSearch', () => ({
   useAssetSearch: (term: string) => ({ data: term === 'PETR' ? [mocks.asset] : term === 'VALE' ? [
@@ -54,7 +64,7 @@ beforeEach(() => {
   vi.stubGlobal('Notification', { permission: 'default' })
   vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
   sessionStorage.clear()
-  mocks.user = { id: 'new-user', user_metadata: { valora_first_access: true } } as User
+  mocks.user = mocks.newUser
   mocks.create.mockReset()
   mocks.toggle.mockClear()
   mocks.defer.mockClear()
@@ -67,7 +77,7 @@ it('cria um alerta no fluxo, oferece push e registra a conclusão da conta', asy
   open()
   const logo = screen.getByText('Valora')
   expect(screen.getByRole('group', { name: 'Etapa 1 de 9' })).toHaveTextContent('1/9')
-  expect(screen.getByRole('button', { name: 'Pular', exact: true })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Pular' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Próximo' }))
   expect(screen.getByRole('heading', { name: 'Veja como uma carteira rende' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Próximo' }))
@@ -147,7 +157,7 @@ it('mostra a carteira de exemplo e só cria uma carteira após confirmar no form
   fireEvent.click(create)
   const dialog = within(screen.getByRole('dialog', { name: 'Nova carteira' }))
   fireEvent.change(dialog.getByRole('textbox', { name: 'Nome da carteira' }), { target: { value: 'Minha carteira' } })
-  fireEvent.click(dialog.getByRole('button', { name: 'Criar', exact: true }))
+  fireEvent.click(dialog.getByRole('button', { name: 'Criar' }))
   expect(await screen.findByText('Carteira criada. Você pode acessá-la em Carteiras.')).toBeInTheDocument()
   expect(mocks.wallet).toHaveBeenCalledWith({ name: 'Minha carteira', color: 'gold' })
   expect(screen.getByRole('heading', { name: 'Crie e gerencie suas carteiras' })).toBeInTheDocument()
@@ -156,7 +166,7 @@ it('mostra a carteira de exemplo e só cria uma carteira após confirmar no form
 })
 
 it('contas antigas entram normalmente e podem rever a apresentação pela Conta', () => {
-  mocks.user = { id: 'existing-user', user_metadata: {} } as User
+  mocks.user = { ...mocks.newUser, id: 'existing-user', user_metadata: {} }
   expect(shouldShowFirstAccess(mocks.user)).toBe(false)
   open('/boas-vindas?rever=1')
   const next = () => fireEvent.click(screen.getByRole('button', { name: 'Próximo' }))

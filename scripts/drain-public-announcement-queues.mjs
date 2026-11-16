@@ -1,6 +1,7 @@
 /** Catch up after delayed schedules, without repeating paid-provider requests.
  * Each collector still claims its original bounded batch and honors DB leases.
- * The deadline is checked between batches; in-flight collectors finish normally.
+ * Up to eight alternating rounds use spare time after delayed schedules.
+ * The 120s deadline is checked between batches; in-flight collectors finish normally.
  */
 export async function drainPublicAnnouncementQueues({ primary, sec, now = Date.now, report = () => {} }) {
   const started = now()
@@ -9,7 +10,7 @@ export async function drainPublicAnnouncementQueues({ primary, sec, now = Date.n
     { name: 'sec', collect: sec, active: true },
   ]
   const batches = []
-  for (let round = 0; round < 3; round++) {
+  for (let round = 0; round < 8; round++) {
     for (const queue of queues) {
       if (!queue.active || now() - started >= 120000) continue
       let result

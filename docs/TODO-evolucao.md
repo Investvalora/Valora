@@ -1,5 +1,21 @@
 # TODO ativa de evolução do Valora
 
+## Prioridades altas — atualização de 16/11 após PR164
+
+- **Primeira passagem concluída:** zero tarefas sem tentativa nas filas primária, SEC e dos fornecedores. Não significa cobertura completa.
+- **Pronto localmente:** ampliar escoamento de três para até oito rodadas por fila pública, mantendo janela de 120s, leases e interrupção por erro/fila vazia. Providers e cotas preservados.
+- **Pronto localmente:** revisão oficial de dois eventos VG e WMT histórico de 2025, hoje conflitantes por arredondamento Marketstack. 23 baterias SQL e 270 testes Vitest aprovados. Falta PR/merge, migration e homologação de produção.
+- **Alta restante:** conferir base do split ITA; obter aviso USD/ADR de SAP no depositário; esclarecer declaração MRX; inspecionar resposta Alpha/PR inválida quando houver orçamento. Nenhuma carteira alterada.
+- **Operação:** fallback automático confirmado; cadência GitHub ainda irregular. Validar redução do atraso após publicação do runner; não encerrar acompanhamento com execução manual.
+- [Implementação, fontes e limites](cobertura-filas-2026-11-16.md).
+
+## PR164 homologada em produção — 16/11, 15h08 Brasília
+
+- Migration aplicada; quatro eventos PG oficiais e quatro conflitos revisados. CI da PR/main aprovado.
+- Rotina real `43925490652` aprovada em 54s: Alpha/PG quatro eventos sem erro; Marketstack/PG quatro eventos com precisão limitada explícita. Seis lotes públicos sem falhas.
+- Hashes de transações, posições e recebimentos preservados; zero conflitos PG sem revisão. Causa PG encerrada; cobertura geral e quotas continuam em acompanhamento.
+- [Evidências](homologacao-producao-pr164.md).
+
 ## Prioridade alta — PG / falha de 15/11 às 22h51 Brasília
 
 - Run `43788678050` falhou em 39s: Alpha/PG retornou quatro conflitos contra snapshots Marketstack arredondados; seis lotes públicos passaram.

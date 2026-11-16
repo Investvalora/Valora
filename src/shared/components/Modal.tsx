@@ -98,6 +98,7 @@ export function Modal({
   initialFocusSelector,
 }: ModalProps) {
   const isSheet = variant === "wallet" || variant === "score";
+  const extendsBehindKeyboard = variant === "wallet" || transactionDrawer;
   const isTransaction = variant === "transaction";
   const isFloating = variant === "floating";
   const hasCompactLayout = isTransaction || isFloating;
@@ -204,8 +205,8 @@ export function Modal({
               viewport.offsetTop -
               viewport.height,
           );
-      if (transactionDrawer) {
-        const drawerInset =
+      if (extendsBehindKeyboard) {
+        const keyboardInset =
           standalone && !keyboardOpen
             ? 0
             : Math.max(
@@ -217,9 +218,10 @@ export function Modal({
                   viewport.height,
               );
         overlay.style.setProperty(
-          "--transaction-keyboard-inset",
-          `${drawerInset}px`,
+          "--modal-keyboard-inset",
+          `${keyboardInset}px`,
         );
+        overlay.toggleAttribute("data-keyboard-underlay", keyboardInset > 0);
       } else {
         overlay.style.bottom = `${bottomInset}px`;
       }
@@ -235,9 +237,10 @@ export function Modal({
       window.removeEventListener("resize", syncHeight);
       panel.style.removeProperty("max-height");
       overlay.style.removeProperty("bottom");
-      overlay.style.removeProperty("--transaction-keyboard-inset");
+      overlay.style.removeProperty("--modal-keyboard-inset");
+      overlay.removeAttribute("data-keyboard-underlay");
     };
-  }, [isOpen, variant, transactionDrawer]);
+  }, [isOpen, variant, extendsBehindKeyboard]);
 
   // Desabilitar o controle que está com o foco o joga para o `body`, e a partir
   // dali Tab volta a percorrer a página de fundo — o foco escapa do diálogo sem
@@ -298,7 +301,7 @@ export function Modal({
           : isTransaction
             ? `transaction-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/75 ${transactionDrawer ? "transaction-drawer-overlay md:items-stretch md:justify-end" : "md:items-center md:px-4 md:py-6"}`
             : isSheet
-              ? "wallet-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/70 md:items-stretch md:justify-end"
+              ? `wallet-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/70 md:items-stretch md:justify-end ${variant === "wallet" ? "wallet-keyboard-overlay" : ""}`
               : "fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center"
       }
       data-closing={isSheet ? closing : undefined}
@@ -321,7 +324,7 @@ export function Modal({
             : isTransaction
               ? `transaction-modal-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] w-full flex-col overflow-hidden rounded-t-[28px] border border-zinc-900/50 bg-[#181818] shadow-2xl focus:outline-none ${transactionDrawer ? "transaction-drawer-panel md:max-h-none md:max-w-[480px] md:rounded-none md:border-y-0 md:border-r-0" : "md:max-h-[calc(100dvh-3rem)] md:max-w-lg md:rounded-[28px]"}`
               : isSheet
-                ? `wallet-modal-panel max-h-[calc(100dvh-env(safe-area-inset-top))] w-full overflow-x-hidden overflow-y-auto rounded-t-3xl border border-zinc-800 bg-[#0e0e0e] pb-[env(safe-area-inset-bottom)] shadow-xl focus:outline-none md:max-h-none md:h-dvh md:rounded-none md:border-y-0 md:bg-[#1c1c1c]/95 md:backdrop-blur-md md:pb-0 ${variant === "score" ? "md:w-[min(100vw,520px)]" : "md:w-[min(100vw,400px)]"}`
+                ? `wallet-modal-panel max-h-[calc(100dvh-env(safe-area-inset-top))] w-full overflow-x-hidden overflow-y-auto rounded-t-3xl border border-zinc-800 bg-[var(--wallet-panel-bg)] pb-[env(safe-area-inset-bottom)] shadow-xl focus:outline-none md:max-h-none md:h-dvh md:rounded-none md:border-y-0 md:bg-[#1c1c1c]/95 md:backdrop-blur-md md:pb-0 ${variant === "score" ? "md:w-[min(100vw,520px)]" : "md:w-[min(100vw,400px)]"}`
                 : "max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#0f0f0f] shadow-xl focus:outline-none"
         }
       >

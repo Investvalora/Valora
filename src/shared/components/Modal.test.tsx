@@ -338,29 +338,36 @@ describe('Modal — estrutura', () => {
     }
   })
 
-  it('encaixa as ações no viewport visível e mantém a superfície do drawer atrás do teclado', () => {
+  it.each([
+    { variant: 'transaction', transactionDrawer: true, overlayClass: 'transaction-drawer-overlay' },
+    { variant: 'wallet', transactionDrawer: false, overlayClass: 'wallet-keyboard-overlay' },
+  ] as const)('mantém a superfície de $variant atrás da barra do teclado', ({ variant, transactionDrawer, overlayClass }) => {
     const viewport = Object.assign(new EventTarget(), { height: 793, offsetTop: 0 })
     vi.stubGlobal('visualViewport', viewport)
     vi.stubGlobal('innerWidth', 393)
     vi.spyOn(document.body, 'getBoundingClientRect').mockReturnValue({ height: 852 } as DOMRect)
     document.documentElement.classList.add('ios-standalone')
     try {
-      renderModal({ variant: 'transaction', transactionDrawer: true })
+      renderModal({ variant, transactionDrawer })
       const dialog = screen.getByRole('dialog')
       const overlay = dialog.parentElement as HTMLElement
-      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('0px')
+      expect(overlay).toHaveClass(overlayClass)
+      expect(overlay.style.getPropertyValue('--modal-keyboard-inset')).toBe('0px')
+      expect(overlay).not.toHaveAttribute('data-keyboard-underlay')
 
       viewport.height = 476
       viewport.offsetTop = 83
       viewport.dispatchEvent(new Event('resize'))
       expect(dialog.style.maxHeight).toContain('476px')
-      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('293px')
+      expect(overlay.style.getPropertyValue('--modal-keyboard-inset')).toBe('293px')
+      expect(overlay).toHaveAttribute('data-keyboard-underlay')
       expect(overlay.style.bottom).toBe('')
 
       viewport.height = 793
       viewport.offsetTop = 0
       viewport.dispatchEvent(new Event('resize'))
-      expect(overlay.style.getPropertyValue('--transaction-keyboard-inset')).toBe('0px')
+      expect(overlay.style.getPropertyValue('--modal-keyboard-inset')).toBe('0px')
+      expect(overlay).not.toHaveAttribute('data-keyboard-underlay')
     } finally {
       document.documentElement.classList.remove('ios-standalone')
       vi.unstubAllGlobals()

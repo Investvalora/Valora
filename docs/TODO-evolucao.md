@@ -1,5 +1,29 @@
 # TODO ativa de evolução do Valora
 
+## Correções altas prontas localmente — 16/11
+
+- **ITA/SAP:** sete revisões no catálogo explícito, incluindo três ITA por cota original e a taxa final bruta SAP. Estado anterior preservado, protegido contra sobrescrita Yahoo.
+- **MRX:** anúncio separado da deliberação desconhecida; divergência entre fornecedores tratada pelo classificador econômico estrito, sem inventar data.
+- **PR:** eventos base junho/dezembro confirmados; snapshot 0,03 retido como distribuição não verificada. Coleta parcial preserva linhas válidas e registra diagnóstico sanitizado de valores inválidos, sem marcar cobertura completa.
+- **Validação:** 24 baterias SQL e 283 testes aprovados; tipos Node/Deno/projeto e lint dos testes aprovados. Nenhuma alteração em produção nesta branch.
+- **Falta publicação/homologação:** migration + Edge após merge e consulta real Alpha/PR quando houver orçamento. Não é correto encerrar esse reteste antes da resposta. [Escopo e critérios](fechamento-altas-caixa-2026-11-16.md).
+
+## Auditoria de todas as altas — 16/11, 15h37 Brasília
+
+- **Atraso atual das filas eliminado:** três runs reais aprovadas; primária 2 → 0, SEC 23 → 0. A cadência automática futura permanece em acompanhamento.
+- **ITA:** oficial ajustado difere de Yahoo; revisar base histórica de split e precisão antes de conciliar.
+- **SAP:** API pública do depositário trouxe registro final bruto 2,940725, diferente dos fornecedores. Preparar conciliação primária com identidade/moeda/base verificadas; não importar líquido pessoal por suposição.
+- **MRX:** comprovado anúncio em 05/11, não comprovada data de deliberação 03/11. Preservar as datas originais.
+- **PR:** Alpha sem orçamento para nova resposta; snapshot Marketstack de junho também exige revisão, não tratar como simples arredondamento.
+- Hashes financeiros preservados; nenhuma migration/correção financeira nesta auditoria. [Evidências e próximos critérios](auditoria-altas-2026-11-16.md).
+
+## PR165 homologada em produção — 16/11, 15h29 Brasília
+
+- Migration aplicada: três revisões oficiais VG/WMT histórico publicadas; CI da PR/main aprovado.
+- Rotina real `43928941088`: 16 lotes públicos, zero falhas. Tarefas vencidas primárias 18 → 2; SEC 31 → 23. VG consultado pela Marketstack com precisão limitada explícita; valores oficiais preservados.
+- Hashes de transações, posições e recebimentos inalterados. Substitui publicação pendente abaixo. Ainda acompanhar cadência automática, fila restante e lacunas ITA/SAP/MRX/PR.
+- [Evidências e limites](homologacao-producao-pr165.md).
+
 ## Prioridades altas — atualização de 16/11 após PR164
 
 - **Primeira passagem concluída:** zero tarefas sem tentativa nas filas primária, SEC e dos fornecedores. Não significa cobertura completa.

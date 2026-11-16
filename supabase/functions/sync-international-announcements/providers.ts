@@ -3,10 +3,15 @@ import { boundedBytes } from '../_shared/officialFiles.ts'
 export type DividendProvider = 'alpha_vantage' | 'marketstack'
 /** Coverage gaps stay recorded on the task, but are not infrastructure failures. */
 export function providerOperationalFailure(error: string | null): boolean {
-  return !!error && !['provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
+  return !!error && !['provider_partial_invalid_amount', 'provider_distribution_unverified', 'provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable', 'provider_keys_unavailable', 'provider_quota_exhausted'].includes(error)
 }
 export function providerCoverageGap(result: { error: string | null; metadata_variations?: number }): boolean {
-  return (result.metadata_variations ?? 0) > 0 || ['provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable'].includes(result.error ?? '')
+  return (result.metadata_variations ?? 0) > 0 || ['provider_partial_invalid_amount', 'provider_distribution_unverified', 'provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable'].includes(result.error ?? '')
+}
+export interface ProviderDiagnostic { row: number; ex_date: string; kind: 'format' | 'precision' | 'range' | 'representation'; value_type: string; decimal_places: number | null }
+export class ProviderDataError extends Error {
+  readonly diagnostic: ProviderDiagnostic
+  constructor(diagnostic: ProviderDiagnostic) { super('provider_invalid_amount'); this.diagnostic=diagnostic }
 }
 export interface ProviderEvent {
   ex_date: string; declaration_date: string; record_date: string; payment_date: string; value_per_share: number
@@ -17,7 +22,7 @@ function day(value: unknown): string | null {
   return Number.isFinite(Date.parse(d)) && new Date(d).toISOString().slice(0, 10) === d ? d : null
 }
 /** Partial calendars are not entitlement evidence; never substitute record for ex. */
-export function providerEvents(provider: DividendProvider, ticker: string, payload: unknown, today: string): ProviderEvent[] {
+export function providerEvents(provider: DividendProvider, ticker: string, payload: unknown, today: string, diagnostics?: ProviderDiagnostic[]): ProviderEvent[] {
   const p = payload as Record<string, unknown>
   if (!p || p.Information || p.Note || p['Error Message'] || p.error) throw new Error('provider_rejected')
   if (provider === 'alpha_vantage' && p.symbol !== ticker) throw new Error('provider_identity_changed')
@@ -27,29 +32,37 @@ export function providerEvents(provider: DividendProvider, ticker: string, paylo
     if (!pagination || pagination.count !== p.data.length || !Number.isInteger(pagination.total) || Number(pagination.total) > p.data.length) throw new Error('provider_truncated')
   }
   const events: ProviderEvent[] = []
-  for (const row of p.data as Record<string, unknown>[]) {
+  for (const [index, row] of (p.data as Record<string, unknown>[]).entries()) {
     if (provider === 'marketstack' && row.symbol !== ticker) throw new Error('provider_identity_changed')
     const ex = day(provider === 'alpha_vantage' ? row.ex_dividend_date : row.date)
     const declared = day(row.declaration_date), rec = day(row.record_date), pay = day(row.payment_date)
     if (!ex || !declared || !rec || !pay) continue
     if (Math.abs(Date.parse(ex) - Date.parse(today)) > 366 * 86400000) continue
+    if (declared > today || declared > ex || ex > rec || rec > pay || Date.parse(pay) - Date.parse(ex) > 366 * 86400000) throw new Error('provider_invalid_calendar')
     const raw = provider === 'alpha_vantage' ? row.amount : row.dividend
-    if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,8})?$/.test(String(raw))) throw new Error('provider_invalid_amount')
-    const amount = Number(raw)
+    let amount: number
+    try {
+    const decimals = typeof raw === 'string' || typeof raw === 'number' ? /^\d+(?:\.(\d+))?$/.exec(String(raw)) : null
+    const fail = (kind: ProviderDiagnostic['kind']): never => { throw new ProviderDataError({ row:index, ex_date:ex, kind, value_type:typeof raw, decimal_places:decimals ? Math.min(1000, decimals[1]?.length ?? 0) : null }) }
+    if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,8})?$/.test(String(raw))) fail(decimals ? 'precision' : 'format')
+    amount = Number(raw)
     if(provider==='marketstack'&&amount===0)throw new Error('provider_precision_unavailable')
-    if (!(amount > 0 && amount < 1e12)) throw new Error('provider_invalid_amount')
+    if (!(amount > 0 && amount < 1e12)) fail('range')
     const [whole, fraction = ''] = String(raw).split('.')
     const exact = BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, '0'))
-    if (BigInt(amount.toFixed(8).replace('.', '')) !== exact) throw new Error('provider_invalid_amount')
-    if (declared > today || declared > ex || ex > rec || rec > pay || Date.parse(pay) - Date.parse(ex) > 366 * 86400000) throw new Error('provider_invalid_calendar')
+    if (BigInt(amount.toFixed(8).replace('.', '')) !== exact) fail('representation')
+    } catch (error) {
+      if (!diagnostics || !(error instanceof ProviderDataError)) throw error
+      diagnostics.push(error.diagnostic); continue
+    }
     if (events.some(e => e.ex_date === ex)) throw new Error('provider_ambiguous_distribution')
     events.push({ ex_date: ex, declaration_date: declared, record_date: rec, payment_date: pay, value_per_share: amount })
   }
-  if (!events.length) throw new Error('provider_calendar_unavailable')
+  if (!events.length) { if(diagnostics?.length) throw new ProviderDataError(diagnostics[0]); throw new Error('provider_calendar_unavailable') }
   return events
 }
 
-export async function fetchProviderEvents(provider: DividendProvider, ticker: string, key: string, today: string, request = fetch): Promise<ProviderEvent[]> {
+export async function fetchProviderEvents(provider: DividendProvider, ticker: string, key: string, today: string, request = fetch, diagnostics?: ProviderDiagnostic[]): Promise<ProviderEvent[]> {
   if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker) || !key.trim()) throw new Error('provider_configuration_missing')
   const endpoint = new URL(provider === 'alpha_vantage' ? 'https://www.alphavantage.co/query' : 'https://api.marketstack.com/v2/dividends')
   if (provider === 'alpha_vantage') {
@@ -68,7 +81,7 @@ export async function fetchProviderEvents(provider: DividendProvider, ticker: st
       if (r.status === 429 || code === 'rate_limit_reached') throw new Error('provider_rate_limited')
     }
     if (!r.ok) throw new Error('provider_rejected')
-    return providerEvents(provider, ticker, payload, today)
+    return providerEvents(provider, ticker, payload, today, diagnostics)
   } catch (e) {
     // Native fetch errors and vendor bodies may include the credential-bearing URL.
     if (e instanceof Error && /^provider_[a-z_]+$/.test(e.message)) throw e
@@ -102,7 +115,7 @@ export async function rotatingMarketstack(rpc: Rpc, keys: string[], ticker: stri
 }
 /** Secrets stay at the Edge. Reservations consume quota before network I/O. */
 export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) => string | Promise<string>, today: string) {
-  const results: { provider: DividendProvider; ticker: string; events: number; error: string | null; metadata_variations?: number }[] = []
+  const results: { provider: DividendProvider; ticker: string; events: number; error: string | null; metadata_variations?: number; diagnostic?: ProviderDiagnostic }[] = []
   const skipped: {provider:DividendProvider;reason:'provider_key_missing'|'provider_key_budget_exhausted'|'provider_no_due_task_or_global_budget'}[]=[]
   for (const provider of ['alpha_vantage','marketstack'] as const) {
     const key = await secret(provider === 'alpha_vantage' ? 'ALPHA_VANTAGE_API_KEY' : 'MARKETSTACK_API_KEY')
@@ -116,16 +129,18 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
     if(!tasks.length)skipped.push({provider,reason:'provider_no_due_task_or_global_budget'})
     for (const task of tasks) {
       let events: ProviderEvent[] = [], error: string | null = null
-      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await fetchProviderEvents(provider, task.ticker, key, today) }
-      catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed' }
-      const stored = await rpc('finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error }) as { error?: unknown; metadata_variations?: unknown } | null
+      let diagnostic: ProviderDiagnostic | undefined
+      const diagnostics: ProviderDiagnostic[] = []
+      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await fetchProviderEvents(provider, task.ticker, key, today, fetch, diagnostics); diagnostic=diagnostics[0] }
+      catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed'; if(e instanceof ProviderDataError) diagnostic=e.diagnostic }
+      const stored = await rpc(diagnostics.length && events.length ? 'finish_partial_dividend_provider' : 'finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error, ...(diagnostics.length && events.length ? {p_missing:diagnostics.length} : {}) }) as { error?: unknown; metadata_variations?: unknown } | null
       if (stored?.error) {
         if (typeof stored.error !== 'string' || !/^provider_[a-z_]+$/.test(stored.error)) throw new Error('provider_storage_failed')
         error = stored.error
       }
       const metadata = stored?.metadata_variations ?? 0
       if (typeof metadata !== 'number' || !Number.isInteger(metadata) || metadata < 0 || metadata > 100) throw new Error('provider_storage_failed')
-      results.push({ provider, ticker: task.ticker, events: events.length, error, ...(metadata > 0 ? { metadata_variations: metadata } : {}) })
+      results.push({ provider, ticker: task.ticker, events: events.length, error, ...(diagnostic ? { diagnostic } : {}), ...(metadata > 0 ? { metadata_variations: metadata } : {}) })
     }
   }
   return { results, skipped, received_income_created: 0 }

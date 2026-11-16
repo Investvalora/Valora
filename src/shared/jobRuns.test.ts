@@ -1,6 +1,13 @@
 import {expect,it,vi} from 'vitest'
 import {jobRun} from '../../supabase/functions/_shared/jobRuns'
 const id='11111111-1111-4111-8111-111111111111'
+it('stores only allowlisted provider diagnostic fields in the private job audit',async()=>{
+ const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
+ await jobRun('https://example.test','private',id,{erros:['provider_invalid_amount'],provider_diagnostics:[{provider:'alpha_vantage',ticker:'PR',secret:'NEVER_STORE',diagnostic:{row:2,ex_date:'2026-06-16',kind:'precision',value_type:'string',decimal_places:10,raw:'NEVER_STORE'}}]},request,'international-providers')
+ const body=JSON.parse(String(request.mock.calls[0][1]?.body))
+ expect(body).toMatchObject({status:'failed',details:{provider_diagnostics:[{provider:'alpha_vantage',ticker:'PR',diagnostic:{row:2,ex_date:'2026-06-16',kind:'precision',value_type:'string',decimal_places:10}}]}})
+ expect(JSON.stringify(body)).not.toContain('NEVER_STORE')
+})
 it('records supplemental evidence as partial and strips arbitrary credentials',async()=>{
  const request=vi.fn<typeof fetch>(async()=>Response.json([{id}]))
  await jobRun('https://example.test','private',id,{supplemental:{results:[{provider:'alpaca',ticker:'JNJ',observations:5,error:'supplemental_incomplete',key:'DO_NOT_STORE',raw:{secret:'DO_NOT_STORE'}},{provider:'massive',skipped:'credentials_missing'}]}},request,'international-providers')

@@ -5,6 +5,14 @@ export async function jobRun(url: string, key: string, id: string, result?: Reco
   const coverage = Array.isArray(result?.coverage_gaps) ? result.coverage_gaps.filter((x): x is string => typeof x === 'string' && /^(alpha_vantage|marketstack):[A-Z][A-Z0-9.-]{0,9}$/.test(x)).slice(0,8) : []
   const skips=Array.isArray(result?.provider_skips)?result.provider_skips.filter((x):x is {provider:string;reason:string}=>!!x&&typeof x==='object'&&['alpha_vantage','marketstack'].includes(x.provider)&&['provider_key_missing','provider_key_budget_exhausted','provider_no_due_task_or_global_budget'].includes(x.reason)).slice(0,2).map(x=>({provider:x.provider,reason:x.reason})):[]
   const supplied = result?.supplemental as {results?:unknown[]} | undefined
+  const diagnostics = Array.isArray(result?.provider_diagnostics) ? result.provider_diagnostics.slice(0,2).flatMap(value=>{
+    const r=value as Record<string,unknown>, d=r?.diagnostic as Record<string,unknown> | undefined
+    if(!r || !['alpha_vantage','marketstack'].includes(String(r.provider)) || typeof r.ticker!=='string' || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(r.ticker) || !d
+      || !Number.isInteger(d.row) || Number(d.row)<0 || Number(d.row)>999 || typeof d.ex_date!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(d.ex_date)
+      || !['format','precision','range','representation'].includes(String(d.kind)) || !['string','number','object','undefined','boolean','bigint','symbol','function'].includes(String(d.value_type))
+      || !(d.decimal_places===null || Number.isInteger(d.decimal_places)&&Number(d.decimal_places)>=0&&Number(d.decimal_places)<=1000))return []
+    return [{provider:r.provider,ticker:r.ticker,diagnostic:{row:d.row,ex_date:d.ex_date,kind:d.kind,value_type:d.value_type,decimal_places:d.decimal_places}}]
+  }) : []
   const supplemental = Array.isArray(supplied?.results) ? supplied.results.slice(0,2).flatMap(value=>{
     const r=value as Record<string,unknown>
     if(!r||!['massive','alpaca'].includes(String(r.provider)))return []
@@ -17,7 +25,7 @@ export async function jobRun(url: string, key: string, id: string, result?: Reco
   const updated = Number(calculation?.posicoes_atualizadas ?? 0)
   const calculationErrors = Array.isArray(calculation?.erros) ? calculation.erros.filter((x): x is string => typeof x==='string').slice(0,10).map(x=>x.slice(0,180)) : []
   const details = finished ? { rates: result?.linhas_gravadas ?? {}, updated: Number.isFinite(updated) ? updated : 0,
-    calculation_errors: calculationErrors, errors: errors.map(x => String(x).split(':')[0].replace(/[^a-z_]/g,'').slice(0,32)).slice(0,8), coverage_gaps: coverage,provider_skips:skips,...(supplemental.length?{supplemental}:{}) } : {}
+    calculation_errors: calculationErrors, errors: errors.map(x => String(x).split(':')[0].replace(/[^a-z_]/g,'').slice(0,32)).slice(0,8), coverage_gaps: coverage,provider_skips:skips,...(diagnostics.length?{provider_diagnostics:diagnostics}:{}),...(supplemental.length?{supplemental}:{}) } : {}
   const status = !finished ? 'running' : errors.length ? calculation ? 'partial' : 'failed' : coverage.length||skips.length||supplemental.some(r=>r.ticker) ? 'partial' : 'success'
   try {
     const response = await request(`${url}/rest/v1/operational_job_runs${finished ? `?id=eq.${id}` : ''}`, {

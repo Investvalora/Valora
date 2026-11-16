@@ -1,0 +1,22 @@
+begin;
+insert into public.assets(ticker,name,type,currency,quote_provider,active) values('QAALPHA','QA Alpha','stock_us','USD','finnhub',true) on conflict(ticker) do nothing;
+insert into public.dividend_provider_tasks(provider,ticker,claim_token,next_sync_at) values('alpha_vantage','QAALPHA','00000000-0000-4000-8000-000000000111',now()+interval '10 minutes') on conflict(provider,ticker) do update set claim_token=excluded.claim_token,next_sync_at=excluded.next_sync_at;
+insert into public.dividend_provider_usage values('alpha_vantage',current_date,18) on conflict(provider,usage_day) do update set requests=18;
+set local role service_role;
+do $$ declare a text:=repeat('a',64);b text:=repeat('b',64);c text:=repeat('c',64);token uuid:='00000000-0000-4000-8000-000000000111';r text;
+begin
+ r:=public.reserve_alpha_key(array[a,b,c],'QAALPHA',token);
+ if r is distinct from a then raise exception 'First key not reserved';end if;
+ if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>18 then raise exception 'First attempt double charged';end if;
+ perform public.block_alpha_key(a,'provider_quota_exhausted');
+ if not exists(select 1 from public.alpha_key_state where key_id=a and blocked_until=(date_trunc('day',now() at time zone 'UTC')+interval '1 day') at time zone 'UTC') then raise exception 'Quota cooldown not UTC day';end if;
+ if public.reserve_alpha_key(array[a,b,c],'QAALPHA',token) is distinct from b then raise exception 'Blocked key reused';end if;
+ if public.reserve_alpha_key(array[a,b,c],'QAALPHA',token) is distinct from c then raise exception 'Same credential retried';end if;
+ if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>20 then raise exception 'Retries unaccounted';end if;
+ if public.reserve_alpha_key(array[repeat('d',64)],'QAALPHA',token) is not null then raise exception 'Global allowance exceeded';end if;
+ begin perform public.reserve_alpha_key(array[a,a],'QAALPHA',token);raise exception 'Duplicate credentials accepted';exception when raise_exception then if sqlerrm<>'Invalid key identifiers' then raise;end if;end;
+ begin perform public.reserve_alpha_key(array[a],'QAALPHA',gen_random_uuid());raise exception 'Stale lease accepted';exception when raise_exception then if sqlerrm<>'Provider lease unavailable' then raise;end if;end;
+ if has_function_privilege('anon','public.reserve_alpha_key(text[],text,uuid)','execute') or has_function_privilege('authenticated','public.get_dividend_provider_key(text)','execute') or has_table_privilege('authenticated','public.alpha_key_usage','select') then raise exception 'Credentials/counters exposed';end if;
+end $$;
+reset role;
+rollback;

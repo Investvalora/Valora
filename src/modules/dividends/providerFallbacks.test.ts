@@ -1,8 +1,48 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, providerOperationalFailure, providerCoverageGap, ProviderDataError } from '../../../supabase/functions/sync-international-announcements/providers'
+import { providerEvents, fetchProviderEvents, collectProviderFallbacks, marketstackKeys, rotatingMarketstack, rotatingAlpha, providerOperationalFailure, providerCoverageGap, ProviderDataError } from '../../../supabase/functions/sync-international-announcements/providers'
 const event = { ex_dividend_date:'2026-11-24',declaration_date:'2026-11-10',record_date:'2026-11-24',payment_date:'2026-12-04',amount:'30.0' }
 const alpha = { symbol:'COST',data:[event] }
 afterEach(()=>vi.unstubAllGlobals())
+it('switches Alpha credentials only after explicit rejection and uses opaque identifiers',async()=>{
+ let blocked=false
+ const rpc=vi.fn(async(name:string,body:unknown)=>{
+  if(name==='block_alpha_key'){blocked=true;return null}
+  return (body as {p_key_ids:string[]}).p_key_ids[blocked?1:0]
+ })
+ const request=vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({Information:'Our standard API rate limit is 25 requests per day.'})).mockResolvedValueOnce(Response.json(alpha))
+ expect(await rotatingAlpha(rpc,['private-first','private-second'],'COST','lease','2026-11-12',[],request)).toHaveLength(1)
+ expect(request).toHaveBeenCalledTimes(2)
+ expect(rpc.mock.calls[1]).toEqual(['block_alpha_key',expect.objectContaining({p_reason:'provider_quota_exhausted'})])
+ expect(JSON.stringify(rpc.mock.calls)).not.toContain('private')
+})
+it('does not rotate Alpha for premium entitlements, corrupt observations or transport errors',async()=>{
+ for(const payload of [{Information:'This endpoint requires a premium subscription.'},{symbol:'COST',data:[{...event,amount:'invalid'}]}]) {
+  const rpc=vi.fn(async(_name:string,body:unknown)=>(body as {p_key_ids:string[]}).p_key_ids[0]),request=vi.fn<typeof fetch>(async()=>Response.json(payload))
+  await expect(rotatingAlpha(rpc,['first','second'],'COST','lease','2026-11-12',[],request)).rejects.toThrow(/^provider_/)
+  expect(request).toHaveBeenCalledTimes(1);expect(rpc).toHaveBeenCalledTimes(1)
+ }
+ const request=vi.fn<typeof fetch>(async()=>{throw new Error('credential-bearing URL')})
+ await expect(rotatingAlpha(async(_name,body)=>(body as {p_key_ids:string[]}).p_key_ids[0],['first','second'],'COST','lease','2026-11-12',[],request)).rejects.toThrow('provider_request_failed')
+ expect(request).toHaveBeenCalledTimes(1)
+})
+it('does not fetch Alpha when atomic reservation is denied by the global budget',async()=>{
+ const request=vi.fn<typeof fetch>()
+ await expect(rotatingAlpha(async()=>null,['first','second'],'COST','lease','2026-11-12',[],request)).rejects.toThrow('provider_keys_unavailable')
+ expect(request).not.toHaveBeenCalled()
+})
+it('uses additional Alpha keys from the backend list and reserves within the task lease',async()=>{
+ const rpc=vi.fn(async(name:string,body:unknown)=>{
+  if(name==='claim_dividend_provider')return [{ticker:'COST',claim_token:'lease'}]
+  if(name==='reserve_alpha_key')return (body as {p_key_ids:string[]}).p_key_ids[0]
+  return {error:null}
+ })
+ vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
+ const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'primary-private':n==='ALPHA_VANTAGE_API_KEYS'?'second-private':'','2026-11-12')
+ expect(result.results[0]).toMatchObject({provider:'alpha_vantage',events:1,error:null})
+ expect(rpc.mock.calls.map(c=>c[0])).toEqual(['claim_dividend_provider','reserve_alpha_key','finish_dividend_provider'])
+ expect(rpc.mock.calls[1][1]).toMatchObject({p_ticker:'COST',p_claim_token:'lease',p_key_ids:expect.any(Array)})
+ expect(JSON.stringify(rpc.mock.calls)).not.toContain('private')
+})
 it('reports bounded amount diagnostics without logging a secret-bearing value',()=>{
  for (const [amount,kind,decimal_places] of [['0.16000000001','precision',11],['https://provider.invalid?apikey=PRIVATE','format',null],['0','range',0]] as const) {
   try { providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount}]},'2026-11-12'); throw new Error('accepted invalid amount') }

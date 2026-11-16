@@ -22,8 +22,8 @@ Deno.serve(async request => {
       const result=await collectProviderFallbacks(rpc, async name => {
       const configured = Deno.env.get(name)?.trim()
       if (configured) return configured
-      if (/^MARKETSTACK_API_KEY_[2-8]$/.test(name)) return ''
-      const value = await rpc('get_dividend_provider_key', { p_provider: name === 'ALPHA_VANTAGE_API_KEY' ? 'alpha_vantage' : name === 'MARKETSTACK_API_KEYS' ? 'marketstack_keys' : 'marketstack' })
+      if (/^(MARKETSTACK|ALPHA_VANTAGE)_API_KEY_[2-8]$/.test(name)) return ''
+      const value = await rpc('get_dividend_provider_key', { p_provider: name === 'ALPHA_VANTAGE_API_KEY' ? 'alpha_vantage' : name === 'ALPHA_VANTAGE_API_KEYS' ? 'alpha_vantage_keys' : name === 'MARKETSTACK_API_KEYS' ? 'marketstack_keys' : 'marketstack' })
       return typeof value === 'string' ? value : ''
       }, new Date().toISOString().slice(0,10))
       const errors=result.results.filter(r=>providerOperationalFailure(r.error)).map(r=>r.error)

@@ -1,5 +1,17 @@
 # TODO ativa de evolução do Valora
 
+## Chaves adicionais Alpha Vantage — 16/11
+
+- Cinco credenciais adicionais cadastradas no Vault; principal preservada, sem valores versionados.
+- Failover pronto localmente com reserva atômica, cooldown e limite global mantido em 20/dia, incluindo retries. Cadastro não presume cotas independentes nem desbloqueia o orçamento diário esgotado.
+- 25 baterias SQL aprovadas; 50 testes afetados aprovados; Deno e TypeScript aprovados. A regressão ampla anterior teve somente a expectativa de quantidade de leituras do Vault desatualizada, corrigida e retestada nesses 50 casos.
+- Pendente: merge/publicação da migration e Edge; consulta real às credenciais quando houver orçamento. [Detalhes](alpha-key-failover.md).
+
+## PR166 homologada em produção — 16/11
+
+- Sete revisões aplicadas, Edge v25 ativa, execução real aprovada e hashes financeiros preservados.
+- Alpha/PR ainda sem reteste real por falta de orçamento; SAP/Marketstack permanece divergência explícita, preservando bruto final oficial. [Evidências](homologacao-producao-pr166.md).
+
 ## Correções altas prontas localmente — 16/11
 
 - **ITA/SAP:** sete revisões no catálogo explícito, incluindo três ITA por cota original e a taxa final bruta SAP. Estado anterior preservado, protegido contra sobrescrita Yahoo.

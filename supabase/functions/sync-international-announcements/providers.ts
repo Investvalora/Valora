@@ -80,6 +80,12 @@ export async function fetchProviderEvents(provider: DividendProvider, ticker: st
       if (['invalid_access_key','missing_access_key','inactive_user'].includes(code)) throw new Error('provider_key_invalid')
       if (r.status === 429 || code === 'rate_limit_reached') throw new Error('provider_rate_limited')
     }
+    if (provider === 'alpha_vantage') {
+      const notice = [payload?.Information, payload?.Note].filter(v=>typeof v==='string').join(' ')
+      if (/25 requests per day|daily (?:api )?(?:rate )?limit|requests per day/i.test(notice)) throw new Error('provider_quota_exhausted')
+      if (/invalid.{0,20}(?:api.?key|apikey)|(?:api.?key|apikey).{0,20}invalid/i.test(notice)) throw new Error('provider_key_invalid')
+      if (r.status===429 || /call frequency|requests per minute|rate limit/i.test(notice)) throw new Error('provider_rate_limited')
+    }
     if (!r.ok) throw new Error('provider_rejected')
     return providerEvents(provider, ticker, payload, today, diagnostics)
   } catch (e) {
@@ -113,6 +119,23 @@ export async function rotatingMarketstack(rpc: Rpc, keys: string[], ticker: stri
   }
   throw new Error(lastError)
 }
+/** The existing 20/day global budget still bounds every credential and retry. */
+export async function rotatingAlpha(rpc: Rpc, keys: string[], ticker: string, claimToken: string, today: string, diagnostics: ProviderDiagnostic[], request=fetch): Promise<ProviderEvent[]> {
+  const entries=await keyEntries(keys)
+  let lastError='provider_keys_unavailable'
+  for(let attempt=0;attempt<entries.length;attempt++) {
+    const id=await rpc('reserve_alpha_key',{p_key_ids:entries.map(e=>e.id),p_ticker:ticker,p_claim_token:claimToken})
+    const entry=entries.find(e=>e.id===id)
+    if(!entry)throw new Error(lastError)
+    try { return await fetchProviderEvents('alpha_vantage',ticker,entry.key,today,request,diagnostics) }
+    catch(e) {
+      lastError=e instanceof Error && /^provider_[a-z_]+$/.test(e.message)?e.message:'provider_request_failed'
+      if(!['provider_quota_exhausted','provider_key_invalid','provider_rate_limited'].includes(lastError))throw e
+      await rpc('block_alpha_key',{p_key_id:entry.id,p_reason:lastError})
+    }
+  }
+  throw new Error(lastError)
+}
 /** Secrets stay at the Edge. Reservations consume quota before network I/O. */
 export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) => string | Promise<string>, today: string) {
   const results: { provider: DividendProvider; ticker: string; events: number; error: string | null; metadata_variations?: number; diagnostic?: ProviderDiagnostic }[] = []
@@ -120,7 +143,8 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
   for (const provider of ['alpha_vantage','marketstack'] as const) {
     const key = await secret(provider === 'alpha_vantage' ? 'ALPHA_VANTAGE_API_KEY' : 'MARKETSTACK_API_KEY')
     const keys = provider === 'marketstack' ? marketstackKeys(await secret('MARKETSTACK_API_KEYS'),key,await Promise.all(Array.from({length:7},(_,i)=>secret(`MARKETSTACK_API_KEY_${i+2}`)))) : []
-    if (provider === 'marketstack' ? !keys.length : !key) {skipped.push({provider,reason:'provider_key_missing'});continue}
+    const alphaKeys=provider==='alpha_vantage'?marketstackKeys(await secret('ALPHA_VANTAGE_API_KEYS'),key,await Promise.all(Array.from({length:7},(_,i)=>secret(`ALPHA_VANTAGE_API_KEY_${i+2}`)))):[]
+    if (provider === 'marketstack' ? !keys.length : !alphaKeys.length) {skipped.push({provider,reason:'provider_key_missing'});continue}
     // Avoid leasing/defering an asset when every account is already out of budget.
     // This is a preflight only; the atomic reservation remains mandatory before HTTP.
     if (provider === 'marketstack' && await rpc('marketstack_budget_available', {p_key_ids:(await keyEntries(keys)).map(k=>k.id)}) !== true) {skipped.push({provider,reason:'provider_key_budget_exhausted'});continue}
@@ -131,7 +155,7 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
       let events: ProviderEvent[] = [], error: string | null = null
       let diagnostic: ProviderDiagnostic | undefined
       const diagnostics: ProviderDiagnostic[] = []
-      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await fetchProviderEvents(provider, task.ticker, key, today, fetch, diagnostics); diagnostic=diagnostics[0] }
+      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : alphaKeys.length>1 ? await rotatingAlpha(rpc,alphaKeys,task.ticker,task.claim_token,today,diagnostics) : await fetchProviderEvents(provider, task.ticker, alphaKeys[0], today, fetch, diagnostics); diagnostic=diagnostics[0] }
       catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed'; if(e instanceof ProviderDataError) diagnostic=e.diagnostic }
       const stored = await rpc(diagnostics.length && events.length ? 'finish_partial_dividend_provider' : 'finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error, ...(diagnostics.length && events.length ? {p_missing:diagnostics.length} : {}) }) as { error?: unknown; metadata_variations?: unknown } | null
       if (stored?.error) {

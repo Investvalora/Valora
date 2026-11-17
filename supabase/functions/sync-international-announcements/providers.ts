@@ -119,7 +119,7 @@ export async function rotatingMarketstack(rpc: Rpc, keys: string[], ticker: stri
   }
   throw new Error(lastError)
 }
-/** The existing 20/day global budget still bounds every credential and retry. */
+/** Every HTTP attempt is atomically charged to its key before network I/O. */
 export async function rotatingAlpha(rpc: Rpc, keys: string[], ticker: string, claimToken: string, today: string, diagnostics: ProviderDiagnostic[], request=fetch): Promise<ProviderEvent[]> {
   const entries=await keyEntries(keys)
   let lastError='provider_keys_unavailable'
@@ -148,14 +148,14 @@ export async function collectProviderFallbacks(rpc: Rpc, secret: (name: string) 
     // Avoid leasing/defering an asset when every account is already out of budget.
     // This is a preflight only; the atomic reservation remains mandatory before HTTP.
     if (provider === 'marketstack' && await rpc('marketstack_budget_available', {p_key_ids:(await keyEntries(keys)).map(k=>k.id)}) !== true) {skipped.push({provider,reason:'provider_key_budget_exhausted'});continue}
-    const tasks = await rpc('claim_dividend_provider', { p_provider: provider }) as { ticker: string; claim_token: string }[]
+    const tasks = (provider==='alpha_vantage' ? await rpc('claim_alpha_provider',{p_key_ids:(await keyEntries(alphaKeys)).map(k=>k.id)}) : await rpc('claim_dividend_provider', { p_provider: provider })) as { ticker: string; claim_token: string }[]
     if (!Array.isArray(tasks) || tasks.length > 1) throw new Error('provider_invalid_task')
     if(!tasks.length)skipped.push({provider,reason:'provider_no_due_task_or_global_budget'})
     for (const task of tasks) {
       let events: ProviderEvent[] = [], error: string | null = null
       let diagnostic: ProviderDiagnostic | undefined
       const diagnostics: ProviderDiagnostic[] = []
-      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : alphaKeys.length>1 ? await rotatingAlpha(rpc,alphaKeys,task.ticker,task.claim_token,today,diagnostics) : await fetchProviderEvents(provider, task.ticker, alphaKeys[0], today, fetch, diagnostics); diagnostic=diagnostics[0] }
+      try { events = provider === 'marketstack' ? await rotatingMarketstack(rpc,keys,task.ticker,today) : await rotatingAlpha(rpc,alphaKeys,task.ticker,task.claim_token,today,diagnostics); diagnostic=diagnostics[0] }
       catch (e) { error = e instanceof Error && /^provider_[a-z_]+$/.test(e.message) ? e.message : 'provider_request_failed'; if(e instanceof ProviderDataError) diagnostic=e.diagnostic }
       const stored = await rpc(diagnostics.length && events.length ? 'finish_partial_dividend_provider' : 'finish_dividend_provider', { p_provider: provider, p_ticker: task.ticker, p_claim_token: task.claim_token, p_events: events, p_error: error, ...(diagnostics.length && events.length ? {p_missing:diagnostics.length} : {}) }) as { error?: unknown; metadata_variations?: unknown } | null
       if (stored?.error) {

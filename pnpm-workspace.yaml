@@ -8,3 +8,6 @@ overrides:
   source-map-js: 1.2.2
   'postcss-selector-parser@6': 6.1.5
   'minimatch@10': 11.0.1
+patchedDependencies:
+  picomatch@2.3.2: patches/picomatch@2.3.2.patch
+  picomatch@4.0.7: patches/picomatch@4.0.7.patch

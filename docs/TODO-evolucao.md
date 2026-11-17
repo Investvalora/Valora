@@ -1,5 +1,16 @@
 # TODO ativa de evolução do Valora
 
+## Correção do rodízio Alpha — 17/11, validada localmente
+
+- Removido o bloqueio global de 20 do caminho novo: claim por pool e reserva atômica por chave, incluindo configuração com uma única credencial.
+- Mantidos contadores anteriores, limite interno de 20 por chave, cooldown e teto de segurança agregado de 160. Health informa saldo do pool, sem confundir uma chave esgotada com todas.
+- 287 testes em 30 arquivos e 25 baterias SQL aprovados; Deno, TypeScript, importação Node e lint aprovados. Migration aplicada somente no QA; falta PR/merge/publicação e reteste real da próxima chave. [Detalhes](alpha-per-key-budget.md).
+
+## PR167 publicada em produção — 16/11
+
+- Migration aplicada, Edge v26 ativa, seis credenciais reconhecidas e acesso privado conferido. Rotina manual sem falhas; carteiras preservadas.
+- Alpha continua em 20/20: nenhuma nova consulta nem troca real de chave nesta rodada. Reteste de rede/failover e Alpha/PR ainda pendente de orçamento e elegibilidade. [Evidências](homologacao-producao-pr167.md).
+
 ## Chaves adicionais Alpha Vantage — 16/11
 
 - Cinco credenciais adicionais cadastradas no Vault; principal preservada, sem valores versionados.

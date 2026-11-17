@@ -32,14 +32,14 @@ it('does not fetch Alpha when atomic reservation is denied by the global budget'
 })
 it('uses additional Alpha keys from the backend list and reserves within the task lease',async()=>{
  const rpc=vi.fn(async(name:string,body:unknown)=>{
-  if(name==='claim_dividend_provider')return [{ticker:'COST',claim_token:'lease'}]
+  if(name==='claim_alpha_provider')return [{ticker:'COST',claim_token:'lease'}]
   if(name==='reserve_alpha_key')return (body as {p_key_ids:string[]}).p_key_ids[0]
   return {error:null}
  })
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
  const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'primary-private':n==='ALPHA_VANTAGE_API_KEYS'?'second-private':'','2026-11-12')
  expect(result.results[0]).toMatchObject({provider:'alpha_vantage',events:1,error:null})
- expect(rpc.mock.calls.map(c=>c[0])).toEqual(['claim_dividend_provider','reserve_alpha_key','finish_dividend_provider'])
+ expect(rpc.mock.calls.map(c=>c[0])).toEqual(['claim_alpha_provider','reserve_alpha_key','finish_dividend_provider'])
  expect(rpc.mock.calls[1][1]).toMatchObject({p_ticker:'COST',p_claim_token:'lease',p_key_ids:expect.any(Array)})
  expect(JSON.stringify(rpc.mock.calls)).not.toContain('private')
 })
@@ -66,7 +66,7 @@ it('keeps valid rows only when partial collection is explicit, never replacing t
 })
 it('persists partial provider results through the dedicated RPC with sanitized diagnostics',async()=>{
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({symbol:'PR',data:[{...event,amount:'SECRET_VALUE'},{...event,ex_dividend_date:'2026-11-25',record_date:'2026-11-25',amount:'0.16'}]})))
- const rpc=vi.fn(async(name:string)=>name==='claim_dividend_provider'?[{ticker:'PR',claim_token:'fixture'}]:{error:'provider_partial_invalid_amount'})
+ const rpc=vi.fn(async(name:string,body:unknown)=>name==='reserve_alpha_key'?(body as {p_key_ids:string[]}).p_key_ids[0]:name==='claim_alpha_provider'?[{ticker:'PR',claim_token:'fixture'}]:{error:'provider_partial_invalid_amount'})
  const result=await collectProviderFallbacks(rpc,async name=>name==='ALPHA_VANTAGE_API_KEY'?'PRIVATE_KEY':'','2026-11-12')
  expect(rpc.mock.calls.map(c=>c[0])).toContain('finish_partial_dividend_provider')
  expect(result.results[0]).toMatchObject({ticker:'PR',events:1,error:'provider_partial_invalid_amount',diagnostic:{row:0,kind:'format'}})
@@ -147,26 +147,26 @@ it('does not call vendors without backend secrets or when quota reservation retu
  expect(rpc).toHaveBeenCalledTimes(2);expect(fetch).not.toHaveBeenCalled()
 })
 it('reserves before fetching and completes vendor failures without leaking response bodies',async()=>{
- const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'COST',claim_token:'lease'}]:{})
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async (name,body)=>name==='reserve_alpha_key'?(body as {p_key_ids:string[]}).p_key_ids[0]:name==='claim_alpha_provider'?[{ticker:'COST',claim_token:'lease'}]:{})
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({Information:'private vendor error'})))
  const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
- expect(rpc.mock.calls[0][0]).toBe('claim_dividend_provider')
+ expect(rpc.mock.calls[0][0]).toBe('claim_alpha_provider')
  expect(result.results[0].error).toBe('provider_rejected')
- expect(rpc.mock.calls[1][1]).toMatchObject({p_events:[],p_error:'provider_rejected'})
+ expect(rpc.mock.calls[2][1]).toMatchObject({p_events:[],p_error:'provider_rejected'})
 })
 it('propagates database conflicts so the workflow and durable audit cannot report success',async()=>{
- const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:'provider_event_conflict'})
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async (name,body)=>name==='reserve_alpha_key'?(body as {p_key_ids:string[]}).p_key_ids[0]:name==='claim_alpha_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:'provider_event_conflict'})
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
  const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
  expect(result.results[0]).toMatchObject({events:1,error:'provider_event_conflict'})
  expect(providerOperationalFailure(result.results[0].error)).toBe(true)
 })
 it('records a missing calendar on the task rather than inventing events or marking coverage complete',async()=>{
- const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'AMZN',claim_token:'lease'}]:{error:'provider_calendar_unavailable'})
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async (name,body)=>name==='reserve_alpha_key'?(body as {p_key_ids:string[]}).p_key_ids[0]:name==='claim_alpha_provider'?[{ticker:'AMZN',claim_token:'lease'}]:{error:'provider_calendar_unavailable'})
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({symbol:'AMZN',data:[]})))
  const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
  expect(result.results[0]).toMatchObject({events:0,error:'provider_calendar_unavailable'})
- expect(rpc.mock.calls[1][1]).toMatchObject({p_events:[],p_error:'provider_calendar_unavailable'})
+ expect(rpc.mock.calls[2][1]).toMatchObject({p_events:[],p_error:'provider_calendar_unavailable'})
  expect(providerOperationalFailure(result.results[0].error)).toBe(false)
 })
 
@@ -181,7 +181,7 @@ it('reports per-key budget deferral without leasing or requesting vendors',async
 it('keeps primary-rejected vendor observations explicit as partial coverage',()=>{expect(providerOperationalFailure('provider_primary_disagreement')).toBe(false);expect(providerOperationalFailure('provider_event_conflict')).toBe(true)})
 
 it('retains audited declaration metadata without pretending the dates agree',async()=>{
- const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async name=>name==='claim_dividend_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:null,metadata_variations:1})
+ const rpc=vi.fn<(name:string,body:unknown)=>Promise<unknown>>(async (name,body)=>name==='reserve_alpha_key'?(body as {p_key_ids:string[]}).p_key_ids[0]:name==='claim_alpha_provider'?[{ticker:'COST',claim_token:'lease'}]:{error:null,metadata_variations:1})
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json(alpha)))
  const result=await collectProviderFallbacks(rpc,n=>n==='ALPHA_VANTAGE_API_KEY'?'private':'','2026-11-12')
  expect(result.results[0]).toMatchObject({events:1,error:null,metadata_variations:1})

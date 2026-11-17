@@ -112,6 +112,10 @@ overrides:
   postcss-selector-parser@6: 6.1.5
   minimatch@10: 11.0.1
 
+patchedDependencies:
+  picomatch@2.3.2: 50d9a493a5743e7541f9f19ad5cd893dda29c4a840a5e3625398a5d69a1e7ab6
+  picomatch@4.0.7: 2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba
+
 importers:
 
   .:
@@ -3032,7 +3036,7 @@ snapshots:
   anymatch@3.1.3:
     dependencies:
       normalize-path: 3.0.0
-      picomatch: 2.3.2
+      picomatch: 2.3.2(patch_hash=50d9a493a5743e7541f9f19ad5cd893dda29c4a840a5e3625398a5d69a1e7ab6)
 
   arg@5.0.2: {}
 
@@ -3398,9 +3402,9 @@ snapshots:
     dependencies:
       reusify: 1.1.0
 
-  fdir@6.5.0(picomatch@4.0.7):
+  fdir@6.5.0(picomatch@4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba)):
     optionalDependencies:
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba)
 
   file-entry-cache@8.0.0:
     dependencies:
@@ -3636,7 +3640,7 @@ snapshots:
   micromatch@4.0.8:
     dependencies:
       braces: 3.0.3
-      picomatch: 2.3.2
+      picomatch: 2.3.2(patch_hash=50d9a493a5743e7541f9f19ad5cd893dda29c4a840a5e3625398a5d69a1e7ab6)
 
   mime-db@1.52.0: {}
 
@@ -3714,9 +3718,9 @@ snapshots:
 
   picocolors@1.1.1: {}
 
-  picomatch@2.3.2: {}
+  picomatch@2.3.2(patch_hash=50d9a493a5743e7541f9f19ad5cd893dda29c4a840a5e3625398a5d69a1e7ab6): {}
 
-  picomatch@4.0.7: {}
+  picomatch@4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba): {}
 
   pirates@4.0.7: {}
 
@@ -3834,7 +3838,7 @@ snapshots:
 
   readdirp@3.6.0:
     dependencies:
-      picomatch: 2.3.2
+      picomatch: 2.3.2(patch_hash=50d9a493a5743e7541f9f19ad5cd893dda29c4a840a5e3625398a5d69a1e7ab6)
 
   recharts-scale@0.4.5:
     dependencies:
@@ -4007,8 +4011,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba))
+      picomatch: 4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba)
 
   tinyrainbow@3.2.0: {}
 
@@ -4091,8 +4095,8 @@ snapshots:
   vite@7.3.7(jiti@1.21.7):
     dependencies:
       esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba))
+      picomatch: 4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba)
       postcss: 8.5.28
       rollup: 4.63.1
       tinyglobby: 0.2.17
@@ -4114,7 +4118,7 @@ snapshots:
       magic-string: 0.30.21
       obug: 2.2.1
       pathe: 2.0.3
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=2dbdd5f9ca97e71c1e9d0104467ba0f1ed4c582341cf28593871c6677c692aba)
       std-env: 4.3.0
       tinybench: 2.9.0
       tinyexec: 1.3.1

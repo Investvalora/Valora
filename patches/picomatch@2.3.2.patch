@@ -1,0 +1,15 @@
+diff --git a/lib/parse.js b/lib/parse.js
+index caa2b86aa5a567df33cef4bda3c7a97794f439f8..ef040e2a4f866acaf710e0ccb660de5666cc47da 100644
+--- a/lib/parse.js	
++++ b/lib/parse.js	
+@@ -281,6 +281,10 @@ const repeatedExtglobRecursion = pattern => {
+ };
+ 
+ const analyzeRepeatedExtglob = (body, options) => {
++  // Valora GHSA-fc5q-39xc-vjpf mitigation: never nest wildcard matching
++  // inside a repeated extglob. Use the parser's existing literal fallback.
++  if (/[*?]/.test(body)) return { risky: true };
++
+   if (options.maxExtglobRecursion === false) {
+     return { risky: false };
+   }

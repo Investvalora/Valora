@@ -60,7 +60,9 @@ do $$ declare e jsonb;r jsonb;link text;lease uuid:='11111111-1111-4111-8111-111
  insert into public.dividend_provider_tasks(provider,ticker) values('alpha_vantage','PRT') on conflict do nothing;
  insert into public.dividend_provider_usage(provider,usage_day,requests) values('alpha_vantage',current_date,20) on conflict(provider,usage_day) do update set requests=20;
  if exists(select 1 from public.claim_dividend_provider('alpha_vantage')) then raise exception 'Budget bypass';end if;
- if not exists(select 1 from jsonb_array_elements(public.international_queue_health()->'queues') q where q->>'queue'='alpha_vantage' and q->>'global_daily_remaining'='0' and q->>'stale'='false') then raise exception 'Exhausted budget misreported';end if;
+ perform public.configure_alpha_pool(array[repeat('e',64)]);
+ insert into public.alpha_key_usage values(repeat('e',64),current_date,20) on conflict(key_id,usage_day) do update set requests=20;
+ if not exists(select 1 from jsonb_array_elements(public.international_queue_health()->'queues') q where q->>'queue'='alpha_vantage' and q->>'effective_daily_remaining'='0' and q->>'budget_exhausted'='true' and q->>'stale'='false') then raise exception 'Exhausted budget misreported';end if;
  delete from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date;
  insert into public.dividend_provider_tasks(provider,ticker) select 'alpha_vantage',ticker from public.assets where active and type='stock_us' and currency='USD' on conflict do nothing;
  update public.dividend_provider_tasks set last_attempt_at=now(),next_sync_at=now()+interval '1 day',claim_token=null where provider='alpha_vantage';

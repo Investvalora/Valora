@@ -7,13 +7,28 @@ do $$ declare a text:=repeat('a',64);b text:=repeat('b',64);c text:=repeat('c',6
 begin
  r:=public.reserve_alpha_key(array[a,b,c],'QAALPHA',token);
  if r is distinct from a then raise exception 'First key not reserved';end if;
- if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>18 then raise exception 'First attempt double charged';end if;
+ if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>19 then raise exception 'First attempt not charged once';end if;
  perform public.block_alpha_key(a,'provider_quota_exhausted');
  if not exists(select 1 from public.alpha_key_state where key_id=a and blocked_until=(date_trunc('day',now() at time zone 'UTC')+interval '1 day') at time zone 'UTC') then raise exception 'Quota cooldown not UTC day';end if;
  if public.reserve_alpha_key(array[a,b,c],'QAALPHA',token) is distinct from b then raise exception 'Blocked key reused';end if;
  if public.reserve_alpha_key(array[a,b,c],'QAALPHA',token) is distinct from c then raise exception 'Same credential retried';end if;
- if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>20 then raise exception 'Retries unaccounted';end if;
- if public.reserve_alpha_key(array[repeat('d',64)],'QAALPHA',token) is not null then raise exception 'Global allowance exceeded';end if;
+ if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>21 then raise exception 'Retries unaccounted';end if;
+ if public.reserve_alpha_key(array[a,b,c],'QAALPHA',token) is not null then raise exception 'Same key retried in lease';end if;
+ -- Exhaustion of one key and old global 20 must not stop another key.
+ update public.alpha_key_usage set requests=20 where key_id=a and usage_day=current_date;
+ update public.alpha_key_state set blocked_until=now()-interval '1 second' where key_id=a;
+ update public.dividend_provider_tasks set claim_token=gen_random_uuid() where provider='alpha_vantage' and ticker='QAALPHA' returning claim_token into token;
+ if public.reserve_alpha_key(array[a,b],'QAALPHA',token) is distinct from b then raise exception 'Exhausted first key prevented rotation';end if;
+ update public.alpha_key_usage set requests=20 where key_id=b and usage_day=current_date;
+ update public.dividend_provider_tasks set claim_token=null,next_sync_at=now()-interval '1 minute' where provider='alpha_vantage' and ticker='QAALPHA';
+ if exists(select 1 from public.claim_alpha_provider(array[a,b])) then raise exception 'Exhausted pool leased a task';end if;
+ if (public.international_queue_health()->'queues') @> '[{"queue":"alpha_vantage","budget_exhausted":false}]'::jsonb then raise exception 'Health ignored exhausted pool';end if;
+ if not exists(select 1 from public.claim_alpha_provider(array[a,b,c])) then raise exception 'Available third key did not unlock claim';end if;
+ if (select requests from public.dividend_provider_usage where provider='alpha_vantage' and usage_day=current_date)<>22 then raise exception 'Task claim charged without HTTP reservation';end if;
+ if not (public.international_queue_health()->'queues') @> '[{"queue":"alpha_vantage","budget_exhausted":false,"configured_keys":3}]'::jsonb then raise exception 'Health retained obsolete global 20 cap';end if;
+ update public.dividend_provider_tasks set last_attempt_at=now()-interval '2 hours',next_sync_at=now()-interval '1 minute',claim_token=null where provider='alpha_vantage';
+ if not (public.international_queue_health()->'queues') @> '[{"queue":"alpha_vantage","stale":true}]'::jsonb then raise exception 'Old global cap hid stalled queue with available keys';end if;
+ if has_function_privilege('anon','public.claim_alpha_provider(text[])','execute') then raise exception 'New claim RPC exposed';end if;
  begin perform public.reserve_alpha_key(array[a,a],'QAALPHA',token);raise exception 'Duplicate credentials accepted';exception when raise_exception then if sqlerrm<>'Invalid key identifiers' then raise;end if;end;
  begin perform public.reserve_alpha_key(array[a],'QAALPHA',gen_random_uuid());raise exception 'Stale lease accepted';exception when raise_exception then if sqlerrm<>'Provider lease unavailable' then raise;end if;end;
  if has_function_privilege('anon','public.reserve_alpha_key(text[],text,uuid)','execute') or has_function_privilege('authenticated','public.get_dividend_provider_key(text)','execute') or has_table_privilege('authenticated','public.alpha_key_usage','select') then raise exception 'Credentials/counters exposed';end if;

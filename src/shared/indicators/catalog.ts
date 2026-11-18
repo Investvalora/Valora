@@ -1,5 +1,6 @@
 import type { AssetType } from '../../modules/portfolio/types'
 import contract from './contract.json'
+import classes from './classes.json'
 
 export const INDICATOR_IDS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin'] as const
 export type IndicatorId = typeof INDICATOR_IDS[number]
@@ -7,12 +8,11 @@ export const INDICATOR_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'between'] as cons
 export const INDICATOR_LABELS: Record<IndicatorId, string> = {
   pl: 'P/L', pvp: 'P/VP', roe: 'ROE (%)', dy: 'DY (%)', debt_equity: 'Dívida/PL', net_margin: 'Margem Líquida (%)',
 }
-const equities: AssetType[] = ['stock_br', 'stock_us', 'bdr']
 /** Existing raw values and thresholds are preserved. Debt/PL is Yahoo percentage. */
 export const INDICATOR_CATALOG = Object.fromEntries(INDICATOR_IDS.map(id => [id, {
   label: INDICATOR_LABELS[id],
   unit: contract[id].unit,
-  classes: [...equities, ...(['pvp', 'dy'].includes(id) ? ['fii', 'reit'] as AssetType[] : [])],
+  classes: classes[id] as AssetType[],
   operators: INDICATOR_OPERATORS,
   alertOperators: ['gte', 'lte'] as const,
   sourceField: 'source', referenceField: 'reference_date',

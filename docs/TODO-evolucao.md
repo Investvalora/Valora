@@ -1,5 +1,21 @@
 # TODO ativa de evolução do Valora
 
+## Continuação técnica local —18/11
+
+- PR173 homologada no Galaxy A31: tooltip de rentabilidade dentro da tela em
+  duas posições; [evidências](homologacao-producao-pr173.md).
+- Disparador independente já publicado e execução automática confirmada.
+- Consulta de logs confirmou ciclo automático de Tesouro e recálculo sem erros
+  reportados. Sem execução manual nesta rodada.
+- Atualização PWA na retomada/reconexão e contrato de classes no score e alertas
+  implementados localmente. Build, tipos, lint e regressões aprovados; migration
+  e regressão original de alertas aprovadas no QA isolado. Ainda não publicados.
+  [Escopo e verificações](pwa-catalogo-tesouro-2026-11-18.md).
+- Pendentes: publicação/reteste físico dessas mudanças, comparação controlada de
+  desempenho, BB/PERT, evidência oficial PR US$0,03, lacunas de fornecedores e
+  importação/conciliação de recebimentos líquidos. Histórico abaixo não substitui
+  este estado atual.
+
 ## PR171 publicada e homologada — 18/11, 16h08 Brasília
 
 - Diagnóstico publicado validado no run real: intervalo anterior 8h46 continua sinalizado, mesmo com agendamento recente.

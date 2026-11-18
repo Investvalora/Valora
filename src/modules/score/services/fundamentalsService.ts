@@ -5,7 +5,7 @@ import type { FundamentalsRow } from '../types'
  * Colunas selecionadas — inclui `lpa` e `vpa` para Graham e Payout.
  */
 const FUNDAMENTALS_COLUMNS =
-  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, payout_ratio, source, updated_at, cvm_reference_date'
+  'ticker, reference_date, pl, pvp, roe, dy, debt_equity, net_margin, lpa, vpa, payout_ratio, source, updated_at, cvm_reference_date, asset:assets!fundamentals_ticker_fkey(type)'
 
 export const fundamentalsService = {
   /**
@@ -44,9 +44,10 @@ export const fundamentalsService = {
     // Manter apenas o registro mais recente por ticker (primeiro da série
     // descendente já é o mais recente para cada ticker).
     const latestByTicker = new Map<string, FundamentalsRow>()
-    for (const row of (data ?? []) as unknown as FundamentalsRow[]) {
+    for (const row of (data ?? []) as unknown as (FundamentalsRow & { asset?: { type: FundamentalsRow['asset_type'] } | null })[]) {
       if (!latestByTicker.has(row.ticker)) {
-        latestByTicker.set(row.ticker, row)
+        const { asset, ...fundamentals } = row
+        latestByTicker.set(row.ticker, { ...fundamentals, asset_type: asset?.type ?? null })
       }
     }
 

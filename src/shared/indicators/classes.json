@@ -1,0 +1,8 @@
+{
+  "pl": ["stock_br", "stock_us", "bdr"],
+  "pvp": ["stock_br", "stock_us", "bdr", "fii", "reit"],
+  "roe": ["stock_br", "stock_us", "bdr"],
+  "dy": ["stock_br", "stock_us", "bdr", "fii", "reit"],
+  "debt_equity": ["stock_br", "stock_us", "bdr"],
+  "net_margin": ["stock_br", "stock_us", "bdr"]
+}

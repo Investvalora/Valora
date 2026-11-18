@@ -27,6 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/security-scan.mjs
       - run: node scripts/build-indicator-contract.mjs --check
+      - run: node scripts/build-indicator-classes.mjs --check
       - run: node scripts/check-picomatch-mitigation.mjs
       # No upstream release fixes this advisory yet. Both active versions are
       # patched; the preceding mandatory check verifies the patch and PoCs.
@@ -85,6 +86,7 @@ jobs:
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/reviewed_nonpayer_coverage.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/eligible_provider_queue_health.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/independent_dispatch.sql
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/indicator_asset_classes.sql
       - run: node supabase/tests/import-concurrency.mjs
       - if: always()
         run: npx --yes supabase@3.0.0 stop

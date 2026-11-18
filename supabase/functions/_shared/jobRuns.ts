@@ -9,7 +9,7 @@ export async function jobRun(url: string, key: string, id: string, result?: Reco
     const r=value as Record<string,unknown>, d=r?.diagnostic as Record<string,unknown> | undefined
     if(!r || !['alpha_vantage','marketstack'].includes(String(r.provider)) || typeof r.ticker!=='string' || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(r.ticker) || !d
       || !Number.isInteger(d.row) || Number(d.row)<0 || Number(d.row)>999 || typeof d.ex_date!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(d.ex_date)
-      || !['format','precision','range','representation'].includes(String(d.kind)) || !['string','number','object','undefined','boolean','bigint','symbol','function'].includes(String(d.value_type))
+      || !['format','precision','zero','range','representation'].includes(String(d.kind)) || !['string','number','object','undefined','boolean','bigint','symbol','function'].includes(String(d.value_type))
       || !(d.decimal_places===null || Number.isInteger(d.decimal_places)&&Number(d.decimal_places)>=0&&Number(d.decimal_places)<=1000))return []
     return [{provider:r.provider,ticker:r.ticker,diagnostic:{row:d.row,ex_date:d.ex_date,kind:d.kind,value_type:d.value_type,decimal_places:d.decimal_places}}]
   }) : []

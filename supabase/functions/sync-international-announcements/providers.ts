@@ -8,7 +8,7 @@ export function providerOperationalFailure(error: string | null): boolean {
 export function providerCoverageGap(result: { error: string | null; metadata_variations?: number }): boolean {
   return (result.metadata_variations ?? 0) > 0 || ['provider_partial_invalid_amount', 'provider_distribution_unverified', 'provider_primary_disagreement', 'provider_calendar_unavailable', 'provider_precision_limited', 'provider_precision_unavailable'].includes(result.error ?? '')
 }
-export interface ProviderDiagnostic { row: number; ex_date: string; kind: 'format' | 'precision' | 'range' | 'representation'; value_type: string; decimal_places: number | null }
+export interface ProviderDiagnostic { row: number; ex_date: string; kind: 'format' | 'precision' | 'zero' | 'range' | 'representation'; value_type: string; decimal_places: number | null }
 export class ProviderDataError extends Error {
   readonly diagnostic: ProviderDiagnostic
   constructor(diagnostic: ProviderDiagnostic) { super('provider_invalid_amount'); this.diagnostic=diagnostic }
@@ -47,6 +47,7 @@ export function providerEvents(provider: DividendProvider, ticker: string, paylo
     if (!['number','string'].includes(typeof raw) || !/^\d+(?:\.\d{1,8})?$/.test(String(raw))) fail(decimals ? 'precision' : 'format')
     amount = Number(raw)
     if(provider==='marketstack'&&amount===0)throw new Error('provider_precision_unavailable')
+    if (amount === 0) fail('zero')
     if (!(amount > 0 && amount < 1e12)) fail('range')
     const [whole, fraction = ''] = String(raw).split('.')
     const exact = BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, '0'))

@@ -44,7 +44,7 @@ it('uses additional Alpha keys from the backend list and reserves within the tas
  expect(JSON.stringify(rpc.mock.calls)).not.toContain('private')
 })
 it('reports bounded amount diagnostics without logging a secret-bearing value',()=>{
- for (const [amount,kind,decimal_places] of [['0.16000000001','precision',11],['https://provider.invalid?apikey=PRIVATE','format',null],['0','range',0]] as const) {
+ for (const [amount,kind,decimal_places] of [['0.16000000001','precision',11],['https://provider.invalid?apikey=PRIVATE','format',null],['0','zero',0]] as const) {
   try { providerEvents('alpha_vantage','COST',{symbol:'COST',data:[{...event,amount}]},'2026-11-12'); throw new Error('accepted invalid amount') }
   catch(e) {
    expect(e).toBeInstanceOf(ProviderDataError)
@@ -52,6 +52,12 @@ it('reports bounded amount diagnostics without logging a secret-bearing value',(
    expect(JSON.stringify(e)).not.toContain('PRIVATE')
   }
  }
+})
+it('identifies the PR zero row without discarding valid neighboring cash events',()=>{
+ const diagnostics: import('../../../supabase/functions/sync-international-announcements/providers').ProviderDiagnostic[]=[]
+ const data=[{...event,ex_dividend_date:'2026-06-30',record_date:'2026-06-30',declaration_date:'2026-04-21',payment_date:'2026-07-10',amount:'0.0'}, {...event,amount:'0.16'}]
+ expect(providerEvents('alpha_vantage','PR',{symbol:'PR',data},'2026-11-17',diagnostics)).toHaveLength(1)
+ expect(diagnostics).toEqual([{row:0,ex_date:'2026-06-30',kind:'zero',value_type:'string',decimal_places:1}])
 })
 it('keeps reviewed distribution holds visible as incomplete coverage',()=>{
  expect(providerOperationalFailure('provider_distribution_unverified')).toBe(false)

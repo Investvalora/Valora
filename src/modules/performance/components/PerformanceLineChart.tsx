@@ -92,13 +92,21 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   useLayoutEffect(() => {
     const element = tooltipRef.current
     if (!element) return
-    element.style.transform = ''
-    const rect = element.getBoundingClientRect()
-    const region = element.closest('[aria-label="Histórico de rentabilidade comparada"]')?.getBoundingClientRect()
-    const left = Math.max(8, region?.left ?? 8)
-    const right = Math.min(window.innerWidth - 8, region?.right ?? window.innerWidth - 8)
-    const shift = Math.max(left - rect.left, Math.min(0, right - rect.right))
-    element.style.transform = `translateX(${shift}px)`
+    const clamp = () => {
+      element.style.transform = ''
+      const rect = element.getBoundingClientRect()
+      const region = element.closest('[aria-label="Histórico de rentabilidade comparada"]')?.getBoundingClientRect()
+      const left = Math.max(8, region?.left ?? 8)
+      const right = Math.min(window.innerWidth - 8, region?.right ?? window.innerWidth - 8)
+      const shift = Math.max(left - rect.left, Math.min(0, right - rect.right))
+      element.style.transform = `translateX(${shift}px)`
+    }
+    clamp()
+    // Recharts measures the tooltip and then moves its wrapper in a later commit.
+    const observer = new MutationObserver(clamp)
+    if (element.parentElement) observer.observe(element.parentElement, { attributes: true, attributeFilter: ['style'] })
+    window.addEventListener('resize', clamp)
+    return () => { observer.disconnect(); window.removeEventListener('resize', clamp) }
   })
   if (!active || !payload || payload.length === 0) return null
 
@@ -210,7 +218,7 @@ export default function PerformanceLineChart({
           tickLine={false}
           width={scrollable ? 0 : 56}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
         {!scrollable && (
           <Legend
             wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '8px' }}

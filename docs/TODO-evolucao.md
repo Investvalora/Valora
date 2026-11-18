@@ -1,5 +1,22 @@
 # TODO ativa de evolução do Valora
 
+## Acompanhamento e correção local — 18/11
+
+- [x] Conferir três runs automáticos de hoje: aprovados; último com 14 lotes e zero falhas. Filas sem tarefas elegíveis vencidas às 15h55 Brasília.
+- [x] Identificar indicador de cadência que voltava a normal ao iniciar um run após oito horas de intervalo. Correção local considera também o intervalo de criação mais recente.
+- [x] Reconsultar BB/PERT: BB tem histórico sem pagamentos, mas FAQ não confirma futuro; PERT tem referências oficiais históricas, sem validação de fonte atual para o coletor OTC.
+- [ ] PR/publicação do ajuste de diagnóstico; cadência previsível ainda depende de executor/disparador independente.
+- [ ] BB e PERT continuam sem política futura confirmada; não criar calendários nem suprimir coleta por inferência.
+
+[Evidências e limites](acompanhamento-cobertura-cadencia-2026-11-18.md).
+
+## PR170 publicada e homologada — 17/11, 22h42 Brasília
+
+- Duas migrations aplicadas. Alpha due=0 com scheduled_due=1: falso vencimento de AMZN corrigido, sem perder o total bruto.
+- Onze novas políticas confirmadas; 13 emissores com AMZN/TIC. Lacunas Alpha 13→2 e Marketstack 22→11 pela classificação oficial, sem criar dividendos.
+- Diagnóstico de cadência executado remotamente com sucesso; rotina com dois lotes e zero falhas. Hashes financeiros intactos e PR US$ 0,03 ainda retido.
+- Publicação da seção abaixo concluída. Permanecem BB/PERT, demais divergências de fornecedores e a limitação da cadência GitHub. [Evidências](homologacao-producao-pr170.md).
+
 ## Cobertura e cadência — correções locais em 17/11
 
 - [x] Corrigir health para contar somente tarefas estruturalmente elegíveis, preservando total bruto e orçamento separado; expiração de política restaura a contagem.

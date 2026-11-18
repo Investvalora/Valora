@@ -1,5 +1,30 @@
 # TODO ativa de evolução do Valora
 
+## Revisão das cinco pendências — 17/11, 20h09 Brasília
+
+- [x] Identificar PR/Alpha: linha com valor zero, mantida fora do calendário. Diagnóstico específico preparado localmente.
+- [x] Conferir PR/Marketstack US$ 0,03: sem confirmação oficial; relatório trimestral informa US$ 0,48 nos nove meses. Hold permanece, sem promover observação.
+- [x] Reconferir SAP no depositário: bruto final US$ 2,940725 preservado.
+- [x] Investigar TIC: fonte oficial confirma política de não pagar caixa às ordinárias; migration com validade de 30 dias preparada e testada no QA.
+- [x] Escoar filas vencidas primária e SEC com duas runs sem falhas; zero vencidas ao fechar.
+- [x] Conferir execução automática Tesouro 22:30 UTC: HTTP 200, 13 posições recalculadas, nenhum erro.
+- [ ] Abrir PR/publicar diagnóstico zero e política TIC; homologar após merge.
+- [ ] Revisar demais calendários ausentes por emissor; não equiparar resposta vazia a ausência de dividendos.
+- [ ] Acompanhar cadência futura: GitHub apresentou intervalos de várias horas apesar do cron de 15 minutos. Health ainda conta AMZN inelegível como vencida; sem bloqueio de coleta.
+
+[Evidências, fontes e limites](revisao-pendencias-proventos-2026-11-17.md). Este estado substitui as pendências antigas equivalentes abaixo; não encerra cobertura integral dos fornecedores.
+
+## Retestes MRX/PR executados em produção — 17/11
+
+- MRX passou na Alpha e Marketstack: dois eventos por fonte, sem erro; divergência de declaração preservada como metadado, sem inventar data oficial.
+- PR: coleta parcial Alpha validada (quatro eventos válidos, uma linha com valor inválido); hold Marketstack validado (observação não confirmada retida). Testes concluídos; lacunas dos dados de PR permanecem.
+- Contadores [20,3], rodízio confirmado novamente, hashes financeiros intactos. [Evidências](reteste-mrx-pr-producao-2026-11-17.md).
+
+## PR168 homologada em produção — 17/11
+
+- Migration aplicada, Edge v27 ativa; rotação real confirmada: uma chave em 20 e a seguinte em 1, agregado 21. Saldo do pool informado corretamente, sem reset de contadores.
+- Rotina manual aprovada e dados financeiros preservados. Alpha/TIC sem calendário; lacunas de fornecedores e retestes MRX/PR permanecem separados do rodízio. [Evidências](homologacao-producao-pr168.md).
+
 ## Correção do rodízio Alpha — 17/11, validada localmente
 
 - Removido o bloqueio global de 20 do caminho novo: claim por pool e reserva atômica por chave, incluindo configuração com uma única credencial.

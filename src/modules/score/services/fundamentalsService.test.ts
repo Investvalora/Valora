@@ -6,6 +6,11 @@ vi.mock('../../../shared/services/supabaseClient', () => ({ supabase: { from: ()
 } }) } }))
 import { fundamentalsService } from './fundamentalsService'
 beforeEach(() => { mocks.select.mockClear(); mocks.replies.length = 0 })
+it('propaga a classe do cadastro para aplicar o contrato dos indicadores no score', async () => {
+  mocks.replies.push({ data: [{ ticker: 'FUND11', asset: { type: 'fii' } }], error: null })
+  expect(await fundamentalsService.listByTickers(['FUND11'])).toEqual([{ ticker: 'FUND11', asset_type: 'fii' }])
+  expect(mocks.select.mock.calls[0][0]).toContain('assets!fundamentals_ticker_fkey(type)')
+})
 it('preserva a consulta durante rollout sem a coluna opcional de proveniência', async () => {
   mocks.replies.push({ data: null, error: { code: '42703', message: 'column fundamentals.cvm_reference_date does not exist' } }, { data: [{ ticker: 'ABC', reference_date: '2026-11-07', vpa: 10 }], error: null })
   expect(await fundamentalsService.listByTickers(['ABC'])).toMatchObject([{ ticker: 'ABC', vpa: 10 }])

@@ -36,6 +36,12 @@ function fund(ticker: string, overrides: Partial<FundamentalsRow> = {}): Fundame
 }
 
 // ─── evaluateRule ──────────────────────────────────────────────────────────────
+it('não soma ROE de FII, mas preserva DY compatível e sua explicação', () => {
+  const rules = [rule({ metric: 'roe', operator: 'gte', threshold_min: 1 }), rule({ metric: 'dy', operator: 'gte', threshold_min: 1 })]
+  const row = fund('FUND11', { asset_type: 'fii' })
+  expect(applyScoreRules(rules, [row]).get('FUND11')).toBe(10)
+  expect(explainScore(rules, row).criteria[0]).toMatchObject({ value: null, met: null, contribution: 0 })
+})
 
 describe('evaluateRule', () => {
   it('lt: verdadeiro quando value < threshold_min', () => {

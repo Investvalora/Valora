@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { watchPwaUpdates } from './shared/services/pwaUpdates'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator) {
   const registerPwa = () => {
     void navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      .then(watchPwaUpdates)
       .catch((error: unknown) => console.error('Falha ao registrar o PWA:', error))
   }
 

@@ -6,7 +6,7 @@ import { indicatorValue } from '../../../shared/indicators/catalog'
  * Retorna `null` quando o campo está ausente ou não é um número finito.
  */
 export function getMetricValue(row: FundamentalsRow, metric: ScoreMetric): number | null {
-  return indicatorValue(row, metric)
+  return indicatorValue(row, metric, row.asset_type)
 }
 
 /** Same rules and cap as the existing score, with missing data distinguished. */

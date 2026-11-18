@@ -1,4 +1,5 @@
 import { explainScore } from '../utils/scoreCalculation'
+import { formatIndicatorValue } from '../../../shared/indicators/catalog'
 import { METRIC_LABELS, OPERATOR_LABELS, type ScoreRule, type FundamentalsRow } from '../types'
 
 export function ScoreBreakdown({ rules, row }: { rules: ScoreRule[]; row: FundamentalsRow | null }) {
@@ -8,8 +9,8 @@ export function ScoreBreakdown({ rules, row }: { rules: ScoreRule[]; row: Fundam
       <p className="text-xs text-white/60">Soma dos critérios atendidos, limitada a 0–100. Dado ausente não soma pontos; não significa condição reprovada.</p>
       {result.criteria.map(({ rule, value, met, contribution }) => <div key={rule.id} className="rounded-xl border border-white/10 p-3 text-sm">
         <div className="flex flex-wrap justify-between gap-2"><strong className="text-white">{METRIC_LABELS[rule.metric]}</strong><span className="text-white/80">{contribution > 0 ? '+' : ''}{contribution} pontos</span></div>
-        <p className="mt-1 text-white/65">Condição: {OPERATOR_LABELS[rule.operator]} {rule.threshold_min.toLocaleString('pt-BR')}{rule.operator === 'between' ? ` e ${rule.threshold_max?.toLocaleString('pt-BR')}` : ''} · Vale {rule.points} pontos</p>
-        <p className="mt-1 text-white/65">Observado: {value === null ? 'Indisponível' : value.toLocaleString('pt-BR', { maximumFractionDigits: 4 })} · {met === null ? 'Sem dados' : met ? 'Atendido' : 'Não atendido'}</p>
+        <p className="mt-1 text-white/65">Condição: {OPERATOR_LABELS[rule.operator]} {formatIndicatorValue(rule.metric, rule.threshold_min)}{rule.operator === 'between' ? ` e ${formatIndicatorValue(rule.metric, rule.threshold_max)}` : ''} · Vale {rule.points} pontos</p>
+        <p className="mt-1 text-white/65">Observado: {formatIndicatorValue(rule.metric, value)} · {met === null ? 'Sem dados' : met ? 'Atendido' : 'Não atendido'}</p>
       </div>)}
       <p className="text-sm text-white/80">Soma antes do limite: {row ? result.raw : 'Indisponível'} · Score final: {result.total ?? 'Indisponível'}</p>
       {row && <p className="text-xs text-white/50">Referência dos fundamentos: {row.reference_date.split('-').reverse().join('/')}</p>}

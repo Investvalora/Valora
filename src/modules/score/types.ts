@@ -1,4 +1,5 @@
 import { INDICATOR_LABELS, type IndicatorId } from '../../shared/indicators/catalog'
+import type { AssetType } from '../portfolio/types'
 /** Métricas fundamentalistas disponíveis para regras de score. */
 export type ScoreMetric = IndicatorId
 
@@ -51,6 +52,7 @@ export const OPERATOR_LABELS: Record<ScoreOperator, string> = {
 
 /** Linha da tabela `fundamentals` (apenas o registro mais recente por ticker). */
 export interface FundamentalsRow {
+  asset_type?: AssetType | null
   /** Competência do VPA oficial usado somente quando o provedor não trouxe VPA. */
   cvm_reference_date?: string | null
   /** Payout da empresa em %, informado pelo provedor; não é recebimento pessoal. */

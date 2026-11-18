@@ -90,8 +90,8 @@ export function enrichPositionRows({
     return {
       ...row,
       pl,
-      roe: fund?.roe ?? null,
-      netMargin: fund?.net_margin ?? null,
+      roe: indicatorValue(fund, 'roe', row.type),
+      netMargin: indicatorValue(fund, 'net_margin', row.type),
       pvp,
       dy,
       proventosRecebidosBRL,

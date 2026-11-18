@@ -1,5 +1,11 @@
 # TODO ativa de evolução do Valora
 
+## PR171 publicada e homologada — 18/11, 16h08 Brasília
+
+- Diagnóstico publicado validado no run real: intervalo anterior 8h46 continua sinalizado, mesmo com agendamento recente.
+- Rotina aprovada em 36s, dois lotes e zero falhas. Filas sem tarefas elegíveis vencidas; hashes financeiros preservados.
+- Publicação do ajuste abaixo concluída. Permanecem calendário futuro de BB/PERT e a definição de disparador independente para periodicidade previsível. [Evidências](homologacao-producao-pr171.md).
+
 ## Acompanhamento e correção local — 18/11
 
 - [x] Conferir três runs automáticos de hoje: aprovados; último com 14 lotes e zero falhas. Filas sem tarefas elegíveis vencidas às 15h55 Brasília.
@@ -584,6 +590,15 @@ Homologação da edição: PR116 mergeada e publicada (`4b6d55a`), checks e depl
 
 **PR124 publicada — homologação parcial:** merge `19327c8`, CI da main e Vercel aprovados. Criação/restauração passou com bypass temporário do cache; edição/restauração/limpeza passou com cache normal, preservando inflação original5%. Nova estratégia falha com cache normal por HTML servido como asset JS pelo service worker. Bypass foi removido e nenhum dado foi salvo. [Evidências e pendência prioritária](homologacao-producao-pr124.md). Substitui estado local acima; não declarar tudo aprovado.
 # Complemento de cobertura — Alpha Vantage e Marketstack (12/11/2026)
+
+**Validação física e operacional —18/11/2026:** [evidências Android](homologacao-android-2026-11-18.md).
+Toque no tooltip de proventos aprovado no Galaxy A31. Tooltip de rentabilidade
+abre ao toque, mas corta8px à direita: correção local com tipos/lint e regressão
+aprovados; reteste físico após publicação pendente. Worker instalado já é o
+atual; atualização de worker antigo não comprovada. Três FCP físicos de660,
+668 e512ms, sem comparação controlada antes/depois. Cron independente acionado
+automaticamente às16h49 e deduplicou o intervalo manual; confirmar um intervalo
+automático novo. Tesouro atualizou1145 linhas hoje, referência17/11.
 
 - [x] Implementar conectores backend com verificação real de MA/COST, chaves fora do Git, cotas globais e cache por ticker.
 - [x] Preparar rodízio Marketstack com até oito contas, contadores persistentes por chave, bloqueio após cota esgotada e renovação mensal. Cinco chaves configuradas no Vault; as quatro adicionais passaram na consulta real mínima. Publicação ainda pendente.

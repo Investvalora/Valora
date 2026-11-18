@@ -1,5 +1,26 @@
 # TODO ativa de evolução do Valora
 
+## Cobertura e cadência — correções locais em 17/11
+
+- [x] Corrigir health para contar somente tarefas estruturalmente elegíveis, preservando total bruto e orçamento separado; expiração de política restaura a contagem.
+- [x] Acrescentar idade do item mais antigo e aviso de backlog envelhecido, mesmo com tentativas recentes.
+- [x] Revisar onze emissores em fontes oficiais: AS, BA, BNC, BRK.B, GO, IT, KN, MX, NU, SA e TSLA. Políticas de 30 dias preparadas; ainda não publicadas.
+- [x] Separar ITA/RA: vazios da Marketstack não significam calendário ausente no Valora.
+- [x] Manter retenção de PR/Marketstack US$ 0,03; regressão SQL aprovada.
+- [x] Investigar cadência: workflow ativo em main; lacunas na criação dos runs, maior intervalo 10h18. Novo diagnóstico por run preparado.
+- [ ] Publicar/homologar estas migrations e o diagnóstico após PR/merge.
+- [ ] BB: histórico oficial sem pagamentos, falta confirmar política/calendário futuro atual. PERT: fonte/identidade oficial não confirmada.
+- [ ] Definir disparador independente se houver requisito de execução previsível; cron GitHub continua best effort.
+
+[Fontes, alterações e validações](cobertura-e-cadencia-2026-11-17.md). Não representa cobertura integral nem garantia de pontualidade do GitHub.
+
+## PR169 publicada e homologada — 17/11, 22h18 Brasília
+
+- Migration TIC aplicada, Edge v28 ativa; classificação privada e expiração conferidas.
+- PR/Alpha retestado: quatro linhas válidas, diagnóstico `zero` persistido na auditoria parcial, nenhum recebimento criado.
+- Rotina real aprovada: dois lotes, zero falhas; filas primária/SEC sem tarefas vencidas. Hashes financeiros intactos.
+- Publicação/homologação da revisão abaixo concluídas. Permanecem os limites de cobertura, a cadência futura e PR/Marketstack sem confirmação oficial. [Evidências](homologacao-producao-pr169.md).
+
 ## Revisão das cinco pendências — 17/11, 20h09 Brasília
 
 - [x] Identificar PR/Alpha: linha com valor zero, mantida fora do calendário. Diagnóstico específico preparado localmente.

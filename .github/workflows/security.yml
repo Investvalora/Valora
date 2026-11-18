@@ -83,6 +83,7 @@ jobs:
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/sec_dividend_discovery.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/alpha_key_failover.sql
       - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/reviewed_nonpayer_coverage.sql
+      - run: docker exec -i supabase_db_valora psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /dev/stdin < supabase/tests/eligible_provider_queue_health.sql
       - run: node supabase/tests/import-concurrency.mjs
       - if: always()
         run: npx --yes supabase@3.0.0 stop

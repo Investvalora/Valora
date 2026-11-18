@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -87,10 +88,23 @@ function formatNormalized(value: number | null | undefined): string {
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const element = tooltipRef.current
+    if (!element) return
+    element.style.transform = ''
+    const rect = element.getBoundingClientRect()
+    const region = element.closest('[aria-label="Histórico de rentabilidade comparada"]')?.getBoundingClientRect()
+    const left = Math.max(8, region?.left ?? 8)
+    const right = Math.min(window.innerWidth - 8, region?.right ?? window.innerWidth - 8)
+    const shift = Math.max(left - rect.left, Math.min(0, right - rect.right))
+    element.style.transform = `translateX(${shift}px)`
+  })
   if (!active || !payload || payload.length === 0) return null
 
   return (
     <div
+      ref={tooltipRef}
       role="tooltip"
       className="min-w-[160px] rounded-xl border border-white/15 bg-[#242424]/85 bg-gradient-to-b from-white/[0.09] to-transparent px-3 py-2 text-sm shadow-[0_8px_24px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-sm"
     >

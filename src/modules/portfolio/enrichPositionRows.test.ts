@@ -4,6 +4,17 @@ import { applyBazin } from '../valuation/utils/bazinCalculation'
 import type { PositionRow, LatestQuote } from './types'
 import type { FundamentalsRow } from '../score/types'
 import type { DividendRaw } from '../dividends/types'
+import { evaluateCustomStrategy } from '../valuation/utils/customStrategy'
+
+it.each(['fii','reit','crypto','fixed_income'] as const)('does not feed company ROE/margin into strategies for %s',type=>{
+ const [row]=enrichPositionRows({rows:[{ticker:'QA',type} as PositionRow],fundamentalsByTicker:new Map([['QA',{roe:20,net_margin:10,source:'yahoo'} as FundamentalsRow]]),dividendTotalsByTicker:new Map()})
+ expect(row.roe).toBeNull();expect(row.netMargin).toBeNull()
+ expect(evaluateCustomStrategy([{metric:'roe',operator:'gte',min:10}],'all',row)).toBeNull()
+})
+it('does not feed demonstrative ROE/margin into strategies for equities',()=>{
+ const [row]=enrichPositionRows({rows:[{ticker:'QA',type:'stock_br'} as PositionRow],fundamentalsByTicker:new Map([['QA',{roe:20,net_margin:10,source:'seed'} as FundamentalsRow]]),dividendTotalsByTicker:new Map()})
+ expect(row.roe).toBeNull();expect(row.netMargin).toBeNull()
+})
 
 it('payout vem da empresa e independe do patrimônio e recebimentos pessoais', () => {
   const fund = { lpa: 2, payout_ratio: 130, source: 'yahoo' } as FundamentalsRow

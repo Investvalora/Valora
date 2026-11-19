@@ -1,4 +1,5 @@
 import { LoadingState } from '../../../shared/components/LoadingState'
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from "react";
 import {
@@ -762,6 +763,7 @@ function QuickTransactionForm({
       transactionDrawer
     >
       <form id="quick-transaction-form" onSubmit={submit} className="space-y-5">
+        <div className="flex items-center justify-end gap-1 text-xs text-gray-400">Quantidades, custos e moeda <InformationHelp topic="transactions" /></div>
         {draftAvailable && (
           <div
             role="status"

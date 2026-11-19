@@ -1,5 +1,7 @@
 const TITLES: Record<string, string> = {
   '/': 'Início', '/inicio': 'Início', '/carteira': 'Ativos', '/carteiras': 'Carteiras',
+  '/carteiras/planejamento': 'Planejamento e dados',
+  '/boas-vindas': 'Boas-vindas',
   '/login': 'Entrar', '/cadastro': 'Criar conta', '/signup': 'Criar conta',
   '/recuperar-senha': 'Recuperar senha', '/reset-password': 'Redefinir senha',
   '/sobre': 'Sobre', '/privacidade': 'Privacidade', '/termos': 'Termos de uso', '/conta': 'Minha conta',

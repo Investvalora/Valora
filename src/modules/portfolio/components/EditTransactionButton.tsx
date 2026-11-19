@@ -1,3 +1,4 @@
+import { invalidFraction, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -53,6 +54,7 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
     if (Object.values(numbers).some(value => !Number.isFinite(value) || value < 0) || numbers.quantity <= 0) {
       setError('Informe quantidade positiva e preço, custos e impostos válidos, usando vírgula para decimais.'); return
     }
+    if (invalidFraction(asset.data?.type, numbers.quantity)) { setError(WHOLE_UNITS_MESSAGE); return }
     if (numbers.quantity !== Number(numbers.quantity.toFixed(8))) { setError('Use até 8 casas decimais na quantidade.'); return }
     if ([numbers.price,numbers.brokerage_fee,numbers.tax].some(value => value !== Number(value.toFixed(4)))) {
       setError('Use até 4 casas decimais nos preços, custos e impostos.'); return

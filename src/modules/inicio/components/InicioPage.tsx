@@ -145,7 +145,7 @@ export function InicioPage() {
       </div>
 
       {/* ── Atalhos ── */}
-      <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
         <ShortcutCard
           to="/ativos"
           label="Ativos"
@@ -204,7 +204,7 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
     <NavLink
       to={to}
       className="
-        group flex flex-1 items-center gap-3.5 rounded-xl
+        group flex min-w-0 flex-1 items-center gap-3.5 rounded-xl
         bg-white/[0.08] px-[18px] py-4
         transition-colors hover:border-white/20 hover:bg-white/[0.1]
       "
@@ -226,7 +226,7 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
       {/* Texto */}
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium text-white">{label}</span>
-        <span className="block truncate text-[12px] text-[#8F8F8F]">{sub}</span>
+        <span className="block break-words text-[12px] text-[#8F8F8F]">{sub}</span>
       </span>
 
       <ArrowRight

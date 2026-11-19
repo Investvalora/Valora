@@ -373,3 +373,13 @@ describe('AddTransactionModal — bloqueio durante salvamento', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 })
+
+it('bloqueia fração de ação brasileira no modal antes de salvar', async () => {
+  holders.addTx.mutateAsync.mockClear()
+  renderModal({ ticker: 'PETR4', assetType: 'stock_br' })
+  change('txn-qty', '0.5')
+  change('txn-price', '40')
+  fireEvent.click(screen.getByRole('button', { name: 'Adicionar lançamento' }))
+  await screen.findByText(/exigem quantidade inteira/)
+  expect(holders.addTx.mutateAsync).not.toHaveBeenCalled()
+})

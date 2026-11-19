@@ -1,5 +1,5 @@
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useWallets } from '../hooks/useWallets'
 import type { Wallet } from '../services/walletService'
@@ -115,6 +115,8 @@ export function WalletsPage() {
           })}
         </div>
       )}
+
+      {selectedWallet && <Link to="/carteiras/planejamento" className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-white/20 px-4 text-sm text-white">Planejamento, exportação e saúde dos dados</Link>}
 
       <WalletEditorDialog
         isOpen={creating || editingOpen}

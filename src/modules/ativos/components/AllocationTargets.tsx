@@ -25,7 +25,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
     const { error } = await supabase.from('wallets').update({ allocation_targets: value }).eq('id', walletId).eq('user_id', user.id).select('id').single()
     if (error) throw error
     return value
-  }, onSuccess: (value) => { cache.setQueryData(key, value); setDraft(null) } })
+  }, onSuccess: (value) => { cache.setQueryData(key, value); void cache.invalidateQueries({ queryKey: ['planning', 'settings', user?.id, walletId] }); setDraft(null) } })
   const total = Object.values(targets).reduce((sum, value) => sum + (value ?? 0), 0)
   const ready = !valuation.isLoading && !valuation.isError && valuation.complete
   const editing = draft !== null

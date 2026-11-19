@@ -1,3 +1,4 @@
+import { invalidFraction, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -268,6 +269,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
       }
     }
 
+    if (invalidFraction(asset.type, payload.quantity)) { setError('quantity', { message: WHOLE_UNITS_MESSAGE }); return }
     addPosition.mutate(payload, {
       onSuccess: () => onSuccess(payload.ticker),
       onError: (error) => {

@@ -3,13 +3,16 @@
 ## Revisão ativa — 19/11
 
 - [x] Comparação histórica pelo CDN realizada em previews protegidos, autenticados pelo responsável no Android/Wi-Fi: cinco amostras válidas anteriores e seis atuais, cache aquecido, medianas FCP 460/466 ms. Sem ganho demonstrado. Escopo Chrome, sem reinstalar o PWA de produção. [Método e fontes](revisao-cobertura-desempenho-2026-11-19.md).
-- [x] Identificar falha de GOOG: Nasdaq informa Class C Capital Stock, recusado pelo contrato anterior. Correção genérica por tipo, revisão oficial do futuro GOOG e do trimestre RA/GGG preparadas e testadas no QA. Nenhuma mudança dessas revisões publicada ainda.
-- [ ] Abrir PR e publicar a correção de identidade/revisões oficiais; homologar após merge.
-- [ ] XPML11: integrar aviso oficial FNET 1387873 (R$ 0,80, COM 17/11, pagamento 25/11), mantendo XPML13/XPML15 separados e sem inferir data ex ou aprovação ausentes.
+- [x] Corrigir identidade de GOOG (Class C Capital Stock) e publicar revisões oficiais de GOOG/RA/GGG. PR176 homologada em produção em 19/11; coleta real de GOOG sem erro, cinco eventos completos e revisão oficial preservada.
+- [x] PR176 mergeada, migration aplicada e homologação autenticada concluída. Carteiras, recebimentos e observações dos fornecedores preservados. [Registro](homologacao-producao-pr176.md).
+- [x] XPML11: causa identificada e correção local da descoberta FNET preparada, genérica para FIIs; conservar aviso 1387873 sem data ex e exibi-lo separadamente em BRL, sem somar recibos XPML13/XPML15. [Escopo e rollout](fnet-cobertura-pendente-2026-11-19.md).
+- [ ] Publicar/homologar descoberta e avisos FNET da nova branch. Obter ex independente de XPML11 para incluir em totais; data COM não vira ex por inferência.
 - [ ] BB: declaração futura atual ainda não localizada. Histórico de ausência de pagamentos não basta.
 - [ ] PERT: OTC não confirma divulgação atual; sem calendário oficial verificável.
 - [ ] PR US$ 0,03: sem confirmação no 10-Q mais recente; retenção preservada.
 - [ ] Acompanhar demais calendários e divergências por emissor. Ter evento histórico/fonte de pagamento não demonstra cobertura futura integral.
+
+Investigação adicional dos quatro pontos em 19/11: tentativas oficiais B3 indisponíveis para ex de XPML11, FAQ BB conferido também no HTML/JSON-LD, nova fonte PERT sem leitura por timeout e divergência PR confrontada com comunicado e 10-Q. Nenhuma confirmação positiva adicional obtida. Critérios de encerramento e consultas externas **não enviadas** em [registro específico](verificacao-quatro-pendencias-2026-11-19.md).
 
 Esta revisão substitui as pendências equivalentes de comparação histórica abaixo. A referência do PWA instalado e a comparação local continuam como ensaios separados, não números intercambiáveis.
 

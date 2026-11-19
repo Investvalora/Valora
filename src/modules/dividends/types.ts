@@ -30,6 +30,10 @@ export interface DividendRaw {
  * usuário e o valor total recebido (calculado client-side).
  */
 export interface DividendRow extends DividendRaw {
+  quantity_known?: boolean
+  unit_value_known?: boolean
+  /** Statement amounts remain in their original currency, independently of display FX. */
+  receipt_costs?: { currency: string; withholding: number; fees: number }
   /** Display conversion only; original income remains unchanged in storage. */
   original_currency?: string
   original_total_value?: number

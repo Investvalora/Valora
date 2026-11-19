@@ -1,5 +1,23 @@
 # TODO ativa de evolução do Valora
 
+## Estado ativo — fechamento de 18/11
+
+Esta seção substitui estados anteriores equivalentes, preservados abaixo como histórico.
+
+- [x] PR174 publicada e homologada: atualização PWA observada no Android sem chamada manual de atualização; contrato compartilhado de classes conferido em score e alertas. [Registro](homologacao-producao-pr174.md).
+- [x] Comparação local controlada no Galaxy A31: ABBA, seis amostras por build, FCP mediano 318/322 ms; sem ganho demonstrado. Não mede CDN. [Método e limites](desempenho-android-comparacao-2026-11-18.md).
+- [x] Medir a versão atual no PWA de produção, Android e Wi-Fi reais: cinco amostras válidas, FCP mediano 396 ms (328–480 ms), worker/cache preservados e zero exceções ou respostas de erro do Supabase observadas. Baseline atual, sem alegar comparação histórica pelo CDN.
+- [x] Importador privado de recebimentos implementado: bruto, imposto, tarifa, líquido e moeda; referências idempotentes, conflitos explícitos e campos desconhecidos preservados. Regressões SQL e de interface aprovadas no QA, inclusive perda de resposta na confirmação. [Uso](importacao-recebimentos.md).
+- [x] Conferir o painel novo no Android físico autenticado, na versão local: 411 px, sem overflow horizontal; seletor ajustado ao padrão visual. Somente abertura/leitura, sem importar recebimentos.
+- [ ] Publicar o importador por PR, aplicar a migration após merge e homologar a entrega publicada. Nenhum recebimento pessoal importado durante a implementação.
+- [x] Filas conferidas em produção: sem tarefas de coleta vencidas ou backlog atrasado; orçamento e chaves disponíveis. Macro bem-sucedida; lote de fornecedores parcial, sem execução incompleta. [Diagnóstico](cobertura-recebimentos-2026-11-18.md).
+- [x] PERT: identidade atual confirmada no site OTC como Permanent Technologies, Inc.; divulgação atual e calendário continuam indisponíveis. Identidade confirmada não equivale a política de não pagar.
+- [ ] BlackBerry: obter política futura explícita; ausência histórica não encerra esta evidência.
+- [ ] PERT: obter divulgação atual/calendário oficial verificável.
+- [ ] PR/Marketstack US$ 0,03: obter confirmação oficial; permanece corretamente fora do calendário.
+- [ ] Continuar revisão de lacunas reais e divergências por emissor, distinguindo erro de fornecedor de ausência de calendário.
+- [ ] Comparação antes/depois integral pelo CDN em rede real: ainda sem baseline histórico equivalente. A medição atual e a comparação local devem permanecer separadas; não afirmar ganho sem esse controle.
+
 ## Continuação técnica local —18/11
 
 - PR173 homologada no Galaxy A31: tooltip de rentabilidade dentro da tela em

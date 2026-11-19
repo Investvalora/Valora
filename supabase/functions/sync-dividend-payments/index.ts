@@ -40,7 +40,7 @@ async function payments(task: Task) {
 Deno.serve(async request => {
   if (request.method !== 'POST') return Response.json({ error: 'method_not_allowed' }, { status: 405 })
   if (!await authorizeServiceJob(request, url, key)) return Response.json({ error: 'unauthorized' }, { status: 401 })
-  const errors: string[] = []; let processed = 0, enriched = 0, conflicts = 0
+  const errors: string[] = []; let processed = 0, enriched = 0, conflicts = 0, pending_ex = 0
   try {
     const tasks = await (await rest('rpc/claim_dividend_payment_sources', { method: 'POST', body: '{}' })).json() as Task[]
     for (const task of tasks) {
@@ -49,6 +49,7 @@ Deno.serve(async request => {
         const events = await payments(task)
         const result = await (await rest('rpc/store_confirmed_dividend_payments', { method: 'POST', body: JSON.stringify({ p_ticker: task.ticker, p_events: events }) })).json()
         enriched += result.enriched; conflicts += result.conflicts
+        pending_ex += result.pending_ex ?? 0
         if (result.conflicts) throw new Error('payment_event_conflict')
         processed++; ok = true
       } catch (error) {
@@ -63,6 +64,6 @@ Deno.serve(async request => {
         last_error: ok ? null : failure, ...(ok ? { last_success_at: new Date().toISOString() } : {}),
       }) })
     }
-    return Response.json({ processed, enriched, conflicts, failed: errors.length, errors, received_income_created: 0 }, { status: errors.length ? 503 : 200 })
+    return Response.json({ processed, enriched, conflicts, pending_ex, failed: errors.length, errors, received_income_created: 0 }, { status: errors.length ? 503 : 200 })
   } catch { return Response.json({ processed, enriched, error: 'payment_sync_incomplete' }, { status: 503 }) }
 })

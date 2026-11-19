@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { monthlyRate, simulateCompound, simulateFii, passiveIncomeGoal, fiiCeiling } from './investmentSimulations'
+import { monthlyRate, simulateCompound, simulateFii, passiveIncomeGoal, fiiCeiling, compareFiiReinvestment, sensitivityScenarios, compareFiiWithFixedIncome } from './investmentSimulations'
 
 it('converte taxa efetiva e respeita aportes ao fim do mês, inclusive juros zero', () => {
   expect((1 + monthlyRate(0.12)) ** 12).toBeCloseTo(1.12, 12)
@@ -45,4 +45,37 @@ it('rejeita campos inválidos, prazo excessivo e meta sem taxa positiva', () => 
   expect(() => simulateFii(1000, 200, 0, 0.12, 12)).toThrow()
   expect(() => passiveIncomeGoal(1000, 0, 0, 12)).toThrow()
   expect(() => fiiCeiling(1.2, 0.05, 0.08, 1, 0.01)).toThrow()
+})
+it('compares equal contributions without counting withdrawn income twice', () => {
+  const [withReinvest, without] = compareFiiReinvestment(100, 0, 10, 0.12, 12)
+  expect(withReinvest.invested).toBe(without.invested)
+  expect(withReinvest.withdrawn).toBe(0)
+  expect(without.withdrawn).toBeCloseTo(12)
+  expect(without.balance).toBe(100)
+  expect(without.totalResources).toBeCloseTo(112)
+  expect(withReinvest.totalResources).toBeGreaterThan(without.totalResources)
+  expect(compareFiiReinvestment(105, 200, 10, 0, 12)[0].totalResources).toBe(compareFiiReinvestment(105, 200, 10, 0, 12)[1].totalResources)
+})
+it('isolates sensitivity assumptions and inflation purchasing power', () => {
+  const rows = sensitivityScenarios(1000, 200, 0.12, 12, 0.04)
+  expect(rows).toHaveLength(7)
+  expect(rows[0].balance).toBeCloseTo(simulateCompound(1000, 200, 0.12, 12)[11].balance)
+  expect(rows[5].balance).toBe(rows[0].balance)
+  expect(rows[6].balance).toBe(rows[0].balance)
+  expect(rows[5].realBalance).toBeGreaterThan(rows[6].realBalance)
+  expect(rows[1].balance).toBeLessThan(rows[0].balance)
+  expect(rows[3].balance).toBeLessThan(rows[0].balance)
+  expect(sensitivityScenarios(100, 0, 0, 12, 0)[3].annual).toBe(-0.02)
+  expect(() => sensitivityScenarios(100, 0, 0, 12, 0, 0.2, 1)).toThrow()
+})
+it('compares equal reference capital without pretending annual tax is a redemption flow', () => {
+  const row = compareFiiWithFixedIncome(10, 1.2, 0.04, 0.08, 0.15, 0.01)
+  expect(row.currentYield).toBeCloseTo(0.12)
+  expect(row.annualReferenceIncome).toBeCloseTo(10 * row.net)
+  expect(row.realReference).toBeCloseTo((1 + row.net) / 1.04 - 1)
+  expect(row.ceiling).toBeCloseTo(fiiCeiling(1.2, 0.04, 0.08, 0.15, 0.01).ceiling)
+})
+it('rejects non-finite contributions and accumulated withdrawals even if the asset balance is finite', () => {
+  expect(() => simulateCompound(0, 1e308, -0.999, 12)).toThrow()
+  expect(() => simulateFii(1e308, 0, 1e308, 1, 600, false)).toThrow()
 })

@@ -7,6 +7,7 @@ import { useInsights, useDeleteInsight } from '../hooks/useInsights'
 import { ValuationGuide } from './ValuationGuide'
 import { StrategyManager } from './StrategyManager'
 import { InvestmentCalculators } from './InvestmentCalculators'
+import { StatementIndicators } from './StatementIndicators'
 import type { InsightRecord, InsightStrategy } from '../types'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
@@ -373,6 +374,7 @@ export function EstrategiasPage() {
       <StrategyManager />
       <ValuationGuide onCalculate={openInsight} />
       <InvestmentCalculators onUseYield={(yieldRate, parameters) => openNovaEstrategiaFii(yieldRate, parameters as Record<string, number>)} />
+      <StatementIndicators />
       {/* Lista de insights */}
       <InsightsList />
     </div>

@@ -19,3 +19,10 @@ it('rejeita estratégia vazia, intervalo invertido e valor não finito', () => {
   expect(validCustomRules([{ metric: 'dy', operator: 'between', min: 8, max: 6 }])).toBe(false)
   expect(validCustomRules([{ metric: 'dy', operator: 'gt', min: Infinity }])).toBe(false)
 })
+it('evaluates company payout in percentage points, preserving unknown values', () => {
+  const payout: CustomStrategyRule[] = [{ metric: 'payoutPercent', operator: 'between', min: 0, max: 60 }]
+  expect(validCustomRules(payout)).toBe(true)
+  expect(evaluateCustomStrategy(payout, 'all', { payoutPercent: 50 } as PositionRow)).toBe(true)
+  expect(evaluateCustomStrategy(payout, 'all', { payoutPercent: 150 } as PositionRow)).toBe(false)
+  expect(evaluateCustomStrategy(payout, 'all', { payoutPercent: null } as PositionRow)).toBeNull()
+})

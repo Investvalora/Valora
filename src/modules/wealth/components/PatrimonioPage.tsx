@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { deriveComposition } from '../../portfolio/composition'
@@ -132,7 +133,7 @@ export function PatrimonioPage() {
 
         {isLoading ? (
           <div className="flex h-[280px] items-center justify-center">
-            <p className="text-sm text-gray-400">Carregando gráfico...</p>
+            <LoadingState label="Carregando gráfico..." variant="chart" />
           </div>
         ) : emptyMessage ? (
           <div className="flex h-[280px] items-center justify-center">
@@ -143,7 +144,7 @@ export function PatrimonioPage() {
             <Suspense
               fallback={
                 <div className="flex h-[280px] items-center justify-center">
-                  <p className="text-sm text-gray-400">Carregando gráfico...</p>
+                  <LoadingState label="Carregando gráfico..." variant="chart" />
                 </div>
               }
             >

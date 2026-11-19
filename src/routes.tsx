@@ -93,7 +93,7 @@ export function AppRoutes() {
           {/* Novo fluxo */}
           <Route path="inicio" element={<InicioPage />} />
           <Route path="carteira" element={<Navigate to="/ativos/posicoes" replace />} />
-          <Route path="carteiras/planejamento" element={<PlanningPage />} />
+          <Route path="carteiras/planejamento" element={<Navigate to="/analise/ferramentas" replace />} />
           <Route path="carteiras" element={<WalletsPage />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
@@ -129,6 +129,7 @@ export function AppRoutes() {
 
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
+            <Route path="ferramentas" element={<Suspense fallback={<LoadingFallback />}><PlanningPage /></Suspense>} />
             <Route path="comparar" element={<Suspense fallback={<LoadingFallback />}><AssetComparison /></Suspense>} />
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />

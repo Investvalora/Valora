@@ -246,7 +246,7 @@ function RuleForm({
         <div className="flex flex-wrap justify-end gap-2 pt-1">
           <button
             type="button"
-            disabled={save.isPending}
+            aria-busy={save.isPending} disabled={save.isPending}
             onClick={close}
             className="rounded-lg border border-white/[0.1] px-4 py-2 text-[13px] text-white/60 transition-colors hover:bg-white/[0.05] disabled:opacity-50"
           >
@@ -254,7 +254,7 @@ function RuleForm({
           </button>
           <button
             type="submit"
-            disabled={save.isPending}
+            aria-busy={save.isPending} disabled={save.isPending}
             className="rounded-lg border border-nf-blue/30 bg-nf-blue/10 px-4 py-2 text-[13px] font-medium text-nf-blue transition-colors hover:bg-nf-blue/15 disabled:opacity-50"
           >
             {save.isPending ? 'Salvando…' : 'Salvar regra'}
@@ -325,7 +325,7 @@ function RuleRow({
         </button>
         <button
           type="button"
-          disabled={isPending}
+          aria-busy={isPending} disabled={isPending}
           onClick={onToggle}
           aria-label={rule.enabled ? `Pausar regra de ${rule.ticker}` : `Ativar regra de ${rule.ticker}`}
           className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nf-blue/40 disabled:opacity-40"
@@ -336,7 +336,7 @@ function RuleRow({
         </button>
         <button
           type="button"
-          disabled={isPending}
+          aria-busy={isPending} disabled={isPending}
           onClick={onDelete}
           aria-label={`Excluir regra de ${rule.ticker}`}
           className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-white/40 transition-colors hover:border-red-500/30 hover:bg-red-500/[0.08] hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/40 disabled:opacity-40"

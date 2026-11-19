@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useBrlDividends } from '../hooks/useBrlDividends'
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
@@ -171,7 +172,7 @@ export function ProventosPage() {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold text-white mb-6">Proventos</h1>
-        <p className="text-gray-400 animate-pulse">Carregando proventos…</p>
+        <LoadingState label="Carregando proventos…" />
       </div>
     )
   }
@@ -230,7 +231,7 @@ export function ProventosPage() {
           <button
             type="button"
             onClick={() => syncDividends.mutate()}
-            disabled={syncDividends.isPending}
+            aria-busy={syncDividends.isPending} disabled={syncDividends.isPending}
             className="flex items-center gap-2 rounded-full bg-[#393939] px-4 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[#454545] disabled:opacity-50"
           >
             <RefreshCw className={`h-3 w-3 ${syncDividends.isPending ? 'animate-spin' : ''}`} aria-hidden="true" />
@@ -305,9 +306,7 @@ export function ProventosPage() {
           <ChartErrorBoundary>
             <Suspense
               fallback={
-                <div className="flex h-[180px] items-center justify-center text-xs text-zinc-500 animate-pulse">
-                  Carregando gráfico…
-                </div>
+                <div className="flex h-[180px] items-center justify-center text-xs text-zinc-500 animate-pulse"><LoadingState label="Carregando gráfico…" variant="chart" /></div>
               }
             >
               <DividendsBarChart data={monthlyBars} />
@@ -382,7 +381,7 @@ export function ProventosPage() {
           <button
             type="button"
             onClick={() => syncDividends.mutate()}
-            disabled={syncDividends.isPending}
+            aria-busy={syncDividends.isPending} disabled={syncDividends.isPending}
             title="Busca proventos reais via Yahoo Finance e atualiza o banco"
             className="rounded-lg border border-blue-500/50 px-4 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
           >
@@ -436,9 +435,7 @@ export function ProventosPage() {
         <ChartErrorBoundary>
           <Suspense
             fallback={
-              <div className="h-[220px] flex items-center justify-center text-gray-500 text-sm animate-pulse">
-                Carregando gráfico…
-              </div>
+              <div className="h-[220px] flex items-center justify-center text-gray-500 text-sm animate-pulse"><LoadingState label="Carregando gráfico…" variant="chart" /></div>
             }
           >
             <DividendsBarChart data={monthlyBars} />

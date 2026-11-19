@@ -22,7 +22,7 @@ export function StarterScore() {
     <p className="mt-2 text-sm text-white/60">Exemplo para ações: cinco condições de 20 pontos, total de 100. Ajuste os limites ao setor e à sua análise; não é recomendação de investimento.</p>
     <ul className="my-3 space-y-1 text-xs text-white/70">{STARTER_SCORE.map(rule => <li key={rule.metric}>{({ pl: 'P/L de 1 a 15', pvp: 'P/VP de 0,1 a 2', roe: 'ROE ≥ 10%', net_margin: 'Margem líquida ≥ 5%', dy: 'DY ≥ 4%' } as Record<string, string>)[rule.metric]} · 20 pontos</li>)}</ul>
     <p className="mb-3 text-xs text-white/50">Após criar, clique em “Usar este score” para selecioná-lo. Dados ausentes não somam pontos.</p>
-    <button disabled={create.isPending} onClick={() => create.mutate()} className="rounded-full border border-nf-blue/40 bg-nf-blue/10 px-4 py-2 text-sm text-nf-blue disabled:opacity-50">{create.isPending ? 'Criando…' : 'Criar modelo inicial'}</button>
+    <button aria-busy={create.isPending} disabled={create.isPending} onClick={() => create.mutate()} className="rounded-full border border-nf-blue/40 bg-nf-blue/10 px-4 py-2 text-sm text-nf-blue disabled:opacity-50">{create.isPending ? 'Criando…' : 'Criar modelo inicial'}</button>
     {create.isError && <p role="alert" className="mt-3 text-sm text-amber-200">Não foi possível criar o modelo. Tente novamente.</p>}
   </div>
 }

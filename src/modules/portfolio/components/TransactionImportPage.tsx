@@ -1,4 +1,5 @@
 import { ArrowLeft, FileUp, Wallet } from 'lucide-react'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -187,6 +188,7 @@ export function TransactionImportPage() {
         <button className="ml-3 underline" type="button" onClick={() => { if (storageKey) removeDraft(storageKey); setDraftAvailable(false) }}>Descartar rascunho</button>
       </div>}
       {draftWarning && <p role="status" className="mb-4 text-sm text-amber-200">{draftWarning}</p>}
+      {(isReading || isValidating) && <LoadingState variant="table" label={isValidating ? 'Validando ativos e quantidades do CSV…' : 'Lendo arquivo CSV…'} />}
 
       <section className="rounded-[14px] border border-white/[0.08] bg-[#1B1B1B] p-5 sm:p-6" aria-label="Upload de CSV">
         <label htmlFor="csv-number-format" className="mb-2 block text-sm font-semibold text-white">Formato numérico do arquivo</label>
@@ -217,7 +219,7 @@ export function TransactionImportPage() {
       </section>
 
       {fileError && <p className="mt-4 rounded border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-300" role="alert">{fileError}</p>}
-      {fileError && rows.length > 0 && <button type="button" disabled={isValidating || importMutation.isPending} className="mt-3 min-h-11 rounded-full border border-white/15 px-4 text-sm text-white/70 hover:bg-white/5" onClick={() => void validateRows(rows)}>Revalidar prévia</button>}
+      {fileError && rows.length > 0 && <button type="button" aria-busy={importMutation.isPending} disabled={isValidating || importMutation.isPending} className="mt-3 min-h-11 rounded-full border border-white/15 px-4 text-sm text-white/70 hover:bg-white/5" onClick={() => void validateRows(rows)}>Revalidar prévia</button>}
       {walletChanged && <p role="alert" className="mt-4 text-amber-200">A carteira mudou. Selecione o arquivo novamente para conferir o destino antes de importar.</p>}
       {history.isError && <p role="alert" className="mt-4 text-amber-200">Não foi possível conferir o histórico para identificar duplicatas. <button type="button" className="underline" onClick={() => void history.refetch()}>Tentar novamente</button></p>}
       {successMessage && <p className="mt-4 rounded border border-green-500/50 bg-green-500/10 p-4 text-sm text-green-300" role="status">{successMessage}</p>}
@@ -227,7 +229,7 @@ export function TransactionImportPage() {
           {duplicates.size > 0 && <label className="mb-4 block rounded-xl border border-amber-500/40 p-3 text-sm text-amber-200"><input type="checkbox" checked={acceptDuplicates} onChange={event => setAcceptDuplicates(event.target.checked)} className="mr-2 h-4 w-4 accent-nf-purple" />Conferi as {duplicates.size} linhas com possível duplicidade e quero importar as selecionadas. Compras iguais podem ser legítimas; nenhuma foi removida automaticamente.</label>}
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-white/65">{totalRows} linhas encontradas; {selectedCount} selecionadas.</p>
-            <button type="button" disabled={importMutation.isPending} onClick={selectValidRows} className="min-h-11 rounded-full border border-white/15 px-4 text-xs font-medium text-white/70 hover:bg-white/5">Selecionar linhas válidas</button>
+            <button type="button" aria-busy={importMutation.isPending} disabled={importMutation.isPending} onClick={selectValidRows} className="min-h-11 rounded-full border border-white/15 px-4 text-xs font-medium text-white/70 hover:bg-white/5">Selecionar linhas válidas</button>
           </div>
           {totalRows > MAX_PREVIEW_ROWS && <p className="mb-3 text-sm text-amber-300">Exibindo as primeiras {MAX_PREVIEW_ROWS} linhas; as linhas válidas restantes continuam incluídas na confirmação.</p>}
           <div className="overflow-x-auto rounded-[14px] border border-white/10">
@@ -250,7 +252,7 @@ export function TransactionImportPage() {
             </table>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => void confirm()} disabled={selectedCount === 0 || !selectedWallet || walletChanged || history.isPending || history.isError || (duplicates.size > 0 && !acceptDuplicates) || isReading || isValidating || !!fileError || importMutation.isPending} className="min-h-11 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">{importMutation.isPending ? 'Importando...' : isValidating ? 'Validando...' : 'Confirmar importação'}</button>
+            <button type="button" onClick={() => void confirm()} aria-busy={history.isPending || isReading || isValidating || importMutation.isPending} disabled={selectedCount === 0 || !selectedWallet || walletChanged || history.isPending || history.isError || (duplicates.size > 0 && !acceptDuplicates) || isReading || isValidating || !!fileError || importMutation.isPending} className="min-h-11 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">{importMutation.isPending ? 'Importando...' : isValidating ? 'Validando...' : 'Confirmar importação'}</button>
             <span className="text-sm text-white/50">Linhas inválidas devem ser corrigidas ou desmarcadas.</span>
           </div>
         </section>

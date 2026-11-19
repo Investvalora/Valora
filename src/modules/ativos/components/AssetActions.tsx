@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { ArrowLeft, MoreHorizontal } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -51,7 +52,7 @@ function AssetActionSheet({ row, showHistory, onHistory, onBack, onAdd, onClose 
     >
       {showHistory ? (
         <div className="floating-sheet-history">
-          <button type="button" data-history-back onClick={onBack} disabled={deletion.isPending}
+          <button type="button" data-history-back onClick={onBack} aria-busy={deletion.isPending} disabled={deletion.isPending}
             className="mb-2 flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm text-white/75 hover:bg-white/10 hover:text-white disabled:opacity-45">
             <ArrowLeft size={16} aria-hidden="true" />
             Voltar às opções
@@ -79,7 +80,7 @@ function AssetActionLaunch({ row, onClose }: { row: PositionRow; onClose: () => 
   if (!rowAsset && catalog.isLoading) {
     return (
       <Modal isOpen title="Adicionar Lançamento" onClose={onClose} variant="transaction" transactionDrawer>
-        <p role="status">Carregando dados do ativo…</p>
+        <LoadingState label="Carregando dados do ativo…" />
       </Modal>
     )
   }

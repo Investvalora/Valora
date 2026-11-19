@@ -567,7 +567,9 @@ Atualização07/11: implementação inicial publicada pela PR110; início, impor
 
 ## 4. Novas funcionalidades de produto
 
-Implementação local de FUN-01 a FUN-05 em 19/11/2026: `/carteiras/planejamento`, acessível por Carteiras. Testes e limites em [5ª bateria e ferramentas](homologacao-quinta-bateria-e-ferramentas.md). Marcação indica entrega local; merge, duas migrations e homologação em produção ainda pendentes. Restauração automática não faz parte da entrega: há exportação e prévia de validação.
+FUN-01 a FUN-05 publicadas pela PR178 em 19/11/2026. Merge, CI, duas migrations e verificações de produção aprovados. [Evidências e limites de produção](homologacao-producao-pr178.md); [regressões locais](homologacao-quinta-bateria-e-ferramentas.md). Restauração automática não faz parte da entrega: há exportação e prévia de validação.
+
+**Melhoria local posterior, aguardando publicação:** ferramentas movidas para **Análise → Ferramentas**, `/analise/ferramentas`, com redirecionamento do endereço antigo. Skeletons, feedback de andamento e motion compartilhados revisados para o sistema. [Escopo e homologação](interface-motion-ferramentas.md).
 
 - [x] **FUN-01 — Planejador do próximo aporte.** Informar o valor disponível e simular distribuição por classe usando as metas já existentes, com mínimos e sobra de caixa explícitos. Resultado é planejamento, sem execução de ordens.
 - [x] **FUN-02 — Explicar a variação do patrimônio.** Separar aportes/retiradas, valorização, câmbio e proventos; explicitar convenção e evitar dupla contagem. Permitir reconciliar o total com a mesma data/base.
@@ -667,4 +669,4 @@ Detalhes: [implementação e limites](fallbacks-proventos-alpha-marketstack-2026
 - [x] DEF-02/CT08: atalhos do Início empilhados abaixo de 1280 px e texto com quebra; sem corte em 953, 1024 e 1366 px.
 - [x] Achado adicional: título correto da rota `/boas-vindas`.
 - [x] Gráfico compacto de proventos: valor exato por mês no mouse, foco, teclado e seleção por toque.
-- [ ] Publicar e homologar esta entrega em produção após revisão/merge e aplicação das migrations.
+- [x] PR178 publicada e homologada em produção; duas migrations aplicadas, CI aprovado, ferramentas e gráfico conferidos, validação de quantidade e isolamento testados. [Evidências e limites](homologacao-producao-pr178.md).

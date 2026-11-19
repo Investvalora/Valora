@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useQuery } from '@tanstack/react-query'
 import { sectorService } from '../services/sectorService'
 import { AssetValuationNotice } from './AssetValuationNotice'
@@ -396,13 +397,13 @@ export function AtivosComposicao() {
         {activeToggle === 'Setor' && (
           <div className="mb-4 space-y-2 text-xs text-white/50">
             <p>Classificação por setor da Brapi para ações brasileiras e BDRs. Sem classificação confiável, empresas e fundos ficam em “Não classificado”. ETFs, cripto e renda fixa ficam em “Sem setor econômico”; o total da carteira é preservado.</p>
-            {sectorQuery.isLoading && <p role="status">Buscando classificação por setor…</p>}
+            {sectorQuery.isLoading && <LoadingState label="Buscando classificação por setor…" />}
             {sectorQuery.isError && <p role="alert">Não foi possível atualizar os setores. A classificação já disponível foi mantida. <button type="button" className="underline" onClick={() => void sectorQuery.refetch()}>Tentar novamente</button></p>}
           </div>
         )}
         {isLoading ? (
           <div className="flex h-[200px] items-center justify-center">
-            <p className="text-[13px] text-[#8F8F8F] animate-pulse">Carregando composição…</p>
+            <LoadingState label="Carregando composição…" variant="table" />
           </div>
         ) : composition.slices.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center">

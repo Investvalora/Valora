@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from "react";
 import {
@@ -900,9 +901,7 @@ function QuickTransactionForm({
                   className="transaction-asset-options absolute inset-x-0 top-full mt-2 max-h-44 overflow-y-auto overscroll-contain rounded-2xl border p-1.5"
                 >
                   {(isSearchingAssets || !suggestionsReady) && (
-                    <p className="px-3 py-2 text-xs text-white/50">
-                      Buscando ativos...
-                    </p>
+                    <LoadingState label="Buscando ativos..." />
                   )}
                   {!isSearchingAssets &&
                     suggestionsReady &&
@@ -1340,14 +1339,14 @@ function QuickTransactionForm({
             <button
               type="button"
               onClick={handleClose}
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="min-h-11 rounded-xl px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSaving || changingCurrency || !selectedWallet}
+              aria-busy={isSaving} disabled={isSaving || changingCurrency || !selectedWallet}
               className={`min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${isSale ? "bg-rose-700 hover:bg-rose-600" : "bg-blue-600 hover:bg-blue-500"}`}
             >
               {externalAsset.state.status === "loading"

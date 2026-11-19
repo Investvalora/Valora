@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Settings } from 'lucide-react'
@@ -358,7 +359,7 @@ export function MobileCarteiraHome({
             </div>
 
             {dashboard.isLoading ? (
-              <p className="mt-12 text-sm text-zinc-500">Carregando dados da carteira…</p>
+              <LoadingState label="Carregando dados da carteira…" />
             ) : dashboard.isError ? (
               <button
                 type="button"
@@ -404,7 +405,7 @@ export function MobileCarteiraHome({
                 Voltar
               </button>
             </div>
-            {isLoading && <p className="text-sm text-zinc-400">Carregando carteiras…</p>}
+            {isLoading && <LoadingState label="Carregando carteiras…" variant="table" />}
             {isError && (
               <button type="button" onClick={() => void refetch()} className="text-sm text-red-300">
                 Não foi possível carregar. Tentar novamente

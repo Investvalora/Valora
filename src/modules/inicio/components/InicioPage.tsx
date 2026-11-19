@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
@@ -112,7 +113,7 @@ export function InicioPage() {
 
       <ReturnPeriodNotice endDate={dashboard.returnEndDate} />
       <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
-      {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
+      {dashboard.isLoading && <LoadingState label="Carregando dados da carteira…" />}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">
           Não foi possível atualizar os dados. Tentar novamente

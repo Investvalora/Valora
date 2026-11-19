@@ -4,6 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { AnalisePage } from './AnalisePage'
 
 describe('Análise', () => {
+  it('oferece Ferramentas na análise e mantém a aba selecionada', () => {
+    render(<MemoryRouter initialEntries={['/analise/ferramentas']}><Routes><Route path="/analise" element={<AnalisePage />}><Route path="ferramentas" element={<p>Planejamento disponível</p>} /></Route></Routes></MemoryRouter>)
+    expect(screen.getByRole('tab', { name: 'Ferramentas' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Planejamento disponível')).toBeInTheDocument()
+  })
   it('trata Score e Alertas como guias da mesma tela no mobile', () => {
     render(
       <MemoryRouter initialEntries={['/analise/score']}>
@@ -41,6 +46,6 @@ describe('Análise', () => {
 
     expect(screen.getByRole('tab', { name: 'Score' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Editor de regra')).toBeInTheDocument()
-    expect(screen.getByRole('tablist').parentElement).toHaveClass('hidden', 'md:block')
+    expect(screen.getByRole('tablist').closest('.shrink-0')).toHaveClass('hidden', 'md:block')
   })
 })

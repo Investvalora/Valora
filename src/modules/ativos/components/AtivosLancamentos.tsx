@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { AssetValuationNotice } from './AssetValuationNotice'
 import { useAtivosValuation } from '../hooks/useAtivosValuation'
 /**
@@ -206,7 +207,7 @@ function TransactionCard({
                     setConfirmDelete(false)
                     onDelete(txn.id)
                   }}
-                  disabled={deleteTransaction.isPending}
+                  aria-busy={deleteTransaction.isPending} disabled={deleteTransaction.isPending}
                   className="rounded bg-red-600 px-2 py-0.5 text-[11px] text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   Sim
@@ -344,7 +345,7 @@ function TxnRow({
                   setConfirmDelete(false)
                   onDelete(txn.id)
                 }}
-                disabled={deleteTransaction.isPending}
+                aria-busy={deleteTransaction.isPending} disabled={deleteTransaction.isPending}
                 className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700 disabled:opacity-50"
               >
                 Sim
@@ -585,7 +586,7 @@ export function AtivosLancamentos() {
             <Suspense
               fallback={
                 <div className="flex h-[320px] items-center justify-center">
-                  <p className="text-sm text-gray-400 animate-pulse">Carregando…</p>
+                  <LoadingState label="Carregando…" />
                 </div>
               }
             >
@@ -641,7 +642,7 @@ export function AtivosLancamentos() {
 
         {txnLoading ? (
           <div className="flex items-center justify-center py-10">
-            <p className="text-sm text-gray-400 animate-pulse">Carregando lançamentos…</p>
+            <LoadingState label="Carregando lançamentos…" variant="table" />
           </div>
         ) : txnError ? (
           <div className="px-6 py-8">

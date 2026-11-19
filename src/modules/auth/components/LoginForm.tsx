@@ -122,7 +122,7 @@ function DesktopLoginForm() {
         {pendingEmail && <ResendConfirmation key={pendingEmail} email={pendingEmail} />}
 
         {cooldown > 0 && <p role="status" className="text-sm text-amber-300">Muitas tentativas. Aguarde {cooldown}s antes de tentar novamente.</p>}
-        <button type="submit" disabled={cooldown > 0 || loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
+        <button type="submit" aria-busy={loginMutation.isPending || googleMutation.isPending} disabled={cooldown > 0 || loginMutation.isPending || googleMutation.isPending} className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#2563eb] text-base font-bold text-white shadow-[0_4px_20px_rgba(37,99,235,0.25)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50">
           {loginMutation.isPending ? 'Entrando...' : cooldown ? `Aguarde ${cooldown}s` : 'Entrar'}
         </button>
         <div className="flex items-center gap-3 py-1" aria-hidden="true">
@@ -130,7 +130,7 @@ function DesktopLoginForm() {
           <span className="text-xs text-white/30">ou</span>
           <div className="h-px flex-1 bg-white/[0.08]" />
         </div>
-        <button type="button" disabled={googleMutation.isPending || loginMutation.isPending} className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.05] text-[15px] font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50" onClick={() => {
+        <button type="button" aria-busy={googleMutation.isPending || loginMutation.isPending} disabled={googleMutation.isPending || loginMutation.isPending} className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.05] text-[15px] font-medium text-white transition-colors hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6baee8] disabled:opacity-50" onClick={() => {
           setErrorMessage('')
           googleMutation.mutate()
         }}>

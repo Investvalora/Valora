@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 /**
  * ScoreRulePage
  * - Criação (/analise/score/nova): página dedicada com layout desktop dois painéis + mobile scroll
@@ -312,12 +313,12 @@ function ScoreRuleFields({
 
       {/* Creation has a separate mobile action bar; editing uses these buttons at every width. */}
       <div className={`${isEditing ? 'flex' : 'hidden md:flex'} gap-3 flex-wrap`}>
-        <button type="submit" disabled={isSaving}
+        <button type="submit" aria-busy={isSaving} disabled={isSaving}
           className="min-h-11 rounded-xl bg-nf-blue px-5 text-sm font-semibold text-[#11132A] transition-colors hover:bg-[#96A0FF] disabled:opacity-50">
           {isSaving ? 'Salvando…' : isEditing ? 'Salvar alterações' : 'Criar regra'}
         </button>
         {!isEditing && showCreateAndAddAnother && (
-          <button type="button" disabled={isSaving} onClick={onSubmitAndAddAnother}
+          <button type="button" aria-busy={isSaving} disabled={isSaving} onClick={onSubmitAndAddAnother}
             className="min-h-11 rounded-xl border border-white/15 px-5 text-sm font-medium text-white/85 transition-colors hover:bg-white/[0.06] disabled:opacity-50">
             Criar e adicionar outra
           </button>
@@ -427,7 +428,7 @@ function ScoreRuleCreatePage() {
       <div role="toolbar" aria-label="Ações da regra" className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 flex gap-3 border-t border-white/10 bg-[#1C1C1C]/95 px-4 py-3 backdrop-blur-sm md:hidden">
         <button
           type="button"
-          disabled={state.isSaving}
+          aria-busy={state.isSaving} disabled={state.isSaving}
           onClick={state.onSubmit}
           className="min-h-12 flex-1 rounded-xl bg-nf-blue px-4 text-sm font-semibold text-[#11132A] disabled:opacity-50"
         >
@@ -468,7 +469,7 @@ function ScoreRuleEditModal({ id }: { id: string }) {
       <>
         <BackgroundPage />
         <Modal isOpen title="Editar regra de score" onClose={finishAndReturn} dismissible={isOpen} variant="score" closing={!isOpen}>
-          <p className="py-8 text-center text-sm text-white/50">Carregando regra…</p>
+          <LoadingState label="Carregando regra…" />
         </Modal>
       </>
     )

@@ -49,7 +49,7 @@ export function FavoriteButton({ ticker }: { ticker: string }) {
   if (isError) return <button type="button" onClick={() => refetch()} className="min-h-11 text-sm text-nf-pink">Tentar carregar favoritos</button>
   return <div>
     <button type="button" aria-pressed={displayFavorite} aria-label={`${displayFavorite ? 'Remover' : 'Adicionar'} ${ticker} ${displayFavorite ? 'dos' : 'aos'} favoritos`}
-      disabled={!signedIn || isPending || mutation.isPending}
+      aria-busy={isPending || mutation.isPending} disabled={!signedIn || isPending || mutation.isPending}
       onClick={toggleFavorite}
       className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-white/85 transition-colors duration-300 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple disabled:opacity-50">
       <span className="relative grid h-4 w-4 shrink-0 place-items-center" aria-hidden="true">

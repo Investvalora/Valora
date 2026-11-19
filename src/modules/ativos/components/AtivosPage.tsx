@@ -1,3 +1,4 @@
+import { MotionRegion } from '../../../shared/components/MotionRegion'
 /**
  * AtivosPage — shell de layout para o novo fluxo desktop.
  * Header + tabs fixos no topo; conteúdo scrollável abaixo.
@@ -53,7 +54,7 @@ export function AtivosPage() {
           <div className="flex justify-end"><AssetFilterButton /></div>
           <ActiveAssetFilters />
         </div>}
-        <Outlet />
+        <MotionRegion><Outlet /></MotionRegion>
       </div>
 
       <AssetFiltersPanel />

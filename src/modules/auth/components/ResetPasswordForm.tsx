@@ -81,7 +81,7 @@ export function ResetPasswordForm() {
           </div>
         )}
 
-        <button type="submit" disabled={resetMutation.isPending} className={authButton}>
+        <button type="submit" aria-busy={resetMutation.isPending} disabled={resetMutation.isPending} className={authButton}>
           {resetMutation.isPending ? 'Salvando...' : 'Salvar nova senha'}
         </button>
       </form>}

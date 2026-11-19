@@ -230,7 +230,7 @@ function InsightForm({ onClose, autoFocusTickerDelay = 0 }: InsightFormProps) {
               key={s}
               type="button"
               aria-pressed={strategy === s}
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               onClick={() => setStrategy(s)}
               className={`flex items-center gap-2.5 rounded-xl border px-4 py-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a0a7ff] ${
                 strategy === s
@@ -369,7 +369,7 @@ function InsightForm({ onClose, autoFocusTickerDelay = 0 }: InsightFormProps) {
       {strategy === 'bazin' && (
         <button
           type="button"
-          disabled={!selectedAsset || bazinCalculating || isSaving}
+          aria-busy={isSaving} disabled={!selectedAsset || bazinCalculating || isSaving}
           onClick={handleCalculateBazin}
           className="flex w-full items-center justify-center gap-2 rounded-full border border-[#797fff]/35 bg-[#797fff]/10 px-4 py-2.5 text-sm font-medium text-[#c2c5ff] transition-colors hover:bg-[#797fff]/20 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -487,14 +487,14 @@ function InsightForm({ onClose, autoFocusTickerDelay = 0 }: InsightFormProps) {
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
         >
           Cancelar
         </button>
         <button
           type="button"
-          disabled={!canSave || isSaving}
+          aria-busy={isSaving} disabled={!canSave || isSaving}
           onClick={handleSave}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#393939] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#484848] disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -513,14 +513,14 @@ function InsightForm({ onClose, autoFocusTickerDelay = 0 }: InsightFormProps) {
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
         >
           Cancelar
         </button>
         <button
           type="button"
-          disabled={!canSave || isSaving}
+          aria-busy={isSaving} disabled={!canSave || isSaving}
           onClick={handleSave}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#393939] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#484848] disabled:cursor-not-allowed disabled:opacity-40"
         >

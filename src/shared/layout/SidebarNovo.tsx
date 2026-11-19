@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { MotionNavLink as NavLink } from '../components/MotionNavLink'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { navItemsNovo } from './navNovo'
 

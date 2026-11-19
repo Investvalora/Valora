@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useMemo, useState } from 'react'
 import { useDividends } from '../../dividends/hooks/useDividends'
 import type { DividendPeriod } from '../../dividends/types'
@@ -20,7 +21,7 @@ export function AnnouncedDividends() {
       <label className="text-sm text-white/70">Previsão <select value={period} onChange={(event) => setPeriod(event.target.value as DividendPeriod)} className="min-h-11 rounded-lg bg-[#262626] px-3"><option value="6M">Próximos 6 meses</option><option value="1A">Próximo ano</option><option value="Tudo">Todos os anúncios</option></select></label>
       <input aria-label="Buscar anúncio por ativo" placeholder="Buscar ativo" value={search} onChange={(event) => setSearch(event.target.value)} className="min-h-11 rounded-lg border border-white/15 bg-[#262626] px-3 text-white" />
     </div>
-    {isLoading ? <p role="status">Carregando anúncios…</p> : isError ? <p role="alert">Não foi possível carregar os anúncios. <button onClick={refetch}>Tentar novamente</button></p> : filtered.length === 0 ? <p className="text-sm text-white/50">Nenhum anúncio disponível para os ativos e o período selecionados. Isso não significa ausência de pagamentos futuros.</p> :
+    {isLoading ? <LoadingState label="Carregando anúncios…" variant="table" /> : isError ? <p role="alert">Não foi possível carregar os anúncios. <button onClick={refetch}>Tentar novamente</button></p> : filtered.length === 0 ? <p className="text-sm text-white/50">Nenhum anúncio disponível para os ativos e o período selecionados. Isso não significa ausência de pagamentos futuros.</p> :
       <div className="space-y-6">{([true, false] as const).map((dated) => <section key={String(dated)}>
         <h3 className="mb-3 text-sm font-semibold text-white">{dated ? 'Pagamentos futuros com data' : 'Sem data de pagamento · situação desconhecida'}</h3>
         {!filtered.some((row) => Boolean(row.payment_date) === dated) && <p className="text-sm text-white/50">Nenhum registro disponível.</p>}

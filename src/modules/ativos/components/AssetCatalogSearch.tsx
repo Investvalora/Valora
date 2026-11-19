@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
@@ -155,9 +156,7 @@ export function AssetCatalogSearch({
           aria-live="polite"
         >
           {waiting ? (
-            <p role="status" className="p-3 text-sm text-white/60">
-              Buscando ativos…
-            </p>
+            <LoadingState label="Buscando ativos…" />
           ) : isError ? (
             <div role="alert" className="p-3 text-sm text-nf-pink">
               Não foi possível buscar os ativos.{" "}

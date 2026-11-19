@@ -11,15 +11,21 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
  */
 import { useMemo, useRef, useState } from 'react'
 import { useWallets } from '../../portfolio/hooks/useWallets'
-import { deriveComposition, assetClassColor, isInternationalClass } from '../../portfolio/composition'
+import { deriveComposition, assetClassColor, assetClassLabel, isInternationalClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
 import { ResumoCarteiraPopover } from './ResumoCarteiraPopover'
-import { PanelCard } from '../../../shared/components/PanelCard'
 import { fmtMoney, fmtPct } from '../utils/fmt'
 import type { AssetClassSlice } from '../../portfolio/types'
 import { useDividendTotals } from '../../portfolio/hooks/useDividendTotals'
 import { buildAssetSlices, buildSectorSlices, type CompositionSlice } from '../utils/compositionSlices'
 import { useAssetFilters } from '../hooks/useAssetFilters'
+import { useAllocationTargets } from '../hooks/useAllocationTargets'
+import { useCompositionMotion } from '../hooks/useCompositionMotion'
+import { ALLOCATION_CLASSES, allocationGap, validTargets } from '../utils/allocationTargets'
+import { CompositionNote } from './CompositionNote'
+import type { CompositionMotionSlice } from '../utils/compositionMotion'
+
+type DisplaySlice = CompositionMotionSlice
 
 // ── Donut SVG com label central ────────────────────────────────────────────
 const CX = 100
@@ -56,7 +62,7 @@ function CompositionDonut({
   totalBRL,
   size = 200,
 }: {
-  slices: CompositionSlice[]
+  slices: DisplaySlice[]
   totalBRL: number
   size?: number
 }) {
@@ -70,7 +76,7 @@ function CompositionDonut({
 
   const total = slices.reduce((acc, s) => acc + s.percent, 0)
   let angle = 0
-  const sectors = slices.map((s) => {
+  const sectors = slices.filter((s) => s.percent > 0).map((s) => {
     const pct = (s.percent / total) * 100
     const sweep = (pct / 100) * 360
     const gap = Math.min(GAP_DEG, sweep / 4)
@@ -112,25 +118,27 @@ function CompositionDonut({
         strokeWidth={R_OUTER - R_INNER}
       />
       {/* Fatias */}
-      {sectors.map(({ slice, startDeg, endDeg }) => (
+      <g>
+      {sectors.map(({ slice, startDeg, endDeg }, index) => (
         <path
-          key={slice.id}
+          key={index}
           d={sectorPath(startDeg, endDeg)}
           fill={slice.color}
-          fillOpacity={0.88}
+          fillOpacity={0.88 * (slice.opacity ?? 1)}
           aria-label={`${slice.label}: ${fmtPct(slice.percent)}`}
         >
-          <title>{`${slice.label}: ${fmtMoney(slice.valueBRL)} (${fmtPct(slice.percent).replace('+', '')})`}</title>
+          <title>{`${slice.label}: ${fmtMoney(slice.valueBRL)} (${fmtPct(slice.percent).replace('+', '')})${slice.target === undefined ? '' : ` · Meta: ${fmtPct(slice.target).replace('+', '')} · Diferença: ${slice.gap == null ? '—' : `${slice.gap > 0 ? '+' : ''}${fmtMoney(slice.gap)}`}`}`}</title>
         </path>
       ))}
+      </g>
       {/* Labels externos de % — apenas fatias > 4% */}
       {sectors
         .filter(({ pct }) => pct > 4)
-        .map(({ slice, midDeg, pct }) => {
+        .map(({ slice, midDeg }, index) => {
           const pt = polar(CX, CY, LABEL_RADIUS, midDeg)
           return (
             <text
-              key={`lbl-${slice.id}`}
+              key={index}
               x={pt.x.toFixed(2)}
               y={pt.y.toFixed(2)}
               textAnchor="middle"
@@ -141,7 +149,7 @@ function CompositionDonut({
               fontFamily="inherit"
               aria-hidden="true"
             >
-              {Math.round(pct)}%
+              {Math.round(slice.percent)}%
             </text>
           )
         })}
@@ -172,28 +180,20 @@ function CompositionDonut({
 }
 
 // ── Lista de classes ───────────────────────────────────────────────────────
-function ClassList({ slices }: { slices: CompositionSlice[] }) {
+function ClassList({ slices, progress, showTargets }: { slices: DisplaySlice[]; progress: number; showTargets: boolean }) {
   return (
-    <div className="flex flex-col gap-3">
-      {slices.map((s) => {
+    <div className="flex flex-col gap-3" style={{ filter: `blur(${progress >= 1 ? 0 : Math.sin(Math.PI * progress) * 2}px)` }}>
+      {slices.map((s, index) => {
         const color = s.color
         const isIntl = s.international
         const barWidth = Math.min(100, Math.max(0, s.percent))
 
         return (
-          <div key={s.id} className="flex flex-col gap-1.5">
-            <div className="space-y-1.5 md:hidden">
-              <div className="flex min-w-0 items-center gap-2">
+          <div key={index} className="flex flex-col gap-1.5" style={{ opacity: s.opacity ?? 1 }}>
+            <div className="flex min-w-0 items-center gap-2 md:hidden">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-[13px] text-white/80">{s.label}</span>
-                <span className="shrink-0 text-[12px] text-white/60 tabular-nums">{fmtPct(s.percent).replace('+', '')}</span>
-              </div>
-              <div className="flex min-w-0 items-center justify-between gap-2 pl-[18px]">
-                <span className="min-w-0 truncate text-[11px] text-white/40">
-                  {s.topTicker}{isIntl ? ' · Internacional' : ''}
-                </span>
                 <span className="shrink-0 text-[12px] font-medium text-white tabular-nums">{fmtMoney(s.valueBRL)}</span>
-              </div>
             </div>
             {/* Linha principal */}
             <div className="hidden items-center gap-2 md:flex">
@@ -222,13 +222,34 @@ function ClassList({ slices }: { slices: CompositionSlice[] }) {
               </span>
             </div>
             {/* Barra de progresso */}
-            <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="relative h-1.5 w-full rounded-full bg-white/[0.06]">
               <div
-                className="h-full rounded-full transition-all"
+                className="h-full rounded-full"
                 style={{ width: `${barWidth}%`, background: color }}
                 aria-hidden="true"
               />
+              {s.target !== undefined && <span
+                className="absolute -top-1 h-3.5 w-0.5 rounded-full bg-white/80"
+                style={{ left: `clamp(0px, ${s.target}%, calc(100% - 2px))` }}
+                title={`Meta: ${s.target}%`}
+                aria-hidden="true"
+              />}
             </div>
+            <div className="flex items-center justify-between gap-2 text-[11px] tabular-nums md:hidden">
+              <span className="text-white/50">{fmtPct(s.percent).replace('+', '')}</span>
+              {showTargets && <>
+                <span className="text-white/50">Meta {s.target === undefined ? '—' : fmtPct(s.target).replace('+', '')}</span>
+                <span
+                  aria-label={`Diferença para a meta de ${s.label}`}
+                  title="Diferença em R$: positivo = falta para a meta; negativo = acima da meta"
+                  className={s.gap == null || s.gap === 0 ? 'text-white/50' : s.gap > 0 ? 'text-nf-green' : 'text-nf-pink'}
+                >{s.gap == null ? '—' : `${s.gap > 0 ? '+' : ''}${fmtMoney(s.gap)}`}</span>
+              </>}
+            </div>
+            {showTargets && <div className="hidden flex-wrap justify-between gap-x-3 gap-y-1 text-[11px] tabular-nums md:flex">
+              <span className="text-white/50">Meta <span className="text-white/80">{s.target === undefined ? '—' : fmtPct(s.target).replace('+', '')}</span></span>
+              <span className="text-white/50">Diferença <span className={s.gap == null || s.gap === 0 ? 'text-white/70' : s.gap > 0 ? 'text-nf-green' : 'text-nf-pink'}>{s.gap == null ? '—' : `${s.gap > 0 ? '+' : ''}${fmtMoney(s.gap)}`}</span></span>
+            </div>}
           </div>
         )
       })}
@@ -282,6 +303,15 @@ export function AtivosComposicao() {
   // ── UI state ───────────────────────────────────────────────────────────────
   const [activeToggle, setActiveToggle] = useState<ToggleOption>('Tipo de ativos')
   const [showIdeal, setShowIdeal] = useState(false)
+  const [targetEditorOpen, setTargetEditorOpen] = useState(false)
+  const [sectorDetailsOpen, setSectorDetailsOpen] = useState(false)
+  const targetsQuery = useAllocationTargets(walletId, showIdeal)
+  const fullValuation = useAtivosValuation(walletId, true)
+  const classView = activeToggle === 'Tipo de ativos' || activeToggle === 'Exposição ao exterior'
+  // Mesma base da tabela: as metas são sempre da carteira inteira.
+  const comparisonComposition = useMemo(() => deriveComposition(fullValuation.compositionRows, fullValuation.totalBRL), [fullValuation.compositionRows, fullValuation.totalBRL])
+  const chartComposition = showIdeal && classView ? comparisonComposition : composition
+  const chartTotal = showIdeal && classView ? fullValuation.totalBRL : totalBRL
   const sectorQuery = useQuery({
     queryKey: ['assets', 'sectors', 'brapi'], queryFn: sectorService.list,
     enabled: activeToggle === 'Setor', staleTime: 86400000, gcTime: 86400000, retry: 1,
@@ -293,12 +323,47 @@ export function AtivosComposicao() {
     if (activeToggle === 'Setor') return buildSectorSlices(compositionRows, totalBRL, sectorQuery.data ?? [])
     if (activeToggle === 'Ativos') return buildAssetSlices(compositionRows, totalBRL)
     const slices = activeToggle === 'Exposição ao exterior'
-      ? composition.slices.filter((s) => isInternationalClass(s.type))
-      : composition.slices
+      ? chartComposition.slices.filter((s) => isInternationalClass(s.type))
+      : chartComposition.slices
     return slices.map((slice: AssetClassSlice): CompositionSlice => ({
       ...slice, id: slice.type, color: assetClassColor(slice.type), international: isInternationalClass(slice.type),
     }))
-  }, [composition.slices, activeToggle, compositionRows, totalBRL, sectorQuery.data])
+  }, [chartComposition.slices, activeToggle, compositionRows, totalBRL, sectorQuery.data])
+
+  const displaySlices = useMemo<DisplaySlice[]>(() => {
+    if (!showIdeal || !classView) return visibleSlices
+    const targets = targetsQuery.data ?? {}
+    const ready = !fullValuation.isLoading && !fullValuation.isError && fullValuation.complete
+      && !targetsQuery.isError && validTargets(targets) && Object.keys(targets).length > 0
+    const slices = [...visibleSlices]
+    for (const type of ALLOCATION_CLASSES) {
+      if ((targets[type] ?? 0) > 0 && !slices.some(slice => slice.id === type)
+        && (activeToggle !== 'Exposição ao exterior' || isInternationalClass(type))) {
+        slices.push({ id: type, label: assetClassLabel(type), color: assetClassColor(type), international: isInternationalClass(type), valueBRL: 0, percent: 0, topTicker: null })
+      }
+    }
+    return slices.map(slice => {
+      const target = !targetsQuery.isError ? targets[slice.id as typeof ALLOCATION_CLASSES[number]] : undefined
+      return { ...slice, target, gap: ready && target !== undefined ? allocationGap(fullValuation.totalBRL, slice.valueBRL, target) : null }
+    })
+  }, [showIdeal, classView, visibleSlices, targetsQuery.data, targetsQuery.isError, fullValuation.isLoading, fullValuation.isError, fullValuation.complete, fullValuation.totalBRL, activeToggle])
+  const motion = useCompositionMotion(walletId, { slices: displaySlices, totalBRL: chartTotal })
+  const description = activeToggle === 'Setor'
+    ? 'Setores de ações BR e BDRs via Brapi. Ativos sem classificação ficam agrupados.'
+    : showIdeal
+      ? classView
+        ? 'Carteira inteira · traço = meta · diferença positiva = falta; negativa = acima.'
+        : 'As metas são definidas por classe. Compare em Tipo de ativos ou ajuste as metas abaixo.'
+      : activeToggle === 'Ativos'
+        ? 'Participação de cada ativo no patrimônio da carteira.'
+        : activeToggle === 'Exposição ao exterior'
+          ? 'Classes internacionais e sua participação no patrimônio total.'
+          : 'Distribuição do patrimônio por classe de ativo.'
+  const targetNotice = !showIdeal || !classView ? ''
+    : targetsQuery.isLoading ? 'Carregando metas…'
+      : targetsQuery.isError ? 'Não foi possível carregar as metas.'
+        : Object.keys(targetsQuery.data ?? {}).length === 0 ? 'Defina suas metas em Ajustar metas.'
+          : fullValuation.isError || !fullValuation.complete ? 'A diferença aguarda a avaliação completa das posições.' : ''
 
   return (
     <div className="flex flex-col gap-5">
@@ -332,102 +397,99 @@ export function AtivosComposicao() {
       </div>
 
       {/* ── Card de composição ── */}
-      <PanelCard padding="p-4 md:p-6">
+      <section className="min-w-0 md:rounded-[14px] md:border md:border-white/[0.08] md:bg-[#1B1B1B] md:p-6" aria-label="Composição da carteira">
         {/* Cabeçalho */}
-        <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
-          <h2 className="text-[14px] font-semibold text-white">
-            {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
-          </h2>
-
-          {/* Toggle segmentado */}
-          <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <div className="md:hidden">
-              <label htmlFor="composition-view" className="mb-1.5 block text-xs text-white/50">Visualizar por</label>
-              <select
-                id="composition-view"
-                value={activeToggle}
-                onChange={(event) => setActiveToggle(event.target.value as ToggleOption)}
-                className="min-h-11 w-full rounded-xl border border-white/[0.12] bg-[#262626] px-3 text-sm text-white focus:border-nf-blue focus:outline-none"
-              >
-                {TOGGLE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-            <div className="hidden rounded-full border border-white/[0.12] bg-white/[0.04] p-0.5 md:flex">
-              {TOGGLE_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  aria-pressed={activeToggle === opt}
-                  onClick={() => setActiveToggle(opt)}
-                  className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
-                    activeToggle === opt
-                      ? 'bg-white/[0.12] text-white'
-                      : 'text-white/40 hover:text-white/70'
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-
+        <div className="mb-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[14px] font-semibold text-white">
+              {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
+            </h2>
             {/* Switch posição ideal */}
-            <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 md:min-h-0 md:justify-start md:rounded-none md:border-0 md:bg-transparent md:px-0">
-              <span id="ideal-position-label" className="min-w-0 text-[12px] text-white/60 md:text-white/50">Exibir posição ideal</span>
+            <div className="flex shrink-0 items-center gap-2">
+              <span aria-hidden="true" className="text-[11px] text-white/60 md:text-[12px] md:text-white/50">
+                <span className="md:hidden">Posição ideal</span>
+                <span className="hidden md:inline">Exibir posição ideal</span>
+              </span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={showIdeal}
-                aria-labelledby="ideal-position-label"
+                aria-label="Exibir posição ideal"
                 onClick={() => setShowIdeal((v) => !v)}
-                className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue ${
-                  showIdeal ? 'bg-nf-blue' : 'bg-white/[0.12]'
-                }`}
+                title="Exibir posição ideal"
+                className="relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue md:min-h-0 md:min-w-0"
               >
-                <span
-                  className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ease-out motion-reduce:transition-none ${
-                    showIdeal ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
+                <span className={`relative h-5 w-9 rounded-full transition-colors ${showIdeal ? 'bg-nf-blue' : 'bg-white/[0.12]'}`}>
+                  <span
+                    className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                      showIdeal ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
               </button>
             </div>
           </div>
+          <div className="grid min-w-0 grid-cols-4 rounded-2xl border border-white/[0.12] bg-white/[0.04] p-1 md:flex md:self-start md:rounded-full" role="group" aria-label="Visualizar composição por">
+            {TOGGLE_OPTIONS.map((opt) => (
+              <button key={opt} type="button" aria-pressed={activeToggle === opt} onClick={() => setActiveToggle(opt)}
+                className={`relative isolate flex min-h-11 min-w-0 items-center justify-center rounded-xl px-1.5 py-2 text-center text-[11px] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-blue motion-reduce:transition-none md:min-h-0 md:whitespace-nowrap md:rounded-full md:px-3.5 md:py-1.5 md:text-[12px] ${activeToggle === opt ? 'text-white' : 'text-white/50 hover:text-white/80'}`}>
+                {activeToggle === opt && <span className="composition-tab-active absolute inset-0 -z-10 rounded-[inherit] bg-white/[0.12]" aria-hidden="true" />}
+                {opt}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {activeToggle === 'Setor' && (
-          <div className="mb-4 space-y-2 text-xs text-white/50">
-            <p>Classificação por setor da Brapi para ações brasileiras e BDRs. Sem classificação confiável, empresas e fundos ficam em “Não classificado”. ETFs, cripto e renda fixa ficam em “Sem setor econômico”; o total da carteira é preservado.</p>
-            {sectorQuery.isLoading && <p role="status">Buscando classificação por setor…</p>}
-            {sectorQuery.isError && <p role="alert">Não foi possível atualizar os setores. A classificação já disponível foi mantida. <button type="button" className="underline" onClick={() => void sectorQuery.refetch()}>Tentar novamente</button></p>}
-          </div>
-        )}
-        {isLoading ? (
+        <p className="h-12 text-[11px] leading-4 text-white/50 md:h-10 md:text-xs" data-testid="composition-description">
+          <CompositionNote text={description} />
+        </p>
+        {(showIdeal && classView ? fullValuation.isLoading : isLoading) ? (
           <div className="flex h-[200px] items-center justify-center">
             <p className="text-[13px] text-[#8F8F8F] animate-pulse">Carregando composição…</p>
           </div>
-        ) : composition.slices.length === 0 ? (
+        ) : displaySlices.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center">
             <p className="text-[13px] text-[#8F8F8F]">{query || types.length ? 'Nenhum ativo corresponde aos filtros selecionados.' : 'Nenhuma posição avaliada.'}</p>
           </div>
         ) : (
           <div className="flex flex-col items-start gap-8 md:flex-row">
-            {/* Donut — 180px mobile, 200px desktop */}
+            {/* Donut com espaço para leitura em ambas as telas */}
             <div className="shrink-0 self-center md:sticky md:top-24 md:self-start">
-              <div className="block md:hidden">
-                <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={180} />
-              </div>
-              <div className="hidden md:block">
-                <CompositionDonut slices={visibleSlices} totalBRL={totalBRL} size={200} />
-              </div>
+              <CompositionDonut slices={motion.frame.slices} totalBRL={motion.frame.totalBRL} size={240} />
             </div>
 
             {/* Lista */}
             <div className="w-full min-w-0 flex-1">
-              <ClassList slices={visibleSlices} />
+              <ClassList slices={motion.frame.slices} progress={motion.progress} showTargets={showIdeal && classView} />
             </div>
           </div>
         )}
-        {showIdeal && <AllocationTargets key={walletId} walletId={walletId} />}
-      </PanelCard>
+        {activeToggle === 'Setor' && <div className="mt-4 text-xs leading-relaxed text-white/50">
+          {sectorQuery.isLoading && <p role="status">Buscando classificação por setor…</p>}
+          {sectorQuery.isError && <p role="alert">Não foi possível atualizar os setores. A classificação já disponível foi mantida. <button type="button" className="underline" onClick={() => void sectorQuery.refetch()}>Tentar novamente</button></p>}
+          <button type="button" aria-expanded={sectorDetailsOpen} aria-controls="composition-sector-details" onClick={() => setSectorDetailsOpen(open => !open)} className="min-h-11 text-white/50 underline decoration-white/20 underline-offset-4 hover:text-white/80">
+            Sobre os setores {sectorDetailsOpen ? '−' : '+'}
+          </button>
+          <div className="composition-disclosure" data-open={sectorDetailsOpen} aria-hidden={!sectorDetailsOpen}>
+            <div className="min-h-0 overflow-hidden">
+              <p id="composition-sector-details" className="pb-3">
+                <CompositionNote animate={sectorDetailsOpen} text="Classificação por setor da Brapi para ações brasileiras e BDRs. Sem classificação confiável, empresas e fundos ficam em “Não classificado”. ETFs, cripto e renda fixa ficam em “Sem setor econômico”; o total da carteira é preservado." />
+              </p>
+            </div>
+          </div>
+        </div>}
+        {showIdeal && <>
+          {targetNotice && <p role={targetsQuery.isError ? 'alert' : 'status'} className="mt-3 text-xs text-white/50">
+            {targetNotice} {targetsQuery.isError && <button type="button" className="underline" onClick={() => void targetsQuery.refetch()}>Tentar novamente</button>}
+          </p>}
+          <button type="button" aria-expanded={targetEditorOpen} aria-controls="composition-target-editor" onClick={() => setTargetEditorOpen(open => !open)} className="mt-4 flex min-h-11 w-full items-center justify-between border-t border-white/10 text-xs text-white/60 md:hidden">
+            Ajustar metas <span aria-hidden="true">{targetEditorOpen ? '−' : '+'}</span>
+          </button>
+          <div id="composition-target-editor" className={targetEditorOpen ? 'block' : 'hidden md:block'}>
+            <AllocationTargets key={walletId} walletId={walletId} />
+          </div>
+        </>}
+      </section>
     </div>
   )
 }

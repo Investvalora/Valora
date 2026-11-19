@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Settings } from 'lucide-react'
+import { Check, Settings, Trash2 } from 'lucide-react'
 import { AlertBell } from '../../../shared/components/AlertBell'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { DashboardData } from '../../dashboard/hooks/useDashboard'
@@ -10,6 +10,8 @@ import { useWallets } from '../hooks/useWallets'
 import type { Wallet } from '../services/walletService'
 import { walletPalette } from '../walletPalette'
 import { WalletEditorDialog } from './WalletEditorDialog'
+import { DeleteWalletDialog } from './DeleteWalletDialog'
+import { WalletsTotal } from './WalletsTotal'
 
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -139,6 +141,7 @@ export function MobileCarteiraHome({
   const [showWallets, setShowWallets] = useState(false)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [showWalletForm, setShowWalletForm] = useState(false)
+  const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -184,7 +187,7 @@ export function MobileCarteiraHome({
   const swipeZoneRef = useRef<HTMLButtonElement | null>(null)
 
   function onTouchStart(event: React.TouchEvent<HTMLElement>) {
-    if (event.touches.length !== 1 || showWalletForm) return
+    if (event.touches.length !== 1 || showWalletForm || deletingWallet) return
 
     // só inicia o gesto se o toque começou na zona de swipe (cards de carteira)
     // ou se a tela de carteiras já está aberta (qualquer lugar pode fechar)
@@ -267,7 +270,7 @@ export function MobileCarteiraHome({
       onTouchCancel={onTouchCancel}
       style={{
         minHeight: showWallets
-          ? `${Math.max(viewportSize.height - 80, 190 + orderedWallets.length * 180)}px`
+          ? `${Math.max(viewportSize.height - 80, 270 + orderedWallets.length * 180)}px`
           : undefined,
       }}
     >
@@ -291,14 +294,15 @@ export function MobileCarteiraHome({
           >
             {initial}
           </Link>
-          <div className="relative h-11 w-36 shrink-0">
+          <div className="wallet-header-morph wallet-action-button relative h-11 shrink-0 overflow-visible rounded-full" style={{ width: `${(children ? 44 : 144) + ((children ? 128 - 44 : 128 - 144) * revealProgress)}px`, transitionDuration: isDragging ? '0ms' : undefined }}>
             <div
               aria-hidden={showWallets}
               ref={(node) => { if (node) node.inert = showWallets }}
-              className="wallet-header-action absolute inset-y-0 right-0 flex items-center"
+              className="wallet-header-action absolute inset-0 flex items-center justify-center"
+              style={{ opacity: 1 - revealProgress, filter: `blur(${revealProgress * 6}px)`, transitionDuration: isDragging ? '0ms' : undefined }}
             >
-              {children ? <AlertBell count={alertCount} /> : (
-                <button type="button" onClick={onAddTransaction} className="wallet-action-button h-11 whitespace-nowrap rounded-full px-5 text-sm font-medium">
+              {children ? <AlertBell count={alertCount} className="!bg-transparent" /> : (
+                <button type="button" onClick={onAddTransaction} className="h-11 w-full whitespace-nowrap rounded-full px-5 text-sm font-medium">
                   + Lançamento
                 </button>
               )}
@@ -306,12 +310,13 @@ export function MobileCarteiraHome({
             <div
               aria-hidden={!showWallets}
               ref={(node) => { if (node) node.inert = !showWallets }}
-              className="wallet-header-action absolute inset-y-0 right-0 flex items-center"
+              className="wallet-header-action absolute inset-0 flex items-center justify-center"
+              style={{ opacity: revealProgress, filter: `blur(${(1 - revealProgress) * 6}px)`, transitionDuration: isDragging ? '0ms' : undefined }}
             >
               <button
                 type="button"
                 onClick={() => openWalletForm(null)}
-                className="wallet-action-button h-11 whitespace-nowrap rounded-full px-5 text-sm font-medium"
+                className="h-11 w-full whitespace-nowrap rounded-full px-4 text-sm font-medium"
               >
                 + Carteira
               </button>
@@ -404,6 +409,9 @@ export function MobileCarteiraHome({
                 Voltar
               </button>
             </div>
+            <div className="h-24">
+              <WalletsTotal wallets={wallets} totals={totals} isLoading={isLoading || totalsLoading} isError={isError || totalsError} />
+            </div>
             {isLoading && <p className="text-sm text-zinc-400">Carregando carteiras…</p>}
             {isError && (
               <button type="button" onClick={() => void refetch()} className="text-sm text-red-300">
@@ -417,7 +425,7 @@ export function MobileCarteiraHome({
       {orderedWallets.map((wallet, index) => {
         const closedSlot = Math.min(index, closedStackCount - 1)
         const closedLeft = viewportSize.width - (closedStackCount - closedSlot) * 9 - 7
-        const openTop = 160 + index * 180
+        const openTop = 272 + index * 180
         const left = closedLeft + (openCardLeft - closedLeft) * revealProgress
         const top = 90 + (openTop - 90) * revealProgress
         const color = walletPalette[wallet.color].color
@@ -462,7 +470,7 @@ export function MobileCarteiraHome({
               tabIndex={showWallets || index === 0 ? 0 : -1}
             >
               <span
-                className="pr-8 text-xl font-semibold transition-opacity duration-300"
+                className="line-clamp-2 break-words pr-20 text-xl font-semibold transition-opacity duration-300"
                 style={{ opacity: revealProgress }}
               >
                 {wallet.name}
@@ -491,14 +499,23 @@ export function MobileCarteiraHome({
               aria-label={`Editar ${wallet.name}`}
               aria-hidden={!showWallets}
               tabIndex={showWallets ? 0 : -1}
-              className="absolute right-3 top-3 rounded-full bg-black/25 p-1.5 transition-opacity duration-300"
+              className={`absolute top-3 grid h-11 w-11 place-items-center rounded-full bg-black/20 transition-opacity duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current ${wallet.is_default ? 'right-2' : 'right-14'}`}
               style={{
                 opacity: revealProgress,
                 pointerEvents: showWallets ? 'auto' : 'none',
               }}
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
             </button>
+            {!wallet.is_default && <button
+              type="button"
+              onClick={() => setDeletingWallet(wallet)}
+              aria-label={`Excluir ${wallet.name}`}
+              aria-hidden={!showWallets}
+              tabIndex={showWallets ? 0 : -1}
+              className="absolute right-2 top-3 grid h-11 w-11 place-items-center rounded-full bg-black/20 transition-colors hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+              style={{ opacity: revealProgress, pointerEvents: showWallets ? 'auto' : 'none' }}
+            ><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}
           </div>
         )
       })}
@@ -508,6 +525,7 @@ export function MobileCarteiraHome({
         wallet={editingWallet}
         onClose={() => setShowWalletForm(false)}
       />
+      {deletingWallet && <DeleteWalletDialog key={deletingWallet.id} wallet={deletingWallet} selected={deletingWallet.id === selectedWallet?.id} onClose={() => setDeletingWallet(null)} />}
     </section>
   )
 }

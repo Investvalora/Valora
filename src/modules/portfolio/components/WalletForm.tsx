@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Check } from 'lucide-react'
+import { Check, WalletCards } from 'lucide-react'
 import { useCreateWallet, useUpdateWallet } from '../hooks/useWallets'
 import type { Wallet, WalletColor } from '../services/walletService'
 import { walletPalette } from '../walletPalette'
@@ -47,9 +47,11 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
   }
 
   return (
-    <form onSubmit={save} className="space-y-4">
+    <form onSubmit={save} className="space-y-6">
+      <div className="space-y-2">
+      <label htmlFor="wallet-name" className="block text-xs text-white/60">Nome da carteira</label>
       <div
-        className="flex min-h-28 flex-col justify-between rounded-2xl px-4 py-3 transition-[background-color,box-shadow] duration-200"
+        className="flex min-h-32 flex-col justify-between rounded-2xl px-5 py-4 transition-[background-color,box-shadow] duration-200 motion-reduce:transition-none"
         style={{
           backgroundColor: `${selectedPalette.color}e6`,
           color: selectedPalette.textColor,
@@ -57,9 +59,9 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
         }}
         aria-label="Prévia da carteira"
       >
-        <div className="text-xs font-medium opacity-80">
-          Patrimônio total
-          <span className="mt-0.5 block text-base font-semibold">R$ 0,00</span>
+        <div className="flex items-center justify-between text-[11px] opacity-70">
+          <span>{wallet?.is_default ? 'Carteira principal' : 'Sua carteira'}</span>
+          <WalletCards className="h-4 w-4" aria-hidden="true" />
         </div>
         <input
           id="wallet-name"
@@ -70,15 +72,16 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
             setName(event.target.value)
             if (error) setError('')
           }}
-          placeholder="Nome da carteira"
+          placeholder="Ex.: Reserva de emergência"
           aria-label="Nome da carteira"
-          className="w-full border-none bg-transparent p-0 text-lg font-semibold text-inherit outline-none placeholder:text-inherit placeholder:opacity-50 focus:outline-none focus:ring-0"
+          className="w-full border-none bg-transparent p-0 text-lg font-medium text-inherit outline-none placeholder:text-inherit placeholder:opacity-50 focus:outline-none focus:ring-0"
         />
+      </div>
       </div>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-zinc-300">Cor</legend>
-        <div className="flex flex-wrap items-center gap-2 py-1">
+        <legend className="mb-3 w-full text-xs text-white/60">Cor da carteira <span className="float-right text-white/40">{selectedPalette.label}</span></legend>
+        <div className="flex flex-wrap items-center gap-2.5 py-1">
           {walletColorOptions.map((option) => {
             const selected = color === option
             return (
@@ -93,7 +96,7 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
                   aria-label={walletPalette[option].label}
                 />
                 <span
-                  className={`grid h-8 w-8 place-items-center rounded-full border-2 transition-colors duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#121212] ${selected ? 'border-white' : 'border-transparent active:opacity-80'}`}
+                  className={`grid h-9 w-9 place-items-center rounded-full border-2 transition-colors duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#121212] ${selected ? 'border-white' : 'border-transparent active:opacity-80'}`}
                   style={{
                     backgroundColor: walletPalette[option].color,
                     color: walletPalette[option].textColor,
@@ -114,14 +117,14 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
           type="button"
           onClick={onClose}
           disabled={isPending}
-          className="min-h-12 rounded-2xl bg-white/[0.06] px-4 font-medium text-zinc-300 transition active:scale-[0.98] disabled:opacity-50"
+          className="min-h-12 rounded-xl bg-white/[0.06] px-4 text-sm font-medium text-zinc-300 transition active:scale-[0.98] disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="min-h-12 rounded-2xl bg-white px-4 font-semibold text-zinc-950 transition active:scale-[0.98] disabled:opacity-50"
+          className="min-h-12 rounded-xl bg-white px-4 text-sm font-medium text-zinc-950 transition active:scale-[0.98] disabled:opacity-50"
         >
           {isPending ? 'Salvando…' : wallet ? 'Salvar' : 'Criar'}
         </button>

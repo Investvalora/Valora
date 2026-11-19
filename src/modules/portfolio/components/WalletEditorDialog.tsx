@@ -28,6 +28,8 @@ export function WalletEditorDialog({ isOpen, wallet, onClose, onSaved }: WalletE
     <Modal
       isOpen={isOpen || retained}
       title={wallet ? 'Editar carteira' : 'Nova carteira'}
+      titleStyle="subtle"
+      description={wallet ? 'Ajuste o nome e a cor desta carteira.' : 'Dê um nome e uma cor aos seus investimentos.'}
       onClose={onClose}
       dismissible={!busy && isOpen}
       variant="wallet"

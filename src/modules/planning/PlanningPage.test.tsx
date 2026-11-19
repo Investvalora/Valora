@@ -6,7 +6,8 @@ import { PlanningPage } from './PlanningPage'
 import { resetSupabaseMock, supabaseMock } from '../../test/supabaseMock'
 vi.mock('../../shared/services/supabaseClient', async () => ({ supabase: (await import('../../test/supabaseMock')).supabaseMock.client }))
 vi.mock('../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner' } }) }))
-vi.mock('../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ wallets: [{ id: 'wallet', name: 'Teste' }], selectedWallet: { id: 'wallet', name: 'Teste' }, selectWallet: vi.fn() }) }))
+const walletState = vi.hoisted(() => ({ loading: false, error: false, empty: false, refetch: vi.fn() }))
+vi.mock('../portfolio/hooks/useWallets', () => ({ useWallets: () => ({ wallets: walletState.loading || walletState.error || walletState.empty ? [] : [{ id: 'wallet', name: 'Teste' }], selectedWallet: walletState.loading || walletState.error || walletState.empty ? null : { id: 'wallet', name: 'Teste' }, selectWallet: vi.fn(), isLoading: walletState.loading, isError: walletState.error, refetch: walletState.refetch }) }))
 vi.mock('../ativos/hooks/useAtivosValuation', () => ({ useAtivosValuation: () => ({ positions: [], tickers: [], compositionRows: [{ type: 'stock_br', marketValueBRL: 100 }], complete: true, isLoading: false, isError: false }) }))
 vi.mock('../ativos/components/AllocationTargets', () => ({ AllocationTargets: () => <p>Metas existentes</p> }))
 vi.mock('../dividends/hooks/useBrlDividends', () => ({ useBrlDividends: () => ({ rows: [{ source: 'imported', total_value: 120 }, { total_value: 12000 }], isLoading: false, isError: false }) }))
@@ -16,7 +17,7 @@ vi.mock('../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({
 vi.mock('../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: undefined, refetch: vi.fn() }) }))
 vi.mock('../score/services/fundamentalsService', () => ({ fundamentalsService: { listByTickers: vi.fn().mockResolvedValue([]) } }))
 function setup() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><MemoryRouter><PlanningPage /></MemoryRouter></QueryClientProvider>) }
-beforeEach(() => { resetSupabaseMock(); supabaseMock.on('wallets', () => ({ data: { allocation_targets: { stock_br: 50, fii: 50 }, passive_income_goal: 100 }, error: null })) })
+beforeEach(() => { walletState.loading = false; walletState.error = false; walletState.empty = false; walletState.refetch.mockClear(); resetSupabaseMock(); supabaseMock.on('wallets', () => ({ data: { allocation_targets: { stock_br: 50, fii: 50 }, passive_income_goal: 100 }, error: null })) })
 it('simula o aporte por meta e informa a sobra sem gravar movimentos', async () => {
   setup()
   await screen.findByText('Informe valores válidos e metas que somem 100%.')
@@ -39,4 +40,27 @@ it('expõe a reconciliação e informa a limitação da restauração', async ()
   fireEvent.click(screen.getByRole('tab', { name: 'Exportar carteira' }))
   expect(screen.getByRole('button', { name: 'Baixar exportação completa' })).toBeInTheDocument()
   expect(screen.getByLabelText('Conferir arquivo para futura restauração')).toBeInTheDocument()
+})
+
+it('mostra skeleton enquanto as carteiras chegam sem anunciar carteira vazia', () => {
+  walletState.loading = true
+  setup()
+  expect(screen.getByRole('status')).toHaveTextContent('Carregando carteiras…')
+  expect(screen.getByLabelText('Carteira')).toBeDisabled()
+  expect(screen.queryByText('Selecione ou crie uma carteira.')).not.toBeInTheDocument()
+  expect(supabaseMock.callArgs('wallets', 'select')).toHaveLength(0)
+})
+it('mostra falha com nova tentativa, sem tratar erro como ausência de carteira', () => {
+  walletState.error = true
+  setup()
+  expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível carregar as carteiras.')
+  expect(screen.queryByText('Selecione ou crie uma carteira.')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+  expect(walletState.refetch).toHaveBeenCalledOnce()
+})
+it('mostra orientação de carteira vazia apenas depois da consulta concluída', () => {
+  walletState.empty = true
+  setup()
+  expect(screen.getByText('Selecione ou crie uma carteira.')).toBeInTheDocument()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })

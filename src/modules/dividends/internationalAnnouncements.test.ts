@@ -4,6 +4,13 @@ const asOf = '2026-11-11'
 const row = { exOrEffDate: '11/12/2026', type: 'Cash', amount: '$0.27', declarationDate: '11/02/2026', recordDate: '11/12/2026', paymentDate: '11/16/2026', currency: 'USD' }
 const payload = (rows: unknown[]) => ({ status: { rCode: 200 }, data: { exDividendDate: '08/10/2026', dividends: { rows } } })
 const identity = { status: { rCode: 200 }, data: { symbol: 'AAPL', stockType: 'Common Stock', isNasdaqListed: true, assetClass: 'STOCKS' } }
+it('aceita ações ordinárias de classe C identificadas pela Nasdaq, sem exceção por ticker', () => {
+  expect(() => nasdaqIdentity({ ...identity, data: { ...identity.data, symbol: 'GOOG', stockType: 'Class C Capital Stock' } }, 'GOOG')).not.toThrow()
+  expect(() => nasdaqIdentity({ ...identity, data: { ...identity.data, symbol: 'OTHER', stockType: 'Class C Capital Stock' } }, 'OTHER')).not.toThrow()
+})
+it.each(['Preferred Stock', 'Class C Preferred Stock', 'ETF', 'Capital Stock'])('não amplia a identidade para instrumento não comprovado: %s', stockType => {
+  expect(() => nasdaqIdentity({ ...identity, data: { ...identity.data, symbol: 'GOOG', stockType } }, 'GOOG')).toThrow('identity')
+})
 it('usa linhas de anúncios futuros, ignorando resumo atrasado', () => {
   nasdaqIdentity(identity, 'AAPL')
   expect(nasdaqAnnouncements(payload([row]), asOf)).toEqual([{ ex_date: '2026-11-12', record_date: '2026-11-12', payment_date: '2026-11-16', declaration_date: '2026-11-02', value_per_share: 0.27 }])

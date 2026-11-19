@@ -46,7 +46,8 @@ BEGIN
  snapshot:=public.export_owned_wallet(wallet);
  IF jsonb_typeof(snapshot->'transactions'->0->'quantity') <> 'string' OR snapshot->>'decimal_encoding' <> 'exact-string' THEN RAISE EXCEPTION 'Export lost exact decimals'; END IF;
  IF snapshot->>'format'<>'valora-wallet' OR jsonb_array_length(snapshot->'transactions')<>2 OR jsonb_array_length(snapshot->'assets')<>2 OR (snapshot->'wallet'->>'passive_income_goal')::numeric<>100 THEN RAISE EXCEPTION 'Invalid export snapshot'; END IF;
- INSERT INTO public.transactions(user_id,wallet_id,ticker,type,quantity,price,transaction_date) VALUES(auth.uid(),wallet,'QAFIVEBR','bonus',0.5,0,'2026-01-02');
+ -- Only the fractional right is under test; use a positive price required by the clean schema.
+ INSERT INTO public.transactions(user_id,wallet_id,ticker,type,quantity,price,transaction_date) VALUES(auth.uid(),wallet,'QAFIVEBR','bonus',0.5,1,'2026-01-02');
  IF has_function_privilege('anon','public.export_owned_wallet(uuid)','EXECUTE') THEN RAISE EXCEPTION 'Anonymous export granted'; END IF;
 END $test$;
 RESET ROLE;

@@ -45,3 +45,8 @@ Ainda não publicado. Aplicar primeiro as migrations:
 A meta persistente e a exportação dependem da nova coluna/RPC. Foram verificadas por testes de componente e SQL no QA; não foram gravadas na carteira real para testar esta entrega. Depois do merge e rollout, repetir a conferência de produção. A homologação física Android desta nova área não foi executada nesta rodada.
 
 Referência de unidades: https://borainvestir.b3.com.br/tipos-de-investimentos/renda-variavel/acoes/o-que-e-o-mercado-fracionario-como-investir-nele/
+
+
+## Correção do replay da PR178
+
+O replay limpo exige `transactions.price > 0`. A fixture de direito fracionário usava preço zero, enquanto o QA existente aceitava preço não negativo. A fixture passou a usar preço positivo, mantendo a quantidade fracionária que é o objeto do teste. O SQL foi repetido no QA sob uma constraint temporária `price > 0`, dentro de transação revertida, sem flexibilizar a regra do produto. A confirmação definitiva ocorre no replay limpo do GitHub para o novo commit.

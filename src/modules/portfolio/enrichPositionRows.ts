@@ -62,10 +62,7 @@ export function enrichPositionRows({
     const vpa = fund?.vpa ?? null
 
     // Nunca inferir payout dos recebimentos pessoais, DY × P/L ou períodos distintos.
-    const company = row.type && ['stock_br', 'stock_us', 'bdr'].includes(row.type)
-    const ratio = fund?.payout_ratio
-    const payoutPercent = company && fund?.source === 'yahoo' && lpa !== null && Number.isFinite(lpa) && lpa > 0
-      && ratio != null && Number.isFinite(ratio) && ratio >= 0 ? ratio : null
+    const payoutPercent = indicatorValue(fund, 'payout_ratio', row.type)
 
     // Yield on Cost = proventos / (preço médio × quantidade) × 100
     let yieldOnCostPercent: number | null = null

@@ -1,5 +1,21 @@
 # TODO ativa de evolução do Valora
 
+## Rodada ativa — operação, indicadores e simulações (19/11)
+
+Esta seção prevalece sobre pendências equivalentes antigas. [Escopo, fontes e evidências](indicadores-simulacoes-operacao-2026-11-19.md).
+
+- [x] Aceite operacional: cadência independente de aproximadamente 15 minutos em 24h; seis workflows recentes aprovados; filas sem tarefas elegíveis vencidas; orçamento e uso de múltiplas chaves conferidos.
+- [x] Próximo macro/Tesouro automático observado em 19/11 às 17h Brasília: 13 posições, zero erros. Manter diagnóstico ativo não constitui uma entrega sempre pendente.
+- [x] PR183 publicada e homologada: ícones de informação junto aos cards, gráficos, tabelas e quantidade; faixa global removida. Deploy/CI aprovados, navegador de produção e largura móvel conferidos, sem escrita financeira.
+- [ ] IND-01: payout integrado localmente a fundamentos, score, estratégias e monitor de alertas; migration e testes aprovados no QA. Falta publicar e homologar.
+- [ ] IND-02 a IND-11: fórmulas e ferramenta manual por demonstrativo implementadas e testadas localmente. **Não encerra cobertura automática:** faltam ingestão com proveniência, séries comparáveis de cinco anos e bases completas de relatórios de fundos. Não alimentar regras automáticas com entradas manuais.
+- [ ] SIM-01: comparação simultânea com/sem reinvestimento pronta localmente, com retiradas e caixa separados. Falta publicação/homologação.
+- [ ] SIM-02: sete cenários com variações editáveis de aporte, rendimento e inflação prontos localmente. Falta publicação/homologação.
+- [ ] SIM-03: comparação do FII e da referência de renda fixa no mesmo capital, premissas e limitações explícitas, pronta localmente. Falta publicação/homologação.
+- [ ] REF-01 parcial: as três abas da planilha fornecida foram lidas com fórmulas e comparadas às calculadoras. Vídeos ainda sem transcrição verificável; não alegar revisão audiovisual integral. Fontes educativas e fórmulas tradicionais não recebem atribuição exclusiva presumida.
+- [x] Conferência visual local das novas simulações e formulários realizada após recuperação do navegador e reinício do servidor: comparação com/sem reinvestimento, sete cenários e renda fixa; largura móvel de 319 px e desktop de 1440 px, tabelas com rolagem própria. Proteção sem fonte/confirmação conferida. Não equivale a homologação em produção ou novo ensaio físico. Detalhes e limites no documento da rodada.
+- [ ] Coleta automática avançada parcial: piloto SEC para margem operacional e FCL de AAPL/MSFT implementado, consulta real e seis regressões aprovadas. Workflow diário preparado, ainda não publicado/executado no GitHub. Saída de pesquisa com documento/período/componentes; sem upsert de fundamentos. Demais métricas/classes e integração ao catálogo permanecem abertas.
+
 ## Revisão ativa — 19/11
 
 - [x] Comparação histórica pelo CDN realizada em previews protegidos, autenticados pelo responsável no Android/Wi-Fi: cinco amostras válidas anteriores e seis atuais, cache aquecido, medianas FCP 460/466 ms. Sem ganho demonstrado. Escopo Chrome, sem reinstalar o PWA de produção. [Método e fontes](revisao-cobertura-desempenho-2026-11-19.md).

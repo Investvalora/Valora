@@ -128,9 +128,7 @@ function QuantityField({
 
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className="mb-1.5 block text-sm text-white/75">
-        Quantidade
-      </label>
+      <div className="mb-1.5 flex items-center gap-1"><label htmlFor={id} className="text-sm text-white/75">Quantidade</label><InformationHelp topic="transactions" /></div>
       <div className="flex h-12 items-center rounded-xl border border-white/10 bg-[#222] p-px">
         <button
           type="button"
@@ -763,7 +761,6 @@ function QuickTransactionForm({
       transactionDrawer
     >
       <form id="quick-transaction-form" onSubmit={submit} className="space-y-5">
-        <div className="flex items-center justify-end gap-1 text-xs text-gray-400">Quantidades, custos e moeda <InformationHelp topic="transactions" /></div>
         {draftAvailable && (
           <div
             role="status"

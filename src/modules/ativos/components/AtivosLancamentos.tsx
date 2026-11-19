@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { AssetValuationNotice } from './AssetValuationNotice'
 import { useAtivosValuation } from '../hooks/useAtivosValuation'
@@ -534,7 +535,7 @@ export function AtivosLancamentos() {
       {/* ── Gráfico de consolidação ── */}
       <PanelCard>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[14px] font-semibold text-white">Consolidação de aportes</h2>
+          <h2 className="text-[14px] font-semibold text-white">Consolidação de aportes <InformationHelp topic="balance" /></h2>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Período */}
@@ -601,7 +602,7 @@ export function AtivosLancamentos() {
         {/* Cabeçalho */}
         <div className="flex flex-wrap items-center justify-between gap-4 px-6 pb-3 pt-6">
           <div className="flex items-center gap-2">
-            <h2 className="text-[14px] font-semibold text-white">Renda variável</h2>
+            <h2 className="text-[14px] font-semibold text-white">Renda variável <InformationHelp topic="transactions" /></h2>
             <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
               {tableRows.length}
             </span>

@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 /**
  * KpiBarAtivos — barra horizontal com 4 KPIs e link "Resumo completo".
  * Usada na sub-tab Posições de AtivosPage.
@@ -36,7 +37,7 @@ export function KpiBarAtivos({
       <div className="flex min-w-max items-center gap-0 px-6 py-4">
       {/* KPI 1 — Patrimônio total */}
       <div className="flex flex-1 flex-col gap-0.5 pr-6">
-        <span className="text-[11px] text-white/50">Patrimônio total</span>
+        <span className="inline-flex items-center gap-1 text-[11px] text-white/50">Patrimônio total <InformationHelp topic="balance" /></span>
         <span className="text-[18px] font-semibold text-white leading-tight">{patrimonio}</span>
       </div>
 

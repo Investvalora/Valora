@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
@@ -83,7 +84,7 @@ export function AssetComparison({
     <section className="min-w-0 space-y-5">
       <header>
         {!embedded && (
-          <h2 className="text-lg font-semibold text-white">Comparar ativos</h2>
+          <h2 className="text-lg font-semibold text-white">Comparar ativos <InformationHelp topic="analysis" /></h2>
         )}
         <p className="mt-2 text-sm text-white/60">
           {initialAsset

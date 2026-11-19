@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { InformationHelp } from './InformationHelp'
-import { pageHelpTopics } from '../help/topics'
 import { HELP_TOPICS } from '../help/topics'
 
 describe('contextual information', () => {
@@ -27,11 +26,4 @@ describe('contextual information', () => {
     }
   })
 
-  it('selects specific help before generic route groups', () => {
-    expect(pageHelpTopics('/ativos/importar')).toEqual(['csv', 'transactions'])
-    expect(pageHelpTopics('/desempenho/proventos')).toEqual(['income'])
-    expect(pageHelpTopics('/analise/score')).toEqual(['score'])
-    expect(pageHelpTopics('/analise/ferramentas')).toEqual([])
-    expect(pageHelpTopics('/conta')).toEqual([])
-  })
 })

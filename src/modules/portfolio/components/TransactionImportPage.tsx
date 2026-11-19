@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { ArrowLeft, FileUp, Wallet } from 'lucide-react'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -173,7 +174,7 @@ export function TransactionImportPage() {
     <main className="mx-auto w-full max-w-5xl px-5 pb-10 pt-6 sm:px-6 md:px-0 md:pt-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Importar transações</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Importar transações <InformationHelp topic="csv" /></h1>
           <p className="mt-1 text-sm text-white/50">Valide o CSV antes de gravar sua carteira.</p>
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70"><Wallet className="h-3.5 w-3.5 text-nf-purple" aria-hidden="true" />Destino: {selectedWallet?.name ?? 'Selecione uma carteira'}</p>
           {fileName && <p className="mt-1 text-xs text-white/50">Arquivo: {fileName}</p>}

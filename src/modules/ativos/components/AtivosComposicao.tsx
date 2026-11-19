@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useQuery } from '@tanstack/react-query'
 import { sectorService } from '../services/sectorService'
@@ -337,7 +338,7 @@ export function AtivosComposicao() {
         {/* Cabeçalho */}
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <h2 className="text-[14px] font-semibold text-white">
-            {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
+            {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'} <InformationHelp topic="allocation" />
           </h2>
 
           {/* Toggle segmentado */}

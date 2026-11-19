@@ -80,18 +80,3 @@ export const HELP_TOPICS = {
   },
 } satisfies Record<string, Explanation>
 export type HelpTopic = keyof typeof HELP_TOPICS
-
-export function pageHelpTopics(path: string): HelpTopic[] {
-  if (path === '/inicio') return ['balance', 'returns', 'income']
-  if (path.startsWith('/ativos/importar')) return ['csv', 'transactions']
-  if (path.startsWith('/ativos/lancamentos')) return ['transactions']
-  if (path.startsWith('/desempenho/proventos')) return ['income']
-  if (path.startsWith('/desempenho')) return ['returns', 'balance']
-  if (path.startsWith('/analise/ferramentas')) return [] // Help beside each tool.
-  if (path.startsWith('/analise/score')) return ['score']
-  if (path.startsWith('/analise')) return ['analysis']
-  if (path.startsWith('/carteiras')) return ['allocation']
-  if (path.startsWith('/ativos') || path.startsWith('/ativo/')) return ['balance', 'transactions', 'income']
-  return []
-}
-

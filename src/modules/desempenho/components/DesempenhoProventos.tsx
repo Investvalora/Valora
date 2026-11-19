@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useBrlDividends } from "../../dividends/hooks/useBrlDividends";
 import { useMonthReceivables } from "../../dividends/hooks/useMonthReceivables";
@@ -403,7 +404,7 @@ function PaidDividends() {
       {/* ── Gráfico barras ── */}
       <PanelCard>
         <h3 className="mb-4 text-[14px] font-semibold text-white">
-          Proventos por mês
+          Proventos por mês <InformationHelp topic="income" />
         </h3>
         {isLoading ? (
           <LoadingChart />

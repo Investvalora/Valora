@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
@@ -36,7 +37,7 @@ export function WalletsPage() {
     <div className="mx-auto w-full max-w-5xl px-6 pb-12 pt-8 md:px-0 md:pt-10">
       <header className="mb-9 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Carteiras</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">Carteiras <InformationHelp topic="allocation" /></h1>
           <p className="mt-2 max-w-xl text-sm text-white/50">
             Organize suas carteiras e escolha qual deseja acompanhar no aplicativo.
           </p>

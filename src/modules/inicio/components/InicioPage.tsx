@@ -78,6 +78,7 @@ export function InicioPage() {
       <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
         <KpiCard
           label="Patrimônio total"
+          helpTopic="balance"
           value={money(dashboard.totalPatrimonioBRL)}
           icon={Wallet}
           sub={[{ label: 'Valor investido', value: money(dashboard.valorInvestidoBRL) }]}
@@ -94,12 +95,14 @@ export function InicioPage() {
         />
         <KpiCard
           label="Proventos recebidos (12M)"
+          helpTopic="income"
           value={money(dashboard.proventos12mBRL)}
           icon={Coins}
           sub={[{ label: 'Total', value: money(dashboard.proventosTotalBRL) }]}
         />
         <KpiCard
           label="Rentabilidade histórica"
+          helpTopic="returns"
           value={percentage(dashboard.rentabilidadeTotalPct)}
           valueColor={dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={BarChart2}

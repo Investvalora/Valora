@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { TrendingUp } from 'lucide-react'
+import { InformationHelp } from './InformationHelp'
+import type { HelpTopic } from '../help/topics'
 
 type KpiCardProps = {
   label: string
@@ -9,6 +11,7 @@ type KpiCardProps = {
   sub?: { label: string; value: string; valueColor?: string }[]
   arrowUp?: boolean
   className?: string
+  helpTopic?: HelpTopic
 }
 
 export function KpiCard({
@@ -19,6 +22,7 @@ export function KpiCard({
   sub,
   arrowUp,
   className = '',
+  helpTopic,
 }: KpiCardProps) {
   const needsWideCard = [value, ...(sub?.map(item => item.value) ?? [])].some(text => text.length > 16)
   return (
@@ -35,6 +39,7 @@ export function KpiCard({
       <div className="flex items-center gap-2">
         <Icon className="h-[13px] w-[13px] shrink-0 text-[#8F8F8F]" strokeWidth={1.8} aria-hidden="true" />
         <span className="text-[12px] text-[#8F8F8F]">{label}</span>
+        {helpTopic && <InformationHelp topic={helpTopic} />}
       </div>
 
       {/* Valor principal */}

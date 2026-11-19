@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { InflationComparison } from "../../performance/components/InflationComparison";
 /**
@@ -299,7 +300,7 @@ export function DesempenhoRentabilidade() {
           {/* Título + legenda */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h3 className="text-lg font-semibold tracking-tight text-white md:text-[14px] md:tracking-normal">
-              Rentabilidade comparada com índices
+              Rentabilidade comparada com índices <InformationHelp topic="returns" />
             </h3>
             {/* Legenda inline — visível apenas em md+ */}
             <div className="hidden md:flex items-center gap-3 mr-2">

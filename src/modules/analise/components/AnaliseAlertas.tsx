@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 /**
  * AnaliseAlertas — sub-rota /analise/alertas.
  * Header fixo, indicadores com seleção múltipla, cards individuais sem borda
@@ -555,7 +556,7 @@ export function AnaliseAlertas() {
           >
             <span aria-hidden="true" className="mx-auto mb-4 block h-1 w-9 rounded-full bg-white/25 sm:hidden" />
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[16px] font-semibold text-white">Regras de alerta</h3>
+              <h3 className="text-[16px] font-semibold text-white">Regras de alerta <InformationHelp topic="analysis" /></h3>
               <button
                 type="button"
                 onClick={() => setShowRules(false)}

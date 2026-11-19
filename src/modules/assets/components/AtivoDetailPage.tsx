@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { FundamentalsPanel } from "./FundamentalsPanel";
 import { ScoreBreakdown } from "../../score/components/ScoreBreakdown";
@@ -755,7 +756,7 @@ function AssetTransactionPreview({
   return (
     <PanelCard>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Lançamentos</h3>
+        <h3 className="text-sm font-semibold text-white">Lançamentos <InformationHelp topic="transactions" /></h3>
         <button
           type="button"
           onClick={() => navigate("/ativos/lancamentos")}
@@ -832,7 +833,7 @@ function AssetDividendPreview({
   return (
     <PanelCard>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Proventos</h3>
+        <h3 className="text-sm font-semibold text-white">Proventos <InformationHelp topic="income" /></h3>
         <button
           type="button"
           onClick={() => navigate("/desempenho/proventos")}
@@ -1145,7 +1146,7 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
   return (
     <PanelCard>
       <h3 className="text-sm font-semibold text-white mb-4">
-        Proventos — {ticker}
+        Proventos — {ticker} <InformationHelp topic="income" />
       </h3>
       <div
         className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1 md:flex"

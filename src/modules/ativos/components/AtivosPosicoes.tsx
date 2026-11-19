@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { AssetValuationNotice } from './AssetValuationNotice'
 import { AssetDataSyncNotice } from '../../portfolio/components/AssetDataSyncNotice'
@@ -202,7 +203,7 @@ export function AtivosPosicoes() {
           {/* Linha 1: título + contador */}
           <div className="flex items-center gap-2.5">
             <h2 className="text-[14px] font-semibold text-white">
-              Meus ativos
+              Meus ativos <InformationHelp topic="balance" />
             </h2>
             <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
               {assetCount}

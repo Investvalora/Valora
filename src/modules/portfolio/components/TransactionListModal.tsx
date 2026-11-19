@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { Modal } from '../../../shared/components/Modal'
 import { useTransactionsByTicker, useDeleteTransaction } from '../hooks/useTransactions'
@@ -217,9 +218,7 @@ export function TransactionHistory({ ticker, deletion, compact = false, currency
     <div className="space-y-4 min-w-0">
       {/* Estado loading */}
       {isLoading && (
-        <p className="text-sm text-gray-400 animate-pulse py-4 text-center">
-          Carregando lançamentos…
-        </p>
+        <LoadingState label="Carregando lançamentos…" variant="table" />
       )}
 
       {/* Estado erro */}

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 /**
  * DesempenhoVisaoGeral — sub-rota /desempenho/visao-geral.
  * Combina rentabilidade, proventos mensais, tabela mensal e top pagadores.
@@ -25,7 +26,7 @@ const DividendsBarChart = lazy(
 function LoadingChart() {
   return (
     <div className="flex h-[280px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   )
 }
@@ -33,7 +34,7 @@ function LoadingChart() {
 function LoadingChartSm() {
   return (
     <div className="flex h-[220px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   )
 }
@@ -260,7 +261,7 @@ export function DesempenhoVisaoGeral() {
             </h3>
             {isLoading ? (
               <div className="flex h-20 items-center justify-center">
-                <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+                <LoadingState label="Carregando…" />
               </div>
             ) : (
               <TabelaMensal rows={monthlyTableData} />

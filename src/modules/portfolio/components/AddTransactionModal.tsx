@@ -381,14 +381,14 @@ function RendaFixaForm({ addFI, calcValues, onClose, storageKey }: RendaFixaForm
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
           {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
@@ -636,14 +636,14 @@ function TesouroDiretoForm({ addFI, calcValues, onClose, storageKey }: TesouroDi
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
           {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
@@ -990,14 +990,14 @@ function AddTransactionForm({
             <button
               type="button"
               onClick={close}
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
             >
               {isSaving ? 'Salvando…' : 'Adicionar lançamento'}

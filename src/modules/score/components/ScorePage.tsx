@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Modal } from '../../../shared/components/Modal'
@@ -192,7 +193,7 @@ export function ScorePage() {
 
         {/* Conteúdo */}
         {rulesLoading ? (
-          <p className="py-8 text-center text-sm text-zinc-400 animate-pulse">Carregando regras…</p>
+          <LoadingState label="Carregando regras…" />
         ) : rulesError ? (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-center">
             <p className="mb-3 text-sm text-red-400">Erro ao carregar as regras.</p>
@@ -276,9 +277,7 @@ export function ScorePage() {
 
       {/* Estados de loading / erro / conteúdo */}
       {rulesLoading ? (
-        <div className="text-gray-400 py-12 text-center" aria-live="polite">
-          Carregando regras…
-        </div>
+        <div className="text-gray-400 py-12 text-center" aria-live="polite"><LoadingState label="Carregando regras…" variant="table" /></div>
       ) : rulesError ? (
         <div className="text-center py-12" aria-live="assertive">
           <p className="text-red-400 mb-3">Erro ao carregar as regras de score.</p>

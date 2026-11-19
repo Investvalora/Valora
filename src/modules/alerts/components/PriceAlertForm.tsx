@@ -110,8 +110,8 @@ function PriceAlertFields({ onClose, onDismiss, onCreated, conditionHint, action
       <PriceAlertActions onCancel={onCreated ? undefined : close} pending={createAlert.isPending} />
       {actionsContainer && onAdvance && createPortal(
         <nav aria-label="Navegação da apresentação" className="flex justify-between gap-3">
-          <button type="button" onClick={onClose} disabled={createAlert.isPending} className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/10 disabled:opacity-50">Voltar</button>
-          <button type="button" onClick={onAdvance} disabled={createAlert.isPending} className="min-h-11 rounded-xl border border-[#5cc8ff]/50 bg-[#3f7dff]/10 px-4 text-sm font-semibold text-white hover:bg-[#3f7dff]/20 disabled:opacity-50">Próximo</button>
+          <button type="button" onClick={onClose} aria-busy={createAlert.isPending} disabled={createAlert.isPending} className="min-h-11 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/10 disabled:opacity-50">Voltar</button>
+          <button type="button" onClick={onAdvance} aria-busy={createAlert.isPending} disabled={createAlert.isPending} className="min-h-11 rounded-xl border border-[#5cc8ff]/50 bg-[#3f7dff]/10 px-4 text-sm font-semibold text-white hover:bg-[#3f7dff]/20 disabled:opacity-50">Próximo</button>
         </nav>,
         actionsContainer,
       )}

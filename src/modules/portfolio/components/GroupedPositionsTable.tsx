@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useMemo, useState } from 'react'
 import { groupRowsByClass, ASSET_CLASS_LABEL } from '../composition'
 import { sortPositionRows } from '../positionRows'
@@ -328,7 +329,7 @@ export function FixedIncomeGroup({
     return (
       <div className="overflow-hidden rounded-xl border border-dark-border bg-dark-surface">
         <div className="px-5 py-4">
-          <p className="text-sm text-gray-400 animate-pulse">Carregando renda fixa…</p>
+          <LoadingState label="Carregando renda fixa…" />
         </div>
       </div>
     )

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
@@ -8,7 +9,7 @@ import { FavoriteButton } from "./FavoriteButton";
 
 function FavoritesContent({ onClose }: { onClose: () => void }) {
   const { data = [], isPending, isError, refetch } = useFavorites();
-  if (isPending) return <p role="status">Carregando favoritos…</p>;
+  if (isPending) return <LoadingState label="Carregando favoritos…" />;
   if (isError)
     return (
       <div role="alert">

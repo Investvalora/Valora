@@ -266,14 +266,14 @@ export function AddFixedIncomeForm({ onSuccess, onCancel, onBusyChange }: Props)
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSubmitting}
+          aria-busy={isSubmitting} disabled={isSubmitting}
           className="rounded-lg border border-dark-border px-4 py-3 font-semibold text-gray-300 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-500"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSubmitting || !selectedType}
+          aria-busy={isSubmitting} disabled={isSubmitting || !selectedType}
           className="rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
         >
           {isSubmitting ? 'Salvando…' : 'Adicionar'}

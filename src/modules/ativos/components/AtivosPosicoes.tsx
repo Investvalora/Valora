@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { AssetValuationNotice } from './AssetValuationNotice'
 import { AssetDataSyncNotice } from '../../portfolio/components/AssetDataSyncNotice'
 import { FixedIncomePositions } from './FixedIncomePositions'
@@ -150,7 +151,7 @@ export function AtivosPosicoes() {
     <div className="flex flex-col gap-5">
       <AssetDataSyncNotice tickers={tickers} />
       {strategySettings.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar suas estratégias. As referências personalizadas estão indisponíveis.</p>}
-      {valuationLoading && <p role="status" className="text-xs text-white/45">Carregando histórico de mercado de 12 meses para os preços de referência…</p>}
+      {valuationLoading && <LoadingState label="Carregando histórico de mercado de 12 meses para os preços de referência…" variant="chart" />}
       {valuationError && <p role="status" className="text-xs text-amber-300">Alguns históricos de proventos não puderam ser consultados. Os preços de referência afetados ficam indisponíveis; registros parciais não são usados como total anual.</p>}
       <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar com botão de resumo ── */}
@@ -255,7 +256,7 @@ export function AtivosPosicoes() {
         <div className="block md:hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
-              <p className="text-[13px] text-white/40 animate-pulse">Carregando posições…</p>
+              <LoadingState label="Carregando posições…" variant="table" />
             </div>
           ) : groups.length === 0 ? (
             <div className="flex items-center justify-center py-10">

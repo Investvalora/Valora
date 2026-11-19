@@ -80,7 +80,7 @@ function DesktopPasswordRecoveryForm() {
 
           {errorMessage && <p role="alert" className={authErrorBox}>{errorMessage}</p>}
 
-          <button type="submit" disabled={recoveryMutation.isPending} className={authButton}>
+          <button type="submit" aria-busy={recoveryMutation.isPending} disabled={recoveryMutation.isPending} className={authButton}>
             {recoveryMutation.isPending ? 'Enviando...' : 'Enviar instruções'}
           </button>
         </form>

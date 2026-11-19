@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { ArrowRight, Bell, TrendingUp } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { PanelCard } from '../../../shared/components/PanelCard'
@@ -20,7 +21,7 @@ export function AlertasRecentes() {
       </div>
 
       <div className="flex flex-1 flex-col">
-        {isLoading && <p className="py-5 text-sm text-[#8F8F8F]">Carregando alertas…</p>}
+        {isLoading && <LoadingState label="Carregando alertas…" />}
         {isError && (
           <button type="button" onClick={() => void refetch()} className="self-start py-5 text-sm text-red-300">
             Não foi possível carregar os alertas. Tentar novamente

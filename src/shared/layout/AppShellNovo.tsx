@@ -1,3 +1,6 @@
+import { Suspense } from 'react'
+import { RouteLoadingFallback } from '../components/RouteLoadingFallback'
+import { MotionRegion } from '../components/MotionRegion'
 import { PushNotificationsPrompt } from '../../modules/alerts/components/PushNotificationsPrompt'
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
@@ -46,7 +49,7 @@ export function AppShellNovo() {
             Não foi possível verificar novos alertas. Seus alertas existentes foram mantidos.
             <button type="button" className="ml-3 underline" disabled={alertMonitor.isFetching} onClick={() => void alertMonitor.refetch()}>Tentar novamente</button>
           </div>}
-          <Outlet />
+          <MotionRegion className="h-full"><Suspense fallback={<RouteLoadingFallback />}><Outlet /></Suspense></MotionRegion>
         </main>
       </div>
 

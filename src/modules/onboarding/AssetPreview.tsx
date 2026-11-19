@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/components/LoadingState'
 import { useId } from "react";
 import {
   CartesianGrid,
@@ -152,9 +153,7 @@ export function AssetPreview({
           className="first-access-reveal h-[clamp(9rem,35dvh,22rem)] min-w-0"
         >
           {asset && history.isLoading && !retained ? (
-            <p role="status" className="py-10 text-sm text-white/65">
-              Carregando histórico…
-            </p>
+            <LoadingState label="Carregando histórico…" variant="chart" />
           ) : asset && history.isError ? (
             <button
               type="button"

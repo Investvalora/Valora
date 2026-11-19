@@ -96,7 +96,7 @@ function AlertRow({ alert }: { alert: Alert }) {
         <div className="mt-2.5 flex gap-2 pl-[46px]">
           <button
             type="button"
-            disabled={update.isPending}
+            aria-busy={update.isPending} disabled={update.isPending}
             onClick={() => update.mutate({ alertId: alert.id, status: 'lido' })}
             className="flex items-center gap-1 rounded-lg border border-nf-green/40 bg-nf-green/12 px-2.5 py-1 text-[11px] font-medium text-nf-green transition-colors hover:bg-nf-green/20 disabled:opacity-50"
           >
@@ -105,7 +105,7 @@ function AlertRow({ alert }: { alert: Alert }) {
           </button>
           <button
             type="button"
-            disabled={update.isPending}
+            aria-busy={update.isPending} disabled={update.isPending}
             onClick={() => update.mutate({ alertId: alert.id, status: 'ignorado' })}
             className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-[#8F8F8F] transition-colors hover:bg-white/[0.1] disabled:opacity-50"
           >
@@ -152,7 +152,7 @@ export function AlertasCol() {
         </div>
         <button
           type="button"
-          disabled={generate.isPending}
+          aria-busy={generate.isPending} disabled={generate.isPending}
           onClick={() => generate.mutate()}
           className="flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-[#393939] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50"
         >

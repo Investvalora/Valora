@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { formatIndicatorValue, indicatorValue, supportsIndicator } from '../../../shared/indicators/catalog'
 import { PanelCard } from '../../../shared/components/PanelCard'
 import { METRIC_LABELS, type FundamentalsRow, type ScoreMetric } from '../../score/types'
@@ -12,7 +13,7 @@ export function FundamentalsPanel({ row, type, loading, error }: {
   const real = row?.source !== 'seed' && row?.source !== 'synthetic'
   return <PanelCard>
     <h3 className="mb-2 text-sm font-semibold text-white">Indicadores fundamentalistas</h3>
-    {loading ? <p role="status" className="text-sm text-white/60">Carregando indicadores…</p>
+    {loading ? <LoadingState label="Carregando indicadores…" />
       : error ? <p role="alert" className="text-sm text-amber-200">Não foi possível carregar os indicadores.</p>
       : <>
         <p className="mb-4 text-xs text-white/60">{row && real ? `Referência: ${parseIsoDate(row.reference_date)?.toLocaleDateString('pt-BR') ?? row.reference_date}.${row.source ? ` Fonte: ${row.source}.` : ''}` : 'Sem dados reais disponíveis na fonte.'} Os indicadores podem ter datas diferentes da cotação atual.</p>

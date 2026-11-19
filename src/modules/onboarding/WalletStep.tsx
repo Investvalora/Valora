@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/components/LoadingState'
 import { useState } from "react";
 import { Check, Pencil, Plus, WalletCards } from "lucide-react";
 import { WalletEditorDialog } from "../portfolio/components/WalletEditorDialog";
@@ -32,9 +33,7 @@ export function WalletStep() {
         <Plus size={18} aria-hidden="true" /> Criar minha carteira
       </button>
       {isLoading && (
-        <p role="status" className="text-sm text-white/70">
-          Carregando carteiras…
-        </p>
+        <LoadingState label="Carregando carteiras…" variant="table" />
       )}
       {isError && (
         <button

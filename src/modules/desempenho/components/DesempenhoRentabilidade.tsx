@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { InflationComparison } from "../../performance/components/InflationComparison";
 /**
  * DesempenhoRentabilidade — sub-rota /desempenho/rentabilidade.
@@ -27,7 +28,7 @@ const PerformanceLineChart = lazy(
 function LoadingChart() {
   return (
     <div className="flex h-[280px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   );
 }
@@ -387,9 +388,7 @@ export function DesempenhoRentabilidade() {
         </h3>
         {isLoading ? (
           <div className="flex h-20 items-center justify-center">
-            <span className="animate-pulse text-sm text-white/40">
-              Carregando…
-            </span>
+            <LoadingState label="Carregando…" />
           </div>
         ) : (
           <TabelaMensal rows={monthlyTableData} />

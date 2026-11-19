@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -277,7 +278,7 @@ function InsightsList() {
   const [showAll, setShowAll] = useState(false)
 
   if (isLoading) {
-    return <p className="text-sm text-gray-400 animate-pulse py-4">Carregando insights…</p>
+    return <LoadingState label="Carregando insights…" />
   }
 
   if (isError) {

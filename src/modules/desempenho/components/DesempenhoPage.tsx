@@ -1,3 +1,4 @@
+import { MotionRegion } from '../../../shared/components/MotionRegion'
 /**
  * DesempenhoPage — shell de layout para as sub-rotas de Desempenho.
  * Header + tabs fixos no topo; conteúdo scrollável abaixo.
@@ -24,7 +25,7 @@ export function DesempenhoPage() {
 
       {/* ── Conteúdo scrollável — pb absorve a nav mobile ── */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:px-0 md:pb-10">
-        <Outlet />
+        <MotionRegion><Outlet /></MotionRegion>
       </div>
     </div>
   )

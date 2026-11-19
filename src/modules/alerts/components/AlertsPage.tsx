@@ -159,7 +159,7 @@ function AlertCard({ alert }: { alert: Alert }) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={updateStatus.isPending}
+                aria-busy={updateStatus.isPending} disabled={updateStatus.isPending}
                 onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })}
                 className="flex items-center gap-1.5 rounded-lg border border-nf-green/30 px-2.5 py-1.5 text-[11px] font-medium text-nf-green transition-colors hover:border-nf-green/50 disabled:opacity-50"
               >
@@ -168,7 +168,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               </button>
               <button
                 type="button"
-                disabled={updateStatus.isPending}
+                aria-busy={updateStatus.isPending} disabled={updateStatus.isPending}
                 onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-white/45 transition-colors hover:text-white/70 disabled:opacity-50"
               >
@@ -194,7 +194,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               <>
                 <button
                   type="button"
-                  disabled={updateStatus.isPending}
+                  aria-busy={updateStatus.isPending} disabled={updateStatus.isPending}
                   onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'lido' })}
                   className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/55 transition-colors hover:bg-white/[0.09] disabled:opacity-50"
                 >
@@ -203,7 +203,7 @@ function AlertCard({ alert }: { alert: Alert }) {
                 </button>
                 <button
                   type="button"
-                  disabled={updateStatus.isPending}
+                  aria-busy={updateStatus.isPending} disabled={updateStatus.isPending}
                   onClick={() => updateStatus.mutate({ alertId: alert.id, status: 'ignorado' })}
                   className="flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-2.5 py-1.5 text-[11px] font-medium text-white/30 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
                 >
@@ -733,7 +733,7 @@ export function AlertsPage() {
               </p>
             </div>
             {!hasActiveFilters && (
-              <button type="button" disabled={generateAlerts.isPending} onClick={() => generateAlerts.mutate()}
+              <button type="button" aria-busy={generateAlerts.isPending} disabled={generateAlerts.isPending} onClick={() => generateAlerts.mutate()}
                 className="mt-1 text-[12px] font-medium text-nf-blue hover:underline disabled:opacity-50"
               >
                 {generateAlerts.isPending ? 'Atualizando...' : 'Atualizar alertas →'}

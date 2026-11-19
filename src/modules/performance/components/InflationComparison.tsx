@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { lazy, Suspense, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { benchmarkService } from "../services/benchmarkService";
@@ -49,9 +50,7 @@ export function InflationComparison({
         diária nem cálculo de rentabilidade real.
       </p>
       {query.isLoading ? (
-        <p role="status" className="text-sm text-white/60">
-          Carregando IPCA…
-        </p>
+        <LoadingState label="Carregando IPCA…" />
       ) : query.isError ? (
         <p role="alert" className="text-sm text-white/60">
           Não foi possível carregar o IPCA.{" "}
@@ -66,7 +65,7 @@ export function InflationComparison({
       ) : hasData ? (
         <Suspense
           fallback={
-            <p className="text-sm text-white/60">Carregando gráfico…</p>
+            <LoadingState label="Carregando gráfico…" variant="chart" />
           }
         >
           <Chart series={series} scrollOnMobile={scrollOnMobile} />

@@ -91,8 +91,8 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
       </fieldset>
       {error && <p role="alert" className="text-sm text-nf-pink">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3">
-        <button type="button" disabled={edit.isPending} onClick={close} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
-        <button type="submit" disabled={edit.isPending || stale || !currency} className="min-h-11 rounded-xl bg-[#393939] px-4 text-sm font-semibold text-white hover:bg-[#454545] disabled:opacity-40">{edit.isPending ? 'Salvando…' : 'Salvar alterações'}</button>
+        <button type="button" aria-busy={edit.isPending} disabled={edit.isPending} onClick={close} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
+        <button type="submit" aria-busy={edit.isPending} disabled={edit.isPending || stale || !currency} className="min-h-11 rounded-xl bg-[#393939] px-4 text-sm font-semibold text-white hover:bg-[#454545] disabled:opacity-40">{edit.isPending ? 'Salvando…' : 'Salvar alterações'}</button>
       </div>
     </form>
   </Modal>

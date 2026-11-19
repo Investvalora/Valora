@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { lazy, Suspense, useMemo, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
@@ -197,7 +198,7 @@ function TxnRow({
             <span className="inline-flex items-center gap-1.5">
               <span className="text-xs text-gray-400">Excluir?</span>
               <button type="button" onClick={() => { deleteTransaction.mutate(txn.id); setConfirmDelete(false); onDelete(txn.id) }}
-                disabled={deleteTransaction.isPending}
+                aria-busy={deleteTransaction.isPending} disabled={deleteTransaction.isPending}
                 className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">Sim</button>
               <button type="button" onClick={() => setConfirmDelete(false)}
                 className="text-xs px-2 py-1 rounded border border-white/[0.14] text-gray-300 hover:text-white">Não</button>
@@ -299,7 +300,7 @@ function MobileTxnCard({
         {confirmDelete ? (
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-zinc-500">Excluir?</span>
-            <button type="button" onClick={() => { deleteTransaction.mutate(txn.id); setConfirmDelete(false); onDelete(txn.id) }} disabled={deleteTransaction.isPending} className="rounded-lg bg-[#FF8FBE] px-2.5 py-1.5 text-xs font-semibold text-[#24131c] disabled:opacity-50">Sim</button>
+            <button type="button" onClick={() => { deleteTransaction.mutate(txn.id); setConfirmDelete(false); onDelete(txn.id) }} aria-busy={deleteTransaction.isPending} disabled={deleteTransaction.isPending} className="rounded-lg bg-[#FF8FBE] px-2.5 py-1.5 text-xs font-semibold text-[#24131c] disabled:opacity-50">Sim</button>
             <button type="button" onClick={() => setConfirmDelete(false)} className="rounded-lg border border-white/[0.15] px-2.5 py-1.5 text-xs text-zinc-300">Não</button>
           </div>
         ) : (
@@ -398,7 +399,7 @@ export function LancamentosPage() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <p className="text-gray-400 animate-pulse">Carregando lançamentos…</p>
+        <LoadingState label="Carregando lançamentos…" variant="table" />
       </div>
     )
   }
@@ -495,7 +496,7 @@ export function LancamentosPage() {
           </div>
         ) : (
           <ChartErrorBoundary>
-              <Suspense fallback={<div className="flex h-[300px] items-center justify-center md:h-[320px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
+              <Suspense fallback={<div className="flex h-[300px] items-center justify-center md:h-[320px]"><LoadingState label="Carregando…" /></div>}>
               <AportesBarChart data={chartData} />
             </Suspense>
           </ChartErrorBoundary>

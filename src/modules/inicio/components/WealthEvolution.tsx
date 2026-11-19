@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { ChartPeriodFilter } from '../../../shared/components/ChartPeriodFilter'
 import { useState } from 'react'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
@@ -35,7 +36,7 @@ export function WealthEvolution() {
         </div>
       </div>
       {!valid ? <p role="alert" className="py-8 text-sm text-red-300">Informe as duas datas, com a data inicial anterior ou igual à final.</p>
-        : dashboard.isLoading ? <p role="status" className="py-8 text-sm text-white/50">Carregando evolução…</p>
+        : dashboard.isLoading ? <LoadingState label="Carregando evolução…" variant="chart" />
         : dashboard.isError ? <button type="button" onClick={dashboard.refetch} className="py-8 text-sm text-red-300">Não foi possível carregar a evolução. Tentar novamente</button>
         : <div key={`${selectedWallet?.id}:${period}:${from}:${to}:${type}`} className="overflow-x-auto" role="region" aria-label="Evolução mensal com rolagem horizontal" tabIndex={0}><EvolucaoChart data={dashboard.monthlySeries} /></div>}
       {valid && !dashboard.isLoading && !dashboard.isError && dashboard.monthlySeries.length > 0 && <p className="mt-2 text-xs text-white/50 md:hidden">Deslize o gráfico para ver os meses. Toque em uma barra para ver os valores.</p>}

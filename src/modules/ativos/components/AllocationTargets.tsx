@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -34,7 +35,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
   return <section className="mt-5 border-t border-white/10 pt-5" aria-label="Metas por classe">
     <h3 className="text-sm font-semibold text-white">Posição ideal e rebalanceamento</h3>
     <p className="mt-2 text-xs text-white/50">Metas da carteira inteira, incluindo renda fixa, sem os filtros de Ativos. Diferenças calculadas sobre o patrimônio atual; não incluem taxas nem executam ordens.</p>
-    {query.isLoading ? <p role="status">Carregando metas…</p> : query.isError ? <p role="alert">Não foi possível carregar as metas. <button onClick={() => void query.refetch()}>Tentar novamente</button></p> : <>
+    {query.isLoading ? <LoadingState label="Carregando metas…" /> : query.isError ? <p role="alert">Não foi possível carregar as metas. <button onClick={() => void query.refetch()}>Tentar novamente</button></p> : <>
       <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[430px] text-right text-xs text-white/70">
         <thead><tr><th className="py-2 text-left">Classe</th><th>Atual</th><th>Meta</th><th>Diferença em R$</th></tr></thead>
         <tbody>{ALLOCATION_CLASSES.map((type) => {
@@ -51,8 +52,8 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
       {!ready && <p role="status" className="mt-2 text-xs text-white/50">A comparação aguarda a avaliação completa das posições.</p>}
       <div className="mt-4 flex gap-3">
         {editing ? <>
-          <button disabled={save.isPending} onClick={() => { if (!validTargets(targets) || Object.keys(targets).length === 0) { setError('As metas devem somar 100%.'); return } save.mutate(targets) }} className="min-h-11 rounded-xl bg-nf-purple px-4 text-sm text-white disabled:opacity-50">{save.isPending ? 'Salvando…' : 'Salvar metas'}</button>
-          <button disabled={save.isPending} onClick={() => { setDraft(null); setError(''); save.reset() }} className="min-h-11 text-sm text-white/60">Cancelar</button>
+          <button aria-busy={save.isPending} disabled={save.isPending} onClick={() => { if (!validTargets(targets) || Object.keys(targets).length === 0) { setError('As metas devem somar 100%.'); return } save.mutate(targets) }} className="min-h-11 rounded-xl bg-nf-purple px-4 text-sm text-white disabled:opacity-50">{save.isPending ? 'Salvando…' : 'Salvar metas'}</button>
+          <button aria-busy={save.isPending} disabled={save.isPending} onClick={() => { setDraft(null); setError(''); save.reset() }} className="min-h-11 text-sm text-white/60">Cancelar</button>
         </> : <button onClick={() => { setDraft(Object.fromEntries(ALLOCATION_CLASSES.map((type) => [type, query.data?.[type] ?? 0]))); save.reset() }} className="min-h-11 rounded-xl border border-white/15 px-4 text-sm text-white">Editar metas</button>}
       </div>
       {(error || save.isError) && <p role="alert" className="mt-3 text-sm text-rose-300">{error || 'Não foi possível salvar as metas. Tente novamente.'}</p>}

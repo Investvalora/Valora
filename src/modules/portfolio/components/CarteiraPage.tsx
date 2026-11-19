@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useCallback, useMemo, useState, lazy, Suspense, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Modal } from '../../../shared/components/Modal'
@@ -476,7 +477,7 @@ export function CarteiraPage() {
                   </div>
                 ) : (
                   <ChartErrorBoundary>
-                    <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><p className="text-sm text-gray-400 animate-pulse">Carregando…</p></div>}>
+                    <Suspense fallback={<div className="flex items-center justify-center h-[280px]"><LoadingState label="Carregando…" /></div>}>
                       <WealthBarChart data={dashboard.monthlySeries} />
                     </Suspense>
                   </ChartErrorBoundary>
@@ -536,7 +537,7 @@ export function CarteiraPage() {
             ))}
           </select>
           {activeScoreName && fundamentalsQuery.isLoading && (
-            <span className="text-xs text-gray-400">Carregando fundamentals…</span>
+            <LoadingState label="Carregando fundamentals…" />
           )}
           {activeScoreName && fundamentalsQuery.isError && (
             <span className="inline-flex items-center gap-2 text-xs text-red-400">
@@ -585,7 +586,7 @@ export function CarteiraPage() {
 
       {/* ── Tabela agrupada ─────────────────────────────────────────────────── */}
       {isLoading ? (
-        <p className="text-sm text-gray-400">Carregando...</p>
+        <LoadingState label="Carregando..." />
       ) : hasPositions || !isError ? (
         <GroupedPositionsTable
           rows={scoredRows}

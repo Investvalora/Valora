@@ -1,5 +1,6 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useWallets } from '../hooks/useWallets'
 import type { Wallet } from '../services/walletService'
@@ -50,7 +51,7 @@ export function WalletsPage() {
         </button>
       </header>
 
-      {isLoading && <p className="text-sm text-white/50">Carregando carteiras…</p>}
+      {isLoading && <LoadingState label="Carregando carteiras…" variant="table" />}
       {isError && (
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
           <p className="text-sm text-red-300">Não foi possível carregar suas carteiras.</p>
@@ -115,8 +116,6 @@ export function WalletsPage() {
           })}
         </div>
       )}
-
-      {selectedWallet && <Link to="/carteiras/planejamento" className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-white/20 px-4 text-sm text-white">Planejamento, exportação e saúde dos dados</Link>}
 
       <WalletEditorDialog
         isOpen={creating || editingOpen}

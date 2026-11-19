@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { lazy, Suspense, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { useDashboard } from '../hooks/useDashboard'
@@ -170,7 +171,7 @@ export function ResumoDashboard() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <p className="text-gray-400 animate-pulse">Carregando resumo…</p>
+        <LoadingState label="Carregando resumo…" />
       </div>
     )
   }
@@ -275,7 +276,7 @@ export function ResumoDashboard() {
               <Suspense
                 fallback={
                   <div className="flex items-center justify-center h-[280px]">
-                    <p className="text-sm text-gray-400 animate-pulse">Carregando gráfico…</p>
+                    <LoadingState label="Carregando gráfico…" variant="chart" />
                   </div>
                 }
               >

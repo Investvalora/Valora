@@ -291,7 +291,7 @@ function StrategyFormContent({
         <button
           type="button"
           onClick={cancel}
-          disabled={save.isPending}
+          aria-busy={save.isPending} disabled={save.isPending}
           className={`flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40 ${fixedActions ? 'hidden md:flex' : 'flex'}`}
         >
           Cancelar
@@ -319,7 +319,7 @@ function StrategyFormContent({
           <button
             type="button"
             onClick={cancel}
-            disabled={save.isPending}
+            aria-busy={save.isPending} disabled={save.isPending}
             className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:opacity-40"
           >
             Cancelar

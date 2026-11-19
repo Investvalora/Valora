@@ -250,7 +250,7 @@ export function ScoreRuleForm({
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
         >
           {isSaving ? 'Salvando…' : editingRule ? 'Salvar alterações' : 'Criar regra'}
@@ -258,7 +258,7 @@ export function ScoreRuleForm({
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="px-4 py-3 bg-dark-bg border border-dark-border text-gray-300 hover:text-white hover:border-gray-500 disabled:opacity-50 rounded-lg transition-colors"
         >
           Cancelar

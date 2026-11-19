@@ -4,6 +4,8 @@
 
 Esta seção prevalece sobre pendências equivalentes antigas. [Escopo, fontes e evidências](indicadores-simulacoes-operacao-2026-11-19.md).
 
+**Pós-merge PR184:** CI/deploy e comportamento publicado aprovados; migration aplicada, histórico da versão de payout conciliado pelo procedimento oficial da CLI e helpers novamente conferidos; piloto SEC executado com sucesso no GitHub. Homologação desta entrega encerrada. [Evidências e limites](homologacao-producao-pr184.md). Cobertura ampliada e revisão integral dos vídeos permanecem parciais; divergências históricas anteriores de migrations não foram alteradas.
+
 - [x] Aceite operacional: cadência independente de aproximadamente 15 minutos em 24h; seis workflows recentes aprovados; filas sem tarefas elegíveis vencidas; orçamento e uso de múltiplas chaves conferidos.
 - [x] Próximo macro/Tesouro automático observado em 19/11 às 17h Brasília: 13 posições, zero erros. Manter diagnóstico ativo não constitui uma entrega sempre pendente.
 - [x] PR183 publicada e homologada: ícones de informação junto aos cards, gráficos, tabelas e quantidade; faixa global removida. Deploy/CI aprovados, navegador de produção e largura móvel conferidos, sem escrita financeira.
@@ -619,6 +621,14 @@ Cada indicador deve ter explicação, unidade, período, fonte, compatibilidade 
 Fontes, prioridades de pesquisa e limites de atribuição: [pesquisa de indicadores e canais](pesquisa-indicadores-canais-2026-11-06.md). A evolução da renda mensal e da meta mencionada nessa pesquisa está consolidada em FUN-04.
 
 ## Sequência sugerida
+
+### Atualização local — 19/11/2026, catálogo SEC e referências
+
+- [x] Revisar integralmente o conteúdo textual dos dois vídeos do A Cara da Riqueza e conferir as convenções dos simuladores. [Revisão e diferenças](revisao-videos-2026-11-19.md). A revisão geral dos demais canais permanece separada.
+- [x] Preparar coleta SEC com fila limitada, autenticação OIDC, evidências por documento e catálogo compartilhado de seis métricas, com interface e validação QA. Ainda não publicado. [Escopo, resultados e limites](catalogo-sec-2026-11-19.md).
+- [ ] Ampliar a cobertura efetiva de ROIC, dívida líquida/EBITDA e FIIs: componentes incompletos continuam indisponíveis; não preencher com estimativas silenciosas.
+- [ ] Confirmar o primeiro disparo agendado do piloto SEC após o horário previsto, distinguindo-o da execução manual aprovada.
+- [ ] Confirmar data ex de XPML11, política futura de BlackBerry, calendário atual de PERT e US$0,03 de PR. Manter somente rascunhos de consulta, sem envio, conforme decisão do responsável.
 
 Entrega local → payout/moedas → diagnóstico e contrato dos indicadores → robustez/importação/CI → planejador de aporte e explicação das variações → indicadores e simulações conforme fontes validadas. A ordem dentro das etapas pode ser ajustada pelo responsável.
 

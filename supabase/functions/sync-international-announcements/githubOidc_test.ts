@@ -26,6 +26,16 @@ async function signed(change:Record<string,unknown>={},issuer='https://token.act
  return new SignJWT({...claims,...change}).setProtectedHeader({alg:'RS256',typ:'JWT',kid:'test'}).setIssuer(issuer).setAudience(aud).setIssuedAt().setNotBefore('0s').setExpirationTime('5m').setJti(crypto.randomUUID()).sign(pair.privateKey)
 }
 Deno.test('accepts signed collector identity only for the trusted main workflow',async()=>{await verifyGithubCollectorToken(await signed(),audience,keys)})
+Deno.test('statement workflow is isolated by audience and explicit workflow selection',async()=>{
+ const aud='https://test.invalid/functions/v1/sync-sec-statements'
+ const change={workflow_ref:'Investvalora/Valora/.github/workflows/sec-statement-research.yml@refs/heads/main'}
+ const token=await signed(change,undefined,aud)
+ await verifyGithubCollectorToken(token,aud,keys,'sec-statement-research.yml')
+ for(const test of [()=>verifyGithubCollectorToken(token,aud,keys),()=>verifyGithubCollectorToken(token,audience,keys,'sec-statement-research.yml'),
+  async()=>verifyGithubCollectorToken(await signed({...change,event_name:'pull_request'},undefined,aud),aud,keys,'sec-statement-research.yml')]){
+  let rejected=false;try{await test()}catch{rejected=true}if(!rejected)throw Error('Cross-workflow or PR statement identity accepted')
+ }
+})
 for(const change of [{repository:'attacker/Valora'},{repository_id:'123'},{repository_owner_id:'123'},{ref:'refs/heads/pr'},{event_name:'pull_request'},{workflow_ref:'Investvalora/Valora/.github/workflows/other.yml@refs/heads/main'},{sub:'repo:Investvalora/Valora:pull_request'},{runner_environment:'self-hosted'}]){
  Deno.test(`rejects signed mismatched identity ${JSON.stringify(change)}`,async()=>{let rejected=false;try{await verifyGithubCollectorToken(await signed(change),audience,keys)}catch{rejected=true}if(!rejected)throw Error('Untrusted collector accepted')})
 }

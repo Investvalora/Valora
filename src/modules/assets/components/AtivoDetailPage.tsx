@@ -2186,7 +2186,7 @@ export function AtivoDetailPage({
       {/* ── Conteúdo da tab ─────────────────────────────────────────────── */}
       {activeTab === "visao-geral" && (
         <>
-        <FundamentalsPanel row={fundamental} type={asset.type} loading={fundamentalsLoading} error={fundamentalsError} />
+        <FundamentalsPanel row={fundamental} type={asset.type} ticker={asset.ticker} loading={fundamentalsLoading} error={fundamentalsError} />
         <VisaoGeral
           ticker={ticker}
           quantity={quantity}

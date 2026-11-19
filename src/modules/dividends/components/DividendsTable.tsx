@@ -165,13 +165,13 @@ export function DividendsTable({
                       {row.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-300">{formatDate(row.ex_date)}</td>
+                  <td className="px-4 py-3 text-gray-300">{formatDate(row.source === 'imported' ? row.record_date : row.ex_date)}</td>
                   <td className="px-4 py-3 text-gray-300">{formatDate(row.payment_date)}</td>
                   <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
-                    {brlLongFormatter.format(row.value_per_share)}
+                    {row.unit_value_known === false ? 'Não informado' : brlLongFormatter.format(row.value_per_share)}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
-                    {quantityFormatter.format(row.quantity)}
+                    {row.quantity_known === false ? 'Não informada' : quantityFormatter.format(row.quantity)}
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-white tabular-nums">
                     {brlFormatter.format(row.total_value)}

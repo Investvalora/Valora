@@ -93,15 +93,15 @@ function DividendCardMobile({ row }: { row: DividendRow }) {
       <div className="grid grid-cols-3 gap-2 text-[11px]">
         <div>
           <p className="text-zinc-500">Data com</p>
-          <p className="mt-0.5 font-medium text-zinc-200">{formatExDate(row.ex_date)}</p>
+          <p className="mt-0.5 font-medium text-zinc-200">{formatExDate(row.source === 'imported' ? row.record_date : row.ex_date)}</p>
         </div>
         <div>
           <p className="text-zinc-500">Valor/cota</p>
-          <p className="mt-0.5 font-medium text-zinc-200">{brlLong.format(row.value_per_share)}</p>
+          <p className="mt-0.5 font-medium text-zinc-200">{row.unit_value_known === false ? 'Não informado' : brlLong.format(row.value_per_share)}</p>
         </div>
         <div>
           <p className="text-zinc-500">Quantidade</p>
-          <p className="mt-0.5 font-medium text-zinc-200">{qtyFmt.format(row.quantity)}</p>
+          <p className="mt-0.5 font-medium text-zinc-200">{row.quantity_known === false ? 'Não informada' : qtyFmt.format(row.quantity)}</p>
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ export interface RecordedIncome {
   id: string; ticker: string; type: string; record_date: string | null
   payment_date: string; quantity: number; value_per_share: number
   gross_amount: number; net_amount: number; currency: 'BRL' | 'USD'
+  quantity_known?: boolean; unit_value_known?: boolean
+  withholding_amount?: number | null; fees_amount?: number | null
   asset: { type: DividendRow['asset_type'] } | null
 }
 export interface IncomeHistory { entries: RecordedIncome[]; coverage: IncomeCoverage[] }
@@ -16,13 +18,19 @@ export const incomeHistoryService = {
     const { data: coverage, error } = await supabase.from('wallet_income_imports')
       .select('covered_from, covered_until').eq('user_id', userId).eq('wallet_id', walletId)
       .neq('source', 'nomad_statement_partial')
+      .neq('source', 'statement_csv_partial')
     if (error) throw error
     const entries: RecordedIncome[] = []
     for (let start = 0; ; start += 500) {
-      const { data, error: pageError } = await supabase.from('wallet_income')
-        .select('id, ticker, type, record_date, payment_date, quantity, value_per_share, gross_amount, net_amount, currency, asset:assets(type)')
+      const base = 'id, ticker, type, record_date, payment_date, quantity, value_per_share, gross_amount, net_amount, currency, asset:assets(type)'
+      const fetchPage = (columns: string) => supabase.from('wallet_income')
+        .select(columns)
         .eq('user_id', userId).eq('wallet_id', walletId)
         .order('payment_date').order('id').range(start, start + 499)
+      let { data, error: pageError } = await fetchPage(base + ', quantity_known, unit_value_known, withholding_amount, fees_amount')
+      if (pageError && ['42703','PGRST204'].includes(pageError.code) && /quantity_known|unit_value_known|withholding_amount|fees_amount/.test(pageError.message)) {
+        const compatible = await fetchPage(base); data = compatible.data; pageError = compatible.error
+      }
       if (pageError) throw pageError
       const page = (data ?? []) as unknown as RecordedIncome[]
       entries.push(...page)
@@ -50,6 +58,10 @@ export function mergeIncomeHistory(estimates: DividendRow[], history: IncomeHist
       value_per_share: Number(row.value_per_share), quantity: Number(row.quantity),
       total_value: Number(row.net_amount), gross_amount: Number(row.gross_amount),
       asset_type: row.asset?.type ?? null, currency: row.currency, source: 'imported' as const,
+      quantity_known: row.quantity_known, unit_value_known: row.unit_value_known,
+      receipt_costs: row.withholding_amount == null || row.fees_amount == null ? undefined : {
+        currency: row.currency, withholding: Number(row.withholding_amount), fees: Number(row.fees_amount),
+      },
     }))
   return [...uncovered, ...recorded].sort((a, b) => (b.payment_date ?? '').localeCompare(a.payment_date ?? ''))
 }

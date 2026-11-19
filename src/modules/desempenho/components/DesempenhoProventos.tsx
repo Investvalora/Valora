@@ -14,6 +14,8 @@ import type { DividendPeriod } from "../../dividends/types";
 import type { DividendRow } from "../../dividends/types";
 import { AnnouncedDividends } from "./AnnouncedDividends";
 import { IncomeBasisSummary } from "../../dividends/components/IncomeBasisSummary";
+import { ReceiptImport } from "../../dividends/components/ReceiptImport";
+import { ReceiptCosts } from "../../dividends/components/ReceiptCosts";
 
 const ProventosChart = lazy(() =>
   import("./ProventosChart").then((m) => ({ default: m.ProventosChart })),
@@ -81,13 +83,13 @@ function DividendCard({ row }: { row: DividendRow }) {
             {row.source === "imported" ? "Data COM" : "Data ex"}
           </span>
           <span className="text-[12px] text-white/80 tabular-nums">
-            {fmtDate(row.ex_date)}
+            {fmtDate(row.source === 'imported' ? row.record_date ?? null : row.ex_date)}
           </span>
         </div>
         <div>
           <span className="block text-[10px] text-white/40">Valor/cota</span>
           <span className="text-[12px] text-white/80 tabular-nums">
-            {new Intl.NumberFormat("pt-BR", {
+            {row.unit_value_known === false ? 'Não informado' : new Intl.NumberFormat("pt-BR", {
               style: "currency",
               currency: "BRL",
               minimumFractionDigits: 4,
@@ -98,10 +100,11 @@ function DividendCard({ row }: { row: DividendRow }) {
         <div>
           <span className="block text-[10px] text-white/40">Quantidade</span>
           <span className="text-[12px] text-white/80 tabular-nums">
-            {row.quantity}
+            {row.quantity_known === false ? 'Não informada' : row.quantity}
           </span>
         </div>
       </div>
+      <ReceiptCosts row={row} />
     </div>
   );
 }
@@ -204,10 +207,10 @@ function PaidDividends() {
     const csvRows = filteredRows.map((r) => [
       r.ticker,
       r.type,
-      fmtDate(r.ex_date),
+      fmtDate(r.source === 'imported' ? r.record_date ?? null : r.ex_date),
       fmtDate(r.payment_date),
-      r.value_per_share.toFixed(4),
-      r.quantity.toString(),
+      r.unit_value_known === false ? '' : r.value_per_share.toFixed(4),
+      r.quantity_known === false ? '' : r.quantity.toString(),
       r.total_value.toFixed(2),
     ]);
     const csv = [headers, ...csvRows].map((row) => row.join(",")).join("\n");
@@ -255,6 +258,7 @@ function PaidDividends() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ReceiptImport />
       {!isLoading && <IncomeBasisSummary rows={filteredRows} />}
       <p className="text-xs text-white/50">
         Valores em reais; USD convertido pela PTAX do pagamento (última
@@ -588,13 +592,13 @@ function PaidDividends() {
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-white/70">
-                        {fmtDate(row.ex_date)}
+                        {fmtDate(row.source === 'imported' ? row.record_date ?? null : row.ex_date)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-white/70">
                         {fmtDate(row.payment_date)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-white/70">
-                        {new Intl.NumberFormat("pt-BR", {
+                        {row.unit_value_known === false ? 'Não informado' : new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
                           minimumFractionDigits: 4,
@@ -602,7 +606,7 @@ function PaidDividends() {
                         }).format(row.value_per_share)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-white/70">
-                        {row.quantity}
+                        {row.quantity_known === false ? 'Não informada' : row.quantity}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-nf-green">
                         <span
@@ -614,6 +618,7 @@ function PaidDividends() {
                         >
                           {fmtBRL(row.total_value)}
                         </span>
+                        <ReceiptCosts row={row} />
                       </td>
                     </tr>
                   ))}

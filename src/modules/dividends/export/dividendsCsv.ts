@@ -50,10 +50,10 @@ function rowToFields(row: DividendRow): string[] {
   return [
     row.ticker || MISSING,
     row.type || MISSING,
-    formatDate(row.ex_date),
+    formatDate(row.source === 'imported' ? row.record_date : row.ex_date),
     formatDate(row.payment_date),
-    formatBRL(row.value_per_share),
-    formatQuantity(row.quantity),
+    row.unit_value_known === false ? MISSING : formatBRL(row.value_per_share),
+    row.quantity_known === false ? MISSING : formatQuantity(row.quantity),
     formatBRL(row.total_value),
   ]
 }

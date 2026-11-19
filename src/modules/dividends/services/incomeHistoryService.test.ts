@@ -11,6 +11,12 @@ const history: IncomeHistory = { entries: [entry], coverage: [{ covered_from: '2
 const estimate: DividendRow = { ticker: 'SOLD', type: 'dividend', ex_date: '2026-01-01', payment_date: '2026-01-15', quantity: 100, value_per_share: 1, total_value: 100 }
 
 describe('private received income', () => {
+  it('preserva custos na moeda do extrato e distingue quantidade desconhecida de zero', () => {
+    const paid: RecordedIncome = { ...entry, record_date: null, quantity: 0, value_per_share: 0, quantity_known: false, unit_value_known: false, gross_amount: 1, net_amount: 0.65, withholding_amount: 0.3, fees_amount: 0.05, currency: 'USD' }
+    const rows = mergeIncomeHistory([ { ...estimate, ticker: 'OTHER' } ], { entries: [paid], coverage: [] }, '2026-01-01', '2026-02-01')
+    expect(rows).toHaveLength(2)
+    expect(rows.find(r => r.source === 'imported')).toMatchObject({ quantity_known: false, unit_value_known: false, record_date: null, total_value: 0.65, receipt_costs: { currency: 'USD', withholding: 0.3, fees: 0.05 } })
+  })
   it('usa o líquido MA confirmado pelo titular sem reaplicar imposto ou excluir outros ativos do dia', () => {
     const paid: RecordedIncome = { ...entry, ticker: 'MA', type: 'dividend', record_date: '2026-10-09', payment_date: '2026-11-09', quantity: 0.06394, value_per_share: 0.87, gross_amount: 0.06, net_amount: 0.04, currency: 'USD' }
     const ma: DividendRow = { ...estimate, ticker: 'MA', record_date: '2026-10-09', ex_date: '2026-10-09', payment_date: '2026-11-09', total_value: 0.0556278, currency: 'USD' }

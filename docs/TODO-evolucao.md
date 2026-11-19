@@ -13,7 +13,8 @@ Esta seção prevalece sobre pendências equivalentes antigas. [Escopo, fontes e
 - [ ] SIM-02: sete cenários com variações editáveis de aporte, rendimento e inflação prontos localmente. Falta publicação/homologação.
 - [ ] SIM-03: comparação do FII e da referência de renda fixa no mesmo capital, premissas e limitações explícitas, pronta localmente. Falta publicação/homologação.
 - [ ] REF-01 parcial: as três abas da planilha fornecida foram lidas com fórmulas e comparadas às calculadoras. Vídeos ainda sem transcrição verificável; não alegar revisão audiovisual integral. Fontes educativas e fórmulas tradicionais não recebem atribuição exclusiva presumida.
-- [ ] Homologação visual local desta rodada: navegador integrado continuou informando uso desativado após reinicialização; repetir quando disponível. Build/lint/scan e replay de 101 migrations aprovados. Rodada ampla com 1563 aprovados/um timeout; arquivo afetado aprovado integralmente no reteste (27 testes), sem ampliar timeout. Detalhes e limites no documento da rodada.
+- [x] Conferência visual local das novas simulações e formulários realizada após recuperação do navegador e reinício do servidor: comparação com/sem reinvestimento, sete cenários e renda fixa; largura móvel de 319 px e desktop de 1440 px, tabelas com rolagem própria. Proteção sem fonte/confirmação conferida. Não equivale a homologação em produção ou novo ensaio físico. Detalhes e limites no documento da rodada.
+- [ ] Coleta automática avançada parcial: piloto SEC para margem operacional e FCL de AAPL/MSFT implementado, consulta real e seis regressões aprovadas. Workflow diário preparado, ainda não publicado/executado no GitHub. Saída de pesquisa com documento/período/componentes; sem upsert de fundamentos. Demais métricas/classes e integração ao catálogo permanecem abertas.
 
 ## Revisão ativa — 19/11
 

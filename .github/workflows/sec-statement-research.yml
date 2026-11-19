@@ -1,0 +1,26 @@
+name: SEC statement research
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 22 * * 1-5'
+permissions:
+  contents: read
+concurrency:
+  group: sec-statement-research
+  cancel-in-progress: false
+jobs:
+  research:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      # Pilot verified against live SEC data. Output is public research evidence
+      # in the run log, NOT an upsert or claimed coverage of the whole catalog.
+      - name: Collect two annual metrics with source evidence
+        run: node --experimental-strip-types scripts/collect-sec-statement-research.mjs AAPL MSFT

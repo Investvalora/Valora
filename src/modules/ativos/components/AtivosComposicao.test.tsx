@@ -37,6 +37,7 @@ it('alterna gráfico e lista pelos mesmos botões no desktop e mobile, sem selec
   const user = userEvent.setup()
   render(<QueryClientProvider client={new QueryClient()}><AtivosComposicao /></QueryClientProvider>)
   expect(screen.getByRole('heading', { name: 'Composição por classe' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Como funciona: Carteiras e composição' })).toBeInTheDocument()
   const chart = screen.getAllByRole('img', { name: 'Gráfico de composição da carteira' })[0]
   expect(chart.querySelectorAll('path')).toHaveLength(1)
 

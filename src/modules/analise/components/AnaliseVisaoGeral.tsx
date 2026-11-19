@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 /**
  * AnaliseVisaoGeral — sub-rota /analise/visao-geral.
  * Combina Score, Alertas e Proventos em três colunas, com tabela de pontuação por ativo.
@@ -160,7 +161,7 @@ export function AnaliseVisaoGeral() {
         {/* Score Fundamentalista */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-semibold text-white">Score Fundamentalista</h3>
+            <h3 className="text-[14px] font-semibold text-white">Score Fundamentalista <InformationHelp topic="score" /></h3>
             <Link to="/analise/score" className="text-[12px] text-nf-blue">
               Ver score →
             </Link>
@@ -269,7 +270,7 @@ export function AnaliseVisaoGeral() {
         {/* Preço-teto */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-semibold text-white">Preço-teto</h3>
+            <h3 className="text-[14px] font-semibold text-white">Preço-teto <InformationHelp topic="analysis" /></h3>
             <Link to="/analise/alertas" className="text-[12px] text-nf-blue">
               Ver análise →
             </Link>

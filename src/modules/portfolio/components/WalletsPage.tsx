@@ -1,4 +1,6 @@
 import { Check, Settings, Plus, Trash2 } from 'lucide-react'
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useWallets } from '../hooks/useWallets'
@@ -40,7 +42,10 @@ export function WalletsPage() {
     <div className="mx-auto w-full max-w-5xl px-6 pb-12 pt-8 md:px-0 md:pt-10">
       <header className="mb-9 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Carteiras</h1>
+          <div className="flex items-center gap-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-white">Carteiras</h1>
+            <InformationHelp topic="allocation" />
+          </div>
           <p className="mt-2 max-w-xl text-sm text-white/50">
             Organize suas carteiras e escolha qual deseja acompanhar no aplicativo.
           </p>
@@ -57,7 +62,7 @@ export function WalletsPage() {
 
       <WalletsTotal wallets={wallets} totals={totals} isLoading={isLoading || totalsLoading} isError={isError || totalsError} />
 
-      {isLoading && <p className="text-sm text-white/50">Carregando carteiras…</p>}
+      {isLoading && <LoadingState label="Carregando carteiras…" variant="table" />}
       {isError && (
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
           <p className="text-sm text-red-300">Não foi possível carregar suas carteiras.</p>

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -109,9 +110,7 @@ export function AtivosExplorar() {
           )}
         </div>
       ) : isFetching ? (
-        <p role="status" className="text-sm text-white/60">
-          Buscando ativos…
-        </p>
+        <LoadingState label="Buscando ativos…" />
       ) : isError ? (
         <div role="alert" className="text-sm text-nf-pink">
           Não foi possível buscar os ativos.{" "}

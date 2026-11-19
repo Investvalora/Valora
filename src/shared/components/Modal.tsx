@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
@@ -112,6 +113,28 @@ export function Modal({
   const initialFocusRef = useRef(initialFocusSelector);
   initialFocusRef.current = initialFocusSelector;
   const titleId = useId();
+  const closeAnimation = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!isOpen) closeAnimation.current?.();
+    return () => closeAnimation.current?.();
+  }, [isOpen]);
+  useLayoutEffect(() => {
+    if (!isOpen || variant !== 'default' || document.documentElement.dataset.inputMode === 'keyboard' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const animation = dialogRef.current?.animate?.([{ opacity: 0, transform: 'translateY(6px) scale(0.99)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }], { duration: 180, easing: 'cubic-bezier(0.22,1,0.36,1)' });
+    return () => animation?.cancel();
+  }, [isOpen, variant]);
+  const dismissWithMotion = () => {
+    const panel = dialogRef.current;
+    if (!dismissible || closeAnimation.current) return;
+    if (isSheet || !panel?.animate || document.documentElement.dataset.inputMode === 'keyboard' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { onClose(); return; }
+    panel.inert = true;
+    const animation = panel.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(2px)' }], { duration: 100, easing: 'cubic-bezier(0.4,0,1,1)', fill: 'forwards' });
+    let done = false;
+    const finish = () => { if (done) return; done = true; window.clearTimeout(timer); closeAnimation.current = null; animation.cancel(); panel.inert = false; onClose(); };
+    const timer = window.setTimeout(finish, 140);
+    closeAnimation.current = () => { done = true; window.clearTimeout(timer); animation.cancel(); panel.inert = false; closeAnimation.current = null; };
+    void animation.finished.then(finish, () => {});
+  };
 
   const getFocusable = useCallback((): HTMLElement[] => {
     const dialog = dialogRef.current;
@@ -312,7 +335,7 @@ export function Modal({
       // `mousedown` no overlay, e não `click`, para que arrastar de dentro do
       // diálogo e soltar no overlay não feche o modal.
       onMouseDown={(event) => {
-        if (dismissible && event.target === event.currentTarget) onClose();
+        if (dismissible && event.target === event.currentTarget) dismissWithMotion();
       }}
     >
       <div
@@ -356,7 +379,7 @@ export function Modal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={dismissWithMotion}
             disabled={!dismissible}
             aria-label="Fechar"
             className={

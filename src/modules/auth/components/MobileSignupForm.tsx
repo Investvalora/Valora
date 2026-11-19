@@ -182,7 +182,7 @@ export function MobileSignupForm() {
               </div>
             )}
 
-            <button type="submit" disabled={signupMutation.isPending} className={`${mobilePrimaryBtn} mt-1`}>
+            <button type="submit" aria-busy={signupMutation.isPending} disabled={signupMutation.isPending} className={`${mobilePrimaryBtn} mt-1`}>
               {signupMutation.isPending ? 'Criando conta…' : 'Criar conta'}
             </button>
           </form>

@@ -70,3 +70,18 @@ describe('transactionsService', () => {
     })
   })
 })
+
+it('a prévia rejeita fração B3 sem arredondar e libera a mesma fração americana', async () => {
+  supabaseMock.on('assets', () => ({ data: [{ ticker: 'PETR4', type: 'stock_br' }, { ticker: 'AAPL', type: 'stock_us' }], error: null }))
+  const result = await transactionsService.validateTickers([{ ...validRow, quantity: '0,5' }, { ...validRow, ticker: 'AAPL', quantity: '0,5', rowNumber: 3 }])
+  expect(result[0].errors).toEqual(expect.arrayContaining([expect.objectContaining({ column: 'quantity', message: expect.stringContaining('quantidade inteira') })]))
+  expect(result[0].selected).toBe(false)
+  expect(result[0].quantity).toBe('0,5')
+  expect(result[1].errors).toHaveLength(0)
+})
+
+it('não aplica a regra de compra/venda às quantidades de direitos e proventos do CSV', async () => {
+  supabaseMock.on('assets', () => ({ data: [{ ticker: 'PETR4', type: 'stock_br' }], error: null }))
+  const rows = await transactionsService.validateTickers([{ ...validRow, type: 'bonus', quantity: '0,5' }, { ...validRow, type: 'dividend', quantity: '0,5' }])
+  expect(rows.every(row => row.errors.length === 0)).toBe(true)
+})

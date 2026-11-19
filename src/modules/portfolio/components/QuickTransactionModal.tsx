@@ -1,3 +1,6 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from "react";
 import {
   ArrowDownLeft,
@@ -104,11 +107,13 @@ function QuantityField({
   value,
   onChange,
   step = 1,
+  wholeUnits = false,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   step?: number;
+  wholeUnits?: boolean;
 }) {
   const quantity = Number(value.replace(",", ".")) || 0;
   const adjust = (direction: number) => {
@@ -123,9 +128,7 @@ function QuantityField({
 
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className="mb-1.5 block text-sm text-white/75">
-        Quantidade
-      </label>
+      <div className="mb-1.5 flex items-center gap-1"><label htmlFor={id} className="text-sm text-white/75">Quantidade</label><InformationHelp topic="transactions" /></div>
       <div className="flex h-12 items-center rounded-xl border border-white/10 bg-[#222] p-px">
         <button
           type="button"
@@ -139,7 +142,7 @@ function QuantityField({
         <input
           id={id}
           type="number"
-          step="any"
+          step={wholeUnits ? 1 : 'any'}
           min={0}
           inputMode="decimal"
           value={value}
@@ -719,6 +722,7 @@ function QuickTransactionForm({
         );
         return;
       }
+      if (invalidFraction(asset.type, parsedQty)) { setError(WHOLE_UNITS_MESSAGE); return; }
       if (asset.currency !== quoteCurrency) {
         selectAsset(asset);
         setError(
@@ -896,9 +900,7 @@ function QuickTransactionForm({
                   className="transaction-asset-options absolute inset-x-0 top-full mt-2 max-h-44 overflow-y-auto overscroll-contain rounded-2xl border p-1.5"
                 >
                   {(isSearchingAssets || !suggestionsReady) && (
-                    <p className="px-3 py-2 text-xs text-white/50">
-                      Buscando ativos...
-                    </p>
+                    <LoadingState label="Buscando ativos..." />
                   )}
                   {!isSearchingAssets &&
                     suggestionsReady &&
@@ -1098,6 +1100,7 @@ function QuickTransactionForm({
                 </div>
                 <QuantityField
                   id="qt-qty"
+                  wholeUnits={requiresWholeUnits(selectedAsset?.type)}
                   value={quantity}
                   onChange={setQuantity}
                 />
@@ -1335,14 +1338,14 @@ function QuickTransactionForm({
             <button
               type="button"
               onClick={handleClose}
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="min-h-11 rounded-xl px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSaving || changingCurrency || !selectedWallet}
+              aria-busy={isSaving} disabled={isSaving || changingCurrency || !selectedWallet}
               className={`min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${isSale ? "bg-rose-700 hover:bg-rose-600" : "bg-blue-600 hover:bg-blue-500"}`}
             >
               {externalAsset.state.status === "loading"

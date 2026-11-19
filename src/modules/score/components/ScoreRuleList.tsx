@@ -129,7 +129,7 @@ export function ScoreRuleList({ rules, activeRuleId, onEdit }: ScoreRuleListProp
                         <button
                           type="button"
                           onClick={() => handleDelete(rule.id)}
-                          disabled={deleteRule.isPending}
+                          aria-busy={deleteRule.isPending} disabled={deleteRule.isPending}
                           className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded transition-colors"
                         >
                           Sim
@@ -148,7 +148,7 @@ export function ScoreRuleList({ rules, activeRuleId, onEdit }: ScoreRuleListProp
                           <button
                             type="button"
                             onClick={() => handleActivate(rule.id)}
-                            disabled={upsertPreferences.isPending}
+                            aria-busy={upsertPreferences.isPending} disabled={upsertPreferences.isPending}
                             className="text-xs px-2 py-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/40 text-blue-400 hover:text-blue-300 rounded transition-colors disabled:opacity-50"
                           >
                             Usar este score

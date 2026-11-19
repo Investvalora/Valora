@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import {
   lazy,
   Suspense,
@@ -33,7 +34,7 @@ export function DeferredQuickTransactionModal(
           transactionDrawer
           onClose={props.onClose}
         >
-          <p role="status">Carregando formulário…</p>
+          <LoadingState label="Carregando formulário…" />
         </Modal>
       }
     >

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
@@ -77,6 +78,7 @@ export function InicioPage() {
       <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
         <KpiCard
           label="Patrimônio total"
+          helpTopic="balance"
           value={money(dashboard.totalPatrimonioBRL)}
           icon={Wallet}
           sub={[{ label: 'Valor investido', value: money(dashboard.valorInvestidoBRL) }]}
@@ -93,12 +95,14 @@ export function InicioPage() {
         />
         <KpiCard
           label="Proventos recebidos (12M)"
+          helpTopic="income"
           value={money(dashboard.proventos12mBRL)}
           icon={Coins}
           sub={[{ label: 'Total', value: money(dashboard.proventosTotalBRL) }]}
         />
         <KpiCard
           label="Rentabilidade histórica"
+          helpTopic="returns"
           value={percentage(dashboard.rentabilidadeTotalPct)}
           valueColor={dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green'}
           icon={BarChart2}
@@ -112,7 +116,7 @@ export function InicioPage() {
 
       <ReturnPeriodNotice endDate={dashboard.returnEndDate} />
       <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
-      {dashboard.isLoading && <p className="text-sm text-[#8F8F8F]">Carregando dados da carteira…</p>}
+      {dashboard.isLoading && <LoadingState label="Carregando dados da carteira…" />}
       {dashboard.isError && (
         <button type="button" onClick={dashboard.refetch} className="self-start text-sm text-red-300">
           Não foi possível atualizar os dados. Tentar novamente
@@ -145,7 +149,7 @@ export function InicioPage() {
       </div>
 
       {/* ── Atalhos ── */}
-      <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
         <ShortcutCard
           to="/ativos"
           label="Ativos"
@@ -204,7 +208,7 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
     <NavLink
       to={to}
       className="
-        group flex flex-1 items-center gap-3.5 rounded-xl
+        group flex min-w-0 flex-1 items-center gap-3.5 rounded-xl
         bg-white/[0.08] px-[18px] py-4
         transition-colors hover:border-white/20 hover:bg-white/[0.1]
       "
@@ -226,7 +230,7 @@ function ShortcutCard({ to, label, sub, icon: Icon, color }: ShortcutProps) {
       {/* Texto */}
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium text-white">{label}</span>
-        <span className="block truncate text-[12px] text-[#8F8F8F]">{sub}</span>
+        <span className="block break-words text-[12px] text-[#8F8F8F]">{sub}</span>
       </span>
 
       <ArrowRight

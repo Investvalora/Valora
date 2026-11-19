@@ -54,10 +54,10 @@ export function DeleteWalletDialog({ wallet, selected = false, onClose }: { wall
       {wallet.is_default && <p role="alert" className="text-sm text-red-300">A carteira principal não pode ser excluída.</p>}
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3">
-        <button id="review-wallet-cancel" type="button" disabled={deletion.isPending} onClick={onClose} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
+        <button id="review-wallet-cancel" type="button" aria-busy={deletion.isPending} disabled={deletion.isPending} onClick={onClose} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
         {step === 'review'
-          ? <button type="button" disabled={wallet.is_default || deletion.isPending} onClick={() => setStep('confirm')} className="min-h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-40">Continuar</button>
-          : <button type="submit" disabled={!allowed || deletion.isPending} className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40">{deletion.isPending ? 'Excluindo…' : 'Excluir definitivamente'}</button>}
+          ? <button type="button" aria-busy={deletion.isPending} disabled={wallet.is_default || deletion.isPending} onClick={() => setStep('confirm')} className="min-h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-40">Continuar</button>
+          : <button type="submit" aria-busy={deletion.isPending} disabled={!allowed || deletion.isPending} className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40">{deletion.isPending ? 'Excluindo…' : 'Excluir definitivamente'}</button>}
       </div>
     </form>
   </Modal>

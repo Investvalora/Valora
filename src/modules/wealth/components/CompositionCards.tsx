@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useId } from 'react'
 import { Tooltip } from '../../../shared/components/Tooltip'
 import {
@@ -109,7 +110,7 @@ export function CompositionCards({
       </h2>
 
       {isLoading ? (
-        <p className="text-sm text-gray-400">Carregando composição...</p>
+        <LoadingState label="Carregando composição..." variant="table" />
       ) : composition.slices.length === 0 ? (
         <p className="text-sm text-gray-400">
           Nenhuma posição com cotação disponível para calcular a composição.

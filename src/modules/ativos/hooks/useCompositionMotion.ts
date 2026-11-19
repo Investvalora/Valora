@@ -38,6 +38,7 @@ export function useCompositionMotion(scope: string, target: CompositionFrame) {
       from.scope !== scope ||
       !motion ||
       motion.matches ||
+      document.documentElement.dataset.inputMode === 'keyboard' ||
       !from.frame.slices.length ||
       !destination.slices.length
     ) {
@@ -55,9 +56,11 @@ export function useCompositionMotion(scope: string, target: CompositionFrame) {
     commit(from.frame, 0);
     frameId = window.requestAnimationFrame(frame);
     motion.addEventListener("change", finish);
+    window.addEventListener('keydown', finish);
     return () => {
       window.cancelAnimationFrame(frameId);
       motion.removeEventListener("change", finish);
+      window.removeEventListener('keydown', finish);
     };
   }, [scope, destination]);
   return snapshot.scope === scope

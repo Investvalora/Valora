@@ -3,7 +3,9 @@
  * Desempenho e Análise. Usa NavLink do react-router-dom para destacar
  * a tab ativa com underline azul.
  */
-import { NavLink, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { MotionNavLink as NavLink } from '../../../shared/components/MotionNavLink'
 
 type TabItem = {
   label: string
@@ -18,6 +20,23 @@ type SubTabBarProps = {
 export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
   const segmented = mobileVariant === 'segmented'
   const { pathname } = useLocation()
+  const scroll = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const container = scroll.current
+    if (!container) return
+    const reveal = () => {
+      const active = container.querySelector<HTMLElement>('[aria-selected="true"]')
+      if (!active) return
+      const list = container.getBoundingClientRect(), item = active.getBoundingClientRect()
+      if (item.right > list.right) container.scrollLeft += item.right - list.right
+      else if (item.left < list.left) container.scrollLeft -= list.left - item.left
+    }
+    reveal()
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(reveal) : null
+    observer?.observe(container)
+    window.addEventListener('resize', reveal)
+    return () => { observer?.disconnect(); window.removeEventListener('resize', reveal) }
+  }, [pathname])
   const matchesPath = (to: string) => {
     const tabPath = to.split('?')[0]
     return pathname === tabPath || pathname.startsWith(`${tabPath}/`)
@@ -25,7 +44,8 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
   const activeIndex = Math.max(0, tabs.findIndex(({ to }) => matchesPath(to)))
 
   return (
-    <div
+    <div ref={scroll} className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><div
+      style={tabs.length > 5 ? { minWidth: `${tabs.length * 104}px` } : undefined}
       className={segmented
         // Mobile: flex rolável horizontalmente (sem quebra de linha).
         // Desktop: flex normal com gap, sem overflow.
@@ -69,6 +89,6 @@ export function SubTabBar({ tabs, mobileVariant = 'default' }: SubTabBarProps) {
           {label}
         </NavLink>
       ))}
-    </div>
+    </div></div>
   )
 }

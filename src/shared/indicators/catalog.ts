@@ -2,21 +2,25 @@ import type { AssetType } from '../../modules/portfolio/types'
 import contract from './contract.json'
 import classes from './classes.json'
 
-export const INDICATOR_IDS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin'] as const
+export const INDICATOR_IDS = ['pl', 'pvp', 'roe', 'dy', 'debt_equity', 'net_margin', 'payout_ratio'] as const
+// Historical contract snapshots remain immutable for migration replay.
+const currentContract = { ...contract, payout_ratio: { unit: 'percent', requiredSource: 'yahoo' } }
+const currentClasses = { ...classes, payout_ratio: ['stock_br', 'stock_us', 'bdr'] }
 export type IndicatorId = typeof INDICATOR_IDS[number]
 export const INDICATOR_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'between'] as const
 export const INDICATOR_LABELS: Record<IndicatorId, string> = {
   pl: 'P/L', pvp: 'P/VP', roe: 'ROE (%)', dy: 'DY (%)', debt_equity: 'Dívida/PL', net_margin: 'Margem Líquida (%)',
+  payout_ratio: 'Payout (%)',
 }
 /** Existing raw values and thresholds are preserved. Debt/PL is Yahoo percentage. */
 export const INDICATOR_CATALOG = Object.fromEntries(INDICATOR_IDS.map(id => [id, {
   label: INDICATOR_LABELS[id],
-  unit: contract[id].unit,
-  classes: classes[id] as AssetType[],
+  unit: currentContract[id].unit,
+  classes: currentClasses[id] as AssetType[],
   operators: INDICATOR_OPERATORS,
   alertOperators: ['gte', 'lte'] as const,
   sourceField: 'source', referenceField: 'reference_date',
-  requiredSource: contract[id].requiredSource,
+  requiredSource: currentContract[id].requiredSource,
 }])) as Record<IndicatorId, {
   label: string; unit: 'multiple' | 'percent'; classes: AssetType[];
   operators: typeof INDICATOR_OPERATORS; alertOperators: readonly ['gte', 'lte'];
@@ -33,15 +37,17 @@ export function formatIndicatorValue(id: IndicatorId, value: number | null, maxi
 }
 
 /** Read raw units without converting user thresholds or silently inventing a source. */
-export function indicatorValue(row: Partial<Record<IndicatorId, number | null>> & { source?: string | null } | null, id: IndicatorId, type?: AssetType | null): number | null {
+export function indicatorValue(row: Partial<Record<IndicatorId, number | null>> & { source?: string | null; lpa?: number | null } | null, id: IndicatorId, type?: AssetType | null): number | null {
   if (!row || (type && !supportsIndicator(id, type)) || row.source === 'seed' || row.source === 'synthetic') return null
   const requiredSource = INDICATOR_CATALOG[id].requiredSource
   if (requiredSource && row.source !== requiredSource) return null
   const value = row[id]
+  if (id === 'payout_ratio' && (row.lpa == null || !Number.isFinite(row.lpa) || row.lpa <= 0 || value == null || value < 0)) return null
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export const INDICATOR_EXPLANATIONS: Record<IndicatorId, { meaning: string; formula: string; context: string }> = {
+  payout_ratio: { meaning: 'Parcela do lucro distribuída pela empresa; não é o rendimento pessoal da sua carteira.', formula: 'Distribuições por ação ÷ lucro por ação, na mesma base e período × 100; leitura do payout informado pelo Yahoo.', context: 'Disponível para empresas com lucro por ação positivo. Não calculamos pelos recebimentos pessoais nem por DY × P/L. Acima de 100% é possível; confirme a referência e eventos extraordinários. Sem base compatível, fica indisponível.' },
   dy: { meaning: 'Dividend Yield: relaciona os proventos por ação ao preço da ação.', formula: 'Proventos por ação no período ÷ cotação × 100.', context: 'É um percentual histórico; distribuições extraordinárias e quedas de preço podem elevar o DY. Não garante pagamentos futuros.' },
   pl: { meaning: 'Preço/Lucro: compara o preço da ação ao lucro por ação.', formula: 'Cotação ÷ lucro por ação.', context: 'É um múltiplo, não um percentual. Prejuízo ou lucro excepcional pode tornar a comparação pouco útil.' },
   pvp: { meaning: 'Preço/Valor Patrimonial: compara o preço ao patrimônio contábil por ação ou cota.', formula: 'Cotação ÷ valor patrimonial por ação/cota.', context: '1 significa preço igual ao patrimônio contábil por unidade. Abaixo de 1 não prova, sozinho, que o ativo está barato.' },

@@ -1,3 +1,4 @@
+import { MotionRegion } from '../../../shared/components/MotionRegion'
 /**
  * AnalisePage — shell de layout para as sub-rotas de Análise.
  * Header + tabs fixos no topo; conteúdo scrollável abaixo.
@@ -20,7 +21,7 @@ export function AnalisePage() {
 
       {/* ── Conteúdo scrollável — pb absorve a nav mobile ── */}
       <div className={`min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:px-0 md:pb-10 ${creatingScoreRule ? 'pt-0 md:pt-4' : 'pt-4'}`}>
-        <Outlet />
+        <MotionRegion><Outlet /></MotionRegion>
       </div>
     </div>
   )

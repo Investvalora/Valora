@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import type { AlertPriceModel as Model } from '../hooks/useAlertPriceFields'
 import { assetClassLabel } from '../../portfolio/composition'
 
@@ -43,7 +44,7 @@ export function AlertTargetPriceField({ model }: { model: Model }) {
       onChange={event => model.changePrice(event.target.value)} className={inputStyle} />
     <p className="mt-2 text-xs leading-relaxed text-white/60">Selecione o ativo para preencher uma vez. Depois, ajuste o preço-alvo livremente.</p>
     {model.quote && <p className="mt-2 text-xs text-white/65">Última cotação disponível: {new Intl.NumberFormat('pt-BR', { style: 'currency',currency,maximumFractionDigits: 8 }).format(model.quote.price)}{model.quote.date ? ` (${model.quote.date.split('-').reverse().join('/')})` : ''}.</p>}
-    {model.loading && <p role="status" className="mt-2 text-xs text-white/65">Buscando cotação…</p>}
+    {model.loading && <LoadingState label="Buscando cotação…" />}
     {model.error && <p role="status" className="mt-2 text-xs text-amber-200">{model.error}</p>}
     <button type="button" disabled={!model.selected || model.loading} onClick={model.refresh} className="mt-2 min-h-11 rounded-lg border border-white/15 px-3 text-sm text-white/80 hover:bg-white/5 disabled:opacity-40">Atualizar cotação</button>
   </div>

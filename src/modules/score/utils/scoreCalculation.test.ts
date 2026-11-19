@@ -36,6 +36,13 @@ function fund(ticker: string, overrides: Partial<FundamentalsRow> = {}): Fundame
 }
 
 // ─── evaluateRule ──────────────────────────────────────────────────────────────
+it('scores reported payout only with compatible company earnings and source', () => {
+  const rules = [rule({ metric: 'payout_ratio', operator: 'lte', threshold_min: 60, points: 2 })]
+  const row = fund('PAYOUT', { asset_type: 'stock_us', source: 'yahoo', lpa: 2, payout_ratio: 50 })
+  expect(explainScore(rules, row).criteria[0]).toMatchObject({ value: 50, met: true, contribution: 2 })
+  expect(explainScore(rules, { ...row, lpa: 0 }).criteria[0]).toMatchObject({ value: null, met: null, contribution: 0 })
+  expect(explainScore(rules, { ...row, asset_type: 'fii' }).criteria[0].value).toBeNull()
+})
 it('não soma ROE de FII, mas preserva DY compatível e sua explicação', () => {
   const rules = [rule({ metric: 'roe', operator: 'gte', threshold_min: 1 }), rule({ metric: 'dy', operator: 'gte', threshold_min: 1 })]
   const row = fund('FUND11', { asset_type: 'fii' })

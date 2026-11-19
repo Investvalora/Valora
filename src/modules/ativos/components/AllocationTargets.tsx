@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LoadingState } from "../../../shared/components/LoadingState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAllocationTargets } from "../hooks/useAllocationTargets";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -38,6 +39,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
     },
     onSuccess: (value) => {
       cache.setQueryData(key, value);
+      void cache.invalidateQueries({ queryKey: ['planning', 'settings', user?.id, walletId] });
       setDraft(null);
     },
   });
@@ -64,7 +66,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
         taxas nem executam ordens.
       </p>
       {query.isLoading ? (
-        <p role="status">Carregando metas…</p>
+        <LoadingState label="Carregando metas…" />
       ) : query.isError ? (
         <p role="alert">
           Não foi possível carregar as metas.{" "}
@@ -160,6 +162,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
             {editing ? (
               <>
                 <button
+                  aria-busy={save.isPending}
                   disabled={save.isPending}
                   onClick={() => {
                     if (
@@ -176,6 +179,7 @@ export function AllocationTargets({ walletId }: { walletId: string }) {
                   {save.isPending ? "Salvando…" : "Salvar metas"}
                 </button>
                 <button
+                  aria-busy={save.isPending}
                   disabled={save.isPending}
                   onClick={() => {
                     setDraft(null);

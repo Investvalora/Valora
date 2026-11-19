@@ -1,4 +1,6 @@
 BEGIN;
+INSERT INTO public.assets(ticker,name,type,quote_provider) VALUES
+ ('BBAS3','Banco do Brasil','stock_br','brapi'),('BBSE3','BB Seguridade','stock_br','brapi') ON CONFLICT(ticker) DO NOTHING;
 SELECT set_config('tx_edit.owner',gen_random_uuid()::text,true),set_config('tx_edit.other',gen_random_uuid()::text,true),
        set_config('tx_edit.wallet',gen_random_uuid()::text,true),set_config('tx_edit.first',gen_random_uuid()::text,true),set_config('tx_edit.second',gen_random_uuid()::text,true);
 INSERT INTO auth.users(id,aud,role,email,raw_user_meta_data)
@@ -17,21 +19,21 @@ INSERT INTO public.transactions(user_id,wallet_id,ticker,type,quantity,price,tra
 VALUES(auth.uid(),current_setting('tx_edit.wallet')::uuid,'BBAS3','sell',5,30,'2026-01-03');
 DO $$ DECLARE t public.transactions; expected jsonb; original_snapshot jsonb; qty numeric; pm numeric; BEGIN
  SELECT * INTO t FROM public.transactions WHERE id=current_setting('tx_edit.first')::uuid;
- expected:=to_jsonb(t)-ARRAY['id','seq','user_id','wallet_id','ticker','created_at']; original_snapshot:=expected;
+ expected:=jsonb_build_object('type',t.type,'transaction_date',t.transaction_date,'quantity',t.quantity,'price',t.price,'brokerage_fee',t.brokerage_fee,'tax',t.tax); original_snapshot:=expected;
  PERFORM public.edit_owned_transaction(t.id,expected,'buy','2026-01-01',20,12,1,2);
  SELECT quantity,average_price INTO qty,pm FROM public.positions WHERE wallet_id=t.wallet_id AND ticker=t.ticker;
- IF qty<>25 OR pm<>14.6667 THEN RAISE EXCEPTION 'FAIL quantity/average after edit: %, %',qty,pm; END IF;
+ IF qty<>25 OR pm<>14.7667 THEN RAISE EXCEPTION 'FAIL quantity/average after edit: %, %',qty,pm; END IF;
  BEGIN
    PERFORM public.edit_owned_transaction(t.id,original_snapshot,'buy','2026-01-01',10,10,0,0);
    RAISE EXCEPTION 'FAIL stale overwrite accepted';
  EXCEPTION WHEN serialization_failure THEN NULL; END;
  SELECT * INTO t FROM public.transactions WHERE id=t.id;
- expected:=to_jsonb(t)-ARRAY['id','seq','user_id','wallet_id','ticker','created_at'];
+ expected:=jsonb_build_object('type',t.type,'transaction_date',t.transaction_date,'quantity',t.quantity,'price',t.price,'brokerage_fee',t.brokerage_fee,'tax',t.tax);
  PERFORM public.edit_owned_transaction(t.id,expected,'buy','2026-01-04',20,12,1,2);
  SELECT quantity,average_price INTO qty,pm FROM public.positions WHERE wallet_id=t.wallet_id AND ticker=t.ticker;
- IF qty<>25 OR pm<>13.6 THEN RAISE EXCEPTION 'FAIL chronological recalculation: %, %',qty,pm; END IF;
+ IF qty<>25 OR pm<>13.72 THEN RAISE EXCEPTION 'FAIL chronological recalculation: %, %',qty,pm; END IF;
  SELECT * INTO t FROM public.transactions WHERE id=t.id;
- expected:=to_jsonb(t)-ARRAY['id','seq','user_id','wallet_id','ticker','created_at'];
+ expected:=jsonb_build_object('type',t.type,'transaction_date',t.transaction_date,'quantity',t.quantity,'price',t.price,'brokerage_fee',t.brokerage_fee,'tax',t.tax);
  BEGIN
    PERFORM public.edit_owned_transaction(t.id,expected,'sell',t.transaction_date,20,12,1,2);
    RAISE EXCEPTION 'FAIL oversold history accepted';
@@ -58,7 +60,7 @@ DO $$ DECLARE t public.transactions; expected jsonb; original_snapshot jsonb; qt
    RAISE EXCEPTION 'FAIL direct update bypass';
  EXCEPTION WHEN check_violation THEN NULL; END;
  SELECT quantity,average_price INTO qty,pm FROM public.positions WHERE wallet_id=t.wallet_id AND ticker=t.ticker;
- IF qty<>25 OR pm<>13.6 THEN RAISE EXCEPTION 'FAIL rejected edit changed position'; END IF;
+ IF qty<>25 OR pm<>13.72 THEN RAISE EXCEPTION 'FAIL rejected edit changed position'; END IF;
  IF (SELECT brokerage_fee<>1 OR tax<>2 FROM public.transactions WHERE id=t.id) THEN RAISE EXCEPTION 'FAIL costs not persisted'; END IF;
  PERFORM set_config('request.jwt.claim.sub',current_setting('tx_edit.other'),true);
  BEGIN
@@ -68,15 +70,15 @@ DO $$ DECLARE t public.transactions; expected jsonb; original_snapshot jsonb; qt
  PERFORM set_config('request.jwt.claim.sub',current_setting('tx_edit.owner'),true);
  -- Editing a sell recomputes the remaining basis, including an intraday close.
  SELECT * INTO t FROM public.transactions WHERE wallet_id=current_setting('tx_edit.wallet')::uuid AND type='sell';
- expected:=to_jsonb(t)-ARRAY['id','seq','user_id','wallet_id','ticker','created_at'];
+ expected:=jsonb_build_object('type',t.type,'transaction_date',t.transaction_date,'quantity',t.quantity,'price',t.price,'brokerage_fee',t.brokerage_fee,'tax',t.tax);
  PERFORM public.edit_owned_transaction(t.id,expected,'sell','2026-01-03',10,30,0,0);
  SELECT quantity,average_price INTO qty,pm FROM public.positions WHERE wallet_id=t.wallet_id AND ticker=t.ticker;
- IF qty<>20 OR pm<>12 THEN RAISE EXCEPTION 'FAIL sale edit/intraday closing: %, %',qty,pm; END IF;
+ IF qty<>20 OR pm<>12.15 THEN RAISE EXCEPTION 'FAIL sale edit/intraday closing: %, %',qty,pm; END IF;
  SELECT * INTO t FROM public.transactions WHERE id=current_setting('tx_edit.first')::uuid;
- expected:=to_jsonb(t)-ARRAY['id','seq','user_id','wallet_id','ticker','created_at'];
+ expected:=jsonb_build_object('type',t.type,'transaction_date',t.transaction_date,'quantity',t.quantity,'price',t.price,'brokerage_fee',t.brokerage_fee,'tax',t.tax);
  PERFORM public.edit_owned_transaction(t.id,expected,'buy','2026-01-03',20,12,1,2);
  SELECT quantity,average_price INTO qty,pm FROM public.positions WHERE wallet_id=t.wallet_id AND ticker=t.ticker;
- IF qty<>20 OR pm<>14.6667 THEN RAISE EXCEPTION 'FAIL same-day sequence: %, %',qty,pm; END IF;
+ IF qty<>20 OR pm<>14.7667 THEN RAISE EXCEPTION 'FAIL same-day sequence: %, %',qty,pm; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.positions WHERE user_id=auth.uid() AND wallet_id<>t.wallet_id
      AND ticker='BBAS3' AND quantity=7 AND average_price=99) THEN
    RAISE EXCEPTION 'FAIL another wallet changed';

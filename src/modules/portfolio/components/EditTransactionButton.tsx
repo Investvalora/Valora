@@ -1,3 +1,4 @@
+import { invalidFraction, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -53,6 +54,7 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
     if (Object.values(numbers).some(value => !Number.isFinite(value) || value < 0) || numbers.quantity <= 0) {
       setError('Informe quantidade positiva e preço, custos e impostos válidos, usando vírgula para decimais.'); return
     }
+    if (invalidFraction(asset.data?.type, numbers.quantity)) { setError(WHOLE_UNITS_MESSAGE); return }
     if (numbers.quantity !== Number(numbers.quantity.toFixed(8))) { setError('Use até 8 casas decimais na quantidade.'); return }
     if ([numbers.price,numbers.brokerage_fee,numbers.tax].some(value => value !== Number(value.toFixed(4)))) {
       setError('Use até 4 casas decimais nos preços, custos e impostos.'); return
@@ -89,8 +91,8 @@ function EditTransactionDialog({ transaction, onClose }: { transaction: Transact
       </fieldset>
       {error && <p role="alert" className="text-sm text-nf-pink">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3">
-        <button type="button" disabled={edit.isPending} onClick={close} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
-        <button type="submit" disabled={edit.isPending || stale || !currency} className="min-h-11 rounded-xl bg-[#393939] px-4 text-sm font-semibold text-white hover:bg-[#454545] disabled:opacity-40">{edit.isPending ? 'Salvando…' : 'Salvar alterações'}</button>
+        <button type="button" aria-busy={edit.isPending} disabled={edit.isPending} onClick={close} className="min-h-11 rounded-xl border border-white/20 px-4 text-sm text-white disabled:opacity-40">Cancelar</button>
+        <button type="submit" aria-busy={edit.isPending} disabled={edit.isPending || stale || !currency} className="min-h-11 rounded-xl bg-[#393939] px-4 text-sm font-semibold text-white hover:bg-[#454545] disabled:opacity-40">{edit.isPending ? 'Salvando…' : 'Salvar alterações'}</button>
       </div>
     </form>
   </Modal>

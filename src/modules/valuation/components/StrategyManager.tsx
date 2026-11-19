@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { Fragment, useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -47,7 +48,7 @@ function StrategyManagerContent() {
         </button>
       </div>
 
-      {isLoading && <p className="text-sm text-gray-400">Carregando estratégias…</p>}
+      {isLoading && <LoadingState label="Carregando estratégias…" variant="table" />}
       {isError && <p role="alert" className="text-sm text-red-300">Não foi possível carregar suas estratégias.</p>}
       {!isLoading && !isError && strategies.length === 0 && (
         <p className="text-sm text-gray-400">
@@ -156,7 +157,7 @@ function StrategyManagerContent() {
         <div className="mt-5 flex justify-end gap-3">
           <button
             type="button"
-            disabled={remove?.isPending}
+            aria-busy={remove?.isPending} disabled={remove?.isPending}
             onClick={() => setDeleting(null)}
             className="rounded-full border border-white/15 px-4 py-2 text-sm text-white"
           >
@@ -164,7 +165,7 @@ function StrategyManagerContent() {
           </button>
           <button
             type="button"
-            disabled={remove?.isPending}
+            aria-busy={remove?.isPending} disabled={remove?.isPending}
             onClick={async () => {
               if (!deleting) return
               try {

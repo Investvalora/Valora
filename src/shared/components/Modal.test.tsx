@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { Modal } from './Modal'
 
 /**
@@ -55,6 +55,31 @@ function renderModal(props: Partial<React.ComponentProps<typeof Modal>> = {}) {
 
   return { ...view, onClose }
 }
+
+it('bloqueia interação no painel durante a saída e fecha apenas uma vez', async () => {
+  const { onClose } = renderModal()
+  const dialog = screen.getByRole('dialog')
+  let finish!: () => void
+  const cancel = vi.fn()
+  Object.defineProperty(dialog, 'animate', { configurable: true, value: () => ({ finished: new Promise<void>(resolve => { finish = resolve }), cancel }) })
+  fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+  expect(dialog.inert).toBe(true)
+  expect(onClose).not.toHaveBeenCalled()
+  await act(async () => { finish() })
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(dialog.inert).toBe(false)
+})
+
+it('cancela uma saída pendente ao desmontar sem chamar o fechamento tardio', async () => {
+  const { onClose, unmount } = renderModal()
+  const dialog = screen.getByRole('dialog')
+  let finish!: () => void
+  Object.defineProperty(dialog, 'animate', { configurable: true, value: () => ({ finished: new Promise<void>(resolve => { finish = resolve }), cancel: vi.fn() }) })
+  fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+  unmount()
+  await act(async () => { finish() })
+  expect(onClose).not.toHaveBeenCalled()
+})
 
 /**
  * O navegador retira o foco do elemento no instante em que ele é desabilitado —

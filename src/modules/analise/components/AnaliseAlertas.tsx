@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 /**
  * AnaliseAlertas — sub-rota /analise/alertas.
  * Header fixo, indicadores com seleção múltipla, cards individuais sem borda
@@ -146,7 +147,7 @@ function AlertCard({ alert }: { alert: Alert }) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={update.isPending}
+                aria-busy={update.isPending} disabled={update.isPending}
                 onClick={() => update.mutate({ alertId: alert.id, status: 'lido' })}
                 className="flex items-center gap-1.5 rounded-lg border border-nf-green/30 px-2.5 py-1.5 text-[11px] font-medium text-nf-green transition-colors hover:border-nf-green/50 disabled:opacity-50"
               >
@@ -155,7 +156,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               </button>
               <button
                 type="button"
-                disabled={update.isPending}
+                aria-busy={update.isPending} disabled={update.isPending}
                 onClick={() => update.mutate({ alertId: alert.id, status: 'ignorado' })}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-white/45 transition-colors hover:text-white/70 disabled:opacity-50"
               >
@@ -181,7 +182,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               <>
                 <button
                   type="button"
-                  disabled={update.isPending}
+                  aria-busy={update.isPending} disabled={update.isPending}
                   onClick={() => update.mutate({ alertId: alert.id, status: 'lido' })}
                   className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/55 transition-colors hover:bg-white/[0.09] disabled:opacity-50"
                 >
@@ -190,7 +191,7 @@ function AlertCard({ alert }: { alert: Alert }) {
                 </button>
                 <button
                   type="button"
-                  disabled={update.isPending}
+                  aria-busy={update.isPending} disabled={update.isPending}
                   onClick={() => update.mutate({ alertId: alert.id, status: 'ignorado' })}
                   className="flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-2.5 py-1.5 text-[11px] font-medium text-white/30 transition-colors hover:bg-white/[0.04] disabled:opacity-50"
                 >
@@ -443,7 +444,7 @@ export function AnaliseAlertas() {
             </button>
             <button
               type="button"
-              disabled={generate.isPending || checkPrices.isPending}
+              aria-busy={generate.isPending || checkPrices.isPending} disabled={generate.isPending || checkPrices.isPending}
               onClick={() => { generate.mutate(); if (hasPriceTargets) checkPrices.mutate() }}
               aria-label="Atualizar alertas"
               className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-white/[0.1] bg-white/[0.03] text-white/50 transition-colors hover:bg-white/[0.07] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nf-blue/40"
@@ -514,7 +515,7 @@ export function AnaliseAlertas() {
           {!hasActiveFilters && alerts.length === 0 && (
             <button
               type="button"
-              disabled={generate.isPending}
+              aria-busy={generate.isPending} disabled={generate.isPending}
               onClick={() => generate.mutate()}
               className="text-[12px] font-medium text-nf-blue hover:underline disabled:opacity-50"
             >
@@ -555,7 +556,7 @@ export function AnaliseAlertas() {
           >
             <span aria-hidden="true" className="mx-auto mb-4 block h-1 w-9 rounded-full bg-white/25 sm:hidden" />
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[16px] font-semibold text-white">Regras de alerta</h3>
+              <h3 className="text-[16px] font-semibold text-white">Regras de alerta <InformationHelp topic="analysis" /></h3>
               <button
                 type="button"
                 onClick={() => setShowRules(false)}

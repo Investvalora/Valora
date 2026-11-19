@@ -11,7 +11,7 @@ export function CompositionNote({
   const [visible, setVisible] = useState(text);
   useEffect(() => {
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (!animate || !motion || motion.matches) {
+    if (!animate || !motion || motion.matches || document.documentElement.dataset.inputMode === 'keyboard') {
       setVisible(text);
       return;
     }
@@ -35,9 +35,11 @@ export function CompositionNote({
     setVisible("");
     frameId = window.requestAnimationFrame(frame);
     motion.addEventListener("change", finish);
+    window.addEventListener('keydown', finish);
     return () => {
       window.cancelAnimationFrame(frameId);
       motion.removeEventListener("change", finish);
+      window.removeEventListener('keydown', finish);
     };
   }, [text, animate]);
   return (

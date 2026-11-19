@@ -94,7 +94,7 @@ export function MobilePasswordRecoveryForm() {
               <p role="alert" className={mobileErrorBox}>{errorMessage}</p>
             )}
 
-            <button type="submit" disabled={recoveryMutation.isPending} className={`${mobilePrimaryBtn} mt-1`}>
+            <button type="submit" aria-busy={recoveryMutation.isPending} disabled={recoveryMutation.isPending} className={`${mobilePrimaryBtn} mt-1`}>
               {recoveryMutation.isPending ? 'Enviando…' : 'Enviar instruções'}
             </button>
           </form>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LoadingState } from './LoadingState'
 
 export function RouteLoadingFallback() {
   const [slow, setSlow] = useState(false)
@@ -14,8 +15,8 @@ export function RouteLoadingFallback() {
       window.removeEventListener('offline', update)
     }
   }, [])
-  return <div role="status" className="flex min-h-40 flex-col items-center justify-center gap-3 p-5 text-center text-sm text-white/70">
-    <p>{!online ? 'Sem conexão. Conecte-se à internet para carregar esta tela.' : slow ? 'O carregamento está demorando mais que o esperado.' : 'Carregando…'}</p>
+  return <div className="mx-auto w-full max-w-5xl space-y-4 p-5 text-sm text-white/70">
+    <LoadingState variant="page" label={!online ? 'Sem conexão. Conecte-se à internet para carregar esta tela.' : slow ? 'O carregamento está demorando mais que o esperado.' : 'Carregando…'} />
     {(slow || !online) && <><p>Você pode aguardar ou recarregar. Recarregar pode descartar campos não salvos.</p><button type="button" className="min-h-11 rounded-full border border-white/15 px-5 py-2 text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nf-purple" onClick={() => window.location.reload()}>Recarregar aplicativo</button></>}
   </div>
 }

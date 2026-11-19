@@ -30,6 +30,7 @@ const LancamentosPage = lazy(() => import('./modules/portfolio/components/Lancam
 const AccountPage = lazy(() => import('./modules/preferences/components/AccountPage').then(m => ({ default: m.AccountPage })))
 const InicioPage = lazy(() => import('./modules/inicio/components/InicioPage').then(m => ({ default: m.InicioPage })))
 const FirstAccessPage = lazy(() => import('./modules/onboarding/FirstAccessPage').then(m => ({ default: m.FirstAccessPage })))
+const PlanningPage = lazy(() => import('./modules/planning/PlanningPage').then(m => ({ default: m.PlanningPage })))
 const WalletsPage = lazy(() => import('./modules/portfolio/components/WalletsPage').then(m => ({ default: m.WalletsPage })))
 const TransactionImportPage = lazy(() => import('./modules/portfolio/components/TransactionImportPage').then(m => ({ default: m.TransactionImportPage })))
 
@@ -92,6 +93,7 @@ export function AppRoutes() {
           {/* Novo fluxo */}
           <Route path="inicio" element={<InicioPage />} />
           <Route path="carteira" element={<Navigate to="/ativos/posicoes" replace />} />
+          <Route path="carteiras/planejamento" element={<Navigate to="/analise/ferramentas" replace />} />
           <Route path="carteiras" element={<WalletsPage />} />
 
           {/* Rotas legadas mantidas com o mesmo path para não quebrar links existentes */}
@@ -127,6 +129,7 @@ export function AppRoutes() {
 
           {/* ── Análise — sub-rotas ── */}
           <Route path="analise" element={<AnalisePage />}>
+            <Route path="ferramentas" element={<Suspense fallback={<LoadingFallback />}><PlanningPage /></Suspense>} />
             <Route path="comparar" element={<Suspense fallback={<LoadingFallback />}><AssetComparison /></Suspense>} />
             <Route index element={<Navigate to="visao-geral" replace />} />
             <Route path="visao-geral" element={<Suspense fallback={<LoadingFallback />}><AnaliseVisaoGeral /></Suspense>} />

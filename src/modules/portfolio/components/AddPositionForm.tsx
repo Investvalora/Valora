@@ -1,3 +1,4 @@
+import { invalidFraction, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -268,6 +269,7 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
       }
     }
 
+    if (invalidFraction(asset.type, payload.quantity)) { setError('quantity', { message: WHOLE_UNITS_MESSAGE }); return }
     addPosition.mutate(payload, {
       onSuccess: () => onSuccess(payload.ticker),
       onError: (error) => {
@@ -507,14 +509,14 @@ export function AddPositionForm({ onSuccess, onCancel, onBusyChange }: AddPositi
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSubmitting}
+          aria-busy={isSubmitting} disabled={isSubmitting}
           className="rounded-lg border border-dark-border px-4 py-3 font-semibold text-gray-300 transition-colors hover:bg-dark-bg hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          aria-busy={isSubmitting} disabled={isSubmitting}
           className="rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
         >
           {isSubmitting ? 'Salvando...' : 'Adicionar posição'}

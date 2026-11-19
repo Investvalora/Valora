@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { useCompositionMotion } from './useCompositionMotion'
 import type { CompositionFrame } from '../utils/compositionMotion'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); delete document.documentElement.dataset.inputMode })
 
 function setupMotion(reduced = false) {
   const frames = new Map<number, FrameRequestCallback>()
@@ -77,6 +77,15 @@ it('não usa posições da carteira anterior ao trocar de carteira', () => {
   setupMotion()
   const { result, rerender } = renderHook(({ wallet, target }) => useCompositionMotion(wallet, target), { initialProps: { wallet: 'a', target: data(80) } })
   rerender({ wallet: 'b', target: data(20) })
+  expect(result.current.frame.slices[0].percent).toBe(20)
+  expect(window.requestAnimationFrame).not.toHaveBeenCalled()
+})
+
+it('preserva navegação por teclado imediata sem reiniciar o morph', () => {
+  setupMotion()
+  document.documentElement.dataset.inputMode = 'keyboard'
+  const { result, rerender } = renderHook(({ target }) => useCompositionMotion('wallet', target), { initialProps: { target: data(80) } })
+  rerender({ target: data(20) })
   expect(result.current.frame.slices[0].percent).toBe(20)
   expect(window.requestAnimationFrame).not.toHaveBeenCalled()
 })

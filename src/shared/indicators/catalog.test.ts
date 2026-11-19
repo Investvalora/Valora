@@ -18,7 +18,7 @@ it('mantém unidades explícitas sem converter limites já salvos', () => {
   expect(INDICATOR_CATALOG.debt_equity.unit).toBe('percent')
   expect(INDICATOR_CATALOG.debt_equity.requiredSource).toBe('yahoo')
   expect(INDICATOR_CATALOG.pl.unit).toBe('multiple')
-  expect(INDICATOR_IDS).toHaveLength(6)
+  expect(INDICATOR_IDS).toHaveLength(7)
 })
 it('separa indicadores de empresas e fundos, excluindo criptos e renda fixa', () => {
   expect(supportsIndicator('pvp', 'fii')).toBe(true)
@@ -28,4 +28,12 @@ it('separa indicadores de empresas e fundos, excluindo criptos e renda fixa', ()
     expect(supportsIndicator(id, 'crypto')).toBe(false)
     expect(supportsIndicator(id, 'fixed_income')).toBe(false)
   }
+})
+it('uses reported payout only with positive earnings and a compatible source/class', () => {
+  const row = { payout_ratio: 150, lpa: 2, source: 'yahoo' }
+  expect(indicatorValue(row, 'payout_ratio', 'stock_us')).toBe(150)
+  expect(formatIndicatorValue('payout_ratio', 150)).toBe('150%')
+  for (const lpa of [0, -1, null, NaN, Infinity]) expect(indicatorValue({ ...row, lpa }, 'payout_ratio', 'stock_us')).toBeNull()
+  expect(indicatorValue({ ...row, source: 'brapi' }, 'payout_ratio', 'stock_br')).toBeNull()
+  expect(indicatorValue(row, 'payout_ratio', 'fii')).toBeNull()
 })

@@ -181,14 +181,14 @@ function EditAlertForm({
         <div className="flex justify-end gap-3 border-t border-white/10 pt-4">
           <button
             type="button"
-            disabled={edit.isPending}
+            aria-busy={edit.isPending} disabled={edit.isPending}
             onClick={close}
             className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/70"
           >
             Cancelar
           </button>
           <button
-            disabled={edit.isPending}
+            aria-busy={edit.isPending} disabled={edit.isPending}
             className="rounded-full bg-[#393939] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             {edit.isPending ? "Salvando…" : "Salvar alterações"}

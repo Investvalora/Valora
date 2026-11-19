@@ -4,4 +4,5 @@ export const ANALISE_TABS = [
   { label: 'Comparar', to: '/analise/comparar' },
   { label: 'Estratégias', to: '/analise/estrategias' },
   { label: 'Alertas', to: '/analise/alertas' },
+  { label: 'Ferramentas', to: '/analise/ferramentas' },
 ]

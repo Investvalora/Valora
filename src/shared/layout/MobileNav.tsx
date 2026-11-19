@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { MotionNavLink as NavLink } from '../components/MotionNavLink'
 import { createPortal } from 'react-dom'
 import { Home, Wallet, TrendingUp, Target } from 'lucide-react'
 

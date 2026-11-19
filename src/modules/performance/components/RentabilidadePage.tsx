@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { InflationComparison } from './InflationComparison'
 import { lazy, Suspense, useState, Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
@@ -218,7 +219,7 @@ export function RentabilidadePage() {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold text-white mb-6">Rentabilidade</h1>
-        <p className="text-gray-400 animate-pulse">Carregando rentabilidade…</p>
+        <LoadingState label="Carregando rentabilidade…" />
       </div>
     )
   }
@@ -328,9 +329,7 @@ export function RentabilidadePage() {
           <ChartErrorBoundary>
             <Suspense
               fallback={
-                <div className="h-[280px] flex items-center justify-center text-gray-500 text-sm animate-pulse">
-                  Carregando gráfico…
-                </div>
+                <div className="h-[280px] flex items-center justify-center text-gray-500 text-sm animate-pulse"><LoadingState label="Carregando gráfico…" variant="chart" /></div>
               }
             >
               <PerformanceLineChart series={chartSeries} />

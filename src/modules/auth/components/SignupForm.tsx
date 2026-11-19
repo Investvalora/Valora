@@ -152,7 +152,7 @@ function DesktopSignupForm() {
             </div>
           )}
 
-          <button type="submit" disabled={signupMutation.isPending} className={authButton}>
+          <button type="submit" aria-busy={signupMutation.isPending} disabled={signupMutation.isPending} className={authButton}>
             {signupMutation.isPending ? 'Criando conta...' : 'Criar conta'}
           </button>
         </form>

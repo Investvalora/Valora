@@ -116,6 +116,7 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
         <button
           type="button"
           onClick={onClose}
+          aria-busy={isPending}
           disabled={isPending}
           className="min-h-12 rounded-xl bg-white/[0.06] px-4 text-sm font-medium text-zinc-300 transition active:scale-[0.98] disabled:opacity-50"
         >
@@ -123,6 +124,7 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
         </button>
         <button
           type="submit"
+          aria-busy={isPending}
           disabled={isPending}
           className="min-h-12 rounded-xl bg-white px-4 text-sm font-medium text-zinc-950 transition active:scale-[0.98] disabled:opacity-50"
         >

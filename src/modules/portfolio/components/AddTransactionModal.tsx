@@ -1,3 +1,4 @@
+import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -380,14 +381,14 @@ function RendaFixaForm({ addFI, calcValues, onClose, storageKey }: RendaFixaForm
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
           {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
@@ -635,14 +636,14 @@ function TesouroDiretoForm({ addFI, calcValues, onClose, storageKey }: TesouroDi
         <button
           type="button"
           onClick={onClose}
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          disabled={isSaving}
+          aria-busy={isSaving} disabled={isSaving}
           className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
           {isSaving ? 'Salvando…' : 'Adicionar lançamento'}
@@ -768,6 +769,7 @@ function AddTransactionForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setGlobalError('')
+    if (invalidFraction(catalogAsset?.type ?? assetType, values.quantity)) { setGlobalError(WHOLE_UNITS_MESSAGE); return }
     try {
       await addTransaction.mutateAsync({
         ticker,
@@ -908,7 +910,7 @@ function AddTransactionForm({
               <input
                 id="txn-qty"
                 type="number"
-                step="any"
+                step={requiresWholeUnits(catalogAsset?.type ?? assetType) ? 1 : 'any'}
                 min="0"
                 placeholder="0"
                 className={INPUT_CLASS}
@@ -988,14 +990,14 @@ function AddTransactionForm({
             <button
               type="button"
               onClick={close}
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              aria-busy={isSaving} disabled={isSaving}
               className="rounded-lg bg-dark-surface border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 transition-colors"
             >
               {isSaving ? 'Salvando…' : 'Adicionar lançamento'}

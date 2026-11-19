@@ -29,6 +29,7 @@ export function useAtivosValuation(walletId: string, ignoreFilters = false) {
   const isError = positionQuery.isError || quotesQuery.isError || fixedQuery.isError || (needsUsd && usdQuery.isError)
   const ready = !isLoading && !isError && walletId !== ''
   return { ...value, allPositions: positionQuery.data ?? [], positions, tickers, usdRate, isLoading, isError,
+    refetch: () => { void positionQuery.refetch(); void quotesQuery.refetch(); void fixedQuery.refetch(); if (needsUsd) void usdQuery.refetch(); costs.refetch() },
     totalBRL: ready ? value.totalBRL : 0,
     patrimonioBRL: ready ? value.patrimonioBRL : null,
     valorInvestidoBRL: walletId !== '' && !positionQuery.isLoading && !positionQuery.isError && !fixedQuery.isLoading && !fixedQuery.isError ? value.valorInvestidoBRL : null }

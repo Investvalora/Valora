@@ -82,6 +82,7 @@ describe('Gerenciamento de carteiras', () => {
   it('abre a lista sem editor ao entrar por Gerenciar e edita no painel lateral', async () => {
     renderPage()
     expect(screen.getByRole('heading', { name: 'Carteiras' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Como funciona: Carteiras e composição' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Principal selecionada' })).toHaveStyle({ boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.24)' })
 

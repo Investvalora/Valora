@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shared motion vocabulary: short feedback for a financial dashboard. */
+:root {
+  --ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ui-enter: 180ms;
+  --ui-exit: 120ms;
+}
+.ui-loading { width: 100%; min-width: 0; padding: 0.75rem 0; color: #a3a3a3; font-size: 0.8125rem; }
+.ui-loading-label { display: block; margin-bottom: 0.75rem; }
+.ui-loading-shapes { display: grid; gap: 0.625rem; }
+.ui-skeleton { position: relative; display: block; overflow: hidden; min-height: 0.65rem; border-radius: 0.375rem; background: rgb(255 255 255 / 0.06); }
+.ui-loading-shapes > :nth-child(2) { width: 84%; }
+.ui-loading-shapes > :last-child { width: 64%; }
+.ui-loading--inline .ui-loading-shapes { max-width: 22rem; }
+.ui-loading--table .ui-skeleton { min-height: 2rem; width: 100%; }
+.ui-loading--form .ui-skeleton { min-height: 2.75rem; width: 100%; }
+.ui-loading--chart .ui-loading-shapes { height: 12rem; grid-template-columns: 1fr 1fr 1fr; align-items: end; }
+.ui-loading--chart .ui-skeleton { width: 100%; height: 56%; }
+.ui-loading--chart .ui-skeleton:nth-child(2) { height: 82%; }
+.ui-loading--chart .ui-skeleton:last-child { height: 68%; }
+.ui-loading--page .ui-loading-shapes { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ui-loading--page .ui-skeleton { width: 100%; min-height: 5rem; }
+.ui-loading--page .ui-skeleton:nth-child(n+3) { min-height: 7rem; }
+.ui-activity { position: fixed; inset: 0 0 auto; z-index: 100; pointer-events: none; opacity: 0; transition: opacity var(--ui-exit) var(--ui-ease); }
+.ui-activity[data-visible='true'] { opacity: 1; }
+.ui-activity-track { height: 3px; overflow: hidden; background: #262626; }
+.ui-activity-track > span { display: block; width: 35%; height: 100%; background: #b87aff; }
+.ui-activity-label { position: absolute; right: 1rem; top: max(0.75rem, env(safe-area-inset-top)); border: 1px solid #454545; border-radius: 0.75rem; background: #202020; color: #e5e5e5; padding: 0.5rem 0.75rem; font-size: 0.75rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .ui-panel-entry { opacity: 1; transform: translateY(0); transition: opacity 160ms var(--ui-ease), transform 160ms var(--ui-ease); }
+  @starting-style { .ui-panel-entry { opacity: 0; transform: translateY(4px); } }
+  .ui-skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent); animation: ui-loading-sweep 1.6s linear infinite; }
+  .ui-activity-track > span { animation: ui-progress-travel 1.4s linear infinite; }
+  html:not([data-input-mode='keyboard']) :where(button, a[role='button']) { transition: scale 120ms var(--ui-ease), opacity 120ms var(--ui-ease), background-color 120ms var(--ui-ease); }
+  html:not([data-input-mode='keyboard']) :where(button, a[role='button']):active:not(:disabled) { scale: 0.98; }
+}
+@keyframes ui-loading-sweep { to { transform: translateX(100%); } }
+@keyframes ui-progress-travel { from { transform: translateX(-100%); } to { transform: translateX(390%); } }
+/* This also covers older pulse/spin/slide utilities in the application. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .ui-skeleton::after { display: none; }
+  .ui-activity-track > span { width: 100%; transform: none; }
+}
+html[data-input-mode='keyboard'] *, html[data-input-mode='keyboard'] *::before, html[data-input-mode='keyboard'] *::after {
+  transition-duration: 0ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) { animation: ui-page-out 90ms cubic-bezier(0.4,0,1,1) both; }
+  ::view-transition-new(root) { animation: ui-page-in 160ms var(--ui-ease) both; }
+}
+@keyframes ui-page-out { to { opacity: 0; } }
+@keyframes ui-page-in { from { opacity: 0; } to { opacity: 1; } }
+
 .first-access-page[data-keyboard='open'] > footer {
   display: none;
 }

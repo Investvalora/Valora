@@ -1,3 +1,4 @@
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { Modal } from '../../../shared/components/Modal'
 import { useWallets } from '../../portfolio/hooks/useWallets'
@@ -48,7 +49,7 @@ export function FixedIncomeHistoryPanel({ since = '' }: { since?: string }) {
     <button type="button" className="mb-4 text-sm text-nf-blue disabled:opacity-40" onClick={() => void calculation.calc()} disabled={calculation.isLoading || !positions.some((position) => position.active)}>{calculation.isLoading ? 'Atualizando saldos…' : 'Atualizar saldos da renda fixa'}</button>
     {calculation.error && <p role="alert" className="mb-3 text-sm text-red-300">{calculation.error}</p>}
     {calculation.state === 'success' && <p role="status" className="mb-3 text-sm text-green-300">Saldos atualizados.</p>}
-    {history.isLoading ? <p role="status">Carregando renda fixa…</p> : history.isError ? <button type="button" onClick={() => void history.refetch()}>Não foi possível carregar. Tentar novamente</button> : !events.length ? <p className="text-sm text-white/50">Nenhum recebimento de renda fixa no período e filtros selecionados.</p> : <div className="overflow-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Recebimentos de renda fixa</caption><thead className="text-white/50"><tr><th>Título</th><th>Tipo</th><th>Data</th><th>Recebido</th><th>Saldo após</th></tr></thead><tbody>{[...events].reverse().map((event) => <tr key={event.id} className="border-t border-white/10"><td className="py-3">{positions.find((position) => position.id === event.position_id)?.name}</td><td>{event.type === 'coupon' ? 'Cupom' : 'Resgate'}</td><td>{event.event_date.split('-').reverse().join('/')}</td><td>{fmtMoney(Number(event.amount), 'BRL')}</td><td>{fmtMoney(Number(event.balance_after), 'BRL')}</td></tr>)}</tbody></table></div>}
+    {history.isLoading ? <LoadingState label="Carregando renda fixa…" /> : history.isError ? <button type="button" onClick={() => void history.refetch()}>Não foi possível carregar. Tentar novamente</button> : !events.length ? <p className="text-sm text-white/50">Nenhum recebimento de renda fixa no período e filtros selecionados.</p> : <div className="overflow-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Recebimentos de renda fixa</caption><thead className="text-white/50"><tr><th>Título</th><th>Tipo</th><th>Data</th><th>Recebido</th><th>Saldo após</th></tr></thead><tbody>{[...events].reverse().map((event) => <tr key={event.id} className="border-t border-white/10"><td className="py-3">{positions.find((position) => position.id === event.position_id)?.name}</td><td>{event.type === 'coupon' ? 'Cupom' : 'Resgate'}</td><td>{event.event_date.split('-').reverse().join('/')}</td><td>{fmtMoney(Number(event.amount), 'BRL')}</td><td>{fmtMoney(Number(event.balance_after), 'BRL')}</td></tr>)}</tbody></table></div>}
     <Modal isOpen={open} title="Registrar recebimento de renda fixa" onClose={() => setOpen(false)} dismissible={!mutation.isPending}>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">Título<select className={inputClass} required value={positionId} onChange={(event) => setPositionId(event.target.value)}><option value="">Selecione</option>{positions.filter((position) => position.active).map((position) => <option key={position.id} value={position.id}>{position.name}</option>)}</select></label>
@@ -60,7 +61,7 @@ export function FixedIncomeHistoryPanel({ since = '' }: { since?: string }) {
         <label className="block">Saldo bruto do título após o recebimento (R$)<input className={inputClass} required type="number" min="0" step="0.01" value={balance} onChange={(event) => setBalance(event.target.value)} /></label>
         <p className="text-xs text-white/50">Use zero no saldo apenas no resgate total. Inclua os movimentos em ordem de data. O valor recebido não é somado ao saldo dos investimentos.</p>
         {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-        <button className="rounded-lg bg-nf-blue px-4 py-2 disabled:opacity-50" type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Registrando…' : 'Registrar movimento'}</button>
+        <button className="rounded-lg bg-nf-blue px-4 py-2 disabled:opacity-50" type="submit" aria-busy={mutation.isPending} disabled={mutation.isPending}>{mutation.isPending ? 'Registrando…' : 'Registrar movimento'}</button>
       </form>
     </Modal>
   </section>

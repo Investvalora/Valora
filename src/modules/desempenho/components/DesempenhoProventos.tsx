@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useBrlDividends } from "../../dividends/hooks/useBrlDividends";
 import { useMonthReceivables } from "../../dividends/hooks/useMonthReceivables";
 /**
@@ -24,7 +26,7 @@ const ProventosChart = lazy(() =>
 function LoadingChart() {
   return (
     <div className="flex h-[160px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   );
 }
@@ -277,7 +279,7 @@ function PaidDividends() {
           <button
             type="button"
             aria-label="Atualizar proventos"
-            disabled={syncDividends.isPending}
+            aria-busy={syncDividends.isPending} disabled={syncDividends.isPending}
             onClick={() => syncDividends.mutate()}
             className="flex min-h-9 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-white/[0.12] disabled:opacity-50 md:min-h-0 md:bg-[#393939] md:px-3 md:text-[12px]"
           >
@@ -402,7 +404,7 @@ function PaidDividends() {
       {/* ── Gráfico barras ── */}
       <PanelCard>
         <h3 className="mb-4 text-[14px] font-semibold text-white">
-          Proventos por mês
+          Proventos por mês <InformationHelp topic="income" />
         </h3>
         {isLoading ? (
           <LoadingChart />
@@ -423,9 +425,7 @@ function PaidDividends() {
           “Anunciados / a receber”.
         </p>
         {receivables.isLoading && (
-          <p role="status" className="mt-2 text-xs text-white/50">
-            Carregando valores a receber…
-          </p>
+          <LoadingState label="Carregando valores a receber…" />
         )}
         {!receivables.isLoading && receivables.hasUndated && (
           <p className="mt-2 text-xs text-amber-200/80">

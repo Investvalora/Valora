@@ -136,7 +136,7 @@ export function MobileLoginForm() {
 
         {cooldown > 0 && <p role="status" className="text-sm text-amber-300">Muitas tentativas. Aguarde {cooldown}s antes de tentar novamente.</p>}
         {/* Entrar */}
-        <button type="submit" disabled={isPending || cooldown > 0} className={mobilePrimaryBtn}>
+        <button type="submit" aria-busy={isPending} disabled={isPending || cooldown > 0} className={mobilePrimaryBtn}>
           {loginMutation.isPending ? 'Entrando…' : cooldown ? `Aguarde ${cooldown}s` : 'Entrar'}
         </button>
 
@@ -150,7 +150,7 @@ export function MobileLoginForm() {
         {/* Google */}
         <button
           type="button"
-          disabled={isPending}
+          aria-busy={isPending} disabled={isPending}
           onClick={() => { setErrorMessage(''); googleMutation.mutate() }}
           className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.05] text-[15px] font-medium text-white transition-colors hover:bg-white/[0.09] disabled:opacity-50"
         >

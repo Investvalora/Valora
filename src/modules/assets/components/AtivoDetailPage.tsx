@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { FundamentalsPanel } from "./FundamentalsPanel";
 import { ScoreBreakdown } from "../../score/components/ScoreBreakdown";
 import {
@@ -754,7 +756,7 @@ function AssetTransactionPreview({
   return (
     <PanelCard>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Lançamentos</h3>
+        <h3 className="text-sm font-semibold text-white">Lançamentos <InformationHelp topic="transactions" /></h3>
         <button
           type="button"
           onClick={() => navigate("/ativos/lancamentos")}
@@ -765,7 +767,7 @@ function AssetTransactionPreview({
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-[#8f8f8f] animate-pulse">Carregando…</p>
+        <LoadingState label="Carregando…" />
       ) : recent.length === 0 ? (
         <p className="text-xs text-[#8f8f8f]">Sem lançamentos registrados.</p>
       ) : (
@@ -831,7 +833,7 @@ function AssetDividendPreview({
   return (
     <PanelCard>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Proventos</h3>
+        <h3 className="text-sm font-semibold text-white">Proventos <InformationHelp topic="income" /></h3>
         <button
           type="button"
           onClick={() => navigate("/desempenho/proventos")}
@@ -842,7 +844,7 @@ function AssetDividendPreview({
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-[#8f8f8f] animate-pulse">Carregando…</p>
+        <LoadingState label="Carregando…" />
       ) : isError ? (
         <div role="alert">
           <p>Não foi possível carregar seus recebimentos.</p>
@@ -1045,7 +1047,7 @@ function TabLancamentos({ ticker, currency, navigate }: TabLancamentosProps) {
         </button>
       </div>
       {isLoading ? (
-        <p className="text-sm text-[#8f8f8f] animate-pulse">Carregando…</p>
+        <LoadingState label="Carregando…" />
       ) : txns.length === 0 ? (
         <p className="text-sm text-[#8f8f8f]">Sem lançamentos registrados.</p>
       ) : (
@@ -1144,7 +1146,7 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
   return (
     <PanelCard>
       <h3 className="text-sm font-semibold text-white mb-4">
-        Proventos — {ticker}
+        Proventos — {ticker} <InformationHelp topic="income" />
       </h3>
       <div
         className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1 md:flex"
@@ -1172,7 +1174,7 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
       </div>
       {view === "received" ? (
         received.isLoading ? (
-          <p>Carregando recebimentos…</p>
+          <LoadingState label="Carregando recebimentos…" variant="table" />
         ) : received.isError ? (
           <div role="alert">
             <p>Não foi possível carregar seus recebimentos.</p>
@@ -1275,7 +1277,7 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
           </div>
         )
       ) : isLoading ? (
-        <p className="text-sm text-[#8f8f8f] animate-pulse">Carregando…</p>
+        <LoadingState label="Carregando…" />
       ) : isError ? (
         <div>
           <p className="text-sm text-nf-pink mb-2">
@@ -1507,7 +1509,7 @@ function TabScore({ activeScoreName, scoreValue, bazin }: TabScoreProps) {
             </p>
           )
         ) : (
-          <p className="text-sm text-[#8f8f8f] animate-pulse">Calculando…</p>
+          <LoadingState label="Calculando…" />
         )}
       </PanelCard>
     </div>
@@ -1534,7 +1536,7 @@ function TabAlertas({ ticker }: TabAlertasProps) {
         Alertas — {ticker}
       </h3>
       {isLoading ? (
-        <p className="text-sm text-[#8f8f8f] animate-pulse">Carregando…</p>
+        <LoadingState label="Carregando…" />
       ) : tickerAlerts.length === 0 ? (
         <p className="text-sm text-[#8f8f8f]">Sem alertas para este ativo.</p>
       ) : (
@@ -1762,9 +1764,7 @@ function FullscreenAssetSearch({
       {term.trim().length >= 2 && (
         <div className="absolute inset-x-0 top-full z-10 mt-2 max-h-[40dvh] overflow-y-auto rounded-2xl border border-white/15 bg-[#242424] p-2 shadow-2xl">
           {isFetching || debounced !== term.trim() ? (
-            <p role="status" className="p-3 text-sm text-white/55">
-              Buscando ativos…
-            </p>
+            <LoadingState label="Buscando ativos…" />
           ) : data.length ? (
             <ul aria-label="Sugestões de ativos">
               {data.map((asset) => (
@@ -1905,11 +1905,9 @@ function ExpandedPriceChart({
         <div className="h-full min-h-0 rounded-2xl border border-white/10 bg-[#1B1B1B] p-4 md:p-6">
           {loading ? (
             <div
-              role="status"
+
               className="grid h-full place-items-center text-sm text-white/50"
-            >
-              Carregando gráfico…
-            </div>
+            ><LoadingState label="Carregando gráfico…" variant="chart" /></div>
           ) : data.length ? (
             <ChartErrorBoundary>
               <PriceLineChartWithAvg
@@ -2078,7 +2076,7 @@ export function AtivoDetailPage({
   if (assetLoading) {
     return (
       <div className="p-8">
-        <p className="text-[#8f8f8f] animate-pulse">Carregando ativo…</p>
+        <LoadingState label="Carregando ativo…" />
         {chartExpanded && (
           <ExpandedPriceChart
             ticker={ticker}

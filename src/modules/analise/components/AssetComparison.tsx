@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -82,7 +84,7 @@ export function AssetComparison({
     <section className="min-w-0 space-y-5">
       <header>
         {!embedded && (
-          <h2 className="text-lg font-semibold text-white">Comparar ativos</h2>
+          <h2 className="text-lg font-semibold text-white">Comparar ativos <InformationHelp topic="analysis" /></h2>
         )}
         <p className="mt-2 text-sm text-white/60">
           {initialAsset
@@ -119,9 +121,7 @@ export function AssetComparison({
         {term.trim().length >= 2 && !atLimit && (
           <div className="mt-2">
             {search.isFetching && (
-              <p role="status" className="py-2 text-sm text-white/60">
-                Buscando…
-              </p>
+              <LoadingState label="Buscando…" />
             )}
             {search.isError && (
               <p role="alert" className="py-2 text-sm text-amber-200">
@@ -231,9 +231,7 @@ export function AssetComparison({
           </p>
         )
       ) : funds.isLoading ? (
-        <p role="status" className="text-sm text-white/60">
-          Carregando indicadores…
-        </p>
+        <LoadingState label="Carregando indicadores…" />
       ) : funds.isError ? (
         <p role="alert" className="text-sm text-amber-200">
           Não foi possível carregar os indicadores.{" "}

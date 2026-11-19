@@ -7,15 +7,15 @@ it('preserva zero, percentuais e a ausência de dados separadamente', () => {
   render(<FundamentalsPanel row={row} type="stock_br" />)
   expect(screen.getByText('0')).toBeInTheDocument()
   expect(screen.getByText('6,5%')).toBeInTheDocument()
-  expect(screen.getAllByText('Indisponível')).toHaveLength(3)
+  expect(screen.getAllByText('Indisponível')).toHaveLength(4)
   expect(screen.getByText(/30\/10\/2026/)).toBeInTheDocument()
 })
 it('não aplica indicadores de empresas a fundos nem criptomoedas', () => {
   const view = render(<FundamentalsPanel row={row} type="fii" />)
-  expect(screen.getAllByText('Não se aplica')).toHaveLength(4)
+  expect(screen.getAllByText('Não se aplica')).toHaveLength(5)
   expect(screen.getByText('1,2')).toBeInTheDocument()
   view.rerender(<FundamentalsPanel row={row} type="crypto" />)
-  expect(screen.getAllByText('Não se aplica')).toHaveLength(6)
+  expect(screen.getAllByText('Não se aplica')).toHaveLength(7)
 })
 it('distingue falha de consulta de falta de dados', () => {
   render(<FundamentalsPanel row={null} type="stock_br" error />)

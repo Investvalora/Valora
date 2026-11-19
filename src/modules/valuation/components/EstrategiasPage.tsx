@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -5,6 +7,7 @@ import { useInsights, useDeleteInsight } from '../hooks/useInsights'
 import { ValuationGuide } from './ValuationGuide'
 import { StrategyManager } from './StrategyManager'
 import { InvestmentCalculators } from './InvestmentCalculators'
+import { StatementIndicators } from './StatementIndicators'
 import type { InsightRecord, InsightStrategy } from '../types'
 
 // ─── formatadores ─────────────────────────────────────────────────────────────
@@ -277,7 +280,7 @@ function InsightsList() {
   const [showAll, setShowAll] = useState(false)
 
   if (isLoading) {
-    return <p className="text-sm text-gray-400 animate-pulse py-4">Carregando insights…</p>
+    return <LoadingState label="Carregando insights…" />
   }
 
   if (isError) {
@@ -297,7 +300,7 @@ function InsightsList() {
 
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#1b1b1b] p-5 lg:p-6">
-      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-white">{showAll ? 'Todos os insights' : 'Insights recentes'}</h2>{insights.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)} className="text-xs text-[#a0a7ff] hover:underline">{showAll ? 'Ver recentes' : 'Ver todos'} <span aria-hidden="true">›</span></button>}</div>
+      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-white">{showAll ? 'Todos os insights' : 'Insights recentes'} <InformationHelp topic="analysis" /></h2>{insights.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)} className="text-xs text-[#a0a7ff] hover:underline">{showAll ? 'Ver recentes' : 'Ver todos'} <span aria-hidden="true">›</span></button>}</div>
       <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <caption className="sr-only">Insights salvos</caption>
@@ -371,6 +374,7 @@ export function EstrategiasPage() {
       <StrategyManager />
       <ValuationGuide onCalculate={openInsight} />
       <InvestmentCalculators onUseYield={(yieldRate, parameters) => openNovaEstrategiaFii(yieldRate, parameters as Record<string, number>)} />
+      <StatementIndicators />
       {/* Lista de insights */}
       <InsightsList />
     </div>

@@ -232,7 +232,7 @@ export function RowActionsMenu({
             <button
               type="button"
               onClick={() => { setModal(null); setDeleteError('') }}
-              disabled={deletePosition.isPending}
+              aria-busy={deletePosition.isPending} disabled={deletePosition.isPending}
               className="flex-1 rounded-lg border border-dark-border px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors disabled:opacity-50"
             >
               Cancelar
@@ -240,7 +240,7 @@ export function RowActionsMenu({
             <button
               type="button"
               onClick={handleDelete}
-              disabled={deletePosition.isPending}
+              aria-busy={deletePosition.isPending} disabled={deletePosition.isPending}
               className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 transition-colors"
             >
               {deletePosition.isPending ? 'Excluindo…' : 'Excluir'}

@@ -1,3 +1,4 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
 import { PortfolioScore } from '../../score/components/PortfolioScore'
 import { StarterScore } from '../../score/components/StarterScore'
 import { ScoreCalculationHelp, ScoreMetricHelp } from '../../score/components/ScoreMetricHelp'
@@ -168,7 +169,7 @@ export function AnaliseScore() {
     <div className="flex flex-col gap-5">
       {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] md:text-[18px] font-semibold text-white">Score Fundamentalista</h2>
+        <h2 className="text-[16px] md:text-[18px] font-semibold text-white">Score Fundamentalista <InformationHelp topic="score" /></h2>
         <button
           type="button"
           onClick={() => navigate('/analise/score/nova')}

@@ -1,15 +1,35 @@
 # TODO ativa de evolução do Valora
 
+## Rodada ativa — operação, indicadores e simulações (19/11)
+
+Esta seção prevalece sobre pendências equivalentes antigas. [Escopo, fontes e evidências](indicadores-simulacoes-operacao-2026-11-19.md).
+
+- [x] Aceite operacional: cadência independente de aproximadamente 15 minutos em 24h; seis workflows recentes aprovados; filas sem tarefas elegíveis vencidas; orçamento e uso de múltiplas chaves conferidos.
+- [x] Próximo macro/Tesouro automático observado em 19/11 às 17h Brasília: 13 posições, zero erros. Manter diagnóstico ativo não constitui uma entrega sempre pendente.
+- [x] PR183 publicada e homologada: ícones de informação junto aos cards, gráficos, tabelas e quantidade; faixa global removida. Deploy/CI aprovados, navegador de produção e largura móvel conferidos, sem escrita financeira.
+- [ ] IND-01: payout integrado localmente a fundamentos, score, estratégias e monitor de alertas; migration e testes aprovados no QA. Falta publicar e homologar.
+- [ ] IND-02 a IND-11: fórmulas e ferramenta manual por demonstrativo implementadas e testadas localmente. **Não encerra cobertura automática:** faltam ingestão com proveniência, séries comparáveis de cinco anos e bases completas de relatórios de fundos. Não alimentar regras automáticas com entradas manuais.
+- [ ] SIM-01: comparação simultânea com/sem reinvestimento pronta localmente, com retiradas e caixa separados. Falta publicação/homologação.
+- [ ] SIM-02: sete cenários com variações editáveis de aporte, rendimento e inflação prontos localmente. Falta publicação/homologação.
+- [ ] SIM-03: comparação do FII e da referência de renda fixa no mesmo capital, premissas e limitações explícitas, pronta localmente. Falta publicação/homologação.
+- [ ] REF-01 parcial: as três abas da planilha fornecida foram lidas com fórmulas e comparadas às calculadoras. Vídeos ainda sem transcrição verificável; não alegar revisão audiovisual integral. Fontes educativas e fórmulas tradicionais não recebem atribuição exclusiva presumida.
+- [x] Conferência visual local das novas simulações e formulários realizada após recuperação do navegador e reinício do servidor: comparação com/sem reinvestimento, sete cenários e renda fixa; largura móvel de 319 px e desktop de 1440 px, tabelas com rolagem própria. Proteção sem fonte/confirmação conferida. Não equivale a homologação em produção ou novo ensaio físico. Detalhes e limites no documento da rodada.
+- [ ] Coleta automática avançada parcial: piloto SEC para margem operacional e FCL de AAPL/MSFT implementado, consulta real e seis regressões aprovadas. Workflow diário preparado, ainda não publicado/executado no GitHub. Saída de pesquisa com documento/período/componentes; sem upsert de fundamentos. Demais métricas/classes e integração ao catálogo permanecem abertas.
+
 ## Revisão ativa — 19/11
 
 - [x] Comparação histórica pelo CDN realizada em previews protegidos, autenticados pelo responsável no Android/Wi-Fi: cinco amostras válidas anteriores e seis atuais, cache aquecido, medianas FCP 460/466 ms. Sem ganho demonstrado. Escopo Chrome, sem reinstalar o PWA de produção. [Método e fontes](revisao-cobertura-desempenho-2026-11-19.md).
-- [x] Identificar falha de GOOG: Nasdaq informa Class C Capital Stock, recusado pelo contrato anterior. Correção genérica por tipo, revisão oficial do futuro GOOG e do trimestre RA/GGG preparadas e testadas no QA. Nenhuma mudança dessas revisões publicada ainda.
-- [ ] Abrir PR e publicar a correção de identidade/revisões oficiais; homologar após merge.
-- [ ] XPML11: integrar aviso oficial FNET 1387873 (R$ 0,80, COM 17/11, pagamento 25/11), mantendo XPML13/XPML15 separados e sem inferir data ex ou aprovação ausentes.
+- [x] Corrigir identidade de GOOG (Class C Capital Stock) e publicar revisões oficiais de GOOG/RA/GGG. PR176 homologada em produção em 19/11; coleta real de GOOG sem erro, cinco eventos completos e revisão oficial preservada.
+- [x] PR176 mergeada, migration aplicada e homologação autenticada concluída. Carteiras, recebimentos e observações dos fornecedores preservados. [Registro](homologacao-producao-pr176.md).
+- [x] XPML11: causa identificada e correção local da descoberta FNET preparada, genérica para FIIs; conservar aviso 1387873 sem data ex e exibi-lo separadamente em BRL, sem somar recibos XPML13/XPML15. [Escopo e rollout](fnet-cobertura-pendente-2026-11-19.md).
+- [x] Publicar/homologar descoberta e avisos FNET: PR177, migration e função publicadas; rotina real HTTP200, três documentos XPML11 preservados, sem alterar dados pessoais. [Registro e limite visual](homologacao-producao-pr177.md).
+- [ ] Obter ex independente de XPML11 para incluir em totais; data COM não vira ex por inferência.
 - [ ] BB: declaração futura atual ainda não localizada. Histórico de ausência de pagamentos não basta.
 - [ ] PERT: OTC não confirma divulgação atual; sem calendário oficial verificável.
 - [ ] PR US$ 0,03: sem confirmação no 10-Q mais recente; retenção preservada.
 - [ ] Acompanhar demais calendários e divergências por emissor. Ter evento histórico/fonte de pagamento não demonstra cobertura futura integral.
+
+Investigação adicional dos quatro pontos em 19/11: tentativas oficiais B3 indisponíveis para ex de XPML11, FAQ BB conferido também no HTML/JSON-LD, nova fonte PERT sem leitura por timeout e divergência PR confrontada com comunicado e 10-Q. Nenhuma confirmação positiva adicional obtida. Critérios de encerramento e consultas externas **não enviadas** em [registro específico](verificacao-quatro-pendencias-2026-11-19.md).
 
 Esta revisão substitui as pendências equivalentes de comparação histórica abaixo. A referência do PWA instalado e a comparação local continuam como ensaios separados, não números intercambiáveis.
 
@@ -563,11 +583,15 @@ Atualização07/11: implementação inicial publicada pela PR110; início, impor
 
 ## 4. Novas funcionalidades de produto
 
-- [ ] **FUN-01 — Planejador do próximo aporte.** Informar o valor disponível e simular distribuição por classe usando as metas já existentes, com mínimos e sobra de caixa explícitos. Resultado é planejamento, sem execução de ordens.
-- [ ] **FUN-02 — Explicar a variação do patrimônio.** Separar aportes/retiradas, valorização, câmbio e proventos; explicitar convenção e evitar dupla contagem. Permitir reconciliar o total com a mesma data/base.
-- [ ] **FUN-03 — Exportação completa por carteira.** Incluir lançamentos, renda fixa/eventos, recebimentos e metadados de moeda/fonte, além das posições. Definir formato portável e prévia/validação para eventual restauração, com conferência de duplicatas. CSV atual de posições não é backup completo.
-- [ ] **FUN-04 — Meta de renda passiva integrada.** Salvar meta e acompanhar renda efetivamente recebida e distância da meta. Reutilizar calculadoras para projeções, separadas dos resultados realizados e com premissas visíveis.
-- [ ] **FUN-05 — Painel de saúde dos dados.** Reunir fonte/data de cotação, câmbio, fundamentos e cobertura histórica. Diferenciar mercado fechado, dado antigo e atualização parcial, aproveitando os avisos e a atualização pontual existentes.
+FUN-01 a FUN-05 publicadas pela PR178 em 19/11/2026. Merge, CI, duas migrations e verificações de produção aprovados. [Evidências e limites de produção](homologacao-producao-pr178.md); [regressões locais](homologacao-quinta-bateria-e-ferramentas.md). Restauração automática não faz parte da entrega: há exportação e prévia de validação.
+
+**PR179 publicada e verificada em produção (19/11):** ferramentas movidas para **Análise → Ferramentas**, `/analise/ferramentas`, com redirecionamento do endereço antigo. Skeletons, feedback de andamento e motion compartilhados revisados para o sistema. CI da main e deploy aprovados; navegação, responsividade, estados ocupados, movimento reduzido e teclado conferidos. **Achado final:** orientação de carteira vazia aparecia durante a primeira consulta; correção preparada e testada em `codex/tools-wallet-loading`, aguardando publicação. [Homologação de produção](homologacao-producao-pr179.md); [escopo e regressões locais](interface-motion-ferramentas.md).
+
+- [x] **FUN-01 — Planejador do próximo aporte.** Informar o valor disponível e simular distribuição por classe usando as metas já existentes, com mínimos e sobra de caixa explícitos. Resultado é planejamento, sem execução de ordens.
+- [x] **FUN-02 — Explicar a variação do patrimônio.** Separar aportes/retiradas, valorização, câmbio e proventos; explicitar convenção e evitar dupla contagem. Permitir reconciliar o total com a mesma data/base.
+- [x] **FUN-03 — Exportação completa por carteira.** Incluir lançamentos, renda fixa/eventos, recebimentos e metadados de moeda/fonte, além das posições. Definir formato portável e prévia/validação para eventual restauração, com conferência de duplicatas. CSV atual de posições não é backup completo.
+- [x] **FUN-04 — Meta de renda passiva integrada.** Salvar meta e acompanhar renda efetivamente recebida e distância da meta. Reutilizar calculadoras para projeções, separadas dos resultados realizados e com premissas visíveis.
+- [x] **FUN-05 — Painel de saúde dos dados.** Reunir fonte/data de cotação, câmbio, fundamentos e cobertura histórica. Diferenciar mercado fechado, dado antigo e atualização parcial, aproveitando os avisos e a atualização pontual existentes.
 
 ## 5. Novos indicadores — validar fontes antes de incluir
 
@@ -653,3 +677,12 @@ automático novo. Tesouro atualizou1145 linhas hoje, referência17/11.
 - [x] PR143 mergeada (`ce8b81c`): três migrations aplicadas, função internacional v8 ativa e primeira execução publicada aprovada. COST especial confirmado uma vez na interface; cinco chaves disponíveis, rodízio de reservas verificado com rollback. Lançamentos e recebimentos pessoais preservados.
 
 Detalhes: [implementação e limites](fallbacks-proventos-alpha-marketstack-2026-11-12.md).
+
+
+## 5ª bateria — correções em preparação (19/11/2026)
+
+- [x] DEF-01/CT07: compras/vendas de ações BR, FIIs, BDRs e ETFs BR exigem unidades inteiras no lançamento, edição, prévia CSV e banco. Sem arredondamento nem reescrita de registros antigos; frações de ativos americanos, cripto e Tesouro preservadas.
+- [x] DEF-02/CT08: atalhos do Início empilhados abaixo de 1280 px e texto com quebra; sem corte em 953, 1024 e 1366 px.
+- [x] Achado adicional: título correto da rota `/boas-vindas`.
+- [x] Gráfico compacto de proventos: valor exato por mês no mouse, foco, teclado e seleção por toque.
+- [x] PR178 publicada e homologada em produção; duas migrations aplicadas, CI aprovado, ferramentas e gráfico conferidos, validação de quantidade e isolamento testados. [Evidências e limites](homologacao-producao-pr178.md).

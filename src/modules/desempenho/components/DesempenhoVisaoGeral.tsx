@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 /**
  * DesempenhoVisaoGeral — sub-rota /desempenho/visao-geral.
  * Combina rentabilidade, proventos mensais, tabela mensal e top pagadores.
@@ -25,7 +27,7 @@ const DividendsBarChart = lazy(
 function LoadingChart() {
   return (
     <div className="flex h-[280px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   )
 }
@@ -33,7 +35,7 @@ function LoadingChart() {
 function LoadingChartSm() {
   return (
     <div className="flex h-[220px] items-center justify-center">
-      <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+      <LoadingState label="Carregando…" />
     </div>
   )
 }
@@ -188,7 +190,7 @@ export function DesempenhoVisaoGeral() {
           <PanelCard className="max-md:rounded-none max-md:border-0 max-md:bg-transparent" padding="md:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-lg font-semibold tracking-tight text-white md:text-[14px] md:tracking-normal">
-                Rentabilidade comparada
+                Rentabilidade comparada <InformationHelp topic="returns" />
               </h3>
               <div className="hidden items-center gap-3 md:flex">
                 <span className="flex items-center gap-1.5 text-[11px] text-white/60">
@@ -221,7 +223,7 @@ export function DesempenhoVisaoGeral() {
           {/* Gráfico de proventos mensais */}
           <PanelCard>
             <h3 className="mb-4 text-[14px] font-semibold text-white">
-              Proventos mensais (12M)
+              Proventos mensais (12M) <InformationHelp topic="income" />
             </h3>
             {divLoading ? (
               <LoadingChartSm />
@@ -260,7 +262,7 @@ export function DesempenhoVisaoGeral() {
             </h3>
             {isLoading ? (
               <div className="flex h-20 items-center justify-center">
-                <span className="animate-pulse text-sm text-white/40">Carregando…</span>
+                <LoadingState label="Carregando…" />
               </div>
             ) : (
               <TabelaMensal rows={monthlyTableData} />

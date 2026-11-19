@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/components/LoadingState'
 import { useEffect, useState } from 'react'
 import { Check, Search } from 'lucide-react'
 import { useAssetSearch } from '../portfolio/hooks/useAssetSearch'
@@ -28,7 +29,7 @@ export function CatalogStep({ term, selectedTicker, onChange, onSelect }: {
           placeholder="Ex.: Petrobras ou PETR4" className="min-h-12 w-full rounded-xl border border-white/15 bg-white/5 pl-11 pr-4 text-base text-white placeholder:text-white/45 focus:border-[#5cc8ff] focus:outline-none" />
       </div>
       {!searching ? <p className="text-sm text-white/65">Digite pelo menos dois caracteres para buscar no catálogo.</p>
-        : waiting ? <p role="status" className="text-sm text-white/65">Buscando ativos…</p>
+        : waiting ? <LoadingState label="Buscando ativos…" />
           : results.isError ? <button type="button" onClick={() => void results.refetch()} className="min-h-11 text-sm text-[#5cc8ff] underline">Tentar buscar ativos novamente</button>
             : !results.data?.length ? <p role="status" className="text-sm text-white/65">Nenhum ativo encontrado. Tente outro nome ou ticker.</p>
               : <ul aria-label="Resultados do catálogo" className="divide-y divide-white/10">

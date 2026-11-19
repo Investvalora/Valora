@@ -1,3 +1,6 @@
+import { Suspense } from 'react'
+import { RouteLoadingFallback } from '../components/RouteLoadingFallback'
+import { MotionRegion } from '../components/MotionRegion'
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useNewAlertsCount } from '../../modules/alerts/hooks/useAlerts'
@@ -28,7 +31,7 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-w-0 flex-1 overflow-auto pb-[calc(5rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:pb-0 md:pt-0">
-          <Outlet />
+          <MotionRegion className="h-full"><Suspense fallback={<RouteLoadingFallback />}><Outlet /></Suspense></MotionRegion>
         </main>
       </div>
 

@@ -1,3 +1,5 @@
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { LoadingState } from '../../../shared/components/LoadingState'
 import { useQuery } from '@tanstack/react-query'
 import { sectorService } from '../services/sectorService'
 import { AssetValuationNotice } from './AssetValuationNotice'
@@ -401,9 +403,12 @@ export function AtivosComposicao() {
         {/* Cabeçalho */}
         <div className="mb-5 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1">
             <h2 className="text-[14px] font-semibold text-white">
               {activeToggle === 'Setor' ? 'Composição por setor' : activeToggle === 'Ativos' ? 'Composição por ativo' : activeToggle === 'Exposição ao exterior' ? 'Exposição ao exterior' : 'Composição por classe'}
             </h2>
+              <InformationHelp topic="allocation" />
+            </div>
             {/* Switch posição ideal */}
             <div className="flex shrink-0 items-center gap-2">
               <span aria-hidden="true" className="text-[11px] text-white/60 md:text-[12px] md:text-white/50">
@@ -445,7 +450,7 @@ export function AtivosComposicao() {
         </p>
         {(showIdeal && classView ? fullValuation.isLoading : isLoading) ? (
           <div className="flex h-[200px] items-center justify-center">
-            <p className="text-[13px] text-[#8F8F8F] animate-pulse">Carregando composição…</p>
+            <LoadingState label="Carregando composição…" variant="table" />
           </div>
         ) : displaySlices.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center">
@@ -465,7 +470,7 @@ export function AtivosComposicao() {
           </div>
         )}
         {activeToggle === 'Setor' && <div className="mt-4 text-xs leading-relaxed text-white/50">
-          {sectorQuery.isLoading && <p role="status">Buscando classificação por setor…</p>}
+          {sectorQuery.isLoading && <LoadingState label="Buscando classificação por setor…" />}
           {sectorQuery.isError && <p role="alert">Não foi possível atualizar os setores. A classificação já disponível foi mantida. <button type="button" className="underline" onClick={() => void sectorQuery.refetch()}>Tentar novamente</button></p>}
           <button type="button" aria-expanded={sectorDetailsOpen} aria-controls="composition-sector-details" onClick={() => setSectorDetailsOpen(open => !open)} className="min-h-11 text-white/50 underline decoration-white/20 underline-offset-4 hover:text-white/80">
             Sobre os setores {sectorDetailsOpen ? '−' : '+'}

@@ -8,3 +8,7 @@ it('identifica Explorar e seu resumo sem perder o tratamento de rota inexistente
   expect(titleForPath('/ativos/explorar/%')).toBe('Resumo do ativo | Valora')
   expect(titleForPath('/inexistente')).toBe('Página não encontrada | Valora')
 })
+
+it('informa o título da rota real de boas-vindas', () => {
+  expect(titleForPath('/boas-vindas')).toBe('Boas-vindas | Valora')
+})

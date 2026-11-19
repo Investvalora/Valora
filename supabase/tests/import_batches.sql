@@ -1,6 +1,6 @@
 -- Disposable Supabase only. All fixtures are rolled back.
 BEGIN;
-INSERT INTO public.assets(ticker,name,type,quote_provider) VALUES('QAIMPORT','Import fixture','stock_br','brapi');
+INSERT INTO public.assets(ticker,name,type,quote_provider) VALUES('QAIMPORT','Import fixture','stock_us','brapi');
 INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
  ('ab000000-0000-4000-8000-000000000001','qa-import-a@test.invalid','{"full_name":"Import A"}'),
  ('ab000000-0000-4000-8000-000000000002','qa-import-b@test.invalid','{"full_name":"Import B"}');

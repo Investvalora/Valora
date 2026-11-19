@@ -2,7 +2,7 @@
  * ProventosCol — coluna de Proventos da tela Análise.
  * Gráfico de barras + tabela compacta dos últimos proventos.
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
@@ -26,7 +26,8 @@ function fmtDate(yyyyMMDD: string) {
 }
 
 // ── mini gráfico de barras ─────────────────────────────────────────────────
-function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total: number }[]; maxBars?: number }) {
+export function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total: number }[]; maxBars?: number }) {
+  const [selected, setSelected] = useState<string | null>(null)
   const visible = months.slice(-maxBars)
   const maxVal = Math.max(...visible.map((b) => b.total), 1)
   const W = 300, H = 120, PAD_B = 16, n = visible.length
@@ -35,13 +36,23 @@ function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total:
   const BLUE = '#7987FF'
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="Proventos mensais" role="img">
+    <div className="relative" onMouseLeave={() => setSelected(null)}>
+      <div className="mb-1 min-h-6 text-center text-xs text-white/90" role="status" aria-live="polite">
+        {selected && (() => { const bar = visible.find((item) => item.month === selected); return bar ? `${fmtMonth(bar.month)}/${bar.month.slice(0, 4)}: ${fmtBRL(bar.total)}` : null })()}
+      </div>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="Proventos mensais" role="group">
       {visible.map((bar, i) => {
         const bh = Math.max(2, (bar.total / maxVal) * (H - PAD_B - 8))
         const cx = i * colW + colW / 2
         const isLast = i === n - 1
         return (
-          <g key={bar.month}>
+          <g key={bar.month} role="button" tabIndex={0}
+            aria-label={`${fmtMonth(bar.month)}/${bar.month.slice(0, 4)}: ${fmtBRL(bar.total)}`}
+            onMouseEnter={() => setSelected(bar.month)} onFocus={() => setSelected(bar.month)}
+            onBlur={() => setSelected(null)} onClick={() => setSelected(bar.month)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setSelected(null); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(bar.month) } }}
+            className="cursor-pointer outline-none focus:opacity-75">
+            <rect x={i * colW} y={0} width={colW} height={H} fill="transparent" />
             <rect x={cx - BW / 2} y={H - PAD_B - bh} width={BW} height={bh} rx={3} fill={BLUE} fillOpacity={isLast ? 1 : 0.5} />
             {isLast && (
               <text x={cx} y={H - PAD_B - bh - 4} textAnchor="middle" fontSize={9} fill={BLUE} fontWeight={500}>
@@ -53,6 +64,7 @@ function MiniBarChart({ months, maxBars = 8 }: { months: { month: string; total:
         )
       })}
     </svg>
+    </div>
   )
 }
 

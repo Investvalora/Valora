@@ -7,7 +7,7 @@ import type { HistoricalFixedIncome, HistoricalValuation } from '../../dashboard
 import type { DividendRow } from '../../dividends/types'
 
 export type ReturnTrade = Pick<Transaction, 'wallet_id' | 'ticker' | 'transaction_date' | 'seq' | 'type' | 'quantity' | 'price'> & Partial<Pick<Transaction, 'brokerage_fee' | 'tax'>> & { currency: AssetCurrency | null }
-export interface DailyReturn { date: string; value: number | null; returnPct: number | null; issues?: string[] }
+export interface DailyReturn { date: string; value: number | null; returnPct: number | null; issues?: string[]; purchases?: number; withdrawals?: number; income?: number; fxChange?: number | null; marketChange?: number | null }
 const key = (row: { wallet_id?: string; ticker: string }) => `${row.wallet_id}:${row.ticker}`
 const nextDay = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
 
@@ -61,6 +61,18 @@ export function historicalReturns(
   let previous: number | null = 0
   const result: DailyReturn[] = []
   for (let date = first; date <= until; date = nextDay(date)) {
+    const previousDate = new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
+    const previousFx = rateAt(rates.usd, previousDate)
+    const currentFx = rateAt(rates.usd, date)
+    let fxChange: number | null = 0
+    for (const holding of holdings.values()) {
+      if (holding.quantity <= 1e-10) continue
+      const usdTicker = holding.currency === 'USD' ? holding.ticker : null
+      if (!usdTicker) continue
+      const quote = quotes.get(usdTicker)
+      if (!quote || previousFx === null || currentFx === null) { fxChange = null; break }
+      fxChange += holding.quantity * quote.close * (currentFx - previousFx)
+    }
     while (priceCursor < sortedPrices.length && sortedPrices[priceCursor].date <= date) {
       const row = sortedPrices[priceCursor++]
       quotes.set(row.ticker, { date: row.date, close: Number(row.close) })
@@ -79,7 +91,7 @@ export function historicalReturns(
     }
     const issues = new Set<string>()
     for (const trade of ordered) if (inconsistentKeys.has(key(trade)) && trade.transaction_date <= date) issues.add(`Movimentações divergentes da posição: ${trade.ticker}`)
-    let complete = !inconsistentFrom || date < inconsistentFrom, purchases = 0, withdrawals = 0, total = 0
+    let complete = !inconsistentFrom || date < inconsistentFrom, purchases = 0, withdrawals = 0, total = 0, incomeTotal = 0
     while (cursor < ordered.length && ordered[cursor].transaction_date <= date) {
       const trade = ordered[cursor++]
       const qty = Number(trade.quantity), price = Number(trade.price)
@@ -105,16 +117,19 @@ export function historicalReturns(
       if (value === null || !Number.isFinite(value)) { complete = false; issues.add(fixedIncomeIssue(position, date)) }
       else total += value
       withdrawals += (position.events ?? []).filter(e => e.event_date === date).reduce((sum, e) => sum + Number(e.amount), 0)
+      incomeTotal += (position.events ?? []).filter(e => e.event_date === date && e.type === 'coupon').reduce((sum, e) => sum + Number(e.amount), 0)
     }
     for (const payment of income.filter(p => p.payment_date === date)) {
       const rate = convert(payment.currency ?? 'BRL')
       if (rate === null || !Number.isFinite(Number(payment.total_value))) { complete = false; issues.add(`Provento ou câmbio indisponível: ${payment.ticker}`) }
-      else withdrawals += Number(payment.total_value) * rate
+      else { incomeTotal += Number(payment.total_value) * rate; withdrawals += Number(payment.total_value) * rate }
     }
     const denominator = previous === null ? null : previous + purchases
     const daily = complete && denominator !== null && denominator > 0 ? (total + withdrawals) / denominator - 1
       : complete && previous === 0 && purchases === 0 && total === 0 ? 0 : null
-    result.push({ date, value: complete ? total : null, returnPct: daily !== null && Number.isFinite(daily) && daily >= -1 ? daily : null, issues: [...issues] })
+    result.push({ date, value: complete ? total : null, returnPct: daily !== null && Number.isFinite(daily) && daily >= -1 ? daily : null, issues: [...issues], purchases, withdrawals: withdrawals - incomeTotal, income: incomeTotal,
+      fxChange: complete ? fxChange : null,
+      marketChange: complete && previous !== null && fxChange !== null ? total - previous - purchases + withdrawals - incomeTotal - fxChange : null })
     previous = complete ? total : null
   }
   return result

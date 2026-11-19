@@ -147,3 +147,18 @@ it('distingue preço do Tesouro ausente de título inativo sem evento', () => {
   expect(points[1].issues).toEqual(expect.arrayContaining([expect.stringContaining('lote tesouro: preço oficial do Tesouro'), expect.stringContaining('lote rdb: título inativo sem evento de resgate')]))
   expect(points[1].value).toBeNull()
 })
+
+it('reconcilia entradas, saídas, câmbio e valorização sem incluir provento duas vezes', () => {
+  const points = historicalReturns([position('AAA', 1, 'USD')],
+    [{ ...trade('2026-01-02', 2, 'buy', 100), currency: 'USD' }, { ...trade('2026-01-03', 1, 'sell', 110), seq: 2, currency: 'USD' }],
+    [price('2026-01-02', 100), price('2026-01-03', 110)], [],
+    { usd: [{ date: '2026-01-02', value: 5 }, { date: '2026-01-03', value: 6 }], macro: [] }, '2026-01-03',
+    [{ ticker: 'AAA', type: 'dividend', ex_date: '2026-01-01', payment_date: '2026-01-03', quantity: 2, value_per_share: 1, total_value: 2, currency: 'USD' }])
+  const last = points[1]
+  expect(last.value).toBe(660)
+  expect(last.withdrawals).toBe(660)
+  expect(last.income).toBe(12)
+  expect(last.fxChange).toBe(200)
+  expect(last.marketChange).toBe(120)
+  expect(points[0].value! + last.purchases! - last.withdrawals! + last.fxChange! + last.marketChange!).toBe(last.value)
+})

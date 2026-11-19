@@ -1,3 +1,4 @@
+import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -768,6 +769,7 @@ function AddTransactionForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setGlobalError('')
+    if (invalidFraction(catalogAsset?.type ?? assetType, values.quantity)) { setGlobalError(WHOLE_UNITS_MESSAGE); return }
     try {
       await addTransaction.mutateAsync({
         ticker,
@@ -908,7 +910,7 @@ function AddTransactionForm({
               <input
                 id="txn-qty"
                 type="number"
-                step="any"
+                step={requiresWholeUnits(catalogAsset?.type ?? assetType) ? 1 : 'any'}
                 min="0"
                 placeholder="0"
                 className={INPUT_CLASS}

@@ -1,3 +1,5 @@
+import { invalidCsvFraction, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
+import type { AssetType } from '../types'
 import { supabase } from '../../../shared/services/supabaseClient'
 import { movementDateSchema } from '../schemas/movementDateSchema'
 import type { NewTransaction } from '../types'
@@ -69,13 +71,15 @@ export const transactionsService = {
     const tickers = [...new Set(rows.map((row) => row.ticker).filter(Boolean))]
     if (tickers.length === 0) return rows
 
-    const { data, error } = await supabase.from('assets').select('ticker').in('ticker', tickers).eq('active', true)
+    const { data, error } = await supabase.from('assets').select('ticker,type').in('ticker', tickers).eq('active', true)
     if (error) throw error
 
+    const types = new Map((data ?? []).map(asset => [String(asset.ticker).toUpperCase(), asset.type as AssetType]))
     const knownTickers = new Set((data ?? []).map((asset) => String(asset.ticker).toUpperCase()))
     return rows.map((row) => {
-      const errors = row.errors.filter((item) => item.column !== 'ticker' || item.message !== 'Ativo não encontrado no catálogo.')
+      const errors = row.errors.filter((item) => item.message !== WHOLE_UNITS_MESSAGE).filter((item) => item.column !== 'ticker' || item.message !== 'Ativo não encontrado no catálogo.')
       if (row.ticker && !knownTickers.has(row.ticker)) errors.push(tickerError(row))
+      if ((row.type === 'buy' || row.type === 'sell') && invalidCsvFraction(types.get(row.ticker), row.quantity)) errors.push({ row: row.rowNumber, column: 'quantity', message: WHOLE_UNITS_MESSAGE, example: 'Use 1, 2 ou outra quantidade inteira, sem arredondar a operação original.' })
       return { ...row, errors, selected: errors.length === 0 ? row.selected : false }
     })
   },

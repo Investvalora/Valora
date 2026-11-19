@@ -1,3 +1,4 @@
+import { invalidFraction, requiresWholeUnits, WHOLE_UNITS_MESSAGE } from '../wholeUnits'
 import { useEffect, useState } from "react";
 import {
   ArrowDownLeft,
@@ -104,11 +105,13 @@ function QuantityField({
   value,
   onChange,
   step = 1,
+  wholeUnits = false,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   step?: number;
+  wholeUnits?: boolean;
 }) {
   const quantity = Number(value.replace(",", ".")) || 0;
   const adjust = (direction: number) => {
@@ -139,7 +142,7 @@ function QuantityField({
         <input
           id={id}
           type="number"
-          step="any"
+          step={wholeUnits ? 1 : 'any'}
           min={0}
           inputMode="decimal"
           value={value}
@@ -719,6 +722,7 @@ function QuickTransactionForm({
         );
         return;
       }
+      if (invalidFraction(asset.type, parsedQty)) { setError(WHOLE_UNITS_MESSAGE); return; }
       if (asset.currency !== quoteCurrency) {
         selectAsset(asset);
         setError(
@@ -1098,6 +1102,7 @@ function QuickTransactionForm({
                 </div>
                 <QuantityField
                   id="qt-qty"
+                  wholeUnits={requiresWholeUnits(selectedAsset?.type)}
                   value={quantity}
                   onChange={setQuantity}
                 />

@@ -6,7 +6,8 @@
 - [x] Corrigir identidade de GOOG (Class C Capital Stock) e publicar revisões oficiais de GOOG/RA/GGG. PR176 homologada em produção em 19/11; coleta real de GOOG sem erro, cinco eventos completos e revisão oficial preservada.
 - [x] PR176 mergeada, migration aplicada e homologação autenticada concluída. Carteiras, recebimentos e observações dos fornecedores preservados. [Registro](homologacao-producao-pr176.md).
 - [x] XPML11: causa identificada e correção local da descoberta FNET preparada, genérica para FIIs; conservar aviso 1387873 sem data ex e exibi-lo separadamente em BRL, sem somar recibos XPML13/XPML15. [Escopo e rollout](fnet-cobertura-pendente-2026-11-19.md).
-- [ ] Publicar/homologar descoberta e avisos FNET da nova branch. Obter ex independente de XPML11 para incluir em totais; data COM não vira ex por inferência.
+- [x] Publicar/homologar descoberta e avisos FNET: PR177, migration e função publicadas; rotina real HTTP200, três documentos XPML11 preservados, sem alterar dados pessoais. [Registro e limite visual](homologacao-producao-pr177.md).
+- [ ] Obter ex independente de XPML11 para incluir em totais; data COM não vira ex por inferência.
 - [ ] BB: declaração futura atual ainda não localizada. Histórico de ausência de pagamentos não basta.
 - [ ] PERT: OTC não confirma divulgação atual; sem calendário oficial verificável.
 - [ ] PR US$ 0,03: sem confirmação no 10-Q mais recente; retenção preservada.
@@ -566,11 +567,13 @@ Atualização07/11: implementação inicial publicada pela PR110; início, impor
 
 ## 4. Novas funcionalidades de produto
 
-- [ ] **FUN-01 — Planejador do próximo aporte.** Informar o valor disponível e simular distribuição por classe usando as metas já existentes, com mínimos e sobra de caixa explícitos. Resultado é planejamento, sem execução de ordens.
-- [ ] **FUN-02 — Explicar a variação do patrimônio.** Separar aportes/retiradas, valorização, câmbio e proventos; explicitar convenção e evitar dupla contagem. Permitir reconciliar o total com a mesma data/base.
-- [ ] **FUN-03 — Exportação completa por carteira.** Incluir lançamentos, renda fixa/eventos, recebimentos e metadados de moeda/fonte, além das posições. Definir formato portável e prévia/validação para eventual restauração, com conferência de duplicatas. CSV atual de posições não é backup completo.
-- [ ] **FUN-04 — Meta de renda passiva integrada.** Salvar meta e acompanhar renda efetivamente recebida e distância da meta. Reutilizar calculadoras para projeções, separadas dos resultados realizados e com premissas visíveis.
-- [ ] **FUN-05 — Painel de saúde dos dados.** Reunir fonte/data de cotação, câmbio, fundamentos e cobertura histórica. Diferenciar mercado fechado, dado antigo e atualização parcial, aproveitando os avisos e a atualização pontual existentes.
+Implementação local de FUN-01 a FUN-05 em 19/11/2026: `/carteiras/planejamento`, acessível por Carteiras. Testes e limites em [5ª bateria e ferramentas](homologacao-quinta-bateria-e-ferramentas.md). Marcação indica entrega local; merge, duas migrations e homologação em produção ainda pendentes. Restauração automática não faz parte da entrega: há exportação e prévia de validação.
+
+- [x] **FUN-01 — Planejador do próximo aporte.** Informar o valor disponível e simular distribuição por classe usando as metas já existentes, com mínimos e sobra de caixa explícitos. Resultado é planejamento, sem execução de ordens.
+- [x] **FUN-02 — Explicar a variação do patrimônio.** Separar aportes/retiradas, valorização, câmbio e proventos; explicitar convenção e evitar dupla contagem. Permitir reconciliar o total com a mesma data/base.
+- [x] **FUN-03 — Exportação completa por carteira.** Incluir lançamentos, renda fixa/eventos, recebimentos e metadados de moeda/fonte, além das posições. Definir formato portável e prévia/validação para eventual restauração, com conferência de duplicatas. CSV atual de posições não é backup completo.
+- [x] **FUN-04 — Meta de renda passiva integrada.** Salvar meta e acompanhar renda efetivamente recebida e distância da meta. Reutilizar calculadoras para projeções, separadas dos resultados realizados e com premissas visíveis.
+- [x] **FUN-05 — Painel de saúde dos dados.** Reunir fonte/data de cotação, câmbio, fundamentos e cobertura histórica. Diferenciar mercado fechado, dado antigo e atualização parcial, aproveitando os avisos e a atualização pontual existentes.
 
 ## 5. Novos indicadores — validar fontes antes de incluir
 
@@ -656,3 +659,12 @@ automático novo. Tesouro atualizou1145 linhas hoje, referência17/11.
 - [x] PR143 mergeada (`ce8b81c`): três migrations aplicadas, função internacional v8 ativa e primeira execução publicada aprovada. COST especial confirmado uma vez na interface; cinco chaves disponíveis, rodízio de reservas verificado com rollback. Lançamentos e recebimentos pessoais preservados.
 
 Detalhes: [implementação e limites](fallbacks-proventos-alpha-marketstack-2026-11-12.md).
+
+
+## 5ª bateria — correções em preparação (19/11/2026)
+
+- [x] DEF-01/CT07: compras/vendas de ações BR, FIIs, BDRs e ETFs BR exigem unidades inteiras no lançamento, edição, prévia CSV e banco. Sem arredondamento nem reescrita de registros antigos; frações de ativos americanos, cripto e Tesouro preservadas.
+- [x] DEF-02/CT08: atalhos do Início empilhados abaixo de 1280 px e texto com quebra; sem corte em 953, 1024 e 1366 px.
+- [x] Achado adicional: título correto da rota `/boas-vindas`.
+- [x] Gráfico compacto de proventos: valor exato por mês no mouse, foco, teclado e seleção por toque.
+- [ ] Publicar e homologar esta entrega em produção após revisão/merge e aplicação das migrations.

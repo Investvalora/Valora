@@ -1,9 +1,11 @@
 import { validIso } from '../_shared/officialFiles.ts'
 
 export function nasdaqIdentity(payload: unknown, ticker: string): void {
+  // Nasdaq names non-voting common shares "Class C Capital Stock". Accept the
+  // exact verified classification, never preferred or generic capital stock.
   const p = payload as { status?: { rCode?: number }; data?: { symbol?: string; stockType?: string; isNasdaqListed?: boolean; assetClass?: string } }
   if (!/^[A-Z][A-Z0-9.-]{0,9}$/.test(ticker) || p?.status?.rCode !== 200 || p.data?.symbol !== ticker
-    || p.data.stockType !== 'Common Stock' || p.data.isNasdaqListed !== true || p.data.assetClass !== 'STOCKS') throw new Error('nasdaq_identity_unsupported')
+    || !['Common Stock', 'Class C Capital Stock'].includes(p.data.stockType ?? '') || p.data.isNasdaqListed !== true || p.data.assetClass !== 'STOCKS') throw new Error('nasdaq_identity_unsupported')
 }
 function date(value: unknown): string {
   const m = typeof value === 'string' && /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value)

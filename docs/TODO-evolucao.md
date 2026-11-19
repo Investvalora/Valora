@@ -1,5 +1,18 @@
 # TODO ativa de evolução do Valora
 
+## Revisão ativa — 19/11
+
+- [x] Comparação histórica pelo CDN realizada em previews protegidos, autenticados pelo responsável no Android/Wi-Fi: cinco amostras válidas anteriores e seis atuais, cache aquecido, medianas FCP 460/466 ms. Sem ganho demonstrado. Escopo Chrome, sem reinstalar o PWA de produção. [Método e fontes](revisao-cobertura-desempenho-2026-11-19.md).
+- [x] Identificar falha de GOOG: Nasdaq informa Class C Capital Stock, recusado pelo contrato anterior. Correção genérica por tipo, revisão oficial do futuro GOOG e do trimestre RA/GGG preparadas e testadas no QA. Nenhuma mudança dessas revisões publicada ainda.
+- [ ] Abrir PR e publicar a correção de identidade/revisões oficiais; homologar após merge.
+- [ ] XPML11: integrar aviso oficial FNET 1387873 (R$ 0,80, COM 17/11, pagamento 25/11), mantendo XPML13/XPML15 separados e sem inferir data ex ou aprovação ausentes.
+- [ ] BB: declaração futura atual ainda não localizada. Histórico de ausência de pagamentos não basta.
+- [ ] PERT: OTC não confirma divulgação atual; sem calendário oficial verificável.
+- [ ] PR US$ 0,03: sem confirmação no 10-Q mais recente; retenção preservada.
+- [ ] Acompanhar demais calendários e divergências por emissor. Ter evento histórico/fonte de pagamento não demonstra cobertura futura integral.
+
+Esta revisão substitui as pendências equivalentes de comparação histórica abaixo. A referência do PWA instalado e a comparação local continuam como ensaios separados, não números intercambiáveis.
+
 ## Estado ativo — fechamento de 18/11
 
 Esta seção substitui estados anteriores equivalentes, preservados abaixo como histórico.
@@ -9,14 +22,14 @@ Esta seção substitui estados anteriores equivalentes, preservados abaixo como 
 - [x] Medir a versão atual no PWA de produção, Android e Wi-Fi reais: cinco amostras válidas, FCP mediano 396 ms (328–480 ms), worker/cache preservados e zero exceções ou respostas de erro do Supabase observadas. Baseline atual, sem alegar comparação histórica pelo CDN.
 - [x] Importador privado de recebimentos implementado: bruto, imposto, tarifa, líquido e moeda; referências idempotentes, conflitos explícitos e campos desconhecidos preservados. Regressões SQL e de interface aprovadas no QA, inclusive perda de resposta na confirmação. [Uso](importacao-recebimentos.md).
 - [x] Conferir o painel novo no Android físico autenticado, na versão local: 411 px, sem overflow horizontal; seletor ajustado ao padrão visual. Somente abertura/leitura, sem importar recebimentos.
-- [ ] Publicar o importador por PR, aplicar a migration após merge e homologar a entrega publicada. Nenhum recebimento pessoal importado durante a implementação.
+- [x] PR175 publicada, migration aplicada e entrega homologada no PWA de produção em 19/11: prévia real sem escrita aprovada, confirmação bloqueada até conferência e fingerprint dos 208 créditos preservado. Gravação/rollback cobertos pelo QA/CI, sem importação pessoal em produção. [Evidências](homologacao-producao-pr175.md).
 - [x] Filas conferidas em produção: sem tarefas de coleta vencidas ou backlog atrasado; orçamento e chaves disponíveis. Macro bem-sucedida; lote de fornecedores parcial, sem execução incompleta. [Diagnóstico](cobertura-recebimentos-2026-11-18.md).
 - [x] PERT: identidade atual confirmada no site OTC como Permanent Technologies, Inc.; divulgação atual e calendário continuam indisponíveis. Identidade confirmada não equivale a política de não pagar.
 - [ ] BlackBerry: obter política futura explícita; ausência histórica não encerra esta evidência.
 - [ ] PERT: obter divulgação atual/calendário oficial verificável.
 - [ ] PR/Marketstack US$ 0,03: obter confirmação oficial; permanece corretamente fora do calendário.
 - [ ] Continuar revisão de lacunas reais e divergências por emissor, distinguindo erro de fornecedor de ausência de calendário.
-- [ ] Comparação antes/depois integral pelo CDN em rede real: ainda sem baseline histórico equivalente. A medição atual e a comparação local devem permanecer separadas; não afirmar ganho sem esse controle.
+- [x] Comparação histórica pelo CDN concluída no escopo dos previews Android/Chrome descrito na revisão de 19/11; resultados separados do ensaio local e da referência instalada. Não representa inicialização fria nem ganho comprovado.
 
 ## Continuação técnica local —18/11
 

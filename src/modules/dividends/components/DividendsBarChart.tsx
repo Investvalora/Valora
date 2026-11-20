@@ -104,9 +104,9 @@ export default function DividendsBarChart({ data }: DividendsBarChartProps) {
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59,130,246,0.08)' }} />
         <Legend
-          formatter={(type) => (
+          formatter={(label) => (
             <span style={{ color: '#d1d5db' }}>
-              {type === 'unknown' ? 'Outros' : assetClassLabel(type as AssetType)}
+              {label}
             </span>
           )}
           wrapperStyle={{ fontSize: '11px' }}

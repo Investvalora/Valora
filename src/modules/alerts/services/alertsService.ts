@@ -2,9 +2,19 @@ import { supabase } from '../../../shared/services/supabaseClient'
 import type { Alert, AlertCondition, AlertStatus, EditAlertPayload } from '../types'
 
 const ALERT_COLUMNS =
-  'id, user_id, type, ticker, status, title, description, last_quote_date, target_price, condition, created_at, updated_at, ignored_at'
+  'id, user_id, type, ticker, status, title, description, last_quote_date, target_price, condition, created_at, updated_at, ignored_at, paused'
 
 export const alertsService = {
+  async setPriceAlertPaused(userId: string, alertId: string, paused: boolean): Promise<void> {
+    const { error } = await supabase.from('alerts').update({ paused, status: 'lido' })
+      .eq('id', alertId).eq('user_id', userId).eq('type', 'price_target').select('id').single()
+    if (error) throw error
+  },
+  async deletePriceAlert(userId: string, alertId: string): Promise<void> {
+    const { error } = await supabase.from('alerts').delete()
+      .eq('id', alertId).eq('user_id', userId).eq('type', 'price_target').select('id').single()
+    if (error) throw error
+  },
   async editAlert(userId: string, alert: Pick<Alert, 'id' | 'type' | 'status'>, payload: EditAlertPayload): Promise<void> {
     const title = payload.title.trim()
     const description = payload.description.trim()

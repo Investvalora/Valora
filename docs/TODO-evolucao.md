@@ -624,6 +624,8 @@ Fontes, prioridades de pesquisa e limites de atribuição: [pesquisa de indicado
 
 ### Atualização local — 19/11/2026, catálogo SEC e referências
 
+- [x] Preparar correções dos dois relatórios da quinta semana: ranking agregado, legenda por classe, ajuda no card estreito e pausa/exclusão de alertas. Validação local e SQL QA aprovadas; publicação pendente. E-mail excluído do escopo a pedido do responsável. [Rastreabilidade](correcoes-dois-relatorios-2026-11-19.md).
+
 - [x] Revisar integralmente o conteúdo textual dos dois vídeos do A Cara da Riqueza e conferir as convenções dos simuladores. [Revisão e diferenças](revisao-videos-2026-11-19.md). A revisão geral dos demais canais permanece separada.
 - [x] Preparar coleta SEC com fila limitada, autenticação OIDC, evidências por documento e catálogo compartilhado de seis métricas, com interface e validação QA. Ainda não publicado. [Escopo, resultados e limites](catalogo-sec-2026-11-19.md).
 - [ ] Ampliar a cobertura efetiva de ROIC, dívida líquida/EBITDA e FIIs: componentes incompletos continuam indisponíveis; não preencher com estimativas silenciosas.

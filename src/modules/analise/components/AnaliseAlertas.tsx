@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { ConfiguredAlerts } from '../../alerts/components/ConfiguredAlerts'
 import { PriceAlertForm } from '../../alerts/components/PriceAlertForm'
 import { EditAlertButton } from '../../alerts/components/EditAlertButton'
+import { PriceAlertLifecycle } from '../../alerts/components/PriceAlertLifecycle'
 import { PriceAlertDescription } from '../../alerts/components/PriceAlertDescription'
 import {
   Bell, BellRing, Check, TrendingDown, TrendingUp, AlertTriangle,
@@ -176,8 +177,9 @@ function AlertCard({ alert }: { alert: Alert }) {
                 </span>
             )
           })()}
-           <div className= "flex items-center gap-2">
+           <div className= "flex flex-wrap items-center gap-2">
               <EditAlertButton alert={alert} />
+              <PriceAlertLifecycle alert={alert} />
               {!isIgnored && !isPriceTargetTriggered && isNew && (
               <>
                 <button

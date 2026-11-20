@@ -1,5 +1,16 @@
 import type { DividendRow, DividendSort, MonthlyBar } from '../types'
 
+/** Same displayed BRL base as the income table; one row per ticker across income types. */
+export function rankDividendPayers(rows: DividendRow[], limit = 3) {
+  const totals = new Map<string, number>()
+  for (const row of rows) {
+    const ticker = row.ticker.trim().toUpperCase()
+    if (ticker && Number.isFinite(row.total_value)) totals.set(ticker, (totals.get(ticker) ?? 0) + row.total_value)
+  }
+  return [...totals].map(([ticker, total_value]) => ({ ticker, total_value }))
+    .sort((a, b) => b.total_value - a.total_value || a.ticker.localeCompare(b.ticker)).slice(0, limit)
+}
+
 /**
  * Agrupa pelo mês de pagamento (`YYYY-MM`) e soma `total_value` por grupo,
  * mantendo também os subtotais por classe do ativo.

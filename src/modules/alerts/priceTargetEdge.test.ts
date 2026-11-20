@@ -9,6 +9,7 @@ async function setup(options: { authenticated?: boolean; failUpdate?: boolean } 
     if (url.includes('/auth/v1/user')) return new Response(JSON.stringify({ id: 'owner' }), { status: options.authenticated === false ? 401 : 200 })
     if (url.includes('price_history?')) return new Response(JSON.stringify([{ close: '25.00', date: '2026-10-26' }]))
     expect(url).toContain('user_id=eq.owner')
+    expect(url).toContain('paused=eq.false')
     if (init?.method === 'PATCH') {
       expect(url).toContain('status=eq.lido')
       expect(url).toContain('last_quote_date=is.null')

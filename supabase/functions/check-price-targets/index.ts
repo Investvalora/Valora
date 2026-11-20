@@ -67,7 +67,7 @@ Deno.serve(async (request) => {
   try {
     // 1. Buscar alertas price_target ativos (novo ou lido) do usuário
     const alertsRes = await rest(
-      `alerts?user_id=eq.${userId}&type=eq.price_target&status=in.(novo,lido)&select=id,ticker,target_price,condition,status,last_quote_date`,
+      `alerts?user_id=eq.${userId}&type=eq.price_target&paused=eq.false&status=in.(novo,lido)&select=id,ticker,target_price,condition,status,last_quote_date`,
     )
     if (!alertsRes.ok) throw new Error('Falha ao ler alertas de preço-alvo.')
 
@@ -107,7 +107,7 @@ Deno.serve(async (request) => {
       // Ler a notificação não deve dispará-la de novo para o mesmo fechamento.
       if (conditionMet && alert.status !== 'novo' && alert.last_quote_date !== date) {
         const previousDate = alert.last_quote_date ? `eq.${alert.last_quote_date}` : 'is.null'
-        const updateRes = await rest(`alerts?id=eq.${alert.id}&user_id=eq.${userId}&status=eq.lido&last_quote_date=${previousDate}`, {
+        const updateRes = await rest(`alerts?id=eq.${alert.id}&user_id=eq.${userId}&paused=eq.false&status=eq.lido&last_quote_date=${previousDate}`, {
           method: 'PATCH',
           headers: { Prefer: 'return=representation' },
           body: JSON.stringify({ status: 'novo', last_quote_date: date }),

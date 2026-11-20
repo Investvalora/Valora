@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMonthlyBars, filterAndSort, sumTotalValue } from './dividendCalculations'
+import { buildMonthlyBars, filterAndSort, sumTotalValue, rankDividendPayers } from './dividendCalculations'
 import type { DividendRow, DividendSort } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -20,6 +20,21 @@ function makeRow(overrides: Partial<DividendRow> = {}): DividendRow {
 }
 
 const DEFAULT_SORT: DividendSort = { column: 'ex_date', direction: 'desc' }
+
+it('ranks totals by ticker including taxable income before taking the top three', () => {
+  const rows = [
+    makeRow({ ticker: 'BBSE3', total_value: 22.95 }),
+    makeRow({ ticker: 'BBSE3', total_value: 17.85 }),
+    makeRow({ ticker: 'bbse3', type: 'taxable_income', total_value: 0.4 }),
+    makeRow({ ticker: 'PETR4', total_value: 30 }),
+    makeRow({ ticker: 'MXRF11', total_value: 15 }),
+    makeRow({ ticker: 'HGLG11', total_value: 10 }),
+  ]
+  const ranked = rankDividendPayers(rows)
+  expect(ranked.map(row => row.ticker)).toEqual(['BBSE3', 'PETR4', 'MXRF11'])
+  expect(ranked[0].total_value).toBeCloseTo(41.2)
+  expect(rows).toHaveLength(6)
+})
 
 // ---------------------------------------------------------------------------
 // buildMonthlyBars

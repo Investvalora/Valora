@@ -1,5 +1,5 @@
 import type { PositionWithAsset } from '../portfolio/types'
-import { fixedIncomeAt, fixedIncomePrincipalAt, rateAt } from './historicalValuation'
+import { createFixedIncomeValuator, fixedIncomePrincipalAt, rateAt } from './historicalValuation'
 import type { HistoricalFixedIncome, HistoricalValuation } from './historicalValuation'
 import type { PriceHistoryRow } from '../wealth/types'
 import type { Transaction } from '../portfolio/services/transactionsService'
@@ -43,6 +43,7 @@ export function buildMonthlyWealth(
   const months = [...monthSet].filter((month) => month >= firstDate.slice(0, 7) && month <= until.slice(0, 7)).sort()
   const sorted = [...prices].sort((a, b) => a.date.localeCompare(b.date))
   const latest = new Map<string, number>()
+  const fixedValueAt = createFixedIncomeValuator(historical?.macro ?? [], historical?.treasury)
   let cursor = 0
   return months.map((month) => {
     const endOfMonth = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).toISOString().slice(0, 10)
@@ -106,7 +107,7 @@ export function buildMonthlyWealth(
     for (const position of fixedIncome) {
       if (position.application_date > cutoff) continue
       hasPosition = true
-      const value = historical ? fixedIncomeAt(position, cutoff, historical.macro, historical.treasury) : Number(position.principal)
+      const value = historical ? fixedValueAt(position, cutoff) : Number(position.principal)
       if (value === null) { complete = false; continue }
       total += value
       invested += fixedIncomePrincipalAt(position, cutoff)

@@ -13,13 +13,34 @@ export interface HistoricalValuation {
 
 /** Última publicação até a data de corte; nunca usa taxa atual como substituta. */
 export function rateAt(rates: DatedRate[], date: string): number | null {
-  const latest = rates.filter((row) => row.date <= date && Number.isFinite(row.value) && row.value > 0).sort((a, b) => b.date.localeCompare(a.date))[0]
+  let latest: DatedRate | undefined
+  for (const row of rates) {
+    if (row.date <= date && Number.isFinite(row.value) && row.value > 0 && (!latest || row.date > latest.date)) latest = row
+  }
   if (!latest || (Date.parse(date) - Date.parse(latest.date)) / 86400000 > 10) return null
   return latest.value
 }
 
+/** Consulta repetida de uma série: ordenação única e busca binária sem cotação futura. */
+export function createRateLookup(rates: DatedRate[]) {
+  const ordered = rates.filter(row => Number.isFinite(row.value) && row.value > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  // Mesma precedência de rateAt para publicações duplicadas: primeira linha válida.
+  const unique = ordered.filter((row, index) => index === 0 || row.date !== ordered[index - 1].date)
+  return (date: string): number | null => {
+    let low = 0, high = unique.length
+    while (low < high) {
+      const middle = (low + high) >>> 1
+      if (unique[middle].date <= date) low = middle + 1
+      else high = middle
+    }
+    const latest = unique[low - 1]
+    return !latest || (Date.parse(date) - Date.parse(latest.date)) / 86400000 > 10 ? null : latest.value
+  }
+}
+
 /** Estimativa bruta contratual, sem marcação a mercado, IR ou IOF. */
-function contractValueAt(position: HistoricalFixedIncome, date: string, macro: MacroRate[]): number | null {
+function contractValueAt(position: HistoricalFixedIncome, date: string, series: MacroRate[]): number | null {
   const from = position.application_date
   const to = position.maturity_date && position.maturity_date < date ? position.maturity_date : date
   if (from > date) return 0
@@ -32,7 +53,6 @@ function contractValueAt(position: HistoricalFixedIncome, date: string, macro: M
   // O cadastro atual registra Selic como taxa total anual, não como spread.
   // Preserva a semântica usada pelo calculador atual, sem somar Selic duas vezes.
   if (position.indexer === 'pre' || position.indexer === 'selic') return principal * (1 + rate / 100) ** (Math.round(days * 252 / 365) / 252)
-  const series = macro.filter((row) => row.series === position.indexer).sort((a, b) => a.date.localeCompare(b.date))
   if (position.indexer === 'ipca') {
     // Registros SGS são datados no início do mês a que se referem.
     // Só acumula meses inteiros já encerrados no corte.
@@ -76,7 +96,7 @@ export function fixedIncomePrincipalAt(position: HistoricalFixedIncome, date: st
 }
 
 /** O saldo informado no extrato após o evento é a nova base de capitalização. */
-export function fixedIncomeAt(position: HistoricalFixedIncome, date: string, macro: MacroRate[], treasury: TreasuryPrice[] = []): number | null {
+function fixedIncomeWithSeries(position: HistoricalFixedIncome, date: string, series: MacroRate[], treasury: TreasuryPrice[]): number | null {
   const events = eventsAt(position, date)
   const latest = events[events.length - 1]
   if (hasTreasuryQuantity(position)) {
@@ -86,8 +106,25 @@ export function fixedIncomeAt(position: HistoricalFixedIncome, date: string, mac
   }
   if (!latest) {
     if (position.active === false && !(position.events ?? []).length) return null
-    return contractValueAt(position, date, macro)
+    return contractValueAt(position, date, series)
   }
   if (Number(latest.balance_after) === 0) return 0
-  return contractValueAt({ ...position, principal: Number(latest.balance_after), application_date: latest.event_date }, date, macro)
+  return contractValueAt({ ...position, principal: Number(latest.balance_after), application_date: latest.event_date }, date, series)
+}
+
+/** Prepara os índices uma vez por reconstrução, sem cache global de dados pessoais. */
+export function createFixedIncomeValuator(macro: MacroRate[], treasury: TreasuryPrice[] = []) {
+  const bySeries = new Map<string, MacroRate[]>()
+  for (const row of macro) {
+    const rows = bySeries.get(row.series) ?? []
+    rows.push(row)
+    bySeries.set(row.series, rows)
+  }
+  for (const rows of bySeries.values()) rows.sort((a, b) => a.date.localeCompare(b.date))
+  return (position: HistoricalFixedIncome, date: string) =>
+    fixedIncomeWithSeries(position, date, bySeries.get(position.indexer ?? '') ?? [], treasury)
+}
+
+export function fixedIncomeAt(position: HistoricalFixedIncome, date: string, macro: MacroRate[], treasury: TreasuryPrice[] = []): number | null {
+  return createFixedIncomeValuator(macro, treasury)(position, date)
 }

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { historicalRatesService } from '../../dashboard/services/historicalRatesService'
@@ -26,7 +27,7 @@ export function useAcquisitionCosts(positions: PositionWithAsset[], walletId?: s
     staleTime: 60 * 60 * 1000,
   })
   const ready = !needsLedger || (trades.isSuccess && (!needsHistory || rates.isSuccess))
-  const byPosition = new Map(positions.map(p => [p.id, !ready ? null : acquisitionCostBRL(p, trades.data ?? [], rates.data ?? [])]))
+  const byPosition = useMemo(() => new Map(positions.map(p => [p.id, !ready ? null : acquisitionCostBRL(p, trades.data ?? [], rates.data ?? [])])), [positions, ready, trades.data, rates.data])
   const values = [...byPosition.values()]
   return {
     byPosition,

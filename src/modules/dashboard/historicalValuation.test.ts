@@ -1,9 +1,42 @@
 import { expect, it } from 'vitest'
-import { fixedIncomeAt, rateAt } from './historicalValuation'
+import { createFixedIncomeValuator, createRateLookup, fixedIncomeAt, rateAt } from './historicalValuation'
 import { buildMonthlyWealth } from './monthlyWealth'
 import type { PositionWithAsset } from '../portfolio/types'
 import type { FixedIncomeEvent } from '../portfolio/types'
 import { fixedIncomePrincipalAt } from './historicalValuation'
+
+it('consulta preparada preserva datas, duplicatas, validade e ordem das publicações', () => {
+  const rates = [
+    { date: '2026-09-12', value: 6 }, { date: '2026-09-01', value: 5 },
+    { date: '2026-09-12', value: 99 }, { date: '2026-09-20', value: NaN },
+    { date: '2026-09-21', value: 0 }, { date: '2026-10-01', value: 7 },
+  ]
+  const snapshot = rates.map(row => ({ ...row }))
+  const lookup = createRateLookup(rates)
+  for (let day = 0; day < 60; day++) {
+    const date = new Date(Date.UTC(2026, 7, 25) + day * 86400000).toISOString().slice(0, 10)
+    const previous = rates.filter(row => row.date <= date && Number.isFinite(row.value) && row.value > 0).sort((a, b) => b.date.localeCompare(a.date))[0]
+    const expected = !previous || (Date.parse(date) - Date.parse(previous.date)) / 86400000 > 10 ? null : previous.value
+    expect(rateAt(rates, date)).toBe(expected)
+    expect(lookup(date)).toBe(expected)
+  }
+  expect(rates).toEqual(snapshot)
+})
+
+it('reutiliza índices sem misturar contratos, eventos, deflação ou lacunas', () => {
+  const macro = [
+    { series: 'cdi', date: '2026-09-02', value: 10 },
+    { series: 'ipca', date: '2026-08-01', value: -0.5 },
+    { series: 'cdi', date: '2026-09-01', value: 10 },
+  ]
+  const valueAt = createFixedIncomeValuator(macro)
+  const cdi = { principal: 1000, application_date: '2026-09-01', indexer: 'cdi' as const, rate: 120 }
+  expect(valueAt(cdi, '2026-09-03')).toBeCloseTo(1000 * (1 + (1.1 ** (1 / 252) - 1) * 1.2) ** 2)
+  expect(valueAt(cdi, '2026-09-30')).toBeNull()
+  expect(valueAt({ ...cdi, indexer: 'ipca', rate: 0, application_date: '2026-08-01' }, '2026-08-31')).toBe(995)
+  expect(valueAt({ ...cdi, events: [{ event_date: '2026-09-02', balance_after: 0 } as FixedIncomeEvent] }, '2026-09-03')).toBe(0)
+  expect(valueAt(cdi, '2026-09-03')).toBeCloseTo(1000 * (1 + (1.1 ** (1 / 252) - 1) * 1.2) ** 2)
+})
 
 it('preserva meses anteriores ao resgate e capitaliza o saldo pós-cupom sem duplicar recebimentos', () => {
   const events = [

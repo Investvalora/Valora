@@ -16,6 +16,7 @@ import { historicalRatesService } from '../../dashboard/services/historicalRates
 
 vi.mock('../../auth/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user' }, loading: false }) }))
 vi.mock('../../performance/hooks/useHistoricalReturns', () => ({ useHistoricalReturns: (period: string) => ({
+  points: [-400, -60].map(days => ({ date: new Date(Date.now() + days * 86400000).toISOString().slice(0, 10), value: 100, returnPct: 0.1 })),
   returnPct: period === '1A' ? 0.1 : 0.21, incomplete: false, isLoading: false, isError: false, refetch: vi.fn(),
 }) }))
 vi.mock('../../../shared/hooks/useUSDRate', () => ({ useUSDRate: vi.fn() }))

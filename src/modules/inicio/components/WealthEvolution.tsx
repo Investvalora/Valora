@@ -16,7 +16,8 @@ export function WealthEvolution() {
   const [type, setType] = useState<AssetType | 'all'>('all')
   const range = chartDateRange(period, from, to)
   const valid = Boolean(range.from && range.to && range.from <= range.to)
-  const dashboard = useDashboard(selectedWallet?.id ?? '', valid ? { ...range, type } : { type })
+  // O resumo da página já calcula a rentabilidade; este bloco precisa apenas do patrimônio.
+  const dashboard = useDashboard(selectedWallet?.id ?? '', valid ? { ...range, type } : { type }, false)
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-4">

@@ -11,6 +11,17 @@ import { alertsService } from './alertsService'
 beforeEach(() => resetSupabaseMock())
 
 describe('alertsService', () => {
+  it('scopes pause and permanent deletion to the owner and price rule type', async () => {
+    supabaseMock.on('alerts', () => ({ data: { id: 'a' }, error: null }))
+    await alertsService.setPriceAlertPaused('u', 'a', true)
+    expect(supabaseMock.callArgs('alerts', 'update')).toEqual([[{ paused: true, status: 'lido' }]])
+    expect(supabaseMock.callArgs('alerts', 'eq')).toEqual([['id', 'a'], ['user_id', 'u'], ['type', 'price_target']])
+    resetSupabaseMock()
+    supabaseMock.on('alerts', () => ({ data: { id: 'a' }, error: null }))
+    await alertsService.deletePriceAlert('u', 'a')
+    expect(supabaseMock.callArgs('alerts', 'delete')).toHaveLength(1)
+    expect(supabaseMock.callArgs('alerts', 'eq')).toEqual([['id', 'a'], ['user_id', 'u'], ['type', 'price_target']])
+  })
   it('edita preço-alvo somente na conta e tipo corretos e reinicia monitoramento', async () => {
     supabaseMock.on('alerts', () => ({ data: { id: 'a' }, error: null }))
     await alertsService.editAlert('u', { id: 'a', type: 'price_target', status: 'novo' }, { title: ' Teto ', description: ' Nova condição ', targetPrice: 12.5, condition: 'below' })

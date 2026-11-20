@@ -36,9 +36,9 @@ export function KpiCard({
       `}
     >
       {/* Label + ícone */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Icon className="h-[13px] w-[13px] shrink-0 text-[#8F8F8F]" strokeWidth={1.8} aria-hidden="true" />
-        <span className="text-[12px] text-[#8F8F8F]">{label}</span>
+        <span className="min-w-0 flex-[1_0_5rem] break-words text-[12px] text-[#8F8F8F]">{label}</span>
         {helpTopic && <InformationHelp topic={helpTopic} />}
       </div>
 

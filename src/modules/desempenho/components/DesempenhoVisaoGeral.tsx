@@ -13,7 +13,7 @@ import { KpiPillBar } from '../../../shared/components/KpiPillBar'
 import { usePerformance } from '../../performance/hooks/usePerformance'
 import { TabelaMensal } from './TabelaMensal'
 import { useDividends } from '../../dividends/hooks/useDividends'
-import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
+import { buildMonthlyBars, rankDividendPayers } from '../../dividends/utils/dividendCalculations'
 import { useDashboard } from '../../dashboard/hooks/useDashboard'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 
@@ -71,7 +71,7 @@ export function DesempenhoVisaoGeral() {
   const monthlyBars = useMemo(() => buildMonthlyBars(divRows), [divRows])
 
   const topPagadores = useMemo(
-    () => [...divRows].sort((a, b) => b.total_value - a.total_value).slice(0, 3),
+    () => rankDividendPayers(divRows),
     [divRows],
   )
 

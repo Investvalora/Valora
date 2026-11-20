@@ -54,6 +54,15 @@ function openAlertForm() {
 }
 
 describe('AlertsPage', () => {
+  it('includes the explicit pause in Pausados and excludes it from active alerts', () => {
+    mocks.alerts = [{ id: 'paused', user_id: 'u', type: 'price_target', ticker: 'ITUB4', status: 'lido', paused: true, title: 'Alerta pausado', description: 'QA', target_price: 45, condition: 'above', created_at: '2026-11-20T00:00:00Z' }]
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^Pausados: 1\./ }))
+    expect(screen.getByRole('article', { name: 'Alerta pausado' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Pausados: 1\./ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Alertas ativos: 0\./ }))
+    expect(screen.queryByRole('article', { name: 'Alerta pausado' })).not.toBeInTheDocument()
+  })
   beforeEach(() => {
     sessionStorage.clear()
     mocks.alerts = []

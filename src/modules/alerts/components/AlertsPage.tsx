@@ -14,6 +14,7 @@ import { useAlerts } from '../hooks/useAlerts'
 import { useAuth } from '../../auth/hooks/useAuth'
 import type { Alert, AlertType } from '../types'
 import { EditAlertButton } from './EditAlertButton'
+import { PriceAlertLifecycle } from './PriceAlertLifecycle'
 import { ConfiguredAlerts } from './ConfiguredAlerts'
 import { PriceAlertForm } from './PriceAlertForm'
 import { PriceAlertDescription } from './PriceAlertDescription'
@@ -190,6 +191,7 @@ function AlertCard({ alert }: { alert: Alert }) {
           })()}
           <div className="flex items-center gap-2">
             <EditAlertButton alert={alert} />
+            <PriceAlertLifecycle alert={alert} />
             {!isIgnored && !isPriceTargetTriggered && isNew && (
               <>
                 <button

@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.dispatch-international-collector]
 verify_jwt = false
+
+[functions.sync-sec-statements]
+verify_jwt = false

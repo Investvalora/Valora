@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { FundamentalsPanel } from './FundamentalsPanel'
 import type { FundamentalsRow } from '../../score/types'
+vi.mock('./StatementFundamentals', () => ({ StatementFundamentals: ({ ticker }: { ticker: string }) => <div>Demonstrativo SEC: {ticker}</div> }))
 const row: FundamentalsRow = { ticker: 'A', reference_date: '2026-10-30', updated_at: '', pl: 0, pvp: 1.2, dy: 6.5, roe: null, net_margin: null, debt_equity: null }
 it('preserva zero, percentuais e a ausência de dados separadamente', () => {
   render(<FundamentalsPanel row={row} type="stock_br" />)
@@ -21,4 +22,8 @@ it('distingue falha de consulta de falta de dados', () => {
   render(<FundamentalsPanel row={null} type="stock_br" error />)
   expect(within(screen.getByRole('alert')).getByText(/Não foi possível/)).toBeInTheDocument()
   expect(screen.queryByText('Indisponível')).not.toBeInTheDocument()
+})
+it('consults issuer evidence even when another fundamentals provider failed', () => {
+  render(<FundamentalsPanel row={null} ticker="AAPL" type="stock_us" error />)
+  expect(screen.getByText('Demonstrativo SEC: AAPL')).toBeInTheDocument()
 })

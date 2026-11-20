@@ -11,6 +11,7 @@ export type AlertType =
 export type AlertCondition = 'above' | 'below'
 
 export interface Alert {
+  paused?: boolean
   ignored_at?: string | null
   id: string
   user_id: string

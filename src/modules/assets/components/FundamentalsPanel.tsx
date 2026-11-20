@@ -4,9 +4,10 @@ import { PanelCard } from '../../../shared/components/PanelCard'
 import { METRIC_LABELS, type FundamentalsRow, type ScoreMetric } from '../../score/types'
 import type { AssetType } from '../../portfolio/types'
 import { parseIsoDate } from '../../../shared/utils/isoDate'
+import { StatementFundamentals } from './StatementFundamentals'
 
-export function FundamentalsPanel({ row, type, loading, error }: {
-  row: FundamentalsRow | null; type: AssetType; loading?: boolean; error?: boolean
+export function FundamentalsPanel({ row, type, ticker, loading, error }: {
+  row: FundamentalsRow | null; type: AssetType; ticker?: string; loading?: boolean; error?: boolean
 }) {
   const fund = type === 'fii' || type === 'reit'
   const metrics = Object.keys(METRIC_LABELS) as ScoreMetric[]
@@ -31,5 +32,6 @@ export function FundamentalsPanel({ row, type, loading, error }: {
         {fund && <p className="mt-3 text-xs text-white/60">Para fundos, exibimos P/VP e DY. Os indicadores contábeis de empresas não são aplicados automaticamente.</p>}
         {row?.cvm_reference_date && <p className="mt-3 text-xs text-white/60">VPA complementado pelo informe oficial da CVM, competência {parseIsoDate(row.cvm_reference_date)?.toLocaleDateString('pt-BR') ?? row.cvm_reference_date}. O informe mensal não comprova recebimento de proventos.</p>}
       </>}
+    {(ticker ?? row?.ticker) && type === 'stock_us' && <StatementFundamentals ticker={(ticker ?? row?.ticker)!} />}
   </PanelCard>
 }

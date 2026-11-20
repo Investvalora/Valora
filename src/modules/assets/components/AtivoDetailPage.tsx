@@ -31,6 +31,7 @@ import { canMorphPrices, morphPrices } from "../priceChartMorph";
 import { useAssetDetail } from "../hooks/useAssetDetail";
 import { DeferredQuickTransactionModal } from "../../portfolio/components/DeferredQuickTransactionModal";
 import { PriceAlertForm } from "../../alerts/components/PriceAlertForm";
+import { PriceAlertLifecycle } from "../../alerts/components/PriceAlertLifecycle";
 import { EditTransactionButton } from "../../portfolio/components/EditTransactionButton";
 import { FavoriteButton } from "./FavoriteButton";
 import { usePriceHistory } from "../hooks/usePriceHistory";
@@ -1551,6 +1552,7 @@ function TabAlertas({ ticker }: TabAlertasProps) {
                 <p className="text-xs text-[#8f8f8f] mt-0.5">
                   {alert.description}
                 </p>
+                <PriceAlertLifecycle alert={alert} />
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0 ${
@@ -2186,7 +2188,7 @@ export function AtivoDetailPage({
       {/* ── Conteúdo da tab ─────────────────────────────────────────────── */}
       {activeTab === "visao-geral" && (
         <>
-        <FundamentalsPanel row={fundamental} type={asset.type} loading={fundamentalsLoading} error={fundamentalsError} />
+        <FundamentalsPanel row={fundamental} type={asset.type} ticker={asset.ticker} loading={fundamentalsLoading} error={fundamentalsError} />
         <VisaoGeral
           ticker={ticker}
           quantity={quantity}

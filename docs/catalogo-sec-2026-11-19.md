@@ -18,4 +18,6 @@ O piloto publicado tem execução manual aprovada. A execução agendada de 19/1
 
 ## Validação
 
+Correção adicional do CI: o PDF oficial PRT de novembro produz `0.0084 79` no pypdf 6.21.4. O parser agora aceita espaços entre dígitos da parte decimal, limitado à precisão anterior e mantendo a conferência com o calendário oficial. Regressão com divergência e duplicidade aprovada; consulta real leu 12 eventos e confirmou o novo anúncio de US$0,008479, corte em 30/11 e pagamento em 14/12. Sem escrita nas filas durante a consulta.
+
 Regressão completa: 230 arquivos e 1.579 testes aprovados. Build aprovado. Migration e regressão SQL aprovadas no banco QA isolado; nenhuma aplicação desta entrega em produção. Verificação JWT: 14 testes aprovados. Interface do componente real conferida em desktop e 375 px sem transbordamento, com números públicos de AAPL em página QA separada.

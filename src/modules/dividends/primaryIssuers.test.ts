@@ -22,6 +22,14 @@ it('does not silently use record as ex when the primary calendar is missing',()=
 it('recognizes observed PDF word splits without changing the financial value',()=>{
  expect(permrockAnnouncement(pdf.replace('payable on','payable o n').replace('amount','am ount'),link,permrockCalendar(calendar,asOf),asOf).value_per_share).toBe(0.0196242)
 })
+it('reads the November decimal split produced by pypdf 6.21.4 and still checks the calendar',()=>{
+ const november={url:'https://permrock.com/wp-content/uploads/2026/11/Nov-26-PRRT-PR.pdf',declaration_date:'2026-11-19'}
+ const text='DALLAS, Texas, November 19, 2026 – PermRock Royalty Trust (NYSE:PRT) today declared a monthly cash distribution as of November 30, 2026, and payable on December 14, 2026, in the amount of $103,164.56 ($0.0084 79 per Trust Unit)'
+ const proof=new Map([['2026-11-19',{ex_date:'2026-11-30',payment_date:'2026-12-14',value:0.008479}]])
+ expect(permrockAnnouncement(text,november,proof,'2026-11-19').value_per_share).toBe(0.008479)
+ expect(()=>permrockAnnouncement(text.replace('0084 79','0084 89'),november,proof,'2026-11-19')).toThrow('calendar_conflict')
+ expect(()=>permrockAnnouncement(text+text,november,proof,'2026-11-19')).toThrow('distribution_changed')
+})
 it('discovers bounded issuer links and rejects foreign URLs',()=>{
  const html=`PermRock Royalty Trust <a href="${link.url}">September 18, 2026 PermRock Royalty Trust Declares Monthly Cash Distribution</a>`
  expect(permrockLinks(html,asOf)).toEqual([link])

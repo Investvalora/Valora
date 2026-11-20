@@ -46,9 +46,9 @@ export function permrockAnnouncement(pdfText:string,link:{url:string;declaration
   const text=clean(pdfText).replace(/\s+,/g,',').replace(/\bpayable o\s+n\b/g,'payable on').replace(/\bam\s+ount\b/g,'amount')
   const d='(\\w+ \\d{1,2}, \\d{4})'
   const declaration=new RegExp(`DALLAS, Texas, ${d} .{0,10}PermRock Royalty Trust \\(NYSE:\\s*PRT\\)` ).exec(text)
-  const matches=[...text.matchAll(new RegExp(`as of ${d}, and payable on ${d}, in the amount of \\$\\s*[\\d,.]+ \\(\\$\\s*(\\d+(?:\\.\\d{1,8})?) per Trust Unit\\)`,'g'))]
+  const matches=[...text.matchAll(new RegExp(`as of ${d}, and payable on ${d}, in the amount of \\$\\s*[\\d,.]+ \\(\\$\\s*(\\d+(?:\\.\\d(?:\\s*\\d){0,7})?) per Trust Unit\\)`,'g'))]
   if(!declaration||iso(declaration[1])!==link.declaration_date||matches.length!==1||!text.includes('declared a monthly cash distribution'))throw new Error('issuer_distribution_changed')
-  const record_date=iso(matches[0][1]),payment_date=iso(matches[0][2]),value_per_share=Number(matches[0][3]),proof=calendar.get(link.declaration_date)
+  const record_date=iso(matches[0][1]),payment_date=iso(matches[0][2]),value_per_share=Number(matches[0][3].replace(/\s/g,'')),proof=calendar.get(link.declaration_date)
   if(!proof||proof.ex_date!==record_date||proof.payment_date!==payment_date||proof.value.toFixed(6)!==value_per_share.toFixed(6))throw new Error('issuer_calendar_conflict')
   if(link.declaration_date>asOf||link.declaration_date>record_date||record_date>payment_date||value_per_share<=0||value_per_share>=1e6)throw new Error('issuer_invalid_event')
   return {declaration_date:link.declaration_date,ex_date:proof.ex_date,record_date,payment_date,value_per_share,source_url:link.url,ex_date_source_url:`${permrockOrigin}/cash-distributions/`}

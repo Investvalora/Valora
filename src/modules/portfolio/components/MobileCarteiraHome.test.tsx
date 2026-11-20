@@ -8,6 +8,7 @@ import { MobileCarteiraHome } from './MobileCarteiraHome'
 const selectWallet = vi.fn()
 const createWallet = vi.fn()
 const updateWallet = vi.fn()
+const deleteWallet = vi.fn()
 const wallet = {
   id: 'wallet-1',
   user_id: 'user-1',
@@ -47,11 +48,12 @@ vi.mock('../hooks/useWallets', () => ({
   }),
   useCreateWallet: () => ({ mutateAsync: createWallet, isPending: false }),
   useUpdateWallet: () => ({ mutateAsync: updateWallet, isPending: false }),
+  useDeleteWallet: () => ({ mutateAsync: deleteWallet, isPending: false }),
 }))
 
 vi.mock('../hooks/useWalletTotals', () => ({
   useWalletTotals: () => ({
-    totals: new Map([['wallet-1', 5000]]),
+    totals: new Map([['wallet-1', 5000], ['wallet-2', 1500]]),
     isLoading: false,
     isError: false,
   }),
@@ -103,6 +105,7 @@ describe('Carteira inicial no celular', () => {
     selectWallet.mockClear()
     createWallet.mockReset()
     updateWallet.mockReset()
+    deleteWallet.mockReset().mockResolvedValue(undefined)
     createWallet.mockResolvedValue(undefined)
     updateWallet.mockResolvedValue(undefined)
   })
@@ -170,6 +173,7 @@ describe('Carteira inicial no celular', () => {
     expect(screen.getByRole('link', { name: 'Ativos' })).toBeInTheDocument()
     const avatar = screen.getByRole('link', { name: 'Abrir minha conta' })
     const bell = screen.getByRole('link', { name: 'Abrir alertas' })
+    expect(bell.closest('.wallet-header-morph')).toHaveStyle({ width: '44px' })
     expect(avatar.closest('[data-testid="wallet-slide-track"]')).toBeNull()
     expect(avatar.closest('header')?.parentElement).toHaveClass('max-w-md', 'px-4')
     expect(screen.getAllByTestId('wallet-card')).toHaveLength(2)
@@ -183,6 +187,9 @@ describe('Carteira inicial no celular', () => {
     expect(screen.getByRole('link', { name: 'Abrir minha conta' })).toBe(avatar)
     expect(screen.queryByRole('link', { name: 'Abrir alertas' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '+ Carteira' })).toBeInTheDocument()
+    expect(bell.closest('.wallet-header-morph')).toHaveStyle({ width: '128px' })
+    expect(bell.closest('.wallet-header-action')).toHaveStyle({ filter: 'blur(6px)', opacity: '0' })
+    expect(screen.getByRole('button', { name: '+ Carteira' }).parentElement).toHaveStyle({ filter: 'blur(0px)', opacity: '1' })
     const activeCard = screen.getByRole('button', { name: 'Selecionar Minha Carteira', pressed: true })
     expect(within(activeCard).getByText('Selecionada')).toBeInTheDocument()
     expect(screen.getAllByText('Selecionada')).toHaveLength(1)
@@ -208,8 +215,8 @@ describe('Carteira inicial no celular', () => {
 
     expect(screen.getAllByTestId('wallet-card')[0]).toBe(cards[0])
     expect(screen.getAllByTestId('wallet-card')[1]).toBe(cards[1])
-    expect(cards[0].style.top).toBe('160px')
-    expect(cards[1].style.top).toBe('340px')
+    expect(cards[0].style.top).toBe('272px')
+    expect(cards[1].style.top).toBe('452px')
   })
 
   it('mostra no máximo três carteiras na pilha inicial e mantém todas na tela lateral', () => {
@@ -239,6 +246,22 @@ describe('Carteira inicial no celular', () => {
 
     expect(screen.queryAllByTestId('wallet-card')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: /Ver e selecionar carteiras/ })).toBeNull()
+  })
+
+  it('mostra o total consolidado e abre a exclusão pela lixeira sem selecionar a carteira', () => {
+    currentWallets = [wallet, secondWallet]
+    renderHome()
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carteiras' }))
+    const total = screen.getByRole('region', { name: 'Total de todas as carteiras' })
+    expect(within(total).getByText(/R\$\s*6.500,00/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Excluir Minha Carteira' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Reserva' }))
+    expect(selectWallet).not.toHaveBeenCalled()
+    expect(deleteWallet).not.toHaveBeenCalled()
+    const dialog = screen.getByRole('dialog', { name: 'Excluir carteira' })
+    expect(within(dialog).getByText('Reserva')).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('mostra prévia e novas cores no modal de criação', async () => {

@@ -9,11 +9,12 @@ vi.mock('../hooks/useAtivosValuation', () => ({ useAtivosValuation: () => ({ tot
 beforeEach(() => supabaseMock.reset())
 function show() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(<QueryClientProvider client={client}><AllocationTargets walletId="wallet" /></QueryClientProvider>)
+  return { client, ...render(<QueryClientProvider client={client}><AllocationTargets walletId="wallet" /></QueryClientProvider>) }
 }
 it('carrega, valida e salva a meta com escopo de dono e carteira', async () => {
   supabaseMock.on('wallets', (chain) => chain.calls.some((call) => call.method === 'update') ? { data: { id: 'wallet' }, error: null } : { data: { allocation_targets: {} }, error: null })
-  show()
+  const { client } = show()
+  const invalidate = vi.spyOn(client, 'invalidateQueries')
   fireEvent.click(await screen.findByRole('button', { name: 'Editar metas' }))
   fireEvent.click(screen.getByRole('button', { name: 'Salvar metas' }))
   expect(screen.getByRole('alert')).toHaveTextContent('somar 100%')
@@ -22,6 +23,7 @@ it('carrega, valida e salva a meta com escopo de dono e carteira', async () => {
   fireEvent.change(screen.getByLabelText('Meta FIIs'), { target: { value: '70' } })
   fireEvent.click(screen.getByRole('button', { name: 'Salvar metas' }))
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Metas salvas'))
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['planning', 'settings', 'owner', 'wallet'] })
   const saved = supabaseMock.chainsWith('wallets', 'update')[0]
   expect(saved.calls).toContainEqual({ method: 'eq', args: ['id', 'wallet'] })
   expect(saved.calls).toContainEqual({ method: 'eq', args: ['user_id', 'owner'] })

@@ -12,6 +12,8 @@ import { createPortal } from "react-dom";
 interface ModalProps {
   isOpen: boolean;
   title: string;
+  titleStyle?: "default" | "subtle";
+  description?: string;
   onClose: () => void;
   children: ReactNode;
   /** ações sempre visíveis abaixo da área rolável (ex.: formulário no mobile). */
@@ -88,6 +90,8 @@ function lockDocumentTouchScroll() {
 export function Modal({
   isOpen,
   title,
+  titleStyle = "default",
+  description,
   onClose,
   children,
   footer,
@@ -339,6 +343,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={description ? `${titleId}-description` : undefined}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         className={
@@ -359,21 +364,26 @@ export function Modal({
         )}
         <div
           className={
-            hasCompactLayout
+            titleStyle === "subtle"
+              ? "flex shrink-0 items-start justify-between gap-4 px-6 pb-2 pt-6"
+              : hasCompactLayout
               ? "flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-4 md:px-6 md:py-5"
               : "flex items-start justify-between gap-4 border-b border-zinc-800 p-6"
           }
         >
-          <h2 id={titleId} className="text-xl font-bold text-white">
+          <div className="min-w-0">
+          <h2 id={titleId} className={titleStyle === "subtle" ? "text-base font-medium tracking-tight text-white" : "text-xl font-bold text-white"}>
             {title}
           </h2>
+          {description && <p id={`${titleId}-description`} className="mt-1.5 text-xs leading-relaxed text-white/45">{description}</p>}
+          </div>
           <button
             type="button"
             onClick={dismissWithMotion}
             disabled={!dismissible}
             aria-label="Fechar"
             className={
-              hasCompactLayout
+              hasCompactLayout || titleStyle === "subtle"
                 ? "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-2xl leading-none text-gray-300 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
                 : "rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent"
             }

@@ -6,8 +6,6 @@ import { useMemo, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { buildMonthlyBars } from '../../dividends/utils/dividendCalculations'
-import { useDashboard } from '../../dashboard/hooks/useDashboard'
-import { useWallets } from '../../portfolio/hooks/useWallets'
 
 // ── formatadores ──────────────────────────────────────────────────────────
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -69,10 +67,7 @@ export function MiniBarChart({ months, maxBars = 8 }: { months: { month: string;
 }
 
 export function ProventosCol() {
-  const { selectedWallet } = useWallets()
-  const walletId = selectedWallet?.id ?? ''
   const { rows: divRows, isLoading: divLoading, isError: divError, refetch } = useBrlDividends('1A')
-  const dashboard = useDashboard(walletId)
   const monthlyBars = useMemo(() => buildMonthlyBars(divRows), [divRows])
 
   // Últimos 8 proventos ordenados por data desc
@@ -81,7 +76,7 @@ export function ProventosCol() {
     [divRows],
   )
 
-  const total12m = dashboard.proventos12mBRL
+  const total12m = useMemo(() => divLoading || divError ? null : divRows.reduce((sum, row) => sum + row.total_value, 0), [divRows, divLoading, divError])
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#1B1B1B]">

@@ -51,3 +51,15 @@ it('não publica retorno ao terminar de carregar um histórico com início sem p
   expect(result.current.monthly.has('2026-01')).toBe(false)
   inputs.missing = false
 })
+
+it('não reconstrói rentabilidade no consumidor que precisa somente do gráfico de patrimônio', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  const { result, rerender } = renderHook(({ enabled }) => useHistoricalReturns('Tudo', 'w', undefined, enabled), { wrapper, initialProps: { enabled: false } })
+  expect(result.current.points).toEqual([])
+  rerender({ enabled: true })
+  await waitFor(() => expect(result.current.returnPct).toBeCloseTo(0.1))
+  rerender({ enabled: false })
+  expect(result.current.points).toEqual([])
+  expect(result.current.returnPct).toBeNull()
+})

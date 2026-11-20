@@ -13,7 +13,7 @@ import { shiftIsoDate, toIsoDate } from '../../../shared/utils/isoDate'
 import type { AssetType } from '../../portfolio/types'
 import type { PerformancePeriod } from '../types'
 
-export function useHistoricalReturns(period: PerformancePeriod, walletId?: string, assetType?: AssetType) {
+export function useHistoricalReturns(period: PerformancePeriod, walletId?: string, assetType?: AssetType, enabled = true) {
   const { user } = useAuth()
   const positionsQuery = usePositions(walletId)
   const tradesQuery = useAllTransactions(walletId)
@@ -44,11 +44,11 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
       ])
       return { prices, usd, macro, treasury, metadata }
     },
-    enabled: Boolean(user && walletId) && positionsQuery.isSuccess && tradesQuery.isSuccess && fixedQuery.isSuccess,
+    enabled: enabled && Boolean(user && walletId) && positionsQuery.isSuccess && tradesQuery.isSuccess && fixedQuery.isSuccess,
     staleTime: 300_000,
   })
   const points = useMemo(() => {
-    if (!data.data) return []
+    if (!enabled || !data.data) return []
     const { metadata, prices, usd, macro, treasury } = data.data
     const selectedTrades = trades.filter(t => !assetType || metadata.get(t.ticker)?.type === assetType)
       .map(t => ({ ...t, currency: metadata.get(t.ticker)?.currency ?? null }))
@@ -56,7 +56,7 @@ export function useHistoricalReturns(period: PerformancePeriod, walletId?: strin
     const fixed = !assetType || assetType === 'fixed_income' ? (fixedQuery.data?.positions ?? []).map(p => ({ ...p, events: (fixedQuery.data?.events ?? []).filter(e => e.position_id === p.id) })) : []
     const income = incomeQuery.rows.filter(p => !assetType || (p.asset_type ?? metadata.get(p.ticker)?.type) === assetType)
     return historicalReturns(selectedPositions, selectedTrades, prices, fixed, { usd, macro, treasury }, today, income)
-  }, [data.data, trades, positions, fixedQuery.data, incomeQuery.rows, assetType, today])
+  }, [enabled, data.data, trades, positions, fixedQuery.data, incomeQuery.rows, assetType, today])
   const since = period === 'Tudo' ? points[0]?.date ?? today
     : shiftIsoDate(-({ '1M': 30, '3M': 90, '6M': 180, '1A': 365 }[period]))
   const summary = useMemo(() => summarizeHistoricalReturns(points, since, today), [points, since, today])

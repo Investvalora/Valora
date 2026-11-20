@@ -1,5 +1,6 @@
 import { useHistoricalReturns } from '../../performance/hooks/useHistoricalReturns'
 import { useMemo } from 'react'
+import { summarizeHistoricalReturns } from '../../performance/utils/historicalReturns'
 import { useQuery } from '@tanstack/react-query'
 import { useWalletTotals } from '../../portfolio/hooks/useWalletTotals'
 import { useAcquisitionCosts } from '../../portfolio/hooks/useAcquisitionCosts'
@@ -14,7 +15,7 @@ import { useFixedIncomePositions } from '../../portfolio/hooks/useFixedIncomePos
 import { useBrlDividends } from '../../dividends/hooks/useBrlDividends'
 import { positionService } from '../../portfolio/services/positionService'
 import { deriveComposition } from '../../portfolio/composition'
-import { shiftIsoDate } from '../../../shared/utils/isoDate'
+import { shiftIsoDate, toIsoDate } from '../../../shared/utils/isoDate'
 import type { AssetClassSlice } from '../../portfolio/types'
 import type { AssetType } from '../../portfolio/types'
 
@@ -75,7 +76,7 @@ export interface WealthChartFilters {
   type?: AssetType | 'all'
 }
 
-export function useDashboard(walletId?: string, chartFilters?: WealthChartFilters): DashboardData {
+export function useDashboard(walletId?: string, chartFilters?: WealthChartFilters, calculateReturns = true): DashboardData {
   const { user } = useAuth()
   const userId = user?.id
 
@@ -83,8 +84,9 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   // Histórico completo para o gráfico; métricas usam períodos independentes do filtro.
   const current = useWalletTotals()
   const wealth = useWealthHistory('Tudo', walletId, chartFilters?.from)
-  const performanceHistory = useHistoricalReturns('Tudo', walletId)
-  const annualHistory = useHistoricalReturns('1A', walletId)
+  const performanceHistory = useHistoricalReturns('Tudo', walletId, undefined, calculateReturns)
+  const today = toIsoDate(new Date())
+  const annualHistory = useMemo(() => summarizeHistoricalReturns(performanceHistory.points ?? [], shiftIsoDate(-365), today), [performanceHistory.points, today])
   const transactionsQuery = useQuery({
     queryKey: ['portfolio', 'transactions-all', userId, walletId],
     queryFn: () => transactionsService.listAll(userId!, walletId),
@@ -196,7 +198,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
 
   // ── Variação % 12M ───────────────────────────────────────────────────────
   // Mesma série e fórmula usadas por Desempenho em cada período.
-  const variacaoPct = annualHistory.returnPct === null ? null : annualHistory.returnPct * 100
+  const variacaoPct = performanceHistory.isLoading || performanceHistory.isError || annualHistory.returnPct === null ? null : annualHistory.returnPct * 100
   const rentabilidadeTotalPct = performanceHistory.returnPct === null ? null : performanceHistory.returnPct * 100
 
   const monthlySeries = useMemo(() => {
@@ -243,7 +245,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
   }, [current.positions, current.rows, walletId])
   // ── Estado ────────────────────────────────────────────────────────────────
   const isLoading =
-    performanceHistory.isLoading || annualHistory.isLoading ||
+    performanceHistory.isLoading ||
     fiHistory.isLoading ||
     historicalRates.isLoading ||
     transactionsQuery.isLoading || historicalAssets.isLoading || historicalPrices.isLoading ||
@@ -254,7 +256,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     fi.isLoading
 
   const isError =
-    performanceHistory.isError || annualHistory.isError ||
+    performanceHistory.isError ||
     fiHistory.isError ||
     historicalRates.isError ||
     transactionsQuery.isError || historicalAssets.isError || historicalPrices.isError ||
@@ -265,8 +267,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     fi.isError
 
   const refetch = () => {
-    performanceHistory.refetch()
-    annualHistory.refetch()
+    if (calculateReturns) performanceHistory.refetch()
     void fiHistory.refetch()
     void historicalRates.refetch()
     void transactionsQuery.refetch()
@@ -282,7 +283,7 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
 
   return {
     returnEndDate: performanceHistory.endDate,
-    historyIssues: [...new Set([...(performanceHistory.issues ?? []), ...(annualHistory.issues ?? [])])],
+    historyIssues: [...new Set([...(performanceHistory.issues ?? []), ...(annualHistory.diagnosticIssues ?? [])])],
     historyIncomplete: performanceHistory.incomplete || annualHistory.incomplete,
     totalPatrimonioBRL,
     valorInvestidoBRL,

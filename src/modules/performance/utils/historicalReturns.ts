@@ -2,7 +2,7 @@ import { hasTreasuryQuantity } from '../../../../supabase/functions/_shared/trea
 import type { PositionWithAsset, AssetCurrency } from '../../portfolio/types'
 import type { Transaction } from '../../portfolio/services/transactionsService'
 import type { PriceHistoryRow } from '../../wealth/types'
-import { fixedIncomeAt, rateAt } from '../../dashboard/historicalValuation'
+import { createFixedIncomeValuator, createRateLookup } from '../../dashboard/historicalValuation'
 import type { HistoricalFixedIncome, HistoricalValuation } from '../../dashboard/historicalValuation'
 import type { DividendRow } from '../../dividends/types'
 
@@ -57,13 +57,15 @@ export function historicalReturns(
   // Divergência significa razão incompleto. Não inventar um saldo inicial.
   const inconsistentKeys = new Set([...finalQuantities].filter(([k, qty]) => Math.abs(qty - (currentQuantities.get(k) ?? 0)) > 1e-7).map(([k]) => k))
   const inconsistentFrom = ordered.filter(trade => inconsistentKeys.has(key(trade))).map(trade => trade.transaction_date).sort()[0]
+  const fixedValueAt = createFixedIncomeValuator(rates.macro, rates.treasury)
+  const usdAt = createRateLookup(rates.usd)
   let cursor = 0, priceCursor = 0
   let previous: number | null = 0
   const result: DailyReturn[] = []
   for (let date = first; date <= until; date = nextDay(date)) {
     const previousDate = new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
-    const previousFx = rateAt(rates.usd, previousDate)
-    const currentFx = rateAt(rates.usd, date)
+    const previousFx = usdAt(previousDate)
+    const currentFx = usdAt(date)
     let fxChange: number | null = 0
     for (const holding of holdings.values()) {
       if (holding.quantity <= 1e-10) continue
@@ -77,7 +79,7 @@ export function historicalReturns(
       const row = sortedPrices[priceCursor++]
       quotes.set(row.ticker, { date: row.date, close: Number(row.close) })
     }
-    const fx = rateAt(rates.usd, date)
+    const fx = usdAt(date)
     const convert = (currency: string | null | undefined) => currency === 'BRL' ? 1 : currency === 'USD' ? fx : null
     const quoteAt = (ticker: string): number | null => {
       const row = quotes.get(ticker)
@@ -113,7 +115,7 @@ export function historicalReturns(
     for (const position of fixed) {
       if (position.application_date > date) continue
       if (position.application_date === date) purchases += Number(position.principal)
-      const value = fixedIncomeAt(position, date, rates.macro, rates.treasury)
+      const value = fixedValueAt(position, date)
       if (value === null || !Number.isFinite(value)) { complete = false; issues.add(fixedIncomeIssue(position, date)) }
       else total += value
       withdrawals += (position.events ?? []).filter(e => e.event_date === date).reduce((sum, e) => sum + Number(e.amount), 0)

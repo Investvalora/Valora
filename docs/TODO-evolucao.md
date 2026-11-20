@@ -624,6 +624,8 @@ Fontes, prioridades de pesquisa e limites de atribuição: [pesquisa de indicado
 
 ### Atualização local — 19/11/2026, catálogo SEC e referências
 
+- [ ] **Desempenho da navegação — 20/11:** correção local da fonte externa bloqueante e remoção da captura global síncrona de rotas; 13 testes e build aprovados. Publicação e reteste PWA pendentes. Renovação de sessão lenta observada separadamente, sem desativar sua validação. [Diagnóstico](diagnostico-motion-desempenho-2026-11-20.md).
+
 - [x] Preparar correções dos dois relatórios da quinta semana: ranking agregado, legenda por classe, ajuda no card estreito e pausa/exclusão de alertas. Validação local e SQL QA aprovadas; publicação pendente. E-mail excluído do escopo a pedido do responsável. [Rastreabilidade](correcoes-dois-relatorios-2026-11-19.md).
 
 - [x] Revisar integralmente o conteúdo textual dos dois vídeos do A Cara da Riqueza e conferir as convenções dos simuladores. [Revisão e diferenças](revisao-videos-2026-11-19.md). A revisão geral dos demais canais permanece separada.

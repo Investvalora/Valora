@@ -1,0 +1,8 @@
+/* OFL-1.1 Nunito, served and cached with the app; never block startup on Google CSS. */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2') format('woff2');
+}

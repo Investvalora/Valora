@@ -17,6 +17,7 @@
     "test:security": "node scripts/security-scan.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/nunito": "5.3.0",
     "@hookform/resolvers": "5.9.2",
     "@supabase/supabase-js": "2.115.0",
     "@tanstack/react-query": "^5.56.2",

@@ -12,12 +12,12 @@ it('navega com teclado mesmo sem suporte a View Transitions', () => {
   fireEvent.click(screen.getByRole('link'), { detail: 0 })
   expect(screen.getByText('Depois')).toBeInTheDocument()
 })
-it('faz a transição sem duplicar a página interativa', async () => {
-  const start = vi.fn((update: () => void) => { update(); return { ready: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() } as unknown as ViewTransition })
+it('navigates even when a native snapshot would never call the update callback', async () => {
+  const start = vi.fn(() => ({ ready: new Promise(() => {}), finished: new Promise(() => {}), skipTransition: vi.fn() } as unknown as ViewTransition))
   Object.defineProperty(document, 'startViewTransition', { configurable: true, writable: true, value: start })
   setup()
   await act(async () => { fireEvent.click(screen.getByRole('link'), { detail: 1 }) })
-  expect(start).toHaveBeenCalledOnce()
+  expect(start).not.toHaveBeenCalled()
   expect(screen.getAllByText('Depois')).toHaveLength(1)
   expect(screen.queryByText('Antes')).not.toBeInTheDocument()
   delete (document as unknown as Record<string, unknown>).startViewTransition

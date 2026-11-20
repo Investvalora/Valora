@@ -232,9 +232,9 @@ function SummaryIndicators({
   onToggleFilter: (key: FilterKey) => void
 }) {
   const unread    = alerts.filter((a) => a.status === 'novo').length
-  const active    = alerts.filter((a) => a.status !== 'ignorado').length
+  const active    = alerts.filter((a) => a.status !== 'ignorado' && !a.paused).length
   const triggered = alerts.filter((a) => a.status === 'novo' && a.type === 'price_target').length
-  const paused    = alerts.filter((a) => a.type === 'price_target' && a.status === 'ignorado').length
+  const paused    = alerts.filter((a) => a.type === 'price_target' && (a.paused || a.status === 'ignorado')).length
 
   const indicators: { key: FilterKey; label: string; value: number; accentWhenNonZero: boolean }[] = [
     { key: 'unread',    label: 'Não lidas',      value: unread,    accentWhenNonZero: true  },
@@ -401,9 +401,9 @@ export function AnaliseAlertas() {
     ? sorted.filter((alert) => {
         for (const f of activeFilters) {
           if (f === 'unread'    && alert.status === 'novo') return true
-          if (f === 'active'    && alert.status !== 'ignorado') return true
+          if (f === 'active'    && alert.status !== 'ignorado' && !alert.paused) return true
           if (f === 'triggered' && alert.status === 'novo' && alert.type === 'price_target') return true
-          if (f === 'paused'    && alert.type === 'price_target' && alert.status === 'ignorado') return true
+          if (f === 'paused'    && alert.type === 'price_target' && (alert.paused || alert.status === 'ignorado')) return true
         }
         return false
       })

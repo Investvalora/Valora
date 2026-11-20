@@ -2,7 +2,7 @@ begin;
 select set_config('qa.payout_owner',gen_random_uuid()::text,true);
 insert into auth.users(id,email,raw_user_meta_data) values(current_setting('qa.payout_owner')::uuid,current_setting('qa.payout_owner')||'@payout.invalid','{}');
 insert into public.assets(ticker,name,type,currency,quote_provider) values('QAPAYOUT','QA payout','stock_br','BRL','brapi');
-insert into public.fundamentals(ticker,reference_date,lpa,payout_ratio,source) values('QAPAYOUT',current_date,2,45,'yahoo');
+insert into public.fundamentals(ticker,reference_date,lpa,payout_ratio,source) values('QAPAYOUT',(now() at time zone 'America/Sao_Paulo')::date,2,45,'yahoo');
 update public.configured_alert_rules set enabled=false;
 insert into public.configured_alert_rules(user_id,ticker,kind,metric,operator,threshold)
  values(current_setting('qa.payout_owner')::uuid,'QAPAYOUT','indicator','payout_ratio','lte',50);

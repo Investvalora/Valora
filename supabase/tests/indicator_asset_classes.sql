@@ -3,7 +3,7 @@ select set_config('qa.indicator_owner',gen_random_uuid()::text,true);
 insert into auth.users(id,aud,role,email,raw_user_meta_data)
 values(current_setting('qa.indicator_owner')::uuid,'authenticated','authenticated',current_setting('qa.indicator_owner')||'@indicator.invalid','{}');
 insert into public.assets(ticker,name,type,currency,quote_provider) values('QAINDCLASS','QA','stock_br','BRL','brapi');
-insert into public.fundamentals(ticker,reference_date,roe,dy,source) values('QAINDCLASS',current_date,20,7,'yahoo');
+insert into public.fundamentals(ticker,reference_date,roe,dy,source) values('QAINDCLASS',(now() at time zone 'America/Sao_Paulo')::date,20,7,'yahoo');
 update public.configured_alert_rules set enabled=false;
 insert into public.configured_alert_rules(user_id,ticker,kind,metric,operator,threshold)
 values(current_setting('qa.indicator_owner')::uuid,'QAINDCLASS','indicator','roe','gte',1);

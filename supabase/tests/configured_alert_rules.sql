@@ -7,7 +7,7 @@ from (values('qa.owner'),('qa.other')) v(key);
 insert into public.assets(ticker,name,type,currency,quote_provider)
 values ('QATESTALERT','QA only','stock_br','BRL','brapi');
 insert into public.fundamentals(ticker,reference_date,pl,pvp,roe,dy,debt_equity,net_margin,lpa,vpa,source)
-values('QATESTALERT',current_date,10,1,10,7,1,10,1,1,'qa_test');
+values('QATESTALERT',(now() at time zone 'America/Sao_Paulo')::date,10,1,10,7,1,10,1,1,'qa_test');
 select set_config('request.jwt.claim.sub',current_setting('qa.owner'),true);
 set local role authenticated;
 insert into public.configured_alert_rules(user_id,ticker,kind,metric,operator,threshold)
@@ -62,11 +62,11 @@ update public.configured_alert_rules set enabled=true where ticker='QATESTALERT'
 select public.monitor_configured_alerts();
 update public.fundamentals set dy=8,source='seed' where ticker='QATESTALERT';
 do $$ begin if public.monitor_configured_alerts()<>0 then raise exception 'FAIL seed triggered'; end if; end $$;
-update public.fundamentals set source='qa_test',reference_date=current_date+1 where ticker='QATESTALERT';
+update public.fundamentals set source='qa_test',reference_date=(now() at time zone 'America/Sao_Paulo')::date+1 where ticker='QATESTALERT';
 do $$ begin if public.monitor_configured_alerts()<>0 then raise exception 'FAIL future reference triggered'; end if; end $$;
-update public.fundamentals set reference_date=current_date-401 where ticker='QATESTALERT';
+update public.fundamentals set reference_date=(now() at time zone 'America/Sao_Paulo')::date-401 where ticker='QATESTALERT';
 do $$ begin if public.monitor_configured_alerts()<>0 then raise exception 'FAIL stale reference triggered'; end if; end $$;
-update public.fundamentals set reference_date=current_date,dy=2 where ticker='QATESTALERT';
+update public.fundamentals set reference_date=(now() at time zone 'America/Sao_Paulo')::date,dy=2 where ticker='QATESTALERT';
 insert into public.configured_alert_rules(user_id,ticker,kind)
 values(current_setting('qa.owner')::uuid,'QATESTALERT','dividend_announced'),
       (current_setting('qa.owner')::uuid,'QATESTALERT','dividend_payment');

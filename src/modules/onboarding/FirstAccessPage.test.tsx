@@ -60,9 +60,13 @@ function open(path = '/boas-vindas') {
   </Routes></MemoryRouter>)
 }
 
+function mockMatchMedia(matches: boolean) {
+  vi.stubGlobal('matchMedia', vi.fn((media: string) => Object.assign(new EventTarget(), { matches, media, onchange: null })))
+}
+
 beforeEach(() => {
   vi.stubGlobal('Notification', { permission: 'default' })
-  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
+  mockMatchMedia(true)
   sessionStorage.clear()
   mocks.user = mocks.newUser
   mocks.create.mockReset()
@@ -188,7 +192,7 @@ it('contas antigas entram normalmente e podem rever a apresentação pela Conta'
 })
 
 it('mantém o mesmo gráfico visível enquanto aplica e remove o desfoque entre as visões', async () => {
-  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })))
+  mockMatchMedia(false)
   render(<PortfolioDemo />)
   const section = screen.getByRole('region', { name: 'Rentabilidade comparada ao CDI' })
   const plot = section.querySelector('[data-blurred]')
@@ -224,7 +228,7 @@ it('ajusta a altura ao teclado e preserva o cabeçalho enquanto a busca recebe f
 })
 
 it('habilita Próximo depois da sequência animada quando o movimento está ativo', async () => {
-  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })))
+  mockMatchMedia(false)
   open('/boas-vindas?rever=1')
   const next = screen.getByRole('button', { name: 'Próximo' })
   expect(next).toBeDisabled()

@@ -4,6 +4,10 @@ import './shared/styles/fonts.css'
 import './index.css'
 import App from './App.tsx'
 import { watchPwaUpdates } from './shared/services/pwaUpdates'
+import { startStandaloneViewport } from './shared/services/standaloneViewport'
+
+const stopStandaloneViewport = startStandaloneViewport()
+if (import.meta.hot) import.meta.hot.dispose(stopStandaloneViewport)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -40,7 +40,7 @@ export function AppShellNovo() {
       {/* ── Área principal ── */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#131313]">
         {/* A área segura fica fora da rolagem para nunca revelar conteúdo sob a barra de status. */}
-        <div aria-hidden="true" className="app-top-safe-area shrink-0 bg-[#121212] md:hidden" />
+        <div aria-hidden="true" className="h-[env(safe-area-inset-top)] shrink-0 md:hidden" />
         <TopBar
           alertCount={alertCount}
           onNovoLancamento={() => setLancamentoOpen(true)}

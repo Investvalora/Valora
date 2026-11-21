@@ -130,34 +130,23 @@ body {
   min-height: 100dvh;
 }
 
-.app-top-safe-area {
-  height: env(safe-area-inset-top);
-}
-
-/* Ícones antigos do iOS podem manter o fade nativo após atualizar o HTML.
-   Contém a faixa na área vazia; não aplica blur nem muda a base da navbar.
-   Quando o sistema já reserva a barra (inset = 0), não adiciona espaço. */
-html.ios-standalone .app-top-safe-area {
-  height: calc(env(safe-area-inset-top) + min(env(safe-area-inset-top), 20px));
-}
-
-/* O WebKit do PWA pode iniciar com 100dvh 59px menor que a tela física. */
+/* Instalações antigas mantêm 100vh; instalações opacas usam a altura útil medida. */
 html.ios-standalone body {
   position: relative;
-  height: 100vh;
-  min-height: 100vh;
+  height: var(--valora-pwa-height, 100vh);
+  min-height: var(--valora-pwa-height, 100vh);
   overflow: hidden;
 }
 
 html.ios-standalone #root,
 html.ios-standalone .app-shell-novo {
-  height: 100vh;
-  min-height: 100vh;
+  height: var(--valora-pwa-height, 100vh);
+  min-height: var(--valora-pwa-height, 100vh);
 }
 
 html.ios-standalone .asset-chart-fullscreen {
-  height: 100vh;
-  min-height: 100vh;
+  height: var(--valora-pwa-height, 100vh);
+  min-height: var(--valora-pwa-height, 100vh);
 }
 
 html.ios-standalone .mobile-navigation,
@@ -189,7 +178,7 @@ html.ios-standalone textarea {
 }
 
 html.ios-standalone .auth-scene {
-  min-height: 100vh;
+  min-height: var(--valora-pwa-height, 100vh);
 }
 
 .auth-scene[data-auth-view='signup'] {

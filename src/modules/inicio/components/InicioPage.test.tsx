@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -96,8 +97,6 @@ describe('Início', () => {
     expect(screen.getByRole('link', { name: 'Abrir alertas (12 novos)' })).toHaveAttribute('href', '/alertas')
     expect(screen.getByRole('link', { name: 'Abrir alertas (12 novos)' })).toHaveTextContent('9+')
     expect(screen.getByText('Patrimônio mobile: 4872')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).parentElement?.parentElement).toHaveClass('pb-20')
-    expect(screen.getByRole('heading', { name: 'Olá, Kauê' }).closest('.max-w-md')).toHaveClass('px-4')
     expect(screen.getByRole('link', { name: /Ativos Ver ativos da carteira/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Desempenho Rentabilidade/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Análise Ver análises/ })).toBeInTheDocument()
@@ -108,5 +107,42 @@ describe('Início', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '+ Lançamento' }))
     expect(await screen.findByRole('dialog', { name: 'Novo lançamento' })).toBeInTheDocument()
+  })
+
+  it('abre os detalhes em um diálogo sem expandir o resumo e devolve o foco ao fechar', async () => {
+    const user = userEvent.setup()
+    isMobile = true
+    walletId = 'wallet-a'
+    render(<MemoryRouter><InicioPage /></MemoryRouter>)
+    const summary = within(screen.getByRole('region', { name: 'Resumo da carteira' }))
+    expect(summary.getAllByText('R$ 4.872,00')).toHaveLength(1)
+    expect(summary.getAllByText('+92,65%')).toHaveLength(1)
+    expect(summary.queryByText('Ganho de capital')).not.toBeInTheDocument()
+    const compositionButton = summary.getByRole('button', { name: 'Ver composição' })
+    await user.click(compositionButton)
+    const profit = within(screen.getByRole('dialog', { name: 'Composição do lucro' }))
+    expect(profit.getByText('R$ 2.343,00')).toBeVisible()
+    expect(summary.queryByText('Ganho de capital')).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(compositionButton).toHaveFocus()
+    await user.click(summary.getByRole('button', { name: 'Ver período' }))
+    const periods = within(screen.getByRole('dialog', { name: 'Períodos de rentabilidade' }))
+    expect(periods.getByText('+4,00%')).toBeVisible()
+    expect(periods.getByText(/O retorno considera as movimentações/)).toBeVisible()
+    await user.click(periods.getByRole('button', { name: 'Fechar' }))
+    await user.click(summary.getByRole('button', { name: 'Como funciona: Patrimônio e valor investido' }))
+    expect(screen.getByRole('dialog', { name: 'Patrimônio e valor investido' })).toBeInTheDocument()
+  })
+
+  it('mantém métricas indisponíveis distintas de zero no resumo mobile', () => {
+    isMobile = true
+    walletId = 'wallet-b'
+    render(<MemoryRouter><InicioPage /></MemoryRouter>)
+    const summary = within(screen.getByRole('region', { name: 'Resumo da carteira' }))
+    expect(summary.getByText('Proventos').parentElement?.parentElement).toHaveTextContent('—')
+    expect(summary.queryByText('R$ 0,00')).not.toBeInTheDocument()
+    fireEvent.click(summary.getByText('Ver período'))
+    expect(within(screen.getByRole('dialog', { name: 'Períodos de rentabilidade' })).getByText('Últimos 12 meses', { selector: 'dt' }).nextElementSibling).toHaveTextContent('—')
   })
 })

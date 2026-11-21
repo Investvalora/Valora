@@ -1,6 +1,6 @@
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
-import { ArrowLeft, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FileText, History, MoreHorizontal, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Modal } from '../../../shared/components/Modal'
 import { DeferredQuickTransactionModal } from '../../portfolio/components/DeferredQuickTransactionModal'
@@ -39,19 +39,18 @@ function AssetActionSheet({ row, showHistory, onHistory, onBack, onAdd, onClose 
   onClose: () => void
 }) {
   const deletion = useDeleteTransaction(row.ticker)
-  const optionClass = 'flex min-h-12 w-full items-center rounded-xl px-4 text-left text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-nf-purple disabled:opacity-45'
+  const optionClass = 'flex min-h-12 w-full items-center gap-3 rounded-xl bg-white/[0.035] px-4 py-3 text-left text-sm text-white/90 transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 disabled:opacity-45'
   return (
     <Modal
       isOpen
       title={`${showHistory ? 'Lançamentos' : 'Opções'} · ${row.ticker}`}
-      variant="floating"
-      floatingExpanded={showHistory}
+      variant="information"
       onClose={onClose}
       dismissible={!deletion.isPending}
-      initialFocusSelector={showHistory ? '[data-history-back]' : '[data-history-open]'}
+      initialFocusSelector={showHistory ? '[data-history-back]' : undefined}
     >
       {showHistory ? (
-        <div className="floating-sheet-history">
+        <div>
           <button type="button" data-history-back onClick={onBack} aria-busy={deletion.isPending} disabled={deletion.isPending}
             className="mb-2 flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm text-white/75 hover:bg-white/10 hover:text-white disabled:opacity-45">
             <ArrowLeft size={16} aria-hidden="true" />
@@ -60,11 +59,12 @@ function AssetActionSheet({ row, showHistory, onHistory, onBack, onAdd, onClose 
           <TransactionHistory ticker={row.ticker} currency={row.currency ?? undefined} compact deletion={deletion} />
         </div>
       ) : (
-        <div className="space-y-0.5">
-          <button type="button" className={optionClass} onClick={onAdd}>Adicionar lançamento</button>
-          <button type="button" className={optionClass} data-history-open onClick={onHistory}>Ver lançamentos</button>
+        <div className="space-y-2">
+          {row.name && <p className="mb-4 text-sm text-white/50">{row.name}</p>}
+          <button type="button" className={optionClass} onClick={onAdd}><Plus size={18} aria-hidden="true" />Adicionar lançamento</button>
+          <button type="button" className={optionClass} data-history-open onClick={onHistory}><History size={18} aria-hidden="true" />Ver lançamentos</button>
           <RefreshAssetDataButton ticker={row.ticker} className={optionClass} onStarted={onClose} />
-          <Link className={optionClass} to={`/ativo/${encodeURIComponent(row.ticker.toLowerCase())}`} onClick={onClose}>Ver resumo do ativo</Link>
+          <Link className={optionClass} to={`/ativo/${encodeURIComponent(row.ticker.toLowerCase())}`} onClick={onClose}><FileText size={18} aria-hidden="true" />Ver resumo do ativo<ArrowRight className="ml-auto shrink-0" size={16} aria-hidden="true" /></Link>
         </div>
       )}
     </Modal>

@@ -38,13 +38,15 @@ export function AppShellNovo() {
       />
 
       {/* ── Área principal ── */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#131313]">
+        {/* A área segura fica fora da rolagem para nunca revelar conteúdo sob a barra de status. */}
+        <div aria-hidden="true" className="app-top-safe-area shrink-0 bg-[#121212] md:hidden" />
         <TopBar
           alertCount={alertCount}
           onNovoLancamento={() => setLancamentoOpen(true)}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] md:px-10 md:pb-10 md:pt-0">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:px-10 md:pb-10">
           {alertMonitor.isError && <div role="status" aria-label="Verificação de alertas" className="m-4 rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">
             Não foi possível verificar novos alertas. Seus alertas existentes foram mantidos.
             <button type="button" className="ml-3 underline" disabled={alertMonitor.isFetching} onClick={() => void alertMonitor.refetch()}>Tentar novamente</button>

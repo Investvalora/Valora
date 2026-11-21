@@ -39,6 +39,22 @@ function show() {
   </Route></Routes></MemoryRouter></QueryClientProvider>)
 }
 
+it('abre o resumo completo em um diálogo e devolve o foco ao botão ao fechar', async () => {
+  const user = userEvent.setup()
+  show()
+  const invested = screen.getByText('Valor investido').parentElement!.nextElementSibling!.textContent!
+  const gain = screen.getByText('Ganho de capital').parentElement!.nextElementSibling!.textContent!
+  const trigger = screen.getByRole('button', { name: 'Resumo completo' })
+  await user.click(trigger)
+  const dialog = within(screen.getByRole('dialog', { name: 'Resumo da carteira' }))
+  expect(dialog.getByText('Valor investido').nextElementSibling).toHaveTextContent(invested)
+  expect(dialog.getByText('Ganho de capital').nextElementSibling).toHaveTextContent(gain)
+  expect(dialog.getByRole('link', { name: 'Ver desempenho' })).toHaveAttribute('href', '/desempenho')
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('dialog', { name: 'Resumo da carteira' })).not.toBeInTheDocument()
+  expect(trigger).toHaveFocus()
+})
+
 it('reaproveita score preferido, regras e fundamentos na coluna escolhida', async () => {
   scoreState.enabled = true
   const user = userEvent.setup()

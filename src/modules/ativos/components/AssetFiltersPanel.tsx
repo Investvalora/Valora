@@ -38,9 +38,8 @@ function FilterEditor() {
     <Modal
       isOpen
       title="Filtrar ativos"
-      variant="score"
+      variant="information"
       onClose={close}
-      initialFocusSelector="#asset-filter-query"
     >
       <p className="mb-6 text-sm text-white/50">
         Filtre as posições, a composição e os lançamentos da carteira
@@ -66,7 +65,7 @@ function FilterEditor() {
           className="mb-6 min-h-11 w-full rounded-lg border border-white/15 bg-[#262626] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-nf-blue"
         />
         <fieldset>
-          <legend className="mb-4 text-sm font-semibold text-white/80">
+          <legend className="mb-4 text-sm font-medium text-white/80">
             Tipo de ativo
           </legend>
           <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm text-white/80">

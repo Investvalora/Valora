@@ -1,9 +1,5 @@
+import { ChartPie, ChevronRight } from 'lucide-react'
 import { InformationHelp } from '../../../shared/components/InformationHelp'
-/**
- * KpiBarAtivos — barra horizontal com 4 KPIs e link "Resumo completo".
- * Usada na sub-tab Posições de AtivosPage.
- */
-import { type MutableRefObject } from 'react'
 
 type KpiBarAtivosProps = {
   patrimonio: string
@@ -12,70 +8,41 @@ type KpiBarAtivosProps = {
   ganhoCapitalPositive: boolean | null
   ativos: number
   onResumo: () => void
-  /** Ref opcional para o botão "Resumo completo" — usado pelo ResumoCarteiraPopover para posicionamento */
-  resumoBtnRef?: MutableRefObject<HTMLButtonElement | null>
 }
 
-export function KpiBarAtivos({
-  patrimonio,
-  valorInvestido,
-  ganhoCapital,
-  ganhoCapitalPositive,
-  ativos,
-  onResumo,
-  resumoBtnRef,
-}: KpiBarAtivosProps) {
-  const ganhoColor =
-    ganhoCapitalPositive === null
-      ? 'text-white'
-      : ganhoCapitalPositive
-        ? 'text-nf-green'
-        : 'text-nf-pink'
+/** Indicadores horizontais, seguidos pelo botão de resumo completo. */
+export function KpiBarAtivos({ patrimonio, valorInvestido, ganhoCapital, ganhoCapitalPositive, ativos, onResumo }: KpiBarAtivosProps) {
+  const ganhoColor = ganhoCapitalPositive === null ? 'text-white' : ganhoCapitalPositive ? 'text-nf-green' : 'text-nf-pink'
+  const metrics = [
+    { label: 'Patrimônio total', value: patrimonio, help: true },
+    { label: 'Valor investido', value: valorInvestido },
+    { label: 'Ganho de capital', value: ganhoCapital, color: ganhoColor },
+    { label: 'Ativos', value: ativos },
+  ]
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#1A1A1A] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex min-w-max items-center gap-0 px-6 py-4">
-      {/* KPI 1 — Patrimônio total */}
-      <div className="flex flex-1 flex-col gap-0.5 pr-6">
-        <span className="inline-flex items-center gap-1 text-[11px] text-white/50">Patrimônio total <InformationHelp topic="balance" /></span>
-        <span className="text-[18px] font-semibold text-white leading-tight">{patrimonio}</span>
-      </div>
-
-      <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-
-      {/* KPI 2 — Valor investido */}
-      <div className="flex flex-1 flex-col gap-0.5 px-6">
-        <span className="text-[11px] text-white/50">Valor investido</span>
-        <span className="text-[18px] font-semibold text-white leading-tight">{valorInvestido}</span>
-      </div>
-
-      <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-
-      {/* KPI 3 — Ganho de capital */}
-      <div className="flex flex-1 flex-col gap-0.5 px-6">
-        <span className="text-[11px] text-white/50">Ganho de capital</span>
-        <span className={`text-[18px] font-semibold leading-tight ${ganhoColor}`}>
-          {ganhoCapital}
-        </span>
-      </div>
-
-      <div className="self-stretch border-r border-white/[0.08]" aria-hidden="true" />
-
-      {/* KPI 4 — Ativos */}
-      <div className="flex flex-1 flex-col gap-0.5 pl-6">
-        <span className="text-[11px] text-white/50">Ativos</span>
-        <span className="text-[18px] font-semibold text-white leading-tight">{ativos}</span>
-      </div>
-
-      {/* Link Resumo completo */}
-      <button
-        ref={resumoBtnRef}
-        type="button"
-        onClick={onResumo}
-        className="ml-auto shrink-0 text-sm text-nf-blue hover:underline"
-      >
-        Resumo completo &gt;
-      </button>
+    <div className="min-w-0 md:rounded-xl md:border md:border-white/[0.08] md:bg-[#1A1A1A]">
+      <div role="region" aria-label="Indicadores da carteira" tabIndex={0}
+        className="-mx-4 min-w-0 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/40 md:mx-0 md:flex-1 md:px-0 [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max gap-3 pb-1 md:gap-0 md:px-2 md:py-4">
+          {metrics.map((metric) => (
+            <div key={metric.label} className="flex shrink-0 flex-col justify-between gap-1 rounded-xl bg-[#1A1A1A] px-4 py-3 md:flex-1 md:rounded-none md:bg-transparent md:py-0 md:[&:not(:last-child)]:border-r md:border-white/[0.08]">
+              <div className="flex min-h-9 items-center justify-between gap-3">
+                <span className="whitespace-nowrap text-[11px] text-white/55">{metric.label}</span>
+                {metric.help && <InformationHelp topic="balance" />}
+              </div>
+              <span className={`whitespace-nowrap text-lg font-medium leading-tight tabular-nums ${metric.color ?? 'text-white'}`}>{metric.value}</span>
+            </div>
+          ))}
+          <div className="flex shrink-0 items-center px-1 md:px-4">
+            <button type="button" onClick={onResumo} aria-haspopup="dialog"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-white/[0.08] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
+              <ChartPie size={15} aria-hidden="true" />
+              Resumo completo
+              <ChevronRight size={14} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -11,7 +11,7 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
  * Exibe KpiBarAtivos + donut chart à esquerda com label central
  * e lista de classes à direita.
  */
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useWallets } from '../../portfolio/hooks/useWallets'
 import { deriveComposition, assetClassColor, assetClassLabel, isInternationalClass } from '../../portfolio/composition'
 import { KpiBarAtivos } from './KpiBarAtivos'
@@ -300,7 +300,6 @@ export function AtivosComposicao() {
 
   // ── Resumo popover ─────────────────────────────────────────────────────────
   const [isResumoOpen, setIsResumoOpen] = useState(false)
-  const resumoBtnRef = useRef<HTMLButtonElement | null>(null)
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [activeToggle, setActiveToggle] = useState<ToggleOption>('Tipo de ativos')
@@ -371,7 +370,7 @@ export function AtivosComposicao() {
     <div className="flex flex-col gap-5">
       <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar ── */}
-      <div className="relative overflow-x-auto md:overflow-visible">
+      <div className="relative min-w-0">
         <KpiBarAtivos
           patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
@@ -381,17 +380,14 @@ export function AtivosComposicao() {
           }
           ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
-          resumoBtnRef={resumoBtnRef}
         />
 
         {isResumoOpen && (
           <ResumoCarteiraPopover
-            anchorRef={resumoBtnRef}
             patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
-            dividendos={fmtMoney(proventos12mBRL)}
             rentabilidade={fmtPct(rentabilidadePct)}
             onClose={() => setIsResumoOpen(false)}
           />

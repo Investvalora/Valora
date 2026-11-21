@@ -283,7 +283,7 @@ export function MobileCarteiraHome({
           data-testid="wallet-swipe-zone"
           aria-label="Abrir carteiras"
           onClick={() => setShowWallets(true)}
-          className="absolute right-0 top-20 z-30 h-48 w-24 touch-pan-y rounded-l-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+          className="absolute right-0 top-20 z-30 h-40 w-24 touch-pan-y rounded-l-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
         />
       )}
       <div className="relative z-20 mx-auto w-full max-w-md px-4 pt-6">

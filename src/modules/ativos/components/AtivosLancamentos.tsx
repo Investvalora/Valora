@@ -8,7 +8,7 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
  * Exibe KpiBarAtivos + gráfico de aportes + tabela de lançamentos com busca.
  * Reutiliza AportesBarChart (lazy) e a lógica de TxnRow de LancamentosPage.
  */
-import { Component, lazy, Suspense, useMemo, useRef, useState } from 'react'
+import { Component, lazy, Suspense, useMemo, useState } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -439,7 +439,6 @@ export function AtivosLancamentos() {
 
   // ── Resumo popover ─────────────────────────────────────────────────────────
   const [isResumoOpen, setIsResumoOpen] = useState(false)
-  const resumoBtnRef = useRef<HTMLButtonElement | null>(null)
 
   // ── Filtros ────────────────────────────────────────────────────────────────
   const [period, setPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[1]) // 2 Anos
@@ -507,7 +506,7 @@ export function AtivosLancamentos() {
     <div className="flex flex-col gap-5">
       <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar ── */}
-      <div className="relative overflow-x-auto md:overflow-visible">
+      <div className="relative min-w-0">
         <KpiBarAtivos
           patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
@@ -515,17 +514,14 @@ export function AtivosLancamentos() {
           ganhoCapitalPositive={ganhoCapitalBRL === null ? null : ganhoCapitalBRL >= 0}
           ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
-          resumoBtnRef={resumoBtnRef}
         />
 
         {isResumoOpen && (
           <ResumoCarteiraPopover
-            anchorRef={resumoBtnRef}
             patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
-            dividendos={fmtMoney(proventos12mBRL)}
             rentabilidade={fmtPct(rentabilidadePct)}
             onClose={() => setIsResumoOpen(false)}
           />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Modal } from './Modal'
 
 /**
@@ -156,6 +157,26 @@ describe('Modal — fechamento', () => {
 })
 
 describe('Modal — foco', () => {
+  it('inicia a ajuda no painel e mantém o ciclo de foco por teclado', async () => {
+    const user = userEvent.setup()
+    renderModal({ variant: 'information' })
+    const dialog = screen.getByRole('dialog')
+    const close = screen.getByRole('button', { name: 'Fechar' })
+    const last = screen.getByRole('button', { name: 'Segundo' })
+    expect(dialog).toHaveFocus()
+    expect(close).not.toHaveFocus()
+    await user.tab()
+    expect(close).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('region', { name: 'Detalhes da informação' })).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(close).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(last).toHaveFocus()
+    await user.tab()
+    expect(close).toHaveFocus()
+  })
+
   it('foca o primeiro elemento focável ao abrir', () => {
     renderModal()
 

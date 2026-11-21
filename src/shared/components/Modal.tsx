@@ -6,8 +6,12 @@ import {
   useId,
   useLayoutEffect,
   useRef,
+  type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useInformationSheet } from "../hooks/useInformationSheet";
 
 interface ModalProps {
   isOpen: boolean;
@@ -25,11 +29,13 @@ interface ModalProps {
    * apareceria no próximo carregamento.
    */
   dismissible?: boolean;
-  variant?: "default" | "wallet" | "score" | "transaction" | "floating";
+  variant?: "default" | "wallet" | "score" | "transaction" | "floating" | "information";
   transactionDrawer?: boolean;
   floatingExpanded?: boolean;
   closing?: boolean;
   initialFocusSelector?: string;
+  /** Ajuda com altura ajustável no mobile; o conteúdo permanece contínuo. */
+  informationExpandable?: boolean;
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -101,18 +107,25 @@ export function Modal({
   floatingExpanded,
   closing = false,
   initialFocusSelector,
+  informationExpandable = false,
 }: ModalProps) {
   const isSheet = variant === "wallet" || variant === "score";
   const extendsBehindKeyboard = variant === "wallet" || transactionDrawer;
   const isTransaction = variant === "transaction";
   const isFloating = variant === "floating";
-  const hasCompactLayout = isTransaction || isFloating;
+  const isInformation = variant === "information";
+  const isMobile = useIsMobile();
+  const expandableInformation = isInformation && informationExpandable && isMobile;
+  const informationSheet = useInformationSheet(expandableInformation, isOpen);
+  const hasCompactLayout = isTransaction || isFloating || isInformation;
   const dialogRef = useRef<HTMLDivElement>(null);
+  const informationHandleRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const initialFocusRef = useRef(initialFocusSelector);
   initialFocusRef.current = initialFocusSelector;
   const titleId = useId();
+  const informationContentId = useId();
   const closeAnimation = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!isOpen) closeAnimation.current?.();
@@ -161,13 +174,20 @@ export function Modal({
       ? dialogRef.current?.querySelector<HTMLElement>(initialFocusRef.current)
       : null;
     const target =
-      preferred ?? (focusable.length > 0 ? focusable[0] : dialogRef.current);
+      preferred ?? (isInformation ? dialogRef.current : focusable.length > 0 ? focusable[0] : dialogRef.current);
     target?.focus();
 
     return () => {
       previouslyFocusedRef.current?.focus();
     };
-  }, [isOpen, getFocusable]);
+  }, [isOpen, getFocusable, isInformation]);
+
+  // O foco continua no diálogo quando a responsividade troca os controles.
+  useEffect(() => {
+    if (isOpen && isInformation && !dialogRef.current?.contains(document.activeElement)) {
+      (expandableInformation ? informationHandleRef.current : dialogRef.current)?.focus();
+    }
+  }, [isOpen, isInformation, expandableInformation, informationSheet.expanded]);
 
   useEffect(() => {
     if (isOpen && !closing && initialFocusSelector) {
@@ -198,7 +218,7 @@ export function Modal({
   useEffect(() => {
     if (
       !isOpen ||
-      (variant !== "transaction" && variant !== "wallet" && variant !== "score")
+      (variant !== "transaction" && variant !== "wallet" && variant !== "score" && variant !== "information")
     )
       return;
     if (window.innerWidth >= 768) return;
@@ -216,9 +236,10 @@ export function Modal({
       // Atualizar maxHeight diretamente força o WebKit a recalcular o painel
       // mesmo quando 100dvh e variáveis CSS ficam com o valor pré-teclado.
       panel.style.maxHeight =
-        variant === "transaction"
+        variant === "transaction" || variant === "information"
           ? `calc(${availableHeight}px - env(safe-area-inset-top) - 0.5rem)`
           : `calc(${availableHeight}px - env(safe-area-inset-top))`;
+      if (isInformation) panel.style.setProperty('--information-available-height', `${availableHeight}px`);
       // O WebKit mantém o overlay preso ao layout viewport, atrás do teclado.
       // Reduzir apenas sua base preserva o topo e coloca as ações na borda
       // inferior do visualViewport, sem o salto causado por mudar top/height.
@@ -263,11 +284,12 @@ export function Modal({
       viewport.removeEventListener("scroll", syncHeight);
       window.removeEventListener("resize", syncHeight);
       panel.style.removeProperty("max-height");
+      panel.style.removeProperty('--information-available-height');
       overlay.style.removeProperty("bottom");
       overlay.style.removeProperty("--modal-keyboard-inset");
       overlay.removeAttribute("data-keyboard-underlay");
     };
-  }, [isOpen, variant, extendsBehindKeyboard]);
+  }, [isOpen, variant, extendsBehindKeyboard, isInformation]);
 
   // Desabilitar o controle que está com o foco o joga para o `body`, e a partir
   // dali Tab volta a percorrer a página de fundo — o foco escapa do diálogo sem
@@ -323,7 +345,9 @@ export function Modal({
     <div
       ref={overlayRef}
       className={
-        isFloating
+        isInformation
+          ? "information-modal-overlay fixed inset-0 z-50 flex items-end justify-center px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] md:items-center md:p-6"
+          : isFloating
           ? "floating-sheet-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/[0.47] px-2"
           : isTransaction
             ? `transaction-modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/75 ${transactionDrawer ? "transaction-drawer-overlay md:items-stretch md:justify-end" : "md:items-center md:px-4 md:py-6"}`
@@ -332,6 +356,9 @@ export function Modal({
               : "fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center"
       }
       data-closing={isSheet ? closing : undefined}
+      data-information-sheet={expandableInformation ? (informationSheet.expanded ? 'expanded' : 'compact') : undefined}
+      data-dragging={expandableInformation && informationSheet.dragging ? 'true' : undefined}
+      style={expandableInformation ? { '--information-sheet-progress': informationSheet.progress } as CSSProperties : undefined}
       // `mousedown` no overlay, e não `click`, para que arrastar de dentro do
       // diálogo e soltar no overlay não feche o modal.
       onMouseDown={(event) => {
@@ -347,7 +374,9 @@ export function Modal({
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         className={
-          isFloating
+          isInformation
+            ? "information-modal-panel relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col overflow-hidden rounded-[26px] border border-white/[0.04] bg-[#1b1b1b] shadow-[0_24px_90px_rgba(0,0,0,0.4)] outline-none"
+            : isFloating
             ? "floating-sheet-panel flex w-full max-w-[420px] flex-col overflow-hidden border text-white focus:outline-none"
             : isTransaction
               ? `transaction-modal-panel flex max-h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] w-full flex-col overflow-hidden rounded-t-[28px] border border-zinc-900/50 bg-[#181818] shadow-2xl focus:outline-none ${transactionDrawer ? "transaction-drawer-panel md:max-h-none md:max-w-[480px] md:rounded-none md:border-y-0 md:border-r-0" : "md:max-h-[calc(100dvh-3rem)] md:max-w-lg md:rounded-[28px]"}`
@@ -356,7 +385,14 @@ export function Modal({
                 : "max-h-full w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-[#0f0f0f] shadow-xl focus:outline-none"
         }
       >
-        {isTransaction && (
+        {expandableInformation ? (
+          <button ref={informationHandleRef} type="button" aria-label={informationSheet.expanded ? 'Recolher informações' : 'Expandir informações'}
+            aria-expanded={informationSheet.expanded} aria-controls={informationContentId}
+            className="information-sheet-handle flex h-8 w-full shrink-0 touch-none items-center justify-center rounded-t-[26px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
+            {...informationSheet.handleProps}>
+            <span aria-hidden="true" className="h-1 w-10 rounded-full bg-white/30" />
+          </button>
+        ) : (isTransaction || isInformation) && (
           <div
             aria-hidden="true"
             className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-zinc-600/70 md:hidden"
@@ -364,7 +400,9 @@ export function Modal({
         )}
         <div
           className={
-            titleStyle === "subtle"
+            isInformation
+              ? `flex shrink-0 items-start justify-between gap-4 px-6 pb-3 ${expandableInformation ? 'pr-16 pt-1' : 'pt-5 md:pt-6'}`
+              : titleStyle === "subtle"
               ? "flex shrink-0 items-start justify-between gap-4 px-6 pb-2 pt-6"
               : hasCompactLayout
               ? "flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-4 md:px-6 md:py-5"
@@ -372,7 +410,8 @@ export function Modal({
           }
         >
           <div className="min-w-0">
-          <h2 id={titleId} className={titleStyle === "subtle" ? "text-base font-medium tracking-tight text-white" : "text-xl font-bold text-white"}>
+          {isInformation && !expandableInformation && <p className="mb-2 text-[11px] font-medium text-white/45">Informações</p>}
+          <h2 id={titleId} className={isInformation ? "text-[17px] font-medium leading-snug tracking-tight text-white/90" : titleStyle === "subtle" ? "text-base font-medium tracking-tight text-white" : "text-xl font-bold text-white"}>
             {title}
           </h2>
           {description && <p id={`${titleId}-description`} className="mt-1.5 text-xs leading-relaxed text-white/45">{description}</p>}
@@ -383,19 +422,27 @@ export function Modal({
             disabled={!dismissible}
             aria-label="Fechar"
             className={
-              hasCompactLayout || titleStyle === "subtle"
+              isInformation
+                ? `grid h-11 w-11 shrink-0 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:h-9 md:w-9 ${expandableInformation ? 'absolute right-3 top-2 z-10' : ''}`
+                : hasCompactLayout || titleStyle === "subtle"
                 ? "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-2xl leading-none text-gray-300 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
                 : "rounded-lg px-2 py-1 text-2xl leading-none text-gray-400 transition-colors hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-gray-600 disabled:hover:bg-transparent"
             }
           >
-            &times;
+            {isInformation ? <X className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" /> : <>&times;</>}
           </button>
         </div>
 
         <div
+          id={informationContentId}
           data-sheet-expanded={isFloating ? floatingExpanded : undefined}
+          role={isInformation ? "region" : undefined}
+          aria-label={isInformation ? "Detalhes da informação" : undefined}
+          tabIndex={isInformation ? 0 : undefined}
           className={
-            isFloating
+            isInformation
+              ? `min-h-0 overflow-x-hidden overscroll-contain px-6 pb-6 pt-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${expandableInformation ? 'information-sheet-content flex-1' : 'overflow-y-auto'}`
+              : isFloating
               ? "min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-2"
               : isTransaction
                 ? `min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 md:px-6 md:py-6 ${transactionDrawer && !footer ? "max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))]" : ""}`

@@ -16,6 +16,9 @@ import { ReturnHistoryNotice } from '../../performance/components/ReturnHistoryN
 import { ReturnPeriodNotice } from '../../performance/components/ReturnPeriodNotice'
 import { useNewAlertsCount } from '../../alerts/hooks/useAlerts'
 import { walletPalette } from '../../portfolio/walletPalette'
+import { InformationHelp } from '../../../shared/components/InformationHelp'
+import { Modal } from '../../../shared/components/Modal'
+import type { DashboardData } from '../../dashboard/hooks/useDashboard'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', {
@@ -50,9 +53,9 @@ export function InicioPage() {
   })
 
   const content = (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 md:mx-0 md:max-w-none md:px-0 md:pt-2">
+    <div className="flex min-w-0 w-full flex-col gap-5 px-4 md:px-0 md:pt-2">
       {/* ── Saudação ── */}
-      <div className="pb-20 pt-5 md:py-8">
+      <div className="pb-14 pt-5 md:py-8">
         <div className="min-w-0">
           {/* Saudação: text-[26px] font-medium intencional — hierarquia visual de boas-vindas,
               maior e mais leve que os títulos de seção (text-[22px] font-semibold) das demais páginas */}
@@ -74,8 +77,8 @@ export function InicioPage() {
         </div>
       </div>
 
-      {/* ── 4 KPIs ── */}
-      <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
+      {/* O resumo mobile prioriza os totais; os detalhes ficam disponíveis por toque. */}
+      {isMobile ? <MobileDashboardSummary key={selectedWallet?.id} dashboard={dashboard} /> : <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
         <KpiCard
           label="Patrimônio total"
           helpTopic="balance"
@@ -112,9 +115,9 @@ export function InicioPage() {
             { label: 'Total', value: percentage(dashboard.rentabilidadeTotalPct), valueColor: dashboard.rentabilidadeTotalPct !== null && dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green' },
           ]}
         />
-      </div>
+      </div>}
 
-      <ReturnPeriodNotice endDate={dashboard.returnEndDate} />
+      {!isMobile && <ReturnPeriodNotice endDate={dashboard.returnEndDate} />}
       <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
       {dashboard.isLoading && <LoadingState label="Carregando dados da carteira…" />}
       {dashboard.isError && (
@@ -126,7 +129,7 @@ export function InicioPage() {
       {/* ── Gráfico + Alertas ── */}
       <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]">
         {/* Evolução do patrimônio */}
-        <PanelCard className="min-w-0" padding="p-5 md:p-6">
+        <PanelCard className="min-w-0 max-md:rounded-none max-md:border-0 max-md:bg-transparent" padding="p-0 md:p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-[18px] font-medium text-white/90 md:text-[20px]">
               Evolução do patrimônio
@@ -191,6 +194,83 @@ export function InicioPage() {
         onClose={() => setIsQuickTransactionOpen(false)}
       />
     </>
+  )
+}
+
+function MobileDashboardSummary({ dashboard }: { dashboard: DashboardData }) {
+  const [detail, setDetail] = useState<'profit' | 'returns' | null>(null)
+  const profitColor = dashboard.lucroTotalBRL === null ? 'text-white' : dashboard.lucroTotalBRL < 0 ? 'text-red-400' : 'text-nf-green'
+  const returnColor = dashboard.rentabilidadeTotalPct === null ? 'text-white' : dashboard.rentabilidadeTotalPct < 0 ? 'text-red-400' : 'text-nf-green'
+
+  return (
+    <section aria-label="Resumo da carteira" className="space-y-3">
+      <div className="rounded-2xl bg-[#1C1C1C] p-4">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <h2 className="flex min-w-0 items-center gap-2 text-sm text-[#B8B8B8]">
+            <Wallet className="h-4 w-4 shrink-0" strokeWidth={1.6} aria-hidden="true" />
+            Patrimônio total
+          </h2>
+          <InformationHelp topic="balance" />
+        </div>
+        <p className="mt-1 break-words text-[clamp(1.5rem,7.5vw,2rem)] font-medium leading-tight tracking-tight text-white tabular-nums">
+          {money(dashboard.totalPatrimonioBRL)}
+        </p>
+        <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
+          <span className="text-[#A3A3A3]">Valor investido</span>
+          <span className="break-words text-sm text-white/90 tabular-nums">{money(dashboard.valorInvestidoBRL)}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 items-start gap-4 rounded-2xl bg-[#191919] p-4">
+        <div className="min-w-0">
+          <h2 className="flex min-h-9 items-center text-xs text-[#B8B8B8]">Lucro atual</h2>
+          <p className={`mt-1 [overflow-wrap:anywhere] text-[clamp(0.95rem,4.3vw,1.25rem)] font-medium leading-tight tabular-nums ${profitColor}`}>
+            {money(dashboard.lucroTotalBRL)}
+          </p>
+          <p className="mt-1.5 text-[11px] text-[#A3A3A3]">Desde o início</p>
+          <button type="button" aria-haspopup="dialog" aria-expanded={detail === 'profit'} onClick={() => setDetail('profit')} className="mt-3 flex min-h-11 items-center gap-1.5 rounded-lg bg-white/[0.04] px-2 text-xs text-[#B8B8B8] transition-colors hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/40">
+            Ver composição <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-start justify-between gap-0.5">
+            <h2 className="flex min-h-9 min-w-0 items-center break-words text-xs text-[#B8B8B8]">Rentabilidade</h2>
+            <InformationHelp topic="returns" />
+          </div>
+          <p className={`mt-1 [overflow-wrap:anywhere] text-[clamp(0.95rem,4.3vw,1.25rem)] font-medium leading-tight tabular-nums ${returnColor}`}>
+            {percentage(dashboard.rentabilidadeTotalPct)}
+          </p>
+          <p className="mt-1.5 text-[11px] text-[#A3A3A3]">Desde o início</p>
+          <button type="button" aria-haspopup="dialog" aria-expanded={detail === 'returns'} onClick={() => setDetail('returns')} className="mt-3 flex min-h-11 items-center gap-1.5 rounded-lg bg-white/[0.04] px-2 text-xs text-[#B8B8B8] transition-colors hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/40">
+            Ver período <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex min-w-0 items-center justify-between gap-2 rounded-2xl bg-[#191919] px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="text-xs text-[#B8B8B8]">Proventos</h2>
+          <p className="mt-1 text-[11px] text-[#A3A3A3]">Últimos 12 meses</p>
+        </div>
+        <div className="flex min-w-0 items-center gap-1">
+          <p className="min-w-0 [overflow-wrap:anywhere] text-sm font-medium text-white tabular-nums">{money(dashboard.proventos12mBRL)}</p>
+          <InformationHelp topic="income" />
+        </div>
+      </div>
+      <Modal isOpen={detail !== null} onClose={() => setDetail(null)} title={detail === 'profit' ? 'Composição do lucro' : 'Períodos de rentabilidade'} variant="information">
+        {detail === 'profit' ? <dl className="space-y-5 text-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><dt className="text-[#B8B8B8]">Ganho de capital</dt><dd className="text-base text-white tabular-nums">{money(dashboard.ganhoCapitalBRL)}</dd></div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><dt className="text-[#B8B8B8]">Dividendos recebidos</dt><dd className="text-base text-white tabular-nums">{money(dashboard.proventosTotalBRL)}</dd></div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pt-2"><dt className="text-[#B8B8B8]">Lucro atual</dt><dd className={`text-base font-medium tabular-nums ${profitColor}`}>{money(dashboard.lucroTotalBRL)}</dd></div>
+        </dl> : <div className="space-y-6">
+          <dl className="space-y-5 text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><dt className="text-[#B8B8B8]">Desde o início</dt><dd className={`text-base tabular-nums ${returnColor}`}>{percentage(dashboard.rentabilidadeTotalPct)}</dd></div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><dt className="text-[#B8B8B8]">Últimos 12 meses</dt><dd className="text-base text-white tabular-nums">{percentage(dashboard.variacaoPct)}</dd></div>
+          </dl>
+          <ReturnPeriodNotice endDate={dashboard.returnEndDate} />
+        </div>}
+      </Modal>
+    </section>
   )
 }
 

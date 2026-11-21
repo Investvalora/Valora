@@ -110,7 +110,7 @@ export function AccountPage() {
   };
 
   return (
-    <section className="mr-auto w-full max-w-[1440px] overflow-x-clip px-4 pb-12 pt-6 md:px-0 md:pt-10">
+    <section className="mr-auto w-full max-w-[1440px] overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 md:px-0 md:pb-12 md:pt-10">
       <header className="mb-7 hidden md:block">
         <h1 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
           Perfil e conta

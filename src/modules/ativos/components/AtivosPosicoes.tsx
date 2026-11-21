@@ -10,7 +10,7 @@ import { useAtivosValuation } from '../hooks/useAtivosValuation'
  * Exibe KpiBarAtivos com os 4 valores e a tabela de posições agrupada
  * por classe de ativo com todas as colunas do Figma.
  */
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Download, Columns3 } from 'lucide-react'
 import { downloadPositionsCsv } from '../../portfolio/export/positionsCsv'
 import { useAssetFilters } from '../hooks/useAssetFilters'
@@ -123,7 +123,6 @@ export function AtivosPosicoes() {
   // ── Resumo Popover ────────────────────────────────────────────────────────
 
   const [isResumoOpen, setIsResumoOpen] = useState(false)
-  const resumoBtnRef = useRef<HTMLButtonElement | null>(null)
 
   // ── Mobile: grupos colapsáveis ────────────────────────────────────────────
   const groups = useMemo(
@@ -156,7 +155,7 @@ export function AtivosPosicoes() {
       {valuationError && <p role="status" className="text-xs text-amber-300">Alguns históricos de proventos não puderam ser consultados. Os preços de referência afetados ficam indisponíveis; registros parciais não são usados como total anual.</p>}
       <AssetValuationNotice loading={Boolean(isLoading)} error={Boolean(isError)} complete={complete} />
       {/* ── KPI bar com botão de resumo ── */}
-      <div className="relative overflow-x-auto md:overflow-visible">
+      <div className="relative min-w-0">
         <KpiBarAtivos
           patrimonio={fmtMoney(patrimonioBRL)}
           valorInvestido={fmtMoney(valorInvestidoBRL)}
@@ -166,17 +165,14 @@ export function AtivosPosicoes() {
           }
           ativos={assetCount}
           onResumo={() => setIsResumoOpen((o) => !o)}
-          resumoBtnRef={resumoBtnRef}
         />
 
         {isResumoOpen && (
           <ResumoCarteiraPopover
-            anchorRef={resumoBtnRef}
             patrimonio={fmtMoney(patrimonioBRL)}
             valorInvestido={fmtMoney(valorInvestidoBRL)}
             ganhoCapital={fmtMoney(ganhoCapitalBRL)}
             proventos12m={fmtMoney(proventos12mBRL)}
-            dividendos={fmtMoney(proventos12mBRL)}
             rentabilidade={fmtPct(rentabilidadePct)}
             onClose={() => setIsResumoOpen(false)}
           />
@@ -199,19 +195,20 @@ export function AtivosPosicoes() {
       </div>
       <PanelCard padding="p-0">
         {/* Cabeçalho do card */}
-        <div className="flex flex-col gap-2 px-5 py-4 border-b border-white/[0.06] md:flex-row md:items-center md:gap-3 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-3 border-b border-white/[0.06] md:gap-3 md:px-6 md:py-4">
           {/* Linha 1: título + contador */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-1 md:gap-2.5">
             <h2 className="text-[14px] font-semibold text-white">
-              Meus ativos <InformationHelp topic="balance" />
+              Meus ativos
             </h2>
             <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/60">
               {assetCount}
             </span>
+            <InformationHelp topic="balance" />
           </div>
 
           {/* Linha 2 (mobile) / direita (desktop): botões de ação */}
-          <div className="flex items-center gap-2 md:ml-auto">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => setIsColumnEditorOpen(true)} className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/5 md:flex">
               <Columns3 className="h-3.5 w-3.5" aria-hidden="true" />Editar colunas
             </button>
@@ -220,16 +217,17 @@ export function AtivosPosicoes() {
               onClick={() => downloadPositionsCsv(baseRows)}
               disabled={isLoading || baseRows.length === 0}
               title="Exportar posições de renda variável filtradas com as colunas padrão do CSV"
+              aria-label="Exportar CSV"
               className="
                 flex items-center gap-1.5 rounded-full
                 bg-white/[0.08]
-                px-3.5 py-1.5 text-[12px] font-medium text-white/70
+                min-h-11 min-w-11 justify-center px-3 py-1.5 text-[12px] font-medium text-white/70
                 transition-colors hover:bg-white/[0.12] hover:text-white
                 disabled:opacity-40
               "
             >
-              <Download className="h-3 w-3" strokeWidth={1.8} aria-hidden="true" />
-              Exportar CSV
+              <Download className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              <span className="hidden min-[380px]:inline">Exportar CSV</span>
             </button>
           </div>
         </div>

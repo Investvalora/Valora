@@ -16,7 +16,7 @@ vi.mock('../performance/hooks/useHistoricalReturns', () => ({ useHistoricalRetur
 vi.mock('../portfolio/hooks/useLatestQuotes', () => ({ useLatestQuotes: () => ({ data: [], refetch: vi.fn() }) }))
 vi.mock('../../shared/hooks/useUSDRate', () => ({ useUSDRate: () => ({ data: undefined, refetch: vi.fn() }) }))
 vi.mock('../score/services/fundamentalsService', () => ({ fundamentalsService: { listByTickers: vi.fn().mockResolvedValue([]) } }))
-function setup() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><MemoryRouter><PlanningPage /></MemoryRouter></QueryClientProvider>) }
+function setup(path = '/') { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><MemoryRouter initialEntries={[path]}><PlanningPage /></MemoryRouter></QueryClientProvider>) }
 beforeEach(() => { walletState.loading = false; walletState.error = false; walletState.empty = false; walletState.refetch.mockClear(); resetSupabaseMock(); supabaseMock.on('wallets', () => ({ data: { allocation_targets: { stock_br: 50, fii: 50 }, passive_income_goal: 100 }, error: null })) })
 it('simula o aporte por meta e informa a sobra sem gravar movimentos', async () => {
   setup()
@@ -63,4 +63,11 @@ it('mostra orientação de carteira vazia apenas depois da consulta concluída',
   setup()
   expect(screen.getByText('Selecione ou crie uma carteira.')).toBeInTheDocument()
   expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+ it('abre os cards de atualização diretamente pelo link do resumo', async () => {
+  setup('/analise/ferramentas?tab=health')
+  expect(screen.getByRole('tab', { name: 'Saúde dos dados' })).toHaveAttribute('aria-selected', 'true')
+  expect(await screen.findByRole('region', { name: 'Resumo das atualizações' })).toBeInTheDocument()
+  expect(screen.getByRole('article', { name: 'Proventos' })).toHaveTextContent('Não se aplica')
 })

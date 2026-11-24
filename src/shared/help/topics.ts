@@ -75,7 +75,7 @@ export const HELP_TOPICS = {
   health: {
     title: 'Saúde e atualização dos dados',
     meaning: 'Mostra fontes, datas e lacunas de cotações, câmbio, fundamentos e avaliações disponíveis.',
-    rules: ['Conferir novamente consulta os dados salvos; não obriga o fornecedor a publicar uma atualização.', 'Último fechamento em fim de semana não é automaticamente falha. Calendários de mercados e classes podem ser diferentes.', 'Cobertura incompleta é diferente de valor zero ou de uma empresa não pagar dividendos. Confira os avisos antes de concluir.'],
+    rules: ['O painel confere os dados salvos a cada cinco minutos enquanto está visível e conectado. Essa previsão é da consulta nesta tela, não do próximo processamento do fornecedor.', 'Última gravação e data de referência são diferentes; datas de pagamento ou data ex não indicam quando o calendário foi atualizado. Horários são apresentados em Brasília e intervalos preservam diferenças entre ativos.', 'Conferir novamente consulta os dados salvos; não obriga o fornecedor a publicar uma atualização.', 'Último fechamento em fim de semana não é automaticamente falha. Calendários de mercados e classes podem ser diferentes.', 'Cobertura incompleta é diferente de valor zero ou de uma empresa não pagar dividendos. Confira os avisos antes de concluir.'],
     example: 'Uma cotação de sexta-feira consultada no domingo pode ser o último fechamento disponível. Um fundamento com data antiga deve ser avaliado pela sua própria referência.',
   },
 } satisfies Record<string, Explanation>

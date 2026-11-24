@@ -68,6 +68,7 @@ export function useWalletTotals() {
 
   return {
     totals,
+    quotes: quotesQuery.data,
     positions,
     rows: derived.rows,
     usdRate: usdQuery.data?.rate ?? null,

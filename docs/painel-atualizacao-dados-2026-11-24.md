@@ -15,3 +15,6 @@ A API atual não disponibiliza ao painel a próxima coleta dos fornecedores nem 
 - TypeScript e build de produção aprovados. Lint dos arquivos alterados aprovado; helper de datas extraído para preservar Fast Refresh.
 - Secret scan: zero achados; diff sem erros de whitespace.
 - Homologação visual pendente: navegador integrado sem conteúdo no servidor existente; navegação para servidor Vite isolado em 5182 expirou. Nenhuma carteira ou dado financeiro foi alterado.
+
+## Homologação visual concluída
+Sessão autenticada em localhost:5175: indicação do Início, link direto para Saúde dos dados, quatro cards, datas/fontes, consulta manual com estado de carregamento e retorno, ajuda com regras/exemplos. Layout observado em largura estreita de 319 px e desktop 1280 x 900; cards em uma/duas colunas. Nenhum erro de console capturado. A cadência de cinco minutos e pausa/retomada foram verificadas pelos testes automatizados, sem aguardar cinco minutos nesta conferência visual. Evidência local: output/qa-data-update-status/desktop.png no workspace principal. Sem alteração financeira.

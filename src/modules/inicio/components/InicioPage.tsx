@@ -1,4 +1,4 @@
-import { QuoteUpdateNote } from '../../planning/DataUpdateSummary'
+import { UpdateStatusCard } from '../../planning/UpdateStatusCard'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { useState } from 'react'
 import { ArrowRight, BarChart2, Coins, TrendingUp, Wallet, type LucideIcon } from 'lucide-react'
@@ -118,7 +118,7 @@ export function InicioPage() {
         />
       </div>}
 
-      <QuoteUpdateNote updates={dashboard.quoteUpdates} />
+      <div className="flex justify-end md:hidden"><UpdateStatusCard /></div>
       {!isMobile && <ReturnPeriodNotice endDate={dashboard.returnEndDate} />}
       <ReturnHistoryNotice incomplete={dashboard.historyIncomplete} issues={dashboard.historyIssues} onRetry={dashboard.refetch} />
       {dashboard.isLoading && <LoadingState label="Carregando dados da carteira…" />}

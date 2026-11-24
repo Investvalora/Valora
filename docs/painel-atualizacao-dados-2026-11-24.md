@@ -18,3 +18,6 @@ A API atual não disponibiliza ao painel a próxima coleta dos fornecedores nem 
 
 ## Homologação visual concluída
 Sessão autenticada em localhost:5175: indicação do Início, link direto para Saúde dos dados, quatro cards, datas/fontes, consulta manual com estado de carregamento e retorno, ajuda com regras/exemplos. Layout observado em largura estreita de 319 px e desktop 1280 x 900; cards em uma/duas colunas. Nenhum erro de console capturado. A cadência de cinco minutos e pausa/retomada foram verificadas pelos testes automatizados, sem aguardar cinco minutos nesta conferência visual. Evidência local: output/qa-data-update-status/desktop.png no workspace principal. Sem alteração financeira.
+
+## Status compacto no Início
+Adicionado ao topo, antes do sino no desktop, e dentro da página no celular. Abre por hover, foco e toque; Escape/saída de foco fecham. Exibe gravação/referência das cotações e próxima conferência local, sem inventar próxima coleta do fornecedor. Reutiliza queries de posições/cotações e consulta salva a cada cinco minutos. Conferência visual desktop aprovada; evidência output/qa-data-update-status/status-topo.png. Oito testes de card/Início/shell, tipagem e lint aprovados.

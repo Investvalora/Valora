@@ -1,3 +1,5 @@
+import { useLocation } from 'react-router-dom'
+import { UpdateStatusCard } from '../../modules/planning/UpdateStatusCard'
 import { Plus } from 'lucide-react'
 import { AlertBell } from './AlertBell'
 import { WalletMorphSelector } from './WalletMorphSelector'
@@ -11,6 +13,7 @@ export function TopBar({
   alertCount = 0,
   onNovoLancamento,
 }: TopBarProps) {
+  const { pathname } = useLocation()
   return (
     <header className="relative z-40 hidden min-h-[58px] shrink-0 flex-wrap items-center justify-between gap-2 bg-[#131313] px-4 py-4 pt-[max(0.5rem,env(safe-area-inset-top))] md:flex md:px-10 md:py-2">
       {/* ── Filtros globais ── */}
@@ -25,6 +28,7 @@ export function TopBar({
 
       {/* ── Ações globais ── */}
       <div className="hidden items-center gap-3 md:flex">
+        {pathname === '/inicio' && <UpdateStatusCard />}
         {/* Sino */}
         <AlertBell count={alertCount} />
 

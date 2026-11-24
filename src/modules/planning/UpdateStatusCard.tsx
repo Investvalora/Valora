@@ -1,3 +1,4 @@
+import { nextCollection } from './collectionSchedule'
 import { useId, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useWallets } from '../portfolio/hooks/useWallets'
@@ -27,7 +28,7 @@ export function UpdateStatusCard() {
       <p>Última gravação (Brasília): <strong>{updateRange((quotes.data ?? []).map(row => row.updated_at))}</strong></p>
       <p>Referência: {updateRange((quotes.data ?? []).map(row => row.date), false)}</p>
       <p>Próxima conferência: <strong>{cadence.paused ? 'pausada' : cadence.nextCheck ? timestamp(new Date(cadence.nextCheck).toISOString()) : pending ? 'consulta em andamento' : 'sem consulta programada'}</strong></p>
-      <p className="text-white/55">Consulta os dados salvos a cada cinco minutos com a tela visível e conectada. Próxima coleta do fornecedor: horário não disponibilizado. Dados disponíveis não garantem cotações em tempo real nem cobertura dos proventos.</p>
+      <p className="text-white/55">Consulta os dados salvos a cada cinco minutos com a tela visível e conectada. Próxima coleta prevista do Valora: {timestamp(nextCollection('Cotações'))}. Agenda conferida em 24/11/2026; é o próximo lote da categoria, sujeito a filas e cotas. Dados disponíveis não garantem cotações em tempo real nem cobertura dos proventos.</p>
       <NavLink className="inline-flex min-h-8 items-center underline" to="/analise/ferramentas?tab=health">Ver saúde dos dados</NavLink>
     </div></div>}
   </div>

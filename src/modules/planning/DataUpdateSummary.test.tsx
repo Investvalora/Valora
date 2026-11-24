@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { expect, it } from 'vitest'
 import { DataUpdateSummary, QuoteUpdateNote } from './DataUpdateSummary'
-it('separa gravação e referência, preserva intervalos e não inventa próximo horário da fonte', () => {
+it('separa gravação e referência, preserva intervalos e identifica a previsão da agenda do Valora', () => {
   render(<DataUpdateSummary nextCheck={Date.parse('2026-11-24T17:05:00Z')} paused={false} sources={[{ name: 'Cotações', expected: 2, records: [
     { updatedAt: '2026-11-24T17:00:00Z', reference: '2026-11-23', source: 'brapi' },
     { updatedAt: '2026-11-24T16:00:00Z', reference: '2026-11-20', source: 'yahoo' },
@@ -11,7 +11,7 @@ it('separa gravação e referência, preserva intervalos e não inventa próximo
   const card = within(screen.getByRole('article', { name: 'Cotações' }))
   expect(card.getByText('24/11/2026, 13:00 a 24/11/2026, 14:00')).toBeVisible()
   expect(card.getByText('20/11/2026 a 23/11/2026')).toBeVisible()
-  expect(card.getByText('Horário não disponibilizado neste painel')).toBeVisible()
+  expect(card.getByText('Próxima coleta prevista do Valora')).toBeVisible()
   expect(screen.getByText(/aproximadamente/)).toHaveTextContent('14:05')
   fireEvent.click(screen.getByRole('button', { name: /Como funciona/ }))
   expect(screen.getByRole('dialog')).toHaveTextContent('não do próximo processamento do fornecedor')

@@ -21,3 +21,6 @@ Sessão autenticada em localhost:5175: indicação do Início, link direto para 
 
 ## Status compacto no Início
 Adicionado ao topo, antes do sino no desktop, e dentro da página no celular. Abre por hover, foco e toque; Escape/saída de foco fecham. Exibe gravação/referência das cotações e próxima conferência local, sem inventar próxima coleta do fornecedor. Reutiliza queries de posições/cotações e consulta salva a cada cinco minutos. Conferência visual desktop aprovada; evidência output/qa-data-update-status/status-topo.png. Oito testes de card/Início/shell, tipagem e lint aprovados.
+
+## Datas previstas de coleta
+Agendas ativas conferidas por consulta somente leitura a cron.job em produção em 24/11/2026. A interface agora projeta o próximo lote por categoria em Brasília, incluindo janelas de dias úteis do Tesouro/fundamentos e coleta contínua de cripto/proventos. É uma projeção do cron configurado, não ETA por ativo nem garantia de publicação. A configuração foi registrada em collectionSchedule.ts e deve acompanhar alterações nos crons; não é uma consulta ao cron a cada renderização. Sem alteração no banco. 23 testes de planejamento, TypeScript e lint aprovados. Conferência local confirmou datas no painel e no status do Início.

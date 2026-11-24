@@ -25,10 +25,10 @@ export function UpdateStatusCard() {
     </button>
     {open && <div id={id} role="region" aria-label="Status das atualizações" className="absolute right-0 top-full z-50 w-[min(300px,calc(100vw-32px))] pt-2"><div className="space-y-3 rounded-xl border border-white/15 bg-[#242424] p-4 text-xs text-white/80 shadow-xl">
       <p className="font-semibold text-white">Atualização das cotações</p>
-      <p>Última gravação (Brasília): <strong>{updateRange((quotes.data ?? []).map(row => row.updated_at))}</strong></p>
+      <p>Última atualização: <strong>{updateRange((quotes.data ?? []).map(row => row.updated_at))}</strong></p>
       <p>Referência: {updateRange((quotes.data ?? []).map(row => row.date), false)}</p>
-      <p>Próxima conferência: <strong>{cadence.paused ? 'pausada' : cadence.nextCheck ? timestamp(new Date(cadence.nextCheck).toISOString()) : pending ? 'consulta em andamento' : 'sem consulta programada'}</strong></p>
-      <p className="text-white/55">Consulta os dados salvos a cada cinco minutos com a tela visível e conectada. Próxima coleta prevista do Valora: {timestamp(nextCollection('Cotações'))}. Agenda conferida em 24/11/2026; é o próximo lote da categoria, sujeito a filas e cotas. Dados disponíveis não garantem cotações em tempo real nem cobertura dos proventos.</p>
+      <p>Próxima consulta da tela: <strong>{cadence.paused ? 'pausada' : cadence.nextCheck ? timestamp(new Date(cadence.nextCheck).toISOString()) : pending ? 'consulta em andamento' : 'sem consulta programada'}</strong></p>
+      <p>Próxima atualização: <strong>{timestamp(nextCollection('Cotações'))}</strong></p><p className="text-white/55">Horários em Brasília. A última atualização indica a gravação dos dados no Valora. A próxima é uma previsão do próximo lote da categoria, sujeita a filas e cotas; não garante publicação por ativo. A consulta da tela ocorre a cada cinco minutos enquanto está visível e conectada. Dados disponíveis não garantem cotações em tempo real nem cobertura dos proventos.</p>
       <NavLink className="inline-flex min-h-8 items-center underline" to="/analise/ferramentas?tab=health">Ver saúde dos dados</NavLink>
     </div></div>}
   </div>

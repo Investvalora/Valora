@@ -11,7 +11,7 @@ it('separa gravação e referência, preserva intervalos e identifica a previsã
   const card = within(screen.getByRole('article', { name: 'Cotações' }))
   expect(card.getByText('24/11/2026, 13:00 a 24/11/2026, 14:00')).toBeVisible()
   expect(card.getByText('20/11/2026 a 23/11/2026')).toBeVisible()
-  expect(card.getByText('Próxima coleta prevista do Valora')).toBeVisible()
+  expect(card.getByText('Próxima atualização:')).toBeVisible()
   expect(screen.getByText(/aproximadamente/)).toHaveTextContent('14:05')
   fireEvent.click(screen.getByRole('button', { name: /Como funciona/ }))
   expect(screen.getByRole('dialog')).toHaveTextContent('não do próximo processamento do fornecedor')

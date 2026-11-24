@@ -11,6 +11,10 @@ vi.mock('./WalletMorphSelector', () => ({
   WalletMorphSelector: () => <span>Minha Carteira</span>,
 }))
 
+vi.mock('../../modules/planning/UpdateStatusCard', () => ({
+  UpdateStatusCard: () => <span>Status dos dados</span>,
+}))
+
 describe('TopBar', () => {
   it('abre a tela de alertas ao clicar no sino com contador', () => {
     render(

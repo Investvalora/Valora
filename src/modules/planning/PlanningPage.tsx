@@ -1,3 +1,6 @@
+import { useSearchParams } from 'react-router-dom'
+import { DataUpdateSummary, type UpdateSource } from './DataUpdateSummary'
+import { usePanelRefresh } from './usePanelRefresh'
 import { LoadingState } from '../../shared/components/LoadingState'
 import { InformationHelp } from '../../shared/components/InformationHelp'
 import type { HelpTopic } from '../../shared/help/topics'
@@ -133,8 +136,24 @@ function DataHealth({ walletId }: { walletId: string }) {
   const history = useHistoricalReturns('Tudo', walletId)
   const today = toIsoDate(new Date())
   const refreshing = quotes.isFetching || fx.isFetching || fundamentals.isFetching || fixed.isFetching
+  const refreshSaved = () => Promise.allSettled([...(valuation.tickers.length ? [quotes.refetch(), fundamentals.refetch()] : []), ...(valuation.positions.some(row => row.asset?.currency === 'USD') ? [fx.refetch()] : []), fixed.refetch()])
+  const cadence = usePanelRefresh(refreshSaved, !valuation.isLoading && !valuation.isError)
+  const market = valuation.positions.filter(row => row.asset?.type !== 'fixed_income')
+  const fundamentalTickers = new Set(market.filter(row => ['stock_br', 'stock_us', 'bdr'].includes(row.asset?.type ?? '')).map(row => row.ticker))
+  const fundamentalRecords = (fundamentals.data ?? []).filter(row => fundamentalTickers.has(row.ticker))
+  const treasury = (fixed.data?.positions ?? []).filter(row => row.active && Number(row.treasury_quantity) > 0)
+  const sources: UpdateSource[] = [
+    { name: 'Cotações', expected: new Set(market.map(row => row.ticker)).size, records: (quotes.data ?? []).map(row => ({ updatedAt: row.updated_at, reference: row.date, source: row.source })), fetching: quotes.isFetching, error: quotes.isError || valuation.isError,
+      outdated: market.some(position => { const quote = quotes.data?.find(row => row.ticker === position.ticker); return quote && (position.asset?.type === 'crypto' ? (Date.parse(today) - Date.parse(quote.date)) / 86400000 > 1 : (businessDaysBetween(quote.date, today) ?? 0) > 1) }),
+      note: 'Ativos podem ter horários diferentes; o intervalo inclui o registro mais antigo e o mais recente disponíveis.' },
+    { name: 'Proventos', expected: market.length, records: [], note: 'O calendário combina fontes com cadências diferentes. A consulta atual não fornece uma data unificada de coleta. Data ex e pagamento não representam atualização; ausência de horário não significa ausência de proventos.' },
+    { name: 'Fundamentos', expected: fundamentalTickers.size, records: fundamentalRecords.map(row => ({ updatedAt: row.updated_at, reference: row.reference_date, source: row.source })), fetching: fundamentals.isFetching, error: fundamentals.isError,
+      outdated: fundamentalRecords.some(row => Date.parse(today) - Date.parse(row.reference_date) > 180 * 86400000), note: 'A competência pode ser anterior à última gravação. Cobertura e aplicabilidade variam por indicador e classe.' },
+    { name: 'Tesouro', expected: treasury.length, records: treasury.map(row => ({ updatedAt: row.last_updated_at, reference: row.valuation_price_date, source: row.valuation_method === 'market' ? 'Preço de mercado do Tesouro' : 'Taxa contratada' })), fetching: fixed.isFetching, error: fixed.isError,
+      outdated: treasury.some(row => row.valuation_price_date && (businessDaysBetween(row.valuation_price_date, today) ?? 0) > 1), note: 'Horário do saldo avaliado e data do preço são informações distintas. Outros títulos de renda fixa continuam detalhados abaixo.' },
+  ]
   if (valuation.isLoading || quotes.isLoading || fundamentals.isLoading || fixed.isLoading) return <LoadingState variant="table" label="Conferindo fontes e datas dos dados…" />
-  return <div className="space-y-4"><p>Últimos dados conhecidos e suas fontes. Fechamento anterior em fim de semana não significa falha. A verificação por dias úteis não substitui o calendário de feriados de cada bolsa.</p><button className={button} disabled={refreshing} aria-busy={refreshing} onClick={() => { void quotes.refetch(); void fx.refetch(); void fundamentals.refetch(); history.refetch(); void fixed.refetch() }}>{refreshing ? 'Conferindo dados…' : 'Conferir dados novamente'}</button><p>Histórico: {history.isLoading ? 'verificando' : history.isError ? 'consulta falhou' : history.incomplete || history.points.some(point => point.value === null || point.returnPct === null) ? 'cobertura parcial' : history.points.length ? `${history.points[0].date} a ${history.points[history.points.length - 1].date}` : 'sem histórico'}</p><p>Câmbio USD: {fx.data ? `${fx.data.source} · ${fx.data.date ?? 'sem data'}${fx.data.isFallback ? ' · aproximado' : ''}` : 'não utilizado ou indisponível'}</p><div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-xs"><caption className="sr-only">Saúde dos dados por ativo</caption><thead><tr><th>Ativo</th><th>Cotação / fonte</th><th>Estado</th><th>Fundamentos / fonte</th></tr></thead><tbody>{valuation.positions.map(position => {
+  return <div className="space-y-4"><DataUpdateSummary sources={sources} {...cadence} /><p>Últimos dados conhecidos e suas fontes. Fechamento anterior em fim de semana não significa falha. A verificação por dias úteis não substitui o calendário de feriados de cada bolsa.</p><button className={button} disabled={refreshing} aria-busy={refreshing} onClick={() => { void refreshSaved(); history.refetch() }}>{refreshing ? 'Conferindo dados…' : 'Conferir dados novamente'}</button><p>Histórico: {history.isLoading ? 'verificando' : history.isError ? 'consulta falhou' : history.incomplete || history.points.some(point => point.value === null || point.returnPct === null) ? 'cobertura parcial' : history.points.length ? `${history.points[0].date} a ${history.points[history.points.length - 1].date}` : 'sem histórico'}</p><p>Câmbio USD: {fx.data ? `${fx.data.source} · ${fx.data.date ?? 'sem data'}${fx.data.isFallback ? ' · aproximado' : ''}` : 'não utilizado ou indisponível'}</p><div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-xs"><caption className="sr-only">Saúde dos dados por ativo</caption><thead><tr><th>Ativo</th><th>Cotação / fonte</th><th>Estado</th><th>Fundamentos / fonte</th></tr></thead><tbody>{valuation.positions.map(position => {
     const quote = quotes.data?.find(row => row.ticker === position.ticker)
     const fundamental = fundamentals.data?.find(row => row.ticker === position.ticker)
     const days = quote ? position.asset?.type === 'crypto' ? Math.floor((Date.parse(today) - Date.parse(quote.date)) / 86400000) : businessDaysBetween(quote.date, today) : null
@@ -144,7 +163,8 @@ function DataHealth({ walletId }: { walletId: string }) {
 }
 export function PlanningPage() {
   const { wallets, selectedWallet, selectWallet, isLoading: walletsLoading, isError: walletsError, refetch: refetchWallets } = useWallets()
-  const [tab, setTab] = useState(0)
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(() => params.get('tab') === 'health' ? 4 : 0)
   const helpTopics: HelpTopic[] = ['planner', 'wealth', 'export', 'goal', 'health']
   return <section className="mx-auto w-full min-w-0 max-w-5xl space-y-5 text-sm text-white/80"><header><h2 className="text-xl font-semibold text-white">Ferramentas</h2><p className="mt-2 text-white/55">Planeje seus próximos passos e confira os dados da carteira selecionada.</p></header><label className="block">Carteira<select className={input} disabled={!selectedWallet && (walletsLoading || !wallets.length)} aria-busy={walletsLoading} value={selectedWallet?.id ?? ''} onChange={event => selectWallet(event.target.value)}>{!selectedWallet && <option value="">{walletsLoading ? 'Carregando carteiras…' : walletsError ? 'Carteiras indisponíveis' : 'Selecione uma carteira'}</option>}{wallets.map(wallet => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select></label><div role="tablist" aria-label="Ferramentas da carteira" className="flex flex-wrap gap-2">{tabs.map((label, index) => <button className={`${button} ${tab === index ? 'bg-nf-purple text-white' : ''}`} id={`planning-tab-${index}`} aria-controls={`planning-panel-${index}`} role="tab" tabIndex={tab === index ? 0 : -1} onKeyDown={event => {
     const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null

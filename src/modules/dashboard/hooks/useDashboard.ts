@@ -42,6 +42,7 @@ export function aggregateMonthly(
 }
 
 export interface DashboardData {
+  quoteUpdates?: { updatedAt: string; reference: string }[]
   returnEndDate?: string | null
   historyIssues?: string[]
   historyIncomplete?: boolean
@@ -281,7 +282,12 @@ export function useDashboard(walletId?: string, chartFilters?: WealthChartFilter
     void allDividendsQuery.refetch()
   }
 
+  const quoteUpdates = useMemo(() => {
+    const tickers = new Set(current.positions.filter(position => walletId === undefined || position.wallet_id === walletId).map(position => position.ticker))
+    return (current.quotes ?? []).filter(quote => tickers.has(quote.ticker)).map(quote => ({ updatedAt: quote.updated_at, reference: quote.date }))
+  }, [current.quotes, current.positions, walletId])
   return {
+    quoteUpdates,
     returnEndDate: performanceHistory.endDate,
     historyIssues: [...new Set([...(performanceHistory.issues ?? []), ...(annualHistory.diagnosticIssues ?? [])])],
     historyIncomplete: performanceHistory.incomplete || annualHistory.incomplete,

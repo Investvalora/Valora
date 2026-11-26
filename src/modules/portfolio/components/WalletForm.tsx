@@ -25,8 +25,8 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmedName = name.trim()
-    if (!trimmedName) {
-      setError('Informe um nome para a carteira.')
+    if (!trimmedName || trimmedName.length > 60 || !/[\p{L}\p{N}]/u.test(trimmedName) || Array.from(trimmedName).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) {
+      setError('Use de 1 a 60 caracteres e inclua letras ou números no nome da carteira.')
       return
     }
 
@@ -39,8 +39,9 @@ export function WalletForm({ wallet, onClose, onSaved, onBusyChange }: WalletFor
       }
       if (onSaved) onSaved()
       else onClose()
-    } catch {
-      setError('Não foi possível salvar a carteira. Tente novamente.')
+    } catch (cause) {
+      const code = (cause as { code?: string })?.code
+      setError(code === '23505' ? 'Já existe uma carteira com esse nome. Escolha outro nome.' : code === '23514' ? 'Use de 1 a 60 caracteres e inclua letras ou números no nome da carteira.' : 'Não foi possível salvar a carteira. Tente novamente.')
     } finally {
       onBusyChange(false)
     }

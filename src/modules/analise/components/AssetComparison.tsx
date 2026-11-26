@@ -344,7 +344,7 @@ export function AssetComparison({
                       >
                         {row &&
                         !["seed", "synthetic"].includes(row.source ?? "")
-                          ? `${row.reference_date} · ${row.source ?? "Fonte não informada"}`
+                          ? `${row.reference_date ? row.reference_date.split('-').reverse().join('/') : 'Referência não informada'} · ${row.source ?? "Fonte não informada"}`
                           : "Sem dados reais disponíveis"}
                       </td>
                     );

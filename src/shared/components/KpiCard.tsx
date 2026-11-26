@@ -46,7 +46,7 @@ export function KpiCard({
 
       {/* Valor principal */}
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        <span className={`min-w-0 max-w-full [overflow-wrap:anywhere] text-[clamp(1rem,4.2vw,1.375rem)] font-medium leading-tight md:text-[22px] ${valueColor}`}>
+        <span className={`min-w-0 max-w-full [overflow-wrap:anywhere] text-[clamp(1rem,4.2vw,1.375rem)] font-medium leading-tight md:text-[22px] ${value === '—' ? 'text-white/60' : valueColor}`}>
           {value}
         </span>
         {arrowUp && (

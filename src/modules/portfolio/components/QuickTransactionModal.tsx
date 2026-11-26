@@ -739,8 +739,11 @@ function QuickTransactionForm({
         brokerage_fee: parsedOther,
       });
       handleClose();
-    } catch {
-      setError("Não foi possível salvar o lançamento. Tente novamente.");
+    } catch (cause) {
+      const failure = cause as { code?: string; message?: string };
+      setError(failure?.code === '23514' && failure.message?.includes('Saldo histórico insuficiente')
+        ? 'Saldo insuficiente na data da venda. Confira as compras anteriores desta carteira.'
+        : "Não foi possível salvar o lançamento. Tente novamente.");
     }
   }
 

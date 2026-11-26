@@ -30,7 +30,7 @@ it('compara sem posição, preservando zero, ausência e não aplicabilidade', (
   expect(within(table).queryByText('99%')).not.toBeInTheDocument()
   expect(within(table).getAllByText('Não se aplica').length).toBeGreaterThan(0)
   expect(within(table).getAllByText('Indisponível').length).toBeGreaterThan(0)
-  expect(within(table).getByText('2026-11-05 · yahoo')).toBeInTheDocument()
+  expect(within(table).getByText('05/11/2026 · yahoo')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Remover A' }))
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })

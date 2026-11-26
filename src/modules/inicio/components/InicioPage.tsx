@@ -79,7 +79,7 @@ export function InicioPage() {
       </div>
 
       {/* O resumo mobile prioriza os totais; os detalhes ficam disponíveis por toque. */}
-      {isMobile ? <MobileDashboardSummary key={selectedWallet?.id} dashboard={dashboard} /> : <div className="grid grid-cols-2 gap-3 md:flex md:gap-4">
+      {isMobile ? <MobileDashboardSummary key={selectedWallet?.id} dashboard={dashboard} /> : <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <KpiCard
           label="Patrimônio total"
           helpTopic="balance"

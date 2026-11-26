@@ -17,6 +17,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Avoid CPU/memory oversubscription during concurrent cold chart imports.
+    maxWorkers: 2,
     setupFiles: ['./src/test/setup.ts'],
     /**
      * Fuso do runner fixado aqui, não herdado do ambiente. `formatDate` existe

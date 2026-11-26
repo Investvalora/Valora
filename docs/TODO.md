@@ -1,5 +1,7 @@
 # TODO do Valora
 
+**Semana 6 — 26/11/2026:** [triagem e correções da sexta bateria](TODO-sexta-bateria.md), com regressões locais, novas validações de operações/carteiras e pendências financeiras separadas.
+
 **Semana 4 — 11/11/2026:** [triagem da quarta bateria](TODO-quarta-bateria.md), com quatro apontamentos classificados, sete correções anteriores confirmadas pelo avaliador e critérios de reteste.
 
 **Segurança — 06/11/2026:** [TODO de segurança](TODO-seguranca.md), com correções, proteção de login e pendências de publicação, e [relatório do penteste controlado](penteste-controlado-2026-11-06.md).

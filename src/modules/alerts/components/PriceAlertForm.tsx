@@ -95,6 +95,8 @@ function PriceAlertFields({ onClose, onDismiss, onCreated, conditionHint, action
     }
   }
 
+  const target = Number(targetPrice.replace(',', '.'))
+  const alreadyReached = fields.quote && target > 0 && (condition === 'above' ? fields.quote.price >= target : fields.quote.price <= target)
   const form = (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
       {!onCreated && <FormDraftNotice {...draft} onRestore={restore} onDiscard={draft.clear} />}
@@ -102,7 +104,7 @@ function PriceAlertFields({ onClose, onDismiss, onCreated, conditionHint, action
 
       <PriceAlertConditionField value={condition} onChange={setCondition} />
       {conditionHint && <p className="rounded-xl border border-nf-blue/25 bg-nf-blue/10 px-3 py-2 text-sm text-white/80">{conditionHint}</p>}
-      <AlertTargetPriceField model={fields} />
+      <AlertTargetPriceField model={fields} />{alreadyReached && <p role="status" className="text-xs text-amber-200">A última cotação disponível já satisfaz esta condição. Se ela se mantiver, o alerta poderá disparar assim que for verificado.</p>}
       {error && <p className="text-[12px] text-nf-pink" role="alert">{error}</p>}
       {onCreated && <p className="text-xs text-white/60" role={draft.storageFailed ? 'status' : undefined}>{draft.storageFailed
         ? 'O navegador não conseguiu guardar o rascunho nesta aba.'

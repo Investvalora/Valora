@@ -70,7 +70,8 @@ function AlertCard({ alert }: { alert: Alert }) {
   const updateStatus = useUpdateAlertStatus()
 
   const isIgnored    = alert.status === 'ignorado'
-  const isMonitoring = alert.status === 'lido' && alert.type === 'price_target'
+  const isPaused = alert.type === 'price_target' && Boolean(alert.paused)
+  const isMonitoring = alert.status === 'lido' && alert.type === 'price_target' && !isPaused
   const isNew        = alert.status === 'novo'
   const isRead       = alert.status === 'lido' && !isMonitoring
 
@@ -80,7 +81,7 @@ function AlertCard({ alert }: { alert: Alert }) {
   const isPriceTargetTriggered = alert.type === 'price_target' && isNew
 
   // Status badge
-  const statusLabel = isPriceTargetTriggered
+  const statusLabel = isPaused ? 'Pausado' : isPriceTargetTriggered
     ? 'Disparado'
     : isNew
       ? 'Novo'
@@ -90,7 +91,7 @@ function AlertCard({ alert }: { alert: Alert }) {
           ? 'Lido'
           : 'Ignorado'
 
-  const statusClass = isPriceTargetTriggered
+  const statusClass = isPaused ? 'border-white/20 bg-white/5 text-white/60' : isPriceTargetTriggered
     ? 'border-nf-green/40 bg-nf-green/10 text-nf-green'
     : isNew
       ? 'border-nf-blue/35 bg-nf-blue/[0.08] text-nf-blue'
@@ -215,7 +216,7 @@ function AlertCard({ alert }: { alert: Alert }) {
               </>
             )}
             {isIgnored && (
-              <span className="text-[10px] text-white/22">Excluído em 3 dias</span>
+              <span className="text-[10px] text-white/22">Exclusão automática 3 dias após ignorar</span>
             )}
           </div>
         </div>

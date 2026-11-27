@@ -195,7 +195,7 @@ it("mostra recebimentos históricos elegíveis e preserva o histórico público 
         ticker: "PETR4",
         ex_date: "2025-12-15",
         payment_date: "2025-12-30",
-        type: "dividend",
+        type: "DIVIDEND",
         value_per_share: 1,
       },
     ],
@@ -337,7 +337,7 @@ it("permite rolar o histórico no mobile com largura adequada ao período", asyn
     name: "Histórico de cotação com rolagem horizontal",
   });
   expect(scrollArea.previousElementSibling).toHaveClass("w-11", "shrink-0");
-  expect(scrollArea.previousElementSibling).toHaveTextContent("20.00");
+  expect(scrollArea.previousElementSibling).toHaveTextContent("20,00");
   expect(scrollArea.firstElementChild).toHaveClass(
     "min-w-[720px]",
     "sm:min-w-0",

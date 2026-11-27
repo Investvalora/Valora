@@ -396,7 +396,7 @@ function formatAxisDate(value: string): string {
 
 function formatYAxis(value: number): string {
   if (!Number.isFinite(value)) return "";
-  return value >= 100 ? value.toFixed(0) : value.toFixed(2);
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: value >= 100 ? 0 : 2, maximumFractionDigits: value >= 100 ? 0 : 2 });
 }
 
 function priceAxis(data: PricePoint[], avgPrice: number | null) {
@@ -719,7 +719,7 @@ function AssetPositionResult({
         {rows.map(({ label, value, color }) => (
           <div key={label} className="flex justify-between items-center">
             <span className="text-[13px] text-[#8f8f8f]">{label}</span>
-            <span className={`text-sm font-semibold tabular-nums ${color}`}>
+            <span className={`text-sm font-semibold tabular-nums ${value === MISSING ? 'text-white/60' : color}`}>
               {value}
             </span>
           </div>
@@ -1007,7 +1007,7 @@ function AssetScoreAlerts({
                     : "bg-white/[0.06] text-[#8f8f8f]"
                 }`}
               >
-                {alert.status === "novo" ? "Novo" : "Ignorado"}
+                {alert.status === "novo" ? "Novo" : alert.status === "lido" ? "Lido" : "Ignorado"}
               </span>
             </div>
           ))}
@@ -1234,7 +1234,7 @@ function TabProventos({ ticker, currency }: TabProventosProps) {
                             interest: "Juros",
                             distribution: "Rendimento",
                           } as Record<string, string>
-                        )[row.type] ?? row.type}
+                        )[(row.type ?? '').toLowerCase()] ?? row.type ?? 'Não informado'}
                       </span>
                       <span className="mt-1 block text-xs text-white/60">
                         {row.source === "imported"

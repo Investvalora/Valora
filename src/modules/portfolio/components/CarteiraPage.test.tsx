@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -456,7 +456,7 @@ describe('CarteiraPage — valor de mercado, peso e patrimônio', () => {
     supabaseMock.on('price_history', () => ({ data: [quoteRow()], error: null }))
 
     renderPage()
-    await screen.findByRole('row', { name: /PETR4/ })
+    // This contract checks requested tickers, without waiting for unrelated table/chart rendering.
 
     await waitFor(() => {
       const calls = supabaseMock.callArgs('price_history', 'in')
@@ -798,6 +798,7 @@ describe('CarteiraPage — composição por classe', () => {
 
     renderPage()
     await screen.findByRole('row', { name: /PETR4/ })
+    await act(async () => { await vi.dynamicImportSettled() })
 
     // O import lazy do Recharts pode exceder 1s em workers concorrentes.
     await waitFor(() =>
@@ -817,6 +818,7 @@ describe('CarteiraPage — composição por classe', () => {
 
     renderPage()
     await screen.findByRole('row', { name: /PETR4/ })
+    await act(async () => { await vi.dynamicImportSettled() })
 
     await waitFor(() =>
       expect(compositionCard()).toHaveTextContent(

@@ -107,3 +107,12 @@ describe('Gerenciamento de carteiras', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 })
+
+it('explica duplicidade de nome sem fechar o formulário', async () => {
+  createWallet.mockRejectedValueOnce({ code: '23505' })
+  renderPage('/carteiras?nova=1')
+  fireEvent.change(screen.getByLabelText('Nome da carteira'), { target: { value: 'Principal' } })
+  fireEvent.submit(screen.getByLabelText('Nome da carteira').closest('form')!)
+  expect(await screen.findByText('Já existe uma carteira com esse nome. Escolha outro nome.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Nome da carteira')).toHaveValue('Principal')
+})

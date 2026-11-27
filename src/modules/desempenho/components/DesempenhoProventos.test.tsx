@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { DividendRow } from '../../dividends/types'
 import { DesempenhoProventos } from './DesempenhoProventos'
 
@@ -13,6 +13,7 @@ afterEach(() => { cleanup(); mocks.error = false })
 
 it('filtra recebido e a receber juntos sem somar previsão no KPI', async () => {
   render(<DesempenhoProventos />)
+  await act(async () => { await vi.dynamicImportSettled() })
   expect(await screen.findByRole('button', { name: /11\/2026:.*receber R\$\s*45,00.*recebidos R\$\s*30,00.*total R\$\s*75,00/ })).toBeInTheDocument()
   expect(screen.getAllByText(/R\$\s*30,00/).length).toBeGreaterThan(0)
   fireEvent.change(screen.getByPlaceholderText('Buscar ticker…'), { target: { value: 'AAA' } })
@@ -26,6 +27,7 @@ it('filtra recebido e a receber juntos sem somar previsão no KPI', async () => 
 it('falha de previsão mantém recebido visível e informa cobertura incompleta', async () => {
   mocks.error = true
   render(<DesempenhoProventos />)
+  await act(async () => { await vi.dynamicImportSettled() })
   expect(await screen.findByRole('button', { name: /11\/2026:.*receber R\$\s*0,00.*recebidos R\$\s*30,00/ })).toBeInTheDocument()
   expect(screen.getByRole('alert')).toHaveTextContent('Previsão indisponível')
   expect(screen.getByText(/Há anúncios sem data de pagamento/)).toBeInTheDocument()

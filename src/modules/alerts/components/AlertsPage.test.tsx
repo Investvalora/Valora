@@ -339,3 +339,12 @@ describe('AlertsPage', () => {
     expect(mocks.create).toHaveBeenCalledTimes(2)
   })
 })
+
+it('não apresenta Monitorando no selo de um alerta pausado', () => {
+  mocks.alerts = [{ id: 'paused-target', type: 'price_target', ticker: 'PETR4', status: 'lido', paused: true,
+    title: 'Alerta de preço: PETR4', description: 'Preço-alvo', created_at: '2026-11-25T12:00:00Z' }]
+  renderPage()
+  const card = screen.getByRole('article', { name: 'Alerta de preço: PETR4' })
+  expect(within(card).queryByText('Monitorando')).not.toBeInTheDocument()
+  expect(within(card).getAllByText('Pausado').length).toBeGreaterThan(0)
+})
